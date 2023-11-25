@@ -35,6 +35,14 @@
 #ifndef PLANETARY_TOOL_INCLUDED
 #define PLANETARY_TOOL_INCLUDED
 
+// Default planetary detection parameters values
+#define PT_MIN_DIST_DEFAULT    10
+#define PT_PARAM1_DEFAULT      100
+#define PT_PARAM2_DEFAULT      50
+#define PT_MIN_RADIUS_DEFAULT  25
+#define PT_MAX_RADIUS_DEFAULT  50
+#define PT_BLOCK_SIZE_DEFAULT  61
+
 class PlanetTool
 {
     PlanetTool();
