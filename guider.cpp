@@ -34,6 +34,7 @@
 #include "phd.h"
 #include "nudge_lock.h"
 #include "comet_tool.h"
+#include "planetary_tool.h"
 #include "polardrift_tool.h"
 #include "staticpa_tool.h"
 #include "guiding_assistant.h"
@@ -186,6 +187,15 @@ Guider::Guider(wxWindow *parent, int xSize, int ySize) :
 
     m_polarAlignCircleRadius = 0.0;
     m_polarAlignCircleCorrection = 1.0;
+
+    m_Planetary_enabled = false;
+    m_EclipseMode = false;
+    m_Planetary_minDist = PT_MIN_DIST_DEFAULT;
+    m_Planetary_param1 = PT_PARAM1_DEFAULT;
+    m_Planetary_param2 = PT_PARAM2_DEFAULT;
+    m_Planetary_minRadius = PT_MIN_RADIUS_DEFAULT;
+    m_Planetary_maxRadius = PT_MAX_RADIUS_DEFAULT;
+    m_Planetary_BlockSize = PT_BLOCK_SIZE_DEFAULT;
 
     SetBackgroundStyle(wxBG_STYLE_CUSTOM);
     SetBackgroundColour(wxColour((unsigned char) 30, (unsigned char) 30,(unsigned char) 30));
@@ -1827,6 +1837,86 @@ void Guider::SetMaxStarHFD(double val)
     Debug.Write(wxString::Format("Setting MaxHFD = %0.1f\n", val));
     pConfig->Profile.SetDouble("/guider/StarMaxHFD", val);
     m_maxStarHFD = val;
+}
+
+bool Guider::GetPlanetaryEnableState()
+{
+    return m_Planetary_enabled;
+}
+
+void Guider::SetPlanetaryEnableState(bool enabled)
+{
+    m_Planetary_enabled = enabled;
+}
+
+void Guider::SetPlanetaryParam_minDist(double val)
+{
+    m_Planetary_minDist = val;
+}
+
+double Guider::GetPlanetaryParam_minDist()
+{
+    return m_Planetary_minDist;
+}
+
+void Guider::SetPlanetaryParam_param1(double val)
+{
+    m_Planetary_param1 = val;
+}
+
+double Guider::GetPlanetaryParam_param1()
+{
+    return m_Planetary_param1;
+}
+
+void Guider::SetPlanetaryParam_param2(double val)
+{
+    m_Planetary_param2 = val;
+}
+
+double Guider::GetPlanetaryParam_param2()
+{
+    return m_Planetary_param2;
+}
+
+void Guider::SetPlanetaryParam_minRadius(double val)
+{
+    m_Planetary_minRadius = val;
+}
+
+double Guider::GetPlanetaryParam_minRadius()
+{
+    return m_Planetary_minRadius;
+}
+
+void Guider::SetPlanetaryParam_maxRadius(double val)
+{
+    m_Planetary_maxRadius = val;
+}
+
+void Guider::SetEclipseBlockSize(double val)
+{
+    m_Planetary_BlockSize = val;
+}
+
+double Guider::GetEclipseBlockSize()
+{
+    return m_Planetary_BlockSize;
+}
+
+double Guider::GetPlanetaryParam_maxRadius()
+{
+    return m_Planetary_maxRadius;
+}
+
+bool Guider::GetEclipseMode()
+{
+    return m_EclipseMode;
+}
+
+void Guider::SetEclipseMode(bool value)
+{
+    m_EclipseMode = value;
 }
 
 void Guider::SetAutoSelDownsample(unsigned int val)
