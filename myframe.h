@@ -224,6 +224,7 @@ public:
     wxMenuItem *m_cameraMenuItem;
     wxMenuItem *m_autoSelectStarMenuItem;
     wxMenuItem *m_takeDarksMenuItem;
+    wxMenuItem *m_PlanetaryMenuItem;
     wxMenuItem *m_useDarksMenuItem;
     wxMenuItem *m_refineDefMapMenuItem;
     wxMenuItem *m_useDefectMapMenuItem;
@@ -250,6 +251,7 @@ public:
     wxDialog *pStarCrossDlg;
     wxWindow *pNudgeLock;
     wxWindow *pCometTool;
+    wxWindow *pPlanetTool;
     wxWindow *pGuidingAssistant;
     wxWindow *pierFlipToolWin;
     RefineDefMap *pRefineDefMap;
@@ -306,6 +308,7 @@ public:
     void OnStaticPaTool(wxCommandEvent& evt);
     void OnCalibrationAssistant(wxCommandEvent& evt);
     void OnCometTool(wxCommandEvent& evt);
+    void OnPlanetTool(wxCommandEvent& evt);
     void OnGuidingAssistant(wxCommandEvent& evt);
     void OnSetupCamera(wxCommandEvent& evt);
     void OnExposureDurationSelected(wxCommandEvent& evt);
@@ -631,6 +634,7 @@ enum {
     MENU_POLARDRIFTTOOL,
     MENU_STATICPATOOL,
     MENU_COMETTOOL,
+    MENU_PLANETARY,
     MENU_GUIDING_ASSISTANT,
     MENU_SAVESETTINGS,
     MENU_LOADSETTINGS,
