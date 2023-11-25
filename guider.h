@@ -169,6 +169,16 @@ class Guider : public wxWindow
     double m_maxStarHFD;
     unsigned int m_autoSelDownsample;  // downsample factor for star auto-selection, 0=Auto
 
+    // Planetary guiding parameters
+    bool m_Planetary_enabled;
+    bool m_EclipseMode;
+    double m_Planetary_minDist;
+    double m_Planetary_param1;
+    double m_Planetary_param2;
+    double m_Planetary_minRadius;
+    double m_Planetary_maxRadius;
+    double m_Planetary_BlockSize;
+
 protected:
     int m_searchRegion; // how far u/d/l/r do we do the initial search for a star
     bool m_forceFullFrame;
@@ -278,6 +288,24 @@ public:
 
     void SetAutoSelDownsample(unsigned int val);
     unsigned int GetAutoSelDownsample() const;
+
+    // Planetary disk detection parameters
+    bool GetPlanetaryEnableState();
+    void SetPlanetaryEnableState(bool enabled);
+    void SetPlanetaryParam_minDist(double val);
+    double GetPlanetaryParam_minDist();
+    void SetPlanetaryParam_param1(double val);
+    double GetPlanetaryParam_param1();
+    void SetPlanetaryParam_param2(double val);
+    double GetPlanetaryParam_param2();
+    void SetPlanetaryParam_minRadius(double val);
+    double GetPlanetaryParam_minRadius();
+    void SetPlanetaryParam_maxRadius(double val);
+    double GetPlanetaryParam_maxRadius();
+    void SetEclipseBlockSize(double val);
+    double GetEclipseBlockSize();
+    bool GetEclipseMode();
+    void SetEclipseMode(bool);
 
     // virtual functions -- these CAN be overridden by a subclass, which should
     // consider whether they need to call the base class functions as part of
