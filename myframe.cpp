@@ -38,6 +38,7 @@
 
 #include "aui_controls.h"
 #include "comet_tool.h"
+#include "planetary_tool.h"
 #include "config_indi.h"
 #include "guiding_assistant.h"
 #include "phdupdate.h"
@@ -95,6 +96,7 @@ wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(MENU_POLARDRIFTTOOL, MyFrame::OnPolarDriftTool)
     EVT_MENU(MENU_STATICPATOOL, MyFrame::OnStaticPaTool)
     EVT_MENU(MENU_COMETTOOL, MyFrame::OnCometTool)
+    EVT_MENU(MENU_PLANETARY, MyFrame::OnPlanetTool)
     EVT_MENU(MENU_GUIDING_ASSISTANT, MyFrame::OnGuidingAssistant)
     EVT_MENU(MENU_HELP_UPGRADE, MyFrame::OnUpgrade)
     EVT_MENU(MENU_HELP_ONLINE, MyFrame::OnHelpOnline)
@@ -360,6 +362,7 @@ MyFrame::MyFrame()
     pStarCrossDlg = nullptr;
     pNudgeLock = nullptr;
     pCometTool = nullptr;
+    pPlanetTool = nullptr;
     pGuidingAssistant = nullptr;
     pRefineDefMap = nullptr;
     pCalSanityCheckDlg = nullptr;
@@ -520,6 +523,7 @@ void MyFrame::SetupMenuBar()
 
     tools_menu->Append(EEGG_MANUALLOCK, _("Adjust &Lock Position"), _("Adjust the lock position"));
     tools_menu->Append(MENU_COMETTOOL, _("&Comet Tracking"), _("Run the Comet Tracking tool"));
+    m_PlanetaryMenuItem = tools_menu->AppendCheckItem(MENU_PLANETARY, _("&Planetary Tracking"), _("Run the Planet Tracking tool"));
     tools_menu->Append(MENU_STARCROSS_TEST, _("Star-Cross Test"), _("Run a star-cross test for mount diagnostics"));
     tools_menu->Append(MENU_PIERFLIP_TOOL, _("Calibrate meridian flip"), _("Automatically determine the correct meridian flip settings"));
     tools_menu->Append(MENU_GUIDING_ASSISTANT, _("&Guiding Assistant"), _("Run the Guiding Assistant"));
@@ -1180,6 +1184,9 @@ void MyFrame::UpdateButtonsStatus()
 
     if (pCometTool)
         CometTool::UpdateCometToolControls(false);
+
+    if (pPlanetTool)
+        PlanetTool::UpdatePlanetToolControls(false);
 
     if (pGuidingAssistant)
         GuidingAssistant::UpdateUIControls();
