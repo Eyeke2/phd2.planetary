@@ -370,6 +370,7 @@ MyFrame::MyFrame()
     pCalibrationAssistant = nullptr;
     pierFlipToolWin = nullptr;
     m_starFindMode = Star::FIND_CENTROID;
+    m_StarFindMode_Saved = m_starFindMode;
     m_rawImageMode = false;
     m_rawImageModeWarningDone = false;
 
@@ -803,6 +804,16 @@ wxString MyFrame::ExposureDurationLabel(int duration)
 
     int digits = duration < 100 ? 2 : 1;
     return wxString::Format(_("%.*f s"), digits, (double) duration / 1000.);
+}
+
+void MyFrame::SaveStarFindMode()
+{
+    m_StarFindMode_Saved = m_starFindMode;
+}
+
+void MyFrame::RestoreStarFindMode()
+{
+    m_starFindMode = m_StarFindMode_Saved;
 }
 
 Star::FindMode MyFrame::SetStarFindMode(Star::FindMode mode)

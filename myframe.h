@@ -265,6 +265,8 @@ public:
     wxDateTime m_guidingStarted;
     wxStopWatch m_guidingElapsed;
     Star::FindMode m_starFindMode;
+    Star::FindMode m_StarFindMode_Saved;
+
     double m_minStarHFD;
     bool m_rawImageMode;
     bool m_rawImageModeWarningDone;
@@ -369,6 +371,9 @@ public:
     static double GetDitherAmount(int ditherType);
     Star::FindMode GetStarFindMode() const;
     Star::FindMode SetStarFindMode(Star::FindMode mode);
+    void SaveStarFindMode();
+    void RestoreStarFindMode();
+
     bool GetRawImageMode() const;
     bool SetRawImageMode(bool force);
 
