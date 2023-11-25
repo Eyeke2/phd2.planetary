@@ -268,11 +268,14 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
 {
     if (!pFrame->pGuider->GetPlanetaryEnableState())
     {
+        pFrame->SaveStarFindMode();
+        pFrame->SetStarFindMode(Star::FIND_PLANET);
         pFrame->pGuider->SetPlanetaryEnableState(true);
         pFrame->m_PlanetaryMenuItem->Check(true);
         SetEnabledState(this, true);
     } else
     {
+        pFrame->RestoreStarFindMode();
         pFrame->pGuider->SetPlanetaryEnableState(false);
         pFrame->m_PlanetaryMenuItem->Check(false);
         SetEnabledState(this, false);
@@ -387,6 +390,8 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         pFrame->pGuider->SetPlanetaryParam_minRadius(PT_MIN_RADIUS_DEFAULT);
         pFrame->pGuider->SetPlanetaryParam_maxRadius(PT_MAX_RADIUS_DEFAULT);
         pFrame->pGuider->SetEclipseBlockSize(PT_BLOCK_SIZE_DEFAULT);
+        if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+            pFrame->RestoreStarFindMode();        
 
         SetEnabledState(this, false);
         m_minDist->SetValue(pFrame->pGuider->GetPlanetaryParam_minDist());
