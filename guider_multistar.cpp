@@ -1607,6 +1607,55 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
             return true;
         }
     }
+    else
+    {
+        // Apply adaptive threshold (works on 8-bit images)
+        IplImage src8 = IplImage(img8);
+        IplImage *thresholded = cvCreateImage(cvGetSize(&src8), IPL_DEPTH_8U, 1);
+        cvAdaptiveThreshold(&src8, thresholded, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, pFrame->pGuider->GetEclipseBlockSize(), 0);
+
+        // Find contours
+        CvMemStorage *storage = cvCreateMemStorage(0);
+        CvSeq *contour = NULL;
+        cvFindContours(thresholded, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0, 0));
+
+        // Fit circle/ellipse to contours and find the largest one
+        CvPoint2D32f largest_circle_center;
+        int largest_circle_radius = 0;
+
+        // Find smallest circle encompassing the contour of the eclipsed circle
+        for (; contour != NULL; contour = contour->h_next)
+        {
+            if (contour->total >= 5)
+            {   // Need at least 5 points to fit ellipse
+                CvPoint2D32f circle_center;
+                float circle_radius;
+                if (cvMinEnclosingCircle(contour, &circle_center, &circle_radius))
+                {
+                    if ((circle_radius > largest_circle_radius) &&
+                        (cvRound(circle_radius) <= maxRadius) &&
+                        (cvRound(circle_radius) >= minRadius))
+                    {
+                        largest_circle_radius = cvRound(circle_radius);
+                        largest_circle_center = circle_center;
+                    }
+                }
+            }
+        }
+
+        // Free allocated storage
+        cvReleaseImage(&thresholded);
+        cvReleaseMemStorage(&storage);
+
+        if (largest_circle_radius > 0)
+        {
+            pFrame->pGuider->m_Planet.center_x = cvRound(largest_circle_center.x);
+            pFrame->pGuider->m_Planet.center_y = cvRound(largest_circle_center.y);
+            pFrame->pGuider->m_Planet.radius = largest_circle_radius;
+
+            return true;
+        }
+    }
 
     return false;
 }
