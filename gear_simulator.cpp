@@ -1282,38 +1282,6 @@ CameraSimulator::~CameraSimulator()
 #endif
 }
 
-#if SIMMODE==2
-bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxRect& subframe)
-{
-    int xsize, ysize;
-    wxImage disk_image;
-    unsigned short *dataptr;
-    unsigned char *imgptr;
-
-    bool retval = disk_image.LoadFile("/Users/stark/dev/PHD/simimage.bmp");
-    if (!retval) {
-        pFrame->Alert(_("Cannot load simulated image"));
-        return true;
-    }
-    xsize = disk_image.GetWidth();
-    ysize = disk_image.GetHeight();
-    if (img.Init(xsize,ysize)) {
-        pFrame->Alert(_("Memory allocation error"));
-        return true;
-    }
-
-    dataptr = img.ImageData;
-    imgptr = disk_image.GetData();
-    for (unsigned int i = 0; i < img.NPixels; i++, dataptr++, imgptr++) {
-        *dataptr = (unsigned short) *imgptr;
-        imgptr++; imgptr++;
-    }
-    QuickLRecon(img);
-    return false;
-
-}
-#endif
-
 #if SIMMODE == 3
 static void fill_noise(usImage& img, const wxRect& subframe, int exptime, int gain, int offset)
 {
@@ -1344,6 +1312,34 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
             return true;
         }
     }
+
+#if SIMMODE==2
+    int xsize, ysize;
+    wxImage disk_image;
+    unsigned short *dataptr;
+    unsigned char *imgptr;
+
+    bool retval = disk_image.LoadFile("/Users/stark/dev/PHD/simimage.bmp");
+    if (!retval) {
+        pFrame->Alert(_("Cannot load simulated image"));
+        return true;
+    }
+    xsize = disk_image.GetWidth();
+    ysize = disk_image.GetHeight();
+    if (img.Init(xsize, ysize)) {
+        pFrame->Alert(_("Memory allocation error"));
+        return true;
+    }
+
+    dataptr = img.ImageData;
+    imgptr = disk_image.GetData();
+    for (unsigned int i = 0; i < img.NPixels; i++, dataptr++, imgptr++) {
+        *dataptr = (unsigned short) *imgptr;
+        imgptr++; imgptr++;
+    }
+
+    QuickLRecon(img);
+#else
 
 #if SIMMODE == 1
 
@@ -1390,6 +1386,7 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
     if (options & CAPTURE_SUBTRACT_DARK) SubtractDark(img);
 
 #endif // SIMMODE == 1
+#endif // SIMMODE == 2
 
     unsigned int tot_dur = duration + SimCamParams::frame_download_ms;
     long elapsed = watchdog.Time();
