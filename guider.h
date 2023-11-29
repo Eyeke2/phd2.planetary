@@ -135,6 +135,13 @@ struct GuiderOffset
     PHD_Point mountOfs;
 };
 
+struct Planet
+{
+    int center_x;
+    int center_y;
+    int radius;
+};
+
 class Guider : public wxWindow
 {
     wxImage *m_displayedImage;
@@ -343,6 +350,9 @@ public:
     usImage *CurrentImage() const;
     wxImage *DisplayedImage() const;
     double ScaleFactor() const;
+
+    // Planet position and properties
+    struct Planet m_Planet;
 
     virtual wxString GetSettingsSummary() const;
 

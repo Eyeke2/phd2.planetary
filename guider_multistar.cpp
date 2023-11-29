@@ -394,7 +394,8 @@ bool GuiderMultiStar::SetCurrentPosition(const usImage *pImage, const PHD_Point&
         }
 
         m_massChecker->Reset();
-        bError = !m_primaryStar.Find(pImage, m_searchRegion, x, y, pFrame->GetStarFindMode(),
+        int searchRegion = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? pFrame->pGuider->m_Planet.radius : m_searchRegion;
+        bError = !m_primaryStar.Find(pImage, searchRegion, x, y, pFrame->GetStarFindMode(),
                               GetMinStarHFD(), GetMaxStarHFD(), pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE);
     }
     catch (const wxString& Msg)
@@ -470,14 +471,35 @@ bool GuiderMultiStar::AutoSelect(const wxRect& roi)
             edgeAllowance = wxMax(edgeAllowance, pSecondaryMount->CalibrationTotDistance());
 
         GuideStar newStar;
-        if (!newStar.AutoFind(*image, edgeAllowance, m_searchRegion, roi, m_guideStars, MAX_LIST_SIZE))
+        int searchRegion;
+        Star::FindMode findMode = pFrame->GetStarFindMode();
+
+        if (findMode == Star::FIND_PLANET)
         {
-            throw ERROR_INFO("Unable to AutoFind");
+            if (FindPlanet(image))
+            {
+                newStar.X = newStar.referencePoint.X = pFrame->pGuider->m_Planet.center_x;
+                newStar.Y = newStar.referencePoint.Y = pFrame->pGuider->m_Planet.center_y;
+                searchRegion = pFrame->pGuider->m_Planet.radius;
+                m_guideStars.clear();
+                m_guideStars.push_back(newStar);
+            } else
+            {
+                throw ERROR_INFO("Unable to AutoFind");
+            }
+        } else
+        {
+            searchRegion = m_searchRegion;
+            findMode = Star::FIND_CENTROID;
+            if (!newStar.AutoFind(*image, edgeAllowance, m_searchRegion, roi, m_guideStars, MAX_LIST_SIZE))
+            {
+                throw ERROR_INFO("Unable to AutoFind");
+            }
         }
 
         m_massChecker->Reset();
 
-        if (!m_primaryStar.Find(image, m_searchRegion, newStar.X, newStar.Y, Star::FIND_CENTROID, GetMinStarHFD(), GetMaxStarHFD(),
+        if (!m_primaryStar.Find(image, searchRegion, newStar.X, newStar.Y, findMode, GetMinStarHFD(), GetMaxStarHFD(),
                          pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE))
         {
             throw ERROR_INFO("Unable to find");
@@ -929,8 +951,18 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
     try
     {
         Star newStar(m_primaryStar);
+        int search_region = m_searchRegion;
 
-        if (!newStar.Find(pImage, m_searchRegion, pFrame->GetStarFindMode(), GetMinStarHFD(),
+        if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+        {
+            FindPlanet(pImage);
+            double newpos_x = pFrame->pGuider->m_Planet.center_x;
+            double newpos_y = pFrame->pGuider->m_Planet.center_y;
+            newStar.SetXY(newpos_x, newpos_y);
+            search_region = pFrame->pGuider->m_Planet.radius;
+        }
+
+        if (!newStar.Find(pImage, search_region, pFrame->GetStarFindMode(), GetMinStarHFD(),
             GetMaxStarHFD(), pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE))
         {
             errorInfo->starError = newStar.GetError();
@@ -1131,9 +1163,20 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
                 throw ERROR_INFO("Skipping event m_pCurrentImage->NPixels == 0");
             }
 
-            double scaleFactor = ScaleFactor();
-            double StarX = (double) mevent.m_x / scaleFactor;
-            double StarY = (double) mevent.m_y / scaleFactor;
+            double StarX, StarY;
+
+            if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+            {
+                FindPlanet((const usImage *) pImage);
+                StarX = (double)pFrame->pGuider->m_Planet.center_x;
+                StarY = (double)pFrame->pGuider->m_Planet.center_y;
+            }
+            else
+            {
+                double scaleFactor = ScaleFactor();
+                StarX = (double)mevent.m_x / scaleFactor;
+                StarY = (double)mevent.m_y / scaleFactor;
+            }
 
             SetCurrentPosition(pImage, PHD_Point(StarX, StarY));
 
@@ -1151,7 +1194,10 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
                     m_guideStars.push_back(m_primaryStar);
                 }
                 Debug.Write("MultiStar: single-star usage forced by user star selection\n");
-                pFrame->StatusMsg(wxString::Format(_("Selected star at (%.1f, %.1f)"), m_primaryStar.X, m_primaryStar.Y));
+                if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+                    pFrame->StatusMsg(wxString::Format(_("Selected planet at (%.1f, %.1f)"), m_primaryStar.X, m_primaryStar.Y));
+                else
+                    pFrame->StatusMsg(wxString::Format(_("Selected star at (%.1f, %.1f)"), m_primaryStar.X, m_primaryStar.Y));
                 pFrame->UpdateStatusBarStarInfo(m_primaryStar.SNR, m_primaryStar.GetError() == Star::STAR_SATURATED);
                 EvtServer.NotifyStarSelected(CurrentPosition());
                 SetState(STATE_SELECTED);
@@ -1172,8 +1218,15 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
 inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double scale)
 {
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
-    double w = ROUND((halfW * 2 + 1) * scale);
-    dc.DrawRectangle(int((star.X - halfW) * scale), int((star.Y - halfW) * scale), w, w);
+    if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+    {
+        dc.DrawCircle(int(star.X * scale + 0.5), int(star.Y * scale + 0.5), int(pFrame->pGuider->m_Planet.radius * scale + 0.5));
+    }
+    else
+    {
+        double w = ROUND((halfW * 2 + 1) * scale);
+        dc.DrawRectangle(int((star.X - halfW) * scale), int((star.Y - halfW) * scale), w, w);
+    }
 }
 
 // Define the repainting behaviour
@@ -1497,4 +1550,63 @@ void GuiderMultiStarConfigDialogCtrlSet::OnMultiStarChecked(wxCommandEvent& evt)
 void GuiderMultiStarConfigDialogCtrlSet::OnStarMassEnableChecked(wxCommandEvent& event)
 {
     m_pMassChangeThreshold->Enable(event.IsChecked());
+}
+
+#include <opencv/cv.h>
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+
+using namespace cv;
+
+bool GuiderMultiStar::FindPlanet(const usImage *pImage)
+{
+    int format;
+    switch (pImage->BitsPerPixel)
+    {
+    case 16: format = CV_16UC1;
+        break;
+    case 8: format = CV_8UC1;
+        break;
+    default:
+        return false;
+    }
+    Mat img(pImage->Size.GetHeight(), pImage->Size.GetWidth(), format, pImage->ImageData);
+    Mat img8 = img.clone();
+    if (pImage->BitsPerPixel == 16)
+        img8.convertTo(img8, CV_8U, 1.0 / 256.0);
+
+    // Do slight image bluring to decrease noise impact on results
+    medianBlur(img8, img8, 5);
+
+    int minRadius = (int)pFrame->pGuider->GetPlanetaryParam_minRadius();
+    int maxRadius = (int)pFrame->pGuider->GetPlanetaryParam_maxRadius();
+
+    bool eclipse_mode = pFrame->pGuider->GetEclipseMode();
+    if (!eclipse_mode)
+    {
+        double minDist = pFrame->pGuider->GetPlanetaryParam_minDist();
+        double param1 = pFrame->pGuider->GetPlanetaryParam_param1();
+        double param2 = pFrame->pGuider->GetPlanetaryParam_param2();
+
+        // Find circles matching given criteria
+        vector<Vec3f> circles;
+        HoughCircles(img8, circles, CV_HOUGH_GRADIENT, 1.0, minDist, param1, param2, minRadius, maxRadius);
+
+        // Find and use largest circle from the detected set of circles
+        Vec3i center = { 0, 0, 0 };
+        for (const auto& c: circles)
+        {
+            if (c[2] > center[2])
+                center = c;
+        }
+        if (center[2])
+        {
+            pFrame->pGuider->m_Planet.center_x = center[0];
+            pFrame->pGuider->m_Planet.center_y = center[1];
+            pFrame->pGuider->m_Planet.radius = center[2];
+            return true;
+        }
+    }
+
+    return false;
 }
