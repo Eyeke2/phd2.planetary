@@ -136,6 +136,8 @@ bool Star::Find(const usImage *pImg, int searchRegion, int base_x, int base_y, F
             pImg->Subframe.x, pImg->Subframe.y, pImg->Subframe.width, pImg->Subframe.height, minHFD, maxHFD, maxADU, pImg->FrameNum));
 
         int minx, miny, maxx, maxy;
+        int inner_radius = 7;
+        int outer_radius = 12;
 
         if (pImg->Subframe.IsEmpty())
         {
@@ -188,7 +190,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, int base_x, int base_y, F
 
             PeakVal = peak_val;
         }
-        else
+        else if (mode == FIND_CENTROID)
         {
             // find the peak value within the search region using a smoothing function
             // also check for saturation
@@ -228,10 +230,33 @@ bool Star::Find(const usImage *pImg, int searchRegion, int base_x, int base_y, F
             PeakVal = max3[0];   // raw peak val
             peak_val /= 16; // smoothed peak value
         }
+        else // FIND_PLANET
+        {
+            peak_x = base_x;
+            peak_y = base_y;
+            inner_radius = searchRegion;       // inner radius
+            outer_radius = searchRegion + 5;   // outer radius
+
+            for (int y = start_y + 1; y <= end_y - 1; y++)
+            {
+                for (int x = start_x + 1; x <= end_x - 1; x++)
+                {
+                    unsigned short p = imgdata[y * rowsize + x];
+                    if (p > max3[0])
+                        std::swap(p, max3[0]);
+                    if (p > max3[1])
+                        std::swap(p, max3[1]);
+                    if (p > max3[2])
+                        std::swap(p, max3[2]);
+                }
+            }
+            peak_val = max3[0];
+            PeakVal = peak_val;
+        }
 
         // meaure noise in the annulus with inner radius A and outer radius B
-        int const A = 7;   // inner radius
-        int const B = 12;  // outer radius
+        int const A = inner_radius;
+        int const B = outer_radius;
         int const A2 = A * A;
         int const B2 = B * B;
 
@@ -391,8 +416,11 @@ bool Star::Find(const usImage *pImg, int searchRegion, int base_x, int base_y, F
             goto done;
         }
 
-        newX = peak_x + cx / mass;
-        newY = peak_y + cy / mass;
+        if (mode != FIND_PLANET)
+        {
+            newX = peak_x + cx / mass;
+            newY = peak_y + cy / mass;
+        }
 
         HFD = 2.0 * hfr(hfrvec, newX, newY, mass);
         // Check for constraints on HFD value
@@ -403,7 +431,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, int base_x, int base_y, F
                 Result = STAR_LOWHFD;
                 goto done;
             }
-            if (HFD > maxHFD)
+            if ((mode != FIND_PLANET) && (HFD > maxHFD))
             {
                 Result = STAR_HIHFD;
                 goto done;
