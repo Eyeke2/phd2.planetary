@@ -1319,11 +1319,13 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
     unsigned short *dataptr;
     unsigned char *imgptr;
 
+    // Can be also PNG or JPG file
     bool retval = disk_image.LoadFile("/Temp/phd2/sim_image.bmp");
     if (!retval) {
         pFrame->Alert(_("Cannot load simulated image"));
         return true;
     }
+
     xsize = disk_image.GetWidth();
     ysize = disk_image.GetHeight();
     if (img.Init(xsize, ysize)) {
@@ -1331,11 +1333,16 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
         return true;
     }
 
+    // Convert to greyscale
+    disk_image.ConvertToGreyscale();
+
+    // disk_image now contains 24-bit RGB pixels, R=G=B
     dataptr = img.ImageData;
     imgptr = disk_image.GetData();
-    for (unsigned int i = 0; i < img.NPixels; i++, dataptr++, imgptr++) {
-        *dataptr = (unsigned short) *imgptr;
-        imgptr++; imgptr++;
+    int sample_size = disk_image.HasAlpha() ? 4 : 3;
+    for (unsigned int i = 0; i < img.NPixels; i++, dataptr++, imgptr+=sample_size) {
+        unsigned char data = *imgptr;
+        *dataptr = (unsigned short) data << 8;
     }
 
     QuickLRecon(img);
