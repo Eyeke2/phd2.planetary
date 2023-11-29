@@ -88,27 +88,45 @@ void ProfileWindow::SetState(bool is_active)
 void ProfileWindow::UpdateData(const usImage *img, float xpos, float ypos)
 {
     if (this->data == NULL) return;
-    int xstart = ROUNDF(xpos) - HALFW;
-    int ystart = ROUNDF(ypos) - HALFW;
+
+    Star::FindMode findMode = pFrame->GetStarFindMode();
+    int radius = (findMode == Star::FIND_PLANET) ? pFrame->pGuider->m_Planet.radius * 5 / 4: HALFW;
+
+    int xstart = ROUNDF(xpos) - radius;
+    int ystart = ROUNDF(ypos) - radius;
     if (xstart < 0) xstart = 0;
-    else if (xstart > (img->Size.GetWidth() - (FULLW + 1)))
-        xstart = img->Size.GetWidth() - (FULLW + 1);
+    else if (xstart >(img->Size.GetWidth() - (radius*2+1)))
+        xstart = img->Size.GetWidth() - (radius*2+1);
     if (ystart < 0) ystart = 0;
-    else if (ystart > (img->Size.GetHeight() - (FULLW + 1)))
-        ystart = img->Size.GetHeight() - (FULLW + 1);
+    else if (ystart >(img->Size.GetHeight() - (radius*2+1)))
+        ystart = img->Size.GetHeight() - (radius*2+1);
 
     int x,y;
     unsigned short *uptr = this->data;
     const int xrowsize = img->Size.GetWidth();
     for (x = 0; x < FULLW; x++)
         horiz_profile[x] = vert_profile[x] = midrow_profile[x] = 0;
-    for (y = 0; y < FULLW; y++) {
-        for (x = 0; x < FULLW; x++, uptr++) {
-            *uptr = *(img->ImageData + xstart + x + (ystart + y) * xrowsize);
-            horiz_profile[x] += (int) *uptr;
-            vert_profile[y] += (int) *uptr;
+    if ((findMode == Star::FIND_PLANET) && (radius > HALFW))
+    {
+        for (y = 0; y < radius * 2 + 1; y++) {
+            int ys = y * (FULLW - 1) / (radius * 2);
+            for (x = 0; x < radius * 2 + 1; x++) {
+                unsigned short sample = *(img->ImageData + xstart + x + (ystart + y) * xrowsize);
+                int xs = x * (FULLW - 1) / (radius * 2);
+                this->data[xs + ys * FULLW] = sample;
+                horiz_profile[xs] += (int) sample;
+                vert_profile[ys] += (int) sample;
+            }
         }
     }
+    else
+        for (y = 0; y < FULLW; y++) {
+            for (x = 0; x < FULLW; x++, uptr++) {
+                *uptr = *(img->ImageData + xstart + x + (ystart + y) * xrowsize);
+                horiz_profile[x] += (int) *uptr;
+                vert_profile[y] += (int) *uptr;
+            }
+        }
     uptr = this->data + (FULLW * HALFW);
     for (x = 0; x < FULLW; x++, uptr++)
         midrow_profile[x] = (int) *uptr;
@@ -248,13 +266,14 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         double dStarY = LockY - pFrame->pGuider->CurrentPosition().Y * scaleFactor;
         // grab the subframe
         wxBitmap dBmp(*img);
+        int radius = (pFrame->GetStarFindMode() == Star::FIND_PLANET) && (pFrame->pGuider->m_Planet.radius > HALFW) ? pFrame->pGuider->m_Planet.radius * 5 / 4: 15;
         int lkx = ROUND(LockX);
-        int l = std::max(0, lkx - 15);
-        int r = std::min(dBmp.GetWidth() - 1, lkx + 15);
+        int l = std::max(0, lkx - radius);
+        int r = std::min(dBmp.GetWidth() - 1, lkx + radius);
         int w = std::min(lkx - l, r - lkx);
         int lky = ROUND(LockY);
-        int t = std::max(0, lky - 15);
-        int b = std::min(dBmp.GetHeight() - 1, lky + 15);
+        int t = std::max(0, lky - radius);
+        int b = std::min(dBmp.GetHeight() - 1, lky + radius);
         int h = std::min(lky - t, b - lky);
         int sz = std::min(w, h);
         // scale by 2
