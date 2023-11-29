@@ -1319,7 +1319,7 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
     unsigned short *dataptr;
     unsigned char *imgptr;
 
-    bool retval = disk_image.LoadFile("/Users/stark/dev/PHD/simimage.bmp");
+    bool retval = disk_image.LoadFile("/Temp/phd2/sim_image.bmp");
     if (!retval) {
         pFrame->Alert(_("Cannot load simulated image"));
         return true;
