@@ -104,13 +104,14 @@ void ProfileWindow::UpdateData(const usImage *img, float xpos, float ypos)
     int x,y;
     unsigned short *uptr = this->data;
     const int xrowsize = img->Size.GetWidth();
+    const int yrowsize = img->Size.GetHeight();
     for (x = 0; x < FULLW; x++)
         horiz_profile[x] = vert_profile[x] = midrow_profile[x] = 0;
     if ((findMode == Star::FIND_PLANET) && (radius > HALFW))
     {
-        for (y = 0; y < radius * 2 + 1; y++) {
+        for (y = 0; (y < radius * 2 + 1) && (y < yrowsize); y++) {
             int ys = y * (FULLW - 1) / (radius * 2);
-            for (x = 0; x < radius * 2 + 1; x++) {
+            for (x = 0; (x < radius * 2 + 1) && (x < xrowsize); x++) {
                 unsigned short sample = *(img->ImageData + xstart + x + (ystart + y) * xrowsize);
                 int xs = x * (FULLW - 1) / (radius * 2);
                 this->data[xs + ys * FULLW] = sample;
