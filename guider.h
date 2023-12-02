@@ -184,7 +184,6 @@ class Guider : public wxWindow
     double m_Planetary_param2;
     double m_Planetary_minRadius;
     double m_Planetary_maxRadius;
-    double m_Planetary_BlockSize;
 
 protected:
     int m_searchRegion; // how far u/d/l/r do we do the initial search for a star
@@ -309,8 +308,6 @@ public:
     double GetPlanetaryParam_minRadius();
     void SetPlanetaryParam_maxRadius(double val);
     double GetPlanetaryParam_maxRadius();
-    void SetEclipseBlockSize(double val);
-    double GetEclipseBlockSize();
     bool GetEclipseMode();
     void SetEclipseMode(bool);
 

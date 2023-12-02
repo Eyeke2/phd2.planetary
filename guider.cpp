@@ -195,7 +195,6 @@ Guider::Guider(wxWindow *parent, int xSize, int ySize) :
     m_Planetary_param2 = PT_PARAM2_DEFAULT;
     m_Planetary_minRadius = PT_MIN_RADIUS_DEFAULT;
     m_Planetary_maxRadius = PT_MAX_RADIUS_DEFAULT;
-    m_Planetary_BlockSize = PT_BLOCK_SIZE_DEFAULT;
 
     SetBackgroundStyle(wxBG_STYLE_CUSTOM);
     SetBackgroundColour(wxColour((unsigned char) 30, (unsigned char) 30,(unsigned char) 30));
@@ -1892,16 +1891,6 @@ double Guider::GetPlanetaryParam_minRadius()
 void Guider::SetPlanetaryParam_maxRadius(double val)
 {
     m_Planetary_maxRadius = val;
-}
-
-void Guider::SetEclipseBlockSize(double val)
-{
-    m_Planetary_BlockSize = val;
-}
-
-double Guider::GetEclipseBlockSize()
-{
-    return m_Planetary_BlockSize;
 }
 
 double Guider::GetPlanetaryParam_maxRadius()
