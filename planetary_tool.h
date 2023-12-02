@@ -41,7 +41,6 @@
 #define PT_PARAM2_DEFAULT      50
 #define PT_MIN_RADIUS_DEFAULT  25
 #define PT_MAX_RADIUS_DEFAULT  50
-#define PT_BLOCK_SIZE_DEFAULT  61
 
 class PlanetTool
 {
