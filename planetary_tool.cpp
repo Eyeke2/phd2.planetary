@@ -284,7 +284,12 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
 
 void PlanetToolWin::OnSpinCtrl_minDist(wxSpinDoubleEvent& event)
 {
-    pFrame->pGuider->SetPlanetaryParam_minDist(m_minDist->GetValue());
+    int v = m_minDist->GetValue();
+    if (v < 1)
+        v = 1;
+    if (v > 1024)
+        v = 1024;
+    pFrame->pGuider->SetPlanetaryParam_minDist(v);
 }
 
 void PlanetToolWin::OnSpinCtrl_param1(wxSpinDoubleEvent& event)
