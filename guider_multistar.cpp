@@ -1610,15 +1610,16 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
     }
     else
     {
-        // Apply adaptive threshold (works on 8-bit images)
-        IplImage src8 = IplImage(img8);
-        IplImage *thresholded = cvCreateImage(cvGetSize(&src8), IPL_DEPTH_8U, 1);
-        cvAdaptiveThreshold(&src8, thresholded, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, pFrame->pGuider->GetEclipseBlockSize(), 0);
+        // Apply Canny edge detection
+        Mat edges, dilatedEdges;
+        Canny(img8, edges, 128, 255, 5, true);
+        dilate(edges, dilatedEdges, Mat(), Point(-1, -1), 2);
+        IplImage thresholded = IplImage(dilatedEdges);
 
         // Find contours
         CvMemStorage *storage = cvCreateMemStorage(0);
         CvSeq *contour = NULL;
-        cvFindContours(thresholded, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0, 0));
+        cvFindContours(&thresholded, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
 
         // Fit circle/ellipse to contours and find the largest one
         CvPoint2D32f largest_circle_center;
@@ -1645,7 +1646,6 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         }
 
         // Free allocated storage
-        cvReleaseImage(&thresholded);
         cvReleaseMemStorage(&storage);
 
         if (largest_circle_radius > 0)

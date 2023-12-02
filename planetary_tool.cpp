@@ -39,7 +39,7 @@
 
 struct PlanetToolWin : public wxDialog
 {
-    wxToggleButton *m_enable;
+    wxToggleButton *m_enableButton;
     wxTextCtrl *m_status;
 
     wxStaticText     *m_minDist_Label;
@@ -54,7 +54,6 @@ struct PlanetToolWin : public wxDialog
     wxSpinCtrlDouble *m_param2;
     wxSpinCtrlDouble *m_minRadius;
     wxSpinCtrlDouble *m_maxRadius;
-    wxSpinCtrlDouble *m_BlockSize;
 
     wxButton   *m_CloseButton;
     wxCheckBox *m_EclipseModeCheckBox;
@@ -79,7 +78,6 @@ struct PlanetToolWin : public wxDialog
     void OnSpinCtrl_param2(wxSpinDoubleEvent& event);
     void OnSpinCtrl_minRadius(wxSpinDoubleEvent& event);
     void OnSpinCtrl_maxRadius(wxSpinDoubleEvent& event);
-    void OnSpinCtrl_BlockSize(wxSpinDoubleEvent& event);
     void OnEclipseModeClick(wxCommandEvent& event);
 
     void UpdateStatus();
@@ -93,12 +91,12 @@ static void SetEnabledState(PlanetToolWin* win, bool active)
     if (active)
     {
         win->SetTitle(wxGetTranslation(TITLE_ACTIVE));
-        win->m_enable->SetLabel(_("Disable"));
+        win->m_enableButton->SetLabel(_("Enable star detection"));
     }
     else
     {
         win->SetTitle(wxGetTranslation(TITLE));
-        win->m_enable->SetLabel(_("Enable"));
+        win->m_enableButton->SetLabel(_("Enable planet detection"));
     }
     win->UpdateStatus();
 }
@@ -119,7 +117,7 @@ PlanetToolWin::PlanetToolWin()
     m_maxRadius_Label = new wxStaticText(this, wxID_ANY, _("max radius:"));
     m_maxRadius_Label->Wrap(-1);
 
-    m_minDist = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 1024, PT_MIN_DIST_DEFAULT);
+    m_minDist = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 1024, PT_MIN_DIST_DEFAULT);
     m_minDist->SetToolTip(_("minimum distance between the centers of the detected circles"));
 
     m_param1 = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 255, PT_PARAM1_DEFAULT);
@@ -134,8 +132,8 @@ PlanetToolWin::PlanetToolWin()
     m_maxRadius = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 1024, PT_MAX_RADIUS_DEFAULT);
     m_maxRadius->SetToolTip(_("Maximum planet radius in pixels. If set to 0, the maximal size is not limited. If neither minRadius nor maxRadius is set, they are estimated from the image size."));
 
-    m_enable = new wxToggleButton(this, wxID_ANY, _("Enable"), wxDefaultPosition, wxDefaultSize, 0);
-    m_enable->SetToolTip(_("Toggle planet detection mode on or off."));
+    m_enableButton = new wxToggleButton(this, wxID_ANY, _("Enable"), wxDefaultPosition, wxDefaultSize, 0);
+    m_enableButton->SetToolTip(_("Toggle planet detection mode on or off."));
 
     long style = wxSTATIC_BORDER | wxTE_MULTILINE;
     m_status = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(400, 80), style);
@@ -177,42 +175,31 @@ PlanetToolWin::PlanetToolWin()
     ParamsSizer->Add(x_param2, 0, wxEXPAND, 5);
     ParamsSizer->Add(x_minRadius, 0, wxEXPAND, 5);
     ParamsSizer->Add(x_maxRadius, 0, wxEXPAND, 5);
-    ParamsSizer->AddSpacer(15);
-    ParamsSizer->Add(m_enable, 0, wxEXPAND, 5);
-    ParamsSizer->AddSpacer(15);
+    ParamsSizer->AddSpacer(10);
+
+    // Eclipse mode stuff
+    wxBoxSizer *x_BlockSize = new wxBoxSizer(wxHORIZONTAL);
+    x_BlockSize->Add(0, 0, 0, wxEXPAND, 5);
+    x_BlockSize->Add(0, 0, 0, wxEXPAND, 5);
+
+    m_EclipseModeCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable Eclipse mode"));
+    m_EclipseModeCheckBox->SetToolTip(_("Enable Eclipse mode for better tracking of partial solar/lunar disk"));
 
     // Close button
     m_MouseHoverFlag = false;
     wxBoxSizer *ButtonSizer = new wxBoxSizer(wxHORIZONTAL);
     m_CloseButton = new wxButton(this, wxID_ANY, _("Close"));
+    ButtonSizer->Add(m_enableButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    ButtonSizer->AddSpacer(10);
     ButtonSizer->Add(m_CloseButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-    // Eclipse mode stuff
-    m_BlockSize_Label = new wxStaticText(this, wxID_ANY, _("Block size"));
-    m_BlockSize_Label->Wrap(-1);
-
-    m_BlockSize = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 15, 511, PT_BLOCK_SIZE_DEFAULT, 2);
-    m_BlockSize->SetToolTip(_("The size of the neighborhood area used to calculate the threshold value (must be an odd number) when applying adaptive thresholding"));
-
-    wxBoxSizer *x_BlockSize = new wxBoxSizer(wxHORIZONTAL);
-    x_BlockSize->Add(0, 0, 0, wxEXPAND, 5);
-    x_BlockSize->Add(m_BlockSize_Label, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_BlockSize->Add(m_BlockSize, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_BlockSize->Add(0, 0, 0, wxEXPAND, 5);
-
-    wxStaticBoxSizer *EclipseSizer = new wxStaticBoxSizer(new wxStaticBox(this, wxID_ANY, _("Eclipse detection parameters")), wxVERTICAL);
-    m_EclipseModeCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable Eclipse mode"));
-    m_EclipseModeCheckBox->SetToolTip(_("Enable Eclipse mode for better tracking of partial solar/lunar disk"));
-    EclipseSizer->Add(m_EclipseModeCheckBox, 1, wxALL, 10);
-    EclipseSizer->Add(x_BlockSize, 1, wxALL, 10);
 
     // All major controls
     wxBoxSizer *topSizer = new wxBoxSizer(wxVERTICAL);
     topSizer->AddSpacer(5);
     topSizer->Add(ParamsSizer, 0, wxEXPAND, 5);
     topSizer->AddSpacer(10);
-    topSizer->Add(EclipseSizer, wxEXPAND, 5);
-    topSizer->AddSpacer(20);
+    topSizer->Add(m_EclipseModeCheckBox, wxEXPAND, 5);
+    topSizer->AddSpacer(10);
     topSizer->Add(ButtonSizer, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
     topSizer->Add(m_status, 0, wxALL, 5);
 
@@ -231,13 +218,12 @@ PlanetToolWin::PlanetToolWin()
     Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(PlanetToolWin::OnClose));
     Connect(APPSTATE_NOTIFY_EVENT, wxCommandEventHandler(PlanetToolWin::OnAppStateNotify));
 
-    m_enable->Connect(wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, wxCommandEventHandler(PlanetToolWin::OnEnableToggled), NULL, this);
+    m_enableButton->Connect(wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, wxCommandEventHandler(PlanetToolWin::OnEnableToggled), NULL, this);
     m_minDist->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_minDist), NULL, this);
     m_param1->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_param1), NULL, this);
     m_param2->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_param2), NULL, this);
     m_minRadius->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_minRadius), NULL, this);
     m_maxRadius->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_maxRadius), NULL, this);
-    m_BlockSize->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_BlockSize), NULL, this);
 
     // Set initial values of the planetary tracking state and parameters
     pFrame->pGuider->SetPlanetaryParam_minDist(pConfig->Global.GetInt("/PlanetTool/min_dist", PT_MIN_DIST_DEFAULT));
@@ -245,14 +231,12 @@ PlanetToolWin::PlanetToolWin()
     pFrame->pGuider->SetPlanetaryParam_param2(pConfig->Global.GetInt("/PlanetTool/param2", PT_PARAM2_DEFAULT));
     pFrame->pGuider->SetPlanetaryParam_minRadius(pConfig->Global.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT));
     pFrame->pGuider->SetPlanetaryParam_maxRadius(pConfig->Global.GetInt("/PlanetTool/max_radius", PT_MAX_RADIUS_DEFAULT));
-    pFrame->pGuider->SetEclipseBlockSize(pConfig->Global.GetInt("/PlanetTool/block_size", PT_BLOCK_SIZE_DEFAULT));
 
     m_minDist->SetValue(pFrame->pGuider->GetPlanetaryParam_minDist());
     m_param1->SetValue(pFrame->pGuider->GetPlanetaryParam_param1());
     m_param2->SetValue(pFrame->pGuider->GetPlanetaryParam_param2());
     m_minRadius->SetValue(pFrame->pGuider->GetPlanetaryParam_minRadius());
     m_maxRadius->SetValue(pFrame->pGuider->GetPlanetaryParam_maxRadius());
-    m_BlockSize->SetValue(pFrame->pGuider->GetEclipseBlockSize());
     m_EclipseModeCheckBox->SetValue(pFrame->pGuider->GetEclipseMode());
     SetEnabledState(this, pFrame->pGuider->GetPlanetaryEnableState());
 
@@ -310,12 +294,6 @@ void PlanetToolWin::OnSpinCtrl_minRadius(wxSpinDoubleEvent& event)
 void PlanetToolWin::OnSpinCtrl_maxRadius(wxSpinDoubleEvent& event)
 {
     pFrame->pGuider->SetPlanetaryParam_maxRadius(m_maxRadius->GetValue());
-}
-
-void PlanetToolWin::OnSpinCtrl_BlockSize(wxSpinDoubleEvent& event)
-{
-    unsigned int BlockSize = (unsigned int) m_BlockSize->GetValue();
-    pFrame->pGuider->SetEclipseBlockSize((BlockSize & ~1) + 1);
 }
 
 void PlanetToolWin::OnEclipseModeClick(wxCommandEvent& event)
@@ -379,7 +357,6 @@ void PlanetToolWin::OnClose(wxCloseEvent& evt)
     pConfig->Global.SetInt("/PlanetTool/param2", pFrame->pGuider->GetPlanetaryParam_param2());
     pConfig->Global.SetInt("/PlanetTool/min_radius", pFrame->pGuider->GetPlanetaryParam_minRadius());
     pConfig->Global.SetInt("/PlanetTool/max_radius", pFrame->pGuider->GetPlanetaryParam_maxRadius());
-    pConfig->Global.SetInt("/PlanetTool/block_size", pFrame->pGuider->GetEclipseBlockSize());
 
     Destroy();
 }
@@ -394,7 +371,6 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         pFrame->pGuider->SetPlanetaryParam_param2(PT_PARAM2_DEFAULT);
         pFrame->pGuider->SetPlanetaryParam_minRadius(PT_MIN_RADIUS_DEFAULT);
         pFrame->pGuider->SetPlanetaryParam_maxRadius(PT_MAX_RADIUS_DEFAULT);
-        pFrame->pGuider->SetEclipseBlockSize(PT_BLOCK_SIZE_DEFAULT);
         if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
             pFrame->RestoreStarFindMode();        
 
@@ -404,7 +380,6 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         m_param2->SetValue(pFrame->pGuider->GetPlanetaryParam_param2());
         m_minRadius->SetValue(pFrame->pGuider->GetPlanetaryParam_minRadius());
         m_maxRadius->SetValue(pFrame->pGuider->GetPlanetaryParam_maxRadius());
-        m_BlockSize->SetValue(pFrame->pGuider->GetEclipseBlockSize());
         m_EclipseModeCheckBox->SetValue(false);
     }
     else
