@@ -955,7 +955,8 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
 
         if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
         {
-            FindPlanet(pImage);
+            if (!FindPlanet(pImage))
+                throw ERROR_INFO("UpdateCurrentPosition():newStar not found");
             double newpos_x = pFrame->pGuider->m_Planet.center_x;
             double newpos_y = pFrame->pGuider->m_Planet.center_y;
             newStar.SetXY(newpos_x, newpos_y);
