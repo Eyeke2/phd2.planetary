@@ -137,6 +137,7 @@ struct GuiderOffset
 
 struct Planet
 {
+    bool detected;
     int center_x;
     int center_y;
     int radius;
