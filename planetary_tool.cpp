@@ -55,6 +55,9 @@ struct PlanetToolWin : public wxDialog
     wxSpinCtrlDouble *m_minRadius;
     wxSpinCtrlDouble *m_maxRadius;
 
+    wxSlider         *m_lowThresholdSlider;
+    wxSlider         *m_highThresholdSlider;
+
     wxButton   *m_CloseButton;
     wxCheckBox *m_EclipseModeCheckBox;
     bool        m_MouseHoverFlag;
@@ -70,6 +73,9 @@ struct PlanetToolWin : public wxDialog
     void OnKeyUp(wxKeyEvent& event);
     void OnMouseEnter(wxMouseEvent& event);
     void OnMouseLeave(wxMouseEvent& event);
+
+    void OnLowThresholdChanged(wxCommandEvent& event);
+    void OnHighThresholdChanged(wxCommandEvent& event);
 
     void OnAppStateNotify(wxCommandEvent& event);
     void OnEnableToggled(wxCommandEvent& event);
@@ -177,9 +183,15 @@ PlanetToolWin::PlanetToolWin()
     ParamsSizer->AddSpacer(10);
 
     // Eclipse mode stuff
-    wxBoxSizer *x_BlockSize = new wxBoxSizer(wxHORIZONTAL);
-    x_BlockSize->Add(0, 0, 0, wxEXPAND, 5);
-    x_BlockSize->Add(0, 0, 0, wxEXPAND, 5);
+    wxStaticText* lowThresholdLabel = new wxStaticText(this, wxID_ANY, wxT("Edge Detection Low Threshold:"), wxDefaultPosition, wxDefaultSize, 0);
+    m_lowThresholdSlider = new wxSlider(this, wxID_ANY, 128, 0, 400, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
+    lowThresholdLabel->SetToolTip(_("Sets the lower bound for edge detection. Lower values increase sensitivity to faint edges but may also detect more noise. Detected edges are shown in red."));
+    wxStaticText* highThresholdLabel = new wxStaticText(this, wxID_ANY, wxT("Edge Detection High Threshold:"), wxDefaultPosition, wxDefaultSize, 0);
+    m_highThresholdSlider = new wxSlider(this, wxID_ANY, 255, 0, 400, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
+    highThresholdLabel->SetToolTip(_("Higher values reduce sensitivity to weaker edges, providing cleaner edge maps. Typically set 2-3 times higher than the low threshold. Detected edges are shown in red."));
+
+    m_lowThresholdSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnLowThresholdChanged, this);
+    m_highThresholdSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnHighThresholdChanged, this);
 
     m_EclipseModeCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable Eclipse mode"));
     m_EclipseModeCheckBox->SetToolTip(_("Enable Eclipse mode for better tracking of partial solar/lunar disk"));
@@ -198,6 +210,10 @@ PlanetToolWin::PlanetToolWin()
     topSizer->Add(ParamsSizer, 0, wxEXPAND, 5);
     topSizer->AddSpacer(10);
     topSizer->Add(m_EclipseModeCheckBox, wxEXPAND, 5);
+    topSizer->Add(lowThresholdLabel, 0, wxLEFT | wxTOP, 10);
+    topSizer->Add(m_lowThresholdSlider, 0, wxALL, 10);
+    topSizer->Add(highThresholdLabel, 0, wxLEFT | wxTOP, 10);
+    topSizer->Add(m_highThresholdSlider, 0, wxALL, 10);
     topSizer->AddSpacer(10);
     topSizer->Add(ButtonSizer, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
     topSizer->Add(m_status, 0, wxALL, 5);
@@ -230,12 +246,16 @@ PlanetToolWin::PlanetToolWin()
     pFrame->pGuider->SetPlanetaryParam_param2(pConfig->Global.GetInt("/PlanetTool/param2", PT_PARAM2_DEFAULT));
     pFrame->pGuider->SetPlanetaryParam_minRadius(pConfig->Global.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT));
     pFrame->pGuider->SetPlanetaryParam_maxRadius(pConfig->Global.GetInt("/PlanetTool/max_radius", PT_MAX_RADIUS_DEFAULT));
+    pFrame->pGuider->SetPlanetaryParam_lowThreshold(pConfig->Global.GetInt("/PlanetTool/low_threshold", PT_LOW_THRESHOLD_DEFAULT));
+    pFrame->pGuider->SetPlanetaryParam_highThreshold(pConfig->Global.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT));
 
     m_minDist->SetValue(pFrame->pGuider->GetPlanetaryParam_minDist());
     m_param1->SetValue(pFrame->pGuider->GetPlanetaryParam_param1());
     m_param2->SetValue(pFrame->pGuider->GetPlanetaryParam_param2());
     m_minRadius->SetValue(pFrame->pGuider->GetPlanetaryParam_minRadius());
     m_maxRadius->SetValue(pFrame->pGuider->GetPlanetaryParam_maxRadius());
+    m_lowThresholdSlider->SetValue(pFrame->pGuider->GetPlanetaryParam_lowThreshold());
+    m_highThresholdSlider->SetValue(pFrame->pGuider->GetPlanetaryParam_highThreshold());
     m_EclipseModeCheckBox->SetValue(pFrame->pGuider->GetEclipseMode());
     SetEnabledState(this, pFrame->pGuider->GetPlanetaryEnableState());
 
@@ -299,15 +319,28 @@ void PlanetToolWin::OnEclipseModeClick(wxCommandEvent& event)
 {
     bool EclipseMode = m_EclipseModeCheckBox->IsChecked();
     pFrame->pGuider->SetEclipseMode(EclipseMode);
+
+    bool enabled = pFrame->pGuider->GetPlanetaryEnableState();
+    m_lowThresholdSlider->Enable(enabled && EclipseMode);
+    m_highThresholdSlider->Enable(enabled && EclipseMode);
+
+    // These parameters aren't used in eclipse mode
+    m_minDist->Enable(!EclipseMode);
+    m_param1->Enable(!EclipseMode);
+    m_param2->Enable(!EclipseMode);
 }
 
 void PlanetToolWin::UpdateStatus()
 {
-    if (pFrame->pGuider->GetPlanetaryEnableState())
+    bool enabled = pFrame->pGuider->GetPlanetaryEnableState();
+    if (enabled)
         m_status->SetValue(_("Center the planet in the guiding camera.\n"
             "Select it, do calibration and then start guiding.\n"));
     else
         m_status->SetValue(_("In star tracking mode\n"));
+
+    wxCommandEvent evt_none;
+    OnEclipseModeClick(evt_none);
 }
 
 void PlanetToolWin::OnAppStateNotify(wxCommandEvent& event)
@@ -344,6 +377,16 @@ void PlanetToolWin::OnMouseLeave(wxMouseEvent& event)
     event.Skip();
 }
 
+void PlanetToolWin::OnLowThresholdChanged(wxCommandEvent& event)
+{
+    pFrame->pGuider->SetPlanetaryParam_lowThreshold(event.GetInt());
+}
+
+void PlanetToolWin::OnHighThresholdChanged(wxCommandEvent& event)
+{
+    pFrame->pGuider->SetPlanetaryParam_highThreshold(event.GetInt());
+}
+
 void PlanetToolWin::OnClose(wxCloseEvent& evt)
 {
     pFrame->pGuider->SetEclipseMode(m_EclipseModeCheckBox->IsChecked());
@@ -356,6 +399,9 @@ void PlanetToolWin::OnClose(wxCloseEvent& evt)
     pConfig->Global.SetInt("/PlanetTool/param2", pFrame->pGuider->GetPlanetaryParam_param2());
     pConfig->Global.SetInt("/PlanetTool/min_radius", pFrame->pGuider->GetPlanetaryParam_minRadius());
     pConfig->Global.SetInt("/PlanetTool/max_radius", pFrame->pGuider->GetPlanetaryParam_maxRadius());
+
+    pConfig->Global.SetInt("/PlanetTool/low_threshold", pFrame->pGuider->GetPlanetaryParam_lowThreshold());
+    pConfig->Global.SetInt("/PlanetTool/high_threshold", pFrame->pGuider->GetPlanetaryParam_highThreshold());
 
     Destroy();
 }
@@ -370,6 +416,9 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         pFrame->pGuider->SetPlanetaryParam_param2(PT_PARAM2_DEFAULT);
         pFrame->pGuider->SetPlanetaryParam_minRadius(PT_MIN_RADIUS_DEFAULT);
         pFrame->pGuider->SetPlanetaryParam_maxRadius(PT_MAX_RADIUS_DEFAULT);
+        pFrame->pGuider->SetPlanetaryParam_lowThreshold(PT_LOW_THRESHOLD_DEFAULT);
+        pFrame->pGuider->SetPlanetaryParam_highThreshold(PT_HIGH_THRESHOLD_DEFAULT);
+
         if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
             pFrame->RestoreStarFindMode();        
 
@@ -379,6 +428,8 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         m_param2->SetValue(pFrame->pGuider->GetPlanetaryParam_param2());
         m_minRadius->SetValue(pFrame->pGuider->GetPlanetaryParam_minRadius());
         m_maxRadius->SetValue(pFrame->pGuider->GetPlanetaryParam_maxRadius());
+        m_lowThresholdSlider->SetValue(pFrame->pGuider->GetPlanetaryParam_lowThreshold());
+        m_highThresholdSlider->SetValue(pFrame->pGuider->GetPlanetaryParam_highThreshold());
         m_EclipseModeCheckBox->SetValue(false);
     }
     else
