@@ -141,6 +141,9 @@ struct Planet
     int center_x;
     int center_y;
     int radius;
+    unsigned char *eclipse_edges;
+    int rows;
+    int cols;
 };
 
 class Guider : public wxWindow
@@ -187,6 +190,7 @@ class Guider : public wxWindow
     double m_Planetary_maxRadius;
     int    m_Planetary_lowThreshold;
     int    m_Planetary_highThreshold;
+    bool   m_PlanetaryThresholdVisual;
 
 protected:
     int m_searchRegion; // how far u/d/l/r do we do the initial search for a star
@@ -317,6 +321,8 @@ public:
     int  GetPlanetaryParam_lowThreshold() { return m_Planetary_lowThreshold; }
     void SetPlanetaryParam_highThreshold(int value) { m_Planetary_highThreshold = value; }
     int  GetPlanetaryParam_highThreshold() { return m_Planetary_highThreshold; }
+    void SetPlanetaryThresholdVisual(bool state) { m_PlanetaryThresholdVisual = state; }
+    bool GetPlanetaryThresholdVisual() { return m_PlanetaryThresholdVisual; }
 
     // virtual functions -- these CAN be overridden by a subclass, which should
     // consider whether they need to call the base class functions as part of
