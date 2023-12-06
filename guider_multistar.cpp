@@ -394,7 +394,7 @@ bool GuiderMultiStar::SetCurrentPosition(const usImage *pImage, const PHD_Point&
         }
 
         m_massChecker->Reset();
-        int searchRegion = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? pFrame->pGuider->m_Planet.radius : m_searchRegion;
+        int searchRegion = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? m_Planet.radius : m_searchRegion;
         bError = !m_primaryStar.Find(pImage, searchRegion, x, y, pFrame->GetStarFindMode(),
                               GetMinStarHFD(), GetMaxStarHFD(), pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE);
     }
@@ -478,9 +478,9 @@ bool GuiderMultiStar::AutoSelect(const wxRect& roi)
         {
             if (FindPlanet(image))
             {
-                newStar.X = newStar.referencePoint.X = pFrame->pGuider->m_Planet.center_x;
-                newStar.Y = newStar.referencePoint.Y = pFrame->pGuider->m_Planet.center_y;
-                searchRegion = pFrame->pGuider->m_Planet.radius;
+                newStar.X = newStar.referencePoint.X = m_Planet.center_x;
+                newStar.Y = newStar.referencePoint.Y = m_Planet.center_y;
+                searchRegion = m_Planet.radius;
                 m_guideStars.clear();
                 m_guideStars.push_back(newStar);
             } else
@@ -957,10 +957,10 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
         {
             if (!FindPlanet(pImage))
                 throw ERROR_INFO("UpdateCurrentPosition():newStar not found");
-            double newpos_x = pFrame->pGuider->m_Planet.center_x;
-            double newpos_y = pFrame->pGuider->m_Planet.center_y;
+            double newpos_x = m_Planet.center_x;
+            double newpos_y = m_Planet.center_y;
             newStar.SetXY(newpos_x, newpos_y);
-            search_region = pFrame->pGuider->m_Planet.radius;
+            search_region = m_Planet.radius;
         }
 
         if (!newStar.Find(pImage, search_region, pFrame->GetStarFindMode(), GetMinStarHFD(),
@@ -1169,14 +1169,14 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
             if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
             {
                 FindPlanet((const usImage *) pImage);
-                StarX = (double)pFrame->pGuider->m_Planet.center_x;
-                StarY = (double)pFrame->pGuider->m_Planet.center_y;
+                StarX = (double) m_Planet.center_x;
+                StarY = (double) m_Planet.center_y;
             }
             else
             {
                 double scaleFactor = ScaleFactor();
-                StarX = (double)mevent.m_x / scaleFactor;
-                StarY = (double)mevent.m_y / scaleFactor;
+                StarX = (double) mevent.m_x / scaleFactor;
+                StarY = (double) mevent.m_y / scaleFactor;
             }
 
             SetCurrentPosition(pImage, PHD_Point(StarX, StarY));
@@ -1579,15 +1579,15 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
     // Do slight image bluring to decrease noise impact on results
     medianBlur(img8, img8, 5);
 
-    int minRadius = (int)pFrame->pGuider->GetPlanetaryParam_minRadius();
-    int maxRadius = (int)pFrame->pGuider->GetPlanetaryParam_maxRadius();
+    int minRadius = (int) GetPlanetaryParam_minRadius();
+    int maxRadius = (int) GetPlanetaryParam_maxRadius();
 
-    bool eclipse_mode = pFrame->pGuider->GetEclipseMode();
+    bool eclipse_mode = GetEclipseMode();
     if (!eclipse_mode)
     {
-        double minDist = pFrame->pGuider->GetPlanetaryParam_minDist();
-        double param1 = pFrame->pGuider->GetPlanetaryParam_param1();
-        double param2 = pFrame->pGuider->GetPlanetaryParam_param2();
+        double minDist = GetPlanetaryParam_minDist();
+        double param1 = GetPlanetaryParam_param1();
+        double param2 = GetPlanetaryParam_param2();
 
         // Find circles matching given criteria
         vector<Vec3f> circles;
@@ -1602,9 +1602,9 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         }
         if (center[2])
         {
-            pFrame->pGuider->m_Planet.center_x = center[0];
-            pFrame->pGuider->m_Planet.center_y = center[1];
-            pFrame->pGuider->m_Planet.radius = center[2];
+            m_Planet.center_x = center[0];
+            m_Planet.center_y = center[1];
+            m_Planet.radius = center[2];
             return true;
         }
     }
@@ -1652,9 +1652,9 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
 
         if (largest_circle_radius > 0)
         {
-            pFrame->pGuider->m_Planet.center_x = cvRound(largest_circle_center.x);
-            pFrame->pGuider->m_Planet.center_y = cvRound(largest_circle_center.y);
-            pFrame->pGuider->m_Planet.radius = largest_circle_radius;
+            m_Planet.center_x = cvRound(largest_circle_center.x);
+            m_Planet.center_y = cvRound(largest_circle_center.y);
+            m_Planet.radius = largest_circle_radius;
 
             return true;
         }
