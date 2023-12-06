@@ -120,16 +120,16 @@ PlanetToolWin::PlanetToolWin()
     m_minDist = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 1024, PT_MIN_DIST_DEFAULT);
     m_minDist->SetToolTip(_("minimum distance between the centers of the detected circles"));
 
-    m_param1 = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 255, PT_PARAM1_DEFAULT);
+    m_param1 = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 255, PT_PARAM1_DEFAULT);
     m_param1->SetToolTip(_("The higher threshold for the Canny edge detector. Increase this value to avoid false circles"));
 
-    m_param2 = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 255, PT_PARAM2_DEFAULT);
+    m_param2 = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 512, PT_PARAM2_DEFAULT);
     m_param2->SetToolTip(_("The accumulator threshold for circle centers. Smaller values will mean more circle candidates, and larger values will suppress weaker circles. You might want to increase this value if you're getting false circles"));
 
-    m_minRadius = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 1024, PT_MIN_RADIUS_DEFAULT);
+    m_minRadius = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 1024, PT_MIN_RADIUS_DEFAULT);
     m_minRadius->SetToolTip(_("Minimum planet radius in pixels. If set to 0, the minimal size is not limited."));
 
-    m_maxRadius = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 1024, PT_MAX_RADIUS_DEFAULT);
+    m_maxRadius = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 1024, PT_MAX_RADIUS_DEFAULT);
     m_maxRadius->SetToolTip(_("Maximum planet radius in pixels. If set to 0, the maximal size is not limited. If neither minRadius nor maxRadius is set, they are estimated from the image size."));
 
     m_enableButton = new wxToggleButton(this, wxID_ANY, _("Enable"), wxDefaultPosition, wxDefaultSize, 0);
@@ -269,31 +269,31 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
 void PlanetToolWin::OnSpinCtrl_minDist(wxSpinDoubleEvent& event)
 {
     int v = m_minDist->GetValue();
-    if (v < 1)
-        v = 1;
-    if (v > 1024)
-        v = 1024;
-    pFrame->pGuider->SetPlanetaryParam_minDist(v);
+    pFrame->pGuider->SetPlanetaryParam_minDist(v < 1 ? 1 : v);
 }
 
 void PlanetToolWin::OnSpinCtrl_param1(wxSpinDoubleEvent& event)
 {
-    pFrame->pGuider->SetPlanetaryParam_param1(m_param1->GetValue());
+    int v = m_param1->GetValue();
+    pFrame->pGuider->SetPlanetaryParam_param1(v < 1 ? 1 : v);
 }
 
 void PlanetToolWin::OnSpinCtrl_param2(wxSpinDoubleEvent& event)
 {
-    pFrame->pGuider->SetPlanetaryParam_param2(m_param2->GetValue());
+    int v = m_param2->GetValue();
+    pFrame->pGuider->SetPlanetaryParam_param2(v < 1 ? 1 : v);
 }
 
 void PlanetToolWin::OnSpinCtrl_minRadius(wxSpinDoubleEvent& event)
 {
-    pFrame->pGuider->SetPlanetaryParam_minRadius(m_minRadius->GetValue());
+    int v = m_minRadius->GetValue();
+    pFrame->pGuider->SetPlanetaryParam_minRadius(v < 1 ? 1 : v);
 }
 
 void PlanetToolWin::OnSpinCtrl_maxRadius(wxSpinDoubleEvent& event)
 {
-    pFrame->pGuider->SetPlanetaryParam_maxRadius(m_maxRadius->GetValue());
+    int v = m_maxRadius->GetValue();
+    pFrame->pGuider->SetPlanetaryParam_maxRadius(v < 1 ? 1 : v);
 }
 
 void PlanetToolWin::OnEclipseModeClick(wxCommandEvent& event)
