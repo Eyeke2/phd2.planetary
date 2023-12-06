@@ -95,11 +95,7 @@ void ProfileWindow::UpdateData(const usImage *img, float xpos, float ypos)
     int xstart = ROUNDF(xpos) - radius;
     int ystart = ROUNDF(ypos) - radius;
     if (xstart < 0) xstart = 0;
-    else if (xstart >(img->Size.GetWidth() - (radius*2+1)))
-        xstart = img->Size.GetWidth() - (radius*2+1);
     if (ystart < 0) ystart = 0;
-    else if (ystart >(img->Size.GetHeight() - (radius*2+1)))
-        ystart = img->Size.GetHeight() - (radius*2+1);
 
     int x,y;
     unsigned short *uptr = this->data;
@@ -109,9 +105,9 @@ void ProfileWindow::UpdateData(const usImage *img, float xpos, float ypos)
         horiz_profile[x] = vert_profile[x] = midrow_profile[x] = 0;
     if ((findMode == Star::FIND_PLANET) && (radius > HALFW))
     {
-        for (y = 0; (y < radius * 2 + 1) && (y < yrowsize); y++) {
+        for (y = 0; (y < radius * 2 + 1) && (ystart + y < yrowsize); y++) {
             int ys = y * (FULLW - 1) / (radius * 2);
-            for (x = 0; (x < radius * 2 + 1) && (x < xrowsize); x++) {
+            for (x = 0; (x < radius * 2 + 1) && (xstart + x < xrowsize); x++) {
                 unsigned short sample = *(img->ImageData + xstart + x + (ystart + y) * xrowsize);
                 int xs = x * (FULLW - 1) / (radius * 2);
                 this->data[xs + ys * FULLW] = sample;
@@ -121,8 +117,8 @@ void ProfileWindow::UpdateData(const usImage *img, float xpos, float ypos)
         }
     }
     else
-        for (y = 0; y < FULLW; y++) {
-            for (x = 0; x < FULLW; x++, uptr++) {
+        for (y = 0; (y < FULLW) && (ystart + y < yrowsize); y++) {
+            for (x = 0; (x < FULLW) && (xstart + x < xrowsize); x++, uptr++) {
                 *uptr = *(img->ImageData + xstart + x + (ystart + y) * xrowsize);
                 horiz_profile[x] += (int) *uptr;
                 vert_profile[y] += (int) *uptr;
