@@ -1196,7 +1196,10 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
                 }
                 Debug.Write("MultiStar: single-star usage forced by user star selection\n");
                 if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+                {
+                    m_draw_PlanetaryHelper = true;
                     pFrame->StatusMsg(wxString::Format(_("Selected planet at (%.1f, %.1f)"), m_primaryStar.X, m_primaryStar.Y));
+                }
                 else
                     pFrame->StatusMsg(wxString::Format(_("Selected star at (%.1f, %.1f)"), m_primaryStar.X, m_primaryStar.Y));
                 pFrame->UpdateStatusBarStarInfo(m_primaryStar.SNR, m_primaryStar.GetError() == Star::STAR_SATURATED);
@@ -1227,12 +1230,55 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
             int y = int(star.Y * scale + 0.5);
             int r = int(pFrame->pGuider->m_Planet.radius * scale + 0.5);
             dc.DrawCircle(x, y, r);
+            dc.DrawCircle(x, y, r + 1);
         }
     }
     else
     {
         double w = ROUND((halfW * 2 + 1) * scale);
         dc.DrawRectangle(int((star.X - halfW) * scale), int((star.Y - halfW) * scale), w, w);
+    }
+}
+
+// Helper for visualizing planet detection radius
+void GuiderMultiStar::PlanetVisualHelper(wxDC &dc)
+{
+    if (GetEclipseMode() && m_Planet.eclipse_edges)
+    {
+        // Draw the bitmap onto the device context
+        dc.SetPen(wxPen(wxColour(230, 0, 0), 1, wxPENSTYLE_SOLID));
+        for (int y = 0; y < m_Planet.rows; y++)
+        {
+            for (int x = 0; x < m_Planet.cols; x++)
+            {
+                int index = (y * m_Planet.cols + x);
+                if (m_Planet.eclipse_edges[index])
+                    dc.DrawPoint(x * m_scaleFactor, y * m_scaleFactor);
+            }
+        }
+    }
+
+    if (m_draw_PlanetaryHelper)
+    {
+        m_draw_PlanetaryHelper = false;
+        int x = int(m_primaryStar.X * m_scaleFactor + 0.5);
+        int y = int(m_primaryStar.Y * m_scaleFactor + 0.5);
+
+        if (m_Planet.detected)
+            x -= m_Planet.radius * m_scaleFactor;
+
+        // Draw min and max diameters legend
+        const wxString labelTextMin("min radius");
+        const wxString labelTextMax("max radius");
+        dc.SetPen(wxPen(wxColour(230, 130, 30), 1, wxPENSTYLE_DOT));
+        dc.SetTextForeground(wxColour(230, 130, 30));
+        dc.DrawLine(x, y - 5, x + GetPlanetaryParam_minRadius() * m_scaleFactor * 2, y - 5);
+        dc.DrawText(labelTextMin, x - dc.GetTextExtent(labelTextMin).GetWidth() - 5, y - 10 - dc.GetTextExtent(labelTextMin).GetHeight() / 2);
+
+        dc.SetPen(wxPen(wxColour(130, 230, 30), 1, wxPENSTYLE_DOT));
+        dc.SetTextForeground(wxColour(130, 230, 30));
+        dc.DrawLine(x, y + 5, x + GetPlanetaryParam_maxRadius() * m_scaleFactor * 2, y + 5);
+        dc.DrawText(labelTextMax, x - dc.GetTextExtent(labelTextMax).GetWidth() - 5, y + 10 - dc.GetTextExtent(labelTextMax).GetHeight() / 2);
     }
 }
 
@@ -1297,6 +1343,9 @@ void GuiderMultiStar::OnPaint(wxPaintEvent& event)
 
         GUIDER_STATE state = GetState();
         bool FoundStar = m_primaryStar.WasFound();
+
+        if (GetPlanetaryEnableState() && (m_draw_PlanetaryHelper || GetPlanetaryThresholdVisual()))
+            PlanetVisualHelper(dc);
 
         if (state == STATE_SELECTED)
         {

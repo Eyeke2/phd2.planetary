@@ -71,8 +71,10 @@ struct PlanetToolWin : public wxDialog
     void OnCloseButton(wxCommandEvent& event);
     void OnKeyDown(wxKeyEvent& event);
     void OnKeyUp(wxKeyEvent& event);
-    void OnMouseEnter(wxMouseEvent& event);
-    void OnMouseLeave(wxMouseEvent& event);
+    void OnMouseEnterCloseBtn(wxMouseEvent& event);
+    void OnMouseLeaveCloseBtn(wxMouseEvent& event);
+    void OnMouseEnterThreshold(wxMouseEvent& event);
+    void OnMouseLeaveThreshold(wxMouseEvent& event);
 
     void OnLowThresholdChanged(wxCommandEvent& event);
     void OnHighThresholdChanged(wxCommandEvent& event);
@@ -226,8 +228,12 @@ PlanetToolWin::PlanetToolWin()
     m_CloseButton->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &PlanetToolWin::OnCloseButton, this);
     m_CloseButton->Bind(wxEVT_KEY_DOWN, &PlanetToolWin::OnKeyDown, this);
     m_CloseButton->Bind(wxEVT_KEY_UP, &PlanetToolWin::OnKeyUp, this);
-    m_CloseButton->Bind(wxEVT_ENTER_WINDOW, &PlanetToolWin::OnMouseEnter, this);
-    m_CloseButton->Bind(wxEVT_LEAVE_WINDOW, &PlanetToolWin::OnMouseLeave, this);
+    m_CloseButton->Bind(wxEVT_ENTER_WINDOW, &PlanetToolWin::OnMouseEnterCloseBtn, this);
+    m_CloseButton->Bind(wxEVT_LEAVE_WINDOW, &PlanetToolWin::OnMouseLeaveCloseBtn, this);
+    m_lowThresholdSlider->Bind(wxEVT_ENTER_WINDOW, &PlanetToolWin::OnMouseEnterThreshold, this);
+    m_lowThresholdSlider->Bind(wxEVT_LEAVE_WINDOW, &PlanetToolWin::OnMouseLeaveThreshold, this);
+    m_highThresholdSlider->Bind(wxEVT_ENTER_WINDOW, &PlanetToolWin::OnMouseEnterThreshold, this);
+    m_highThresholdSlider->Bind(wxEVT_LEAVE_WINDOW, &PlanetToolWin::OnMouseLeaveThreshold, this);
 
     m_EclipseModeCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnEclipseModeClick, this);
     Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(PlanetToolWin::OnClose));
@@ -307,12 +313,14 @@ void PlanetToolWin::OnSpinCtrl_minRadius(wxSpinDoubleEvent& event)
 {
     int v = m_minRadius->GetValue();
     pFrame->pGuider->SetPlanetaryParam_minRadius(v < 1 ? 1 : v);
+    pFrame->pGuider->PlanetVisualRefresh();
 }
 
 void PlanetToolWin::OnSpinCtrl_maxRadius(wxSpinDoubleEvent& event)
 {
     int v = m_maxRadius->GetValue();
     pFrame->pGuider->SetPlanetaryParam_maxRadius(v < 1 ? 1 : v);
+    pFrame->pGuider->PlanetVisualRefresh();
 }
 
 void PlanetToolWin::OnEclipseModeClick(wxCommandEvent& event)
@@ -361,7 +369,7 @@ void PlanetToolWin::OnKeyUp(wxKeyEvent& event)
     event.Skip();
 }
 
-void PlanetToolWin::OnMouseEnter(wxMouseEvent& event)
+void PlanetToolWin::OnMouseEnterCloseBtn(wxMouseEvent& event)
 {
     m_MouseHoverFlag = true;
     if (wxGetKeyState(WXK_ALT)) {
@@ -370,21 +378,34 @@ void PlanetToolWin::OnMouseEnter(wxMouseEvent& event)
     event.Skip();
 }
 
-void PlanetToolWin::OnMouseLeave(wxMouseEvent& event)
+void PlanetToolWin::OnMouseLeaveCloseBtn(wxMouseEvent& event)
 {
     m_MouseHoverFlag = false;
     m_CloseButton->SetLabel(wxT("Close"));
     event.Skip();
 }
 
+void PlanetToolWin::OnMouseEnterThreshold(wxMouseEvent& event)
+{
+    if (pFrame->pGuider->GetPlanetaryEnableState() && m_EclipseModeCheckBox->IsChecked())
+        pFrame->pGuider->SetPlanetaryThresholdVisual(true);
+}
+
+void PlanetToolWin::OnMouseLeaveThreshold(wxMouseEvent& event)
+{
+    pFrame->pGuider->SetPlanetaryThresholdVisual(false);
+}
+
 void PlanetToolWin::OnLowThresholdChanged(wxCommandEvent& event)
 {
     pFrame->pGuider->SetPlanetaryParam_lowThreshold(event.GetInt());
+    pFrame->pGuider->PlanetVisualRefresh();
 }
 
 void PlanetToolWin::OnHighThresholdChanged(wxCommandEvent& event)
 {
     pFrame->pGuider->SetPlanetaryParam_highThreshold(event.GetInt());
+    pFrame->pGuider->PlanetVisualRefresh();
 }
 
 void PlanetToolWin::OnClose(wxCloseEvent& evt)

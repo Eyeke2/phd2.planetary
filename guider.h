@@ -324,6 +324,11 @@ public:
     void SetPlanetaryThresholdVisual(bool state) { m_PlanetaryThresholdVisual = state; }
     bool GetPlanetaryThresholdVisual() { return m_PlanetaryThresholdVisual; }
 
+public:
+    // Displaying visual aid for planetary parameter tuning
+    bool m_draw_PlanetaryHelper;
+    void PlanetVisualRefresh() { m_draw_PlanetaryHelper = true; Refresh(); Update(); }
+
     // virtual functions -- these CAN be overridden by a subclass, which should
     // consider whether they need to call the base class functions as part of
     // their operation

@@ -200,6 +200,7 @@ Guider::Guider(wxWindow *parent, int xSize, int ySize) :
     m_Planetary_lowThreshold = PT_LOW_THRESHOLD_DEFAULT;
     m_Planetary_highThreshold = PT_HIGH_THRESHOLD_DEFAULT;
     m_PlanetaryThresholdVisual = false;
+    m_draw_PlanetaryHelper = false;
 
     SetBackgroundStyle(wxBG_STYLE_CUSTOM);
     SetBackgroundColour(wxColour((unsigned char) 30, (unsigned char) 30,(unsigned char) 30));

@@ -148,6 +148,7 @@ private:
     bool UpdateCurrentPosition(const usImage *pImage, GuiderOffset *ofs, FrameDroppedInfo *errorInfo) final;
     bool SetCurrentPosition(const usImage *pImage, const PHD_Point& position) final;
     bool FindPlanet(const usImage *pImage);
+    void PlanetVisualHelper(wxDC &dc);
 
     void OnLClick(wxMouseEvent& evt);
 
