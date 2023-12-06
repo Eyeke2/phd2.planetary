@@ -296,20 +296,20 @@ public:
     unsigned int GetAutoSelDownsample() const;
 
     // Planetary disk detection parameters
-    bool GetPlanetaryEnableState();
-    void SetPlanetaryEnableState(bool enabled);
-    void SetPlanetaryParam_minDist(double val);
-    double GetPlanetaryParam_minDist();
-    void SetPlanetaryParam_param1(double val);
-    double GetPlanetaryParam_param1();
-    void SetPlanetaryParam_param2(double val);
-    double GetPlanetaryParam_param2();
-    void SetPlanetaryParam_minRadius(double val);
-    double GetPlanetaryParam_minRadius();
-    void SetPlanetaryParam_maxRadius(double val);
-    double GetPlanetaryParam_maxRadius();
-    bool GetEclipseMode();
-    void SetEclipseMode(bool);
+    bool GetPlanetaryEnableState() { return m_Planetary_enabled; }
+    void SetPlanetaryEnableState(bool enabled) { m_Planetary_enabled = enabled; }
+    void SetPlanetaryParam_minDist(double val) { m_Planetary_minDist = val; }
+    double GetPlanetaryParam_minDist() { return m_Planetary_minDist; }
+    void   SetPlanetaryParam_param1(double val) { m_Planetary_param1 = val; }
+    double GetPlanetaryParam_param1() { return m_Planetary_param1; }
+    void   SetPlanetaryParam_param2(double val) { m_Planetary_param2 = val; }
+    double GetPlanetaryParam_param2() { return m_Planetary_param2; }
+    void   SetPlanetaryParam_minRadius(double val) { m_Planetary_minRadius = val; }
+    double GetPlanetaryParam_minRadius() { return m_Planetary_minRadius; }
+    void   SetPlanetaryParam_maxRadius(double val) { m_Planetary_maxRadius = val; }
+    double GetPlanetaryParam_maxRadius() { return m_Planetary_maxRadius; }
+    bool GetEclipseMode() { return m_EclipseMode; }
+    void SetEclipseMode(bool mode) { m_EclipseMode = mode; }
 
     // virtual functions -- these CAN be overridden by a subclass, which should
     // consider whether they need to call the base class functions as part of
