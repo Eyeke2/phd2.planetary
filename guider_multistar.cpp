@@ -1610,13 +1610,15 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
     }
     else
     {
+        int LowThreshold = GetPlanetaryParam_lowThreshold();
+        int HighThreshold = GetPlanetaryParam_highThreshold();
+
         // Apply Canny edge detection
         Mat edges, dilatedEdges;
-        Canny(img8, edges, 128, 255, 5, true);
+        Canny(img8, edges, LowThreshold, HighThreshold, 5, true);
         dilate(edges, dilatedEdges, Mat(), Point(-1, -1), 2);
-        IplImage thresholded = IplImage(dilatedEdges);
-
         // Find contours
+        IplImage thresholded = IplImage(dilatedEdges);
         CvMemStorage *storage = cvCreateMemStorage(0);
         CvSeq *contour = NULL;
         cvFindContours(&thresholded, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);

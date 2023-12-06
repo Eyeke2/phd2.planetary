@@ -184,6 +184,8 @@ class Guider : public wxWindow
     double m_Planetary_param2;
     double m_Planetary_minRadius;
     double m_Planetary_maxRadius;
+    int    m_Planetary_lowThreshold;
+    int    m_Planetary_highThreshold;
 
 protected:
     int m_searchRegion; // how far u/d/l/r do we do the initial search for a star
@@ -310,6 +312,10 @@ public:
     double GetPlanetaryParam_maxRadius() { return m_Planetary_maxRadius; }
     bool GetEclipseMode() { return m_EclipseMode; }
     void SetEclipseMode(bool mode) { m_EclipseMode = mode; }
+    void SetPlanetaryParam_lowThreshold(int value) { m_Planetary_lowThreshold = value; }
+    int  GetPlanetaryParam_lowThreshold() { return m_Planetary_lowThreshold; }
+    void SetPlanetaryParam_highThreshold(int value) { m_Planetary_highThreshold = value; }
+    int  GetPlanetaryParam_highThreshold() { return m_Planetary_highThreshold; }
 
     // virtual functions -- these CAN be overridden by a subclass, which should
     // consider whether they need to call the base class functions as part of
