@@ -51,6 +51,9 @@
 #include <wx/txtstrm.h>
 #include <wx/tokenzr.h>
 
+#include <opencv/cv.h>
+#include <opencv2/opencv.hpp>
+
 #define SIMMODE 3   // 1=FITS, 2=BMP, 3=Generate
 // #define SIMDEBUG
 
@@ -1314,36 +1317,54 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
     }
 
 #if SIMMODE==2
-    int xsize, ysize;
-    wxImage disk_image;
-    unsigned short *dataptr;
-    unsigned char *imgptr;
-
     // Can be also PNG or JPG file
-    bool retval = disk_image.LoadFile("/Temp/phd2/sim_image.bmp");
-    if (!retval) {
+    cv::Mat image = cv::imread("/Temp/phd2/sim_image.png", cv::IMREAD_ANYDEPTH | cv::IMREAD_ANYCOLOR);
+    if (image.empty()) {
         pFrame->Alert(_("Cannot load simulated image"));
         return true;
     }
-
-    xsize = disk_image.GetWidth();
-    ysize = disk_image.GetHeight();
-    if (img.Init(xsize, ysize)) {
+    if (img.Init(image.cols, image.rows)) {
         pFrame->Alert(_("Memory allocation error"));
         return true;
     }
 
-    // Convert to greyscale
-    disk_image.ConvertToGreyscale();
-
-    // disk_image now contains 24-bit RGB pixels, R=G=B
-    dataptr = img.ImageData;
-    imgptr = disk_image.GetData();
-    int sample_size = disk_image.HasAlpha() ? 4 : 3;
-    for (unsigned int i = 0; i < img.NPixels; i++, dataptr++, imgptr+=sample_size) {
-        unsigned char data = *imgptr;
-        *dataptr = (unsigned short) data << 8;
+    // Convert to grayscale
+    cv::Mat *disk_image = &image;
+    cv::Mat grayscaleImage;
+    cv::Mat grayscale16;
+    if (image.channels() != 1)
+    {
+        cvtColor(image, grayscaleImage, cv::COLOR_BGR2GRAY);
+        disk_image = &grayscaleImage;
     }
+    if (disk_image->depth() != CV_16U)
+    {
+        disk_image->convertTo(grayscale16, CV_16UC1);
+        disk_image = &grayscale16;
+    }
+
+#if 0
+    // Simulate random motion
+    unsigned short *dataptr = img.ImageData;
+    int rx = (1 - (double)rand() / 32767.0) * 15 + 0.5;
+    int ry = (1 - (double)rand() / 32767.0) * 15 + 0.5;
+    for (int y = 0; y < image.rows; ++y)
+    {
+        unsigned short pixelValue;
+        for (int x = 0; x < image.cols; ++x)
+        {
+            if ((x + rx < image.cols) && (y + ry < image.rows))
+                pixelValue = disk_image->at<unsigned short>(y + ry, x + rx);
+            else
+                pixelValue = 0;
+            *dataptr++ = pixelValue;
+        }
+    }
+#else
+    // Copy the 16-bit data to result
+    int dataSize = image.cols * image.rows * 2;
+    memcpy(img.ImageData, disk_image->data, dataSize);
+#endif
 
     QuickLRecon(img);
 #else
