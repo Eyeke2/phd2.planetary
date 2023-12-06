@@ -390,6 +390,7 @@ void PlanetToolWin::OnHighThresholdChanged(wxCommandEvent& event)
 void PlanetToolWin::OnClose(wxCloseEvent& evt)
 {
     pFrame->pGuider->SetEclipseMode(m_EclipseModeCheckBox->IsChecked());
+    pFrame->pGuider->SetPlanetaryThresholdVisual(false);
     pFrame->m_PlanetaryMenuItem->Check(pFrame->pGuider->GetPlanetaryEnableState());
 
     // save detection parameters
