@@ -189,6 +189,7 @@ Guider::Guider(wxWindow *parent, int xSize, int ySize) :
     m_polarAlignCircleCorrection = 1.0;
 
     m_Planetary_enabled = false;
+    m_Planet.detected = false;
     m_EclipseMode = false;
     m_Planetary_minDist = PT_MIN_DIST_DEFAULT;
     m_Planetary_param1 = PT_PARAM1_DEFAULT;

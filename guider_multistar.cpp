@@ -1166,9 +1166,8 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
 
             double StarX, StarY;
 
-            if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+            if ((pFrame->GetStarFindMode() == Star::FIND_PLANET) && FindPlanet((const usImage *)pImage))
             {
-                FindPlanet((const usImage *) pImage);
                 StarX = (double) m_Planet.center_x;
                 StarY = (double) m_Planet.center_y;
             }
@@ -1221,7 +1220,13 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
     if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
     {
-        dc.DrawCircle(int(star.X * scale + 0.5), int(star.Y * scale + 0.5), int(pFrame->pGuider->m_Planet.radius * scale + 0.5));
+        if (pFrame->pGuider->m_Planet.detected)
+        {
+            int x = int(star.X * scale + 0.5);
+            int y = int(star.Y * scale + 0.5);
+            int r = int(pFrame->pGuider->m_Planet.radius * scale + 0.5);
+            dc.DrawCircle(x, y, r);
+        }
     }
     else
     {
@@ -1569,6 +1574,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
     case 8: format = CV_8UC1;
         break;
     default:
+        m_Planet.detected = false;
         return false;
     }
     Mat img(pImage->Size.GetHeight(), pImage->Size.GetWidth(), format, pImage->ImageData);
@@ -1605,6 +1611,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
             m_Planet.center_x = center[0];
             m_Planet.center_y = center[1];
             m_Planet.radius = center[2];
+            m_Planet.detected = true;
             return true;
         }
     }
@@ -1655,10 +1662,11 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
             m_Planet.center_x = cvRound(largest_circle_center.x);
             m_Planet.center_y = cvRound(largest_circle_center.y);
             m_Planet.radius = largest_circle_radius;
-
+            m_Planet.detected = true;
             return true;
         }
     }
 
+    m_Planet.detected = false;
     return false;
 }
