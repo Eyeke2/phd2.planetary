@@ -83,8 +83,8 @@ struct PlanetToolWin : public wxDialog
     void UpdateStatus();
 };
 
-static wxString TITLE = wxTRANSLATE("Star tracking mode");
-static wxString TITLE_ACTIVE = wxTRANSLATE("Planet tracking mode");
+static wxString TITLE = wxTRANSLATE("Planetary tracking | disabled");
+static wxString TITLE_ACTIVE = wxTRANSLATE("Planetary tracking | enabled");
 
 static void SetEnabledState(PlanetToolWin* win, bool active)
 {
@@ -118,22 +118,21 @@ PlanetToolWin::PlanetToolWin()
     m_maxRadius_Label->Wrap(-1);
 
     m_minDist = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 1024, PT_MIN_DIST_DEFAULT);
-    m_minDist->SetToolTip(_("minimum distance between the centers of the detected circles"));
+    m_minDist_Label->SetToolTip(_("minimum distance between the centers of the detected circles"));
 
     m_param1 = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 255, PT_PARAM1_DEFAULT);
-    m_param1->SetToolTip(_("The higher threshold for the Canny edge detector. Increase this value to avoid false circles"));
+    m_param1_Label->SetToolTip(_("The higher threshold for the Canny edge detector. Increase this value to avoid false circles"));
 
     m_param2 = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 512, PT_PARAM2_DEFAULT);
-    m_param2->SetToolTip(_("The accumulator threshold for circle centers. Smaller values will mean more circle candidates, and larger values will suppress weaker circles. You might want to increase this value if you're getting false circles"));
+    m_param2_Label->SetToolTip(_("The accumulator threshold for circle centers. Smaller values will mean more circle candidates, and larger values will suppress weaker circles. You might want to increase this value if you're getting false circles"));
 
     m_minRadius = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 1024, PT_MIN_RADIUS_DEFAULT);
-    m_minRadius->SetToolTip(_("Minimum planet radius in pixels. If set to 0, the minimal size is not limited."));
+    m_minRadius_Label->SetToolTip(_("Minimum planet radius in pixels. If set to 0, the minimal size is not limited."));
 
     m_maxRadius = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 1024, PT_MAX_RADIUS_DEFAULT);
-    m_maxRadius->SetToolTip(_("Maximum planet radius in pixels. If set to 0, the maximal size is not limited. If neither minRadius nor maxRadius is set, they are estimated from the image size."));
+    m_maxRadius_Label->SetToolTip(_("Maximum planet radius in pixels. If set to 0, the maximal size is not limited. If neither minRadius nor maxRadius is set, they are estimated from the image size."));
 
-    m_enableButton = new wxToggleButton(this, wxID_ANY, _("Enable"), wxDefaultPosition, wxDefaultSize, 0);
-    m_enableButton->SetToolTip(_("Toggle planet detection mode on or off."));
+    m_enableButton = new wxToggleButton(this, wxID_ANY, TITLE, wxDefaultPosition, wxDefaultSize, 0);
 
     long style = wxSTATIC_BORDER | wxTE_MULTILINE;
     m_status = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(400, 80), style);
