@@ -223,6 +223,7 @@ GuiderMultiStar::~GuiderMultiStar()
 {
     delete m_massChecker;
     delete m_primaryDistStats;
+    delete m_Planet.eclipse_edges;
 }
 
 void GuiderMultiStar::SetMultiStarMode(bool val)
@@ -1624,6 +1625,19 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         Mat edges, dilatedEdges;
         Canny(img8, edges, LowThreshold, HighThreshold, 5, true);
         dilate(edges, dilatedEdges, Mat(), Point(-1, -1), 2);
+
+        // Create wxImage from the OpenCV Mat
+        if (GetPlanetaryThresholdVisual())
+        {
+            if (m_Planet.eclipse_edges)
+                delete m_Planet.eclipse_edges;
+            size_t dataSize = dilatedEdges.rows * dilatedEdges.cols * dilatedEdges.channels();
+            m_Planet.eclipse_edges = new unsigned char[dataSize];
+            m_Planet.rows = dilatedEdges.rows;
+            m_Planet.cols = dilatedEdges.cols;
+            memcpy(m_Planet.eclipse_edges, dilatedEdges.data, dataSize);
+        }
+
         // Find contours
         IplImage thresholded = IplImage(dilatedEdges);
         CvMemStorage *storage = cvCreateMemStorage(0);
