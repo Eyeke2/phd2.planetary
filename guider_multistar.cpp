@@ -1629,6 +1629,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
     // Do not run out of real time
     if (m_PlanetWatchdog.Time() < 100)
     {
+        Debug.Write("Warning: FindPlanet is consuming too much real time\n");
         return m_Planet.detected;
     }
 
@@ -1662,6 +1663,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         double param2 = GetPlanetaryParam_param2();
 
         // Find circles matching given criteria
+        Debug.Write(wxString::Format("Start detection of planetary disk (mind=%.1f,p1=%.1f,p2=%.1f,minr=%d,maxr=%d)\n", minDist, param1, param2, minRadius, maxRadius));
         vector<Vec3f> circles;
         HoughCircles(img8, circles, CV_HOUGH_GRADIENT, 1.0, minDist, param1, param2, minRadius, maxRadius);
 
@@ -1673,6 +1675,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
                 center = c;
         }
 
+        Debug.Write(wxString::Format("End detection of planetary disk: %d circles detected, r=%d x=%.1f y=%.1f\n", circles.size(), cvRound(center[2]), center[0], center[1]));
         m_PlanetWatchdog.Start();
 
         if (center[2])
@@ -1690,6 +1693,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         int HighThreshold = GetPlanetaryParam_highThreshold();
 
         // Apply Canny edge detection
+        Debug.Write(wxString::Format("Start detection of eclipsed disk (low_tr=%d,high_tr=%d,minr=%d,maxr=%d)\n", LowThreshold, HighThreshold, minRadius, maxRadius));
         Mat edges, dilatedEdges;
         Canny(img8, edges, LowThreshold, HighThreshold, 5, true);
         dilate(edges, dilatedEdges, Mat(), Point(-1, -1), 2);
@@ -1744,6 +1748,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
 
         // Free allocated storage
         cvReleaseMemStorage(&storage);
+        Debug.Write(wxString::Format("End detection of eclipsed disk: r=%d, x=%.1f, y=%.1f\n", largest_circle_radius, largest_circle_center.x, largest_circle_center.y));
         m_PlanetWatchdog.Start();
 
         if (largest_circle_radius > 0)
