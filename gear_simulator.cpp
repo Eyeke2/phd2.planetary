@@ -1346,15 +1346,17 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
 #if 0
     // Simulate random motion
     unsigned short *dataptr = img.ImageData;
-    int rx = (1 - (double)rand() / 32767.0) * 15 + 0.5;
-    int ry = (1 - (double)rand() / 32767.0) * 15 + 0.5;
+    int rx = (1 - (double)rand() / 32767.0) * 2 + 0.5;
+    int ry = (1 - (double)rand() / 32767.0) * 2 + 0.5;
     for (int y = 0; y < image.rows; ++y)
     {
         unsigned short pixelValue;
         for (int x = 0; x < image.cols; ++x)
         {
-            if ((x + rx < image.cols) && (y + ry < image.rows))
-                pixelValue = disk_image->at<unsigned short>(y + ry, x + rx);
+            int new_x = x + rx;
+            int new_y = y + ry;
+            if ((new_x < image.cols) && (new_x >= 0) && (new_y < image.rows) && (new_y >= 0))
+                pixelValue = disk_image->at<unsigned short>(new_y, new_x);
             else
                 pixelValue = 0;
             *dataptr++ = pixelValue;
