@@ -138,8 +138,8 @@ struct GuiderOffset
 struct Planet
 {
     bool detected;
-    int center_x;
-    int center_y;
+    float center_x;
+    float center_y;
     int radius;
     unsigned char *eclipse_edges;
     int rows;
