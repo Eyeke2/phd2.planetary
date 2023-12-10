@@ -190,6 +190,7 @@ Guider::Guider(wxWindow *parent, int xSize, int ySize) :
 
     m_Planetary_enabled = false;
     m_Planet.detected = false;
+    m_Planet.eclipse_edges_valid = false;
     m_Planet.eclipse_edges = NULL;
     m_EclipseMode = false;
     m_Planetary_minDist = PT_MIN_DIST_DEFAULT;

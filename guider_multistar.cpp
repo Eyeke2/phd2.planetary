@@ -1247,19 +1247,24 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
 // Helper for visualizing planet detection radius
 void GuiderMultiStar::PlanetVisualHelper(wxDC &dc)
 {
-    if (GetEclipseMode() && m_Planet.eclipse_edges)
+    // Draw the edge bitmap
+    if (GetPlanetaryThresholdVisual())
     {
-        // Draw the bitmap onto the device context
-        dc.SetPen(wxPen(wxColour(230, 0, 0), 1, wxPENSTYLE_SOLID));
-        for (int y = 0; y < m_Planet.rows; y++)
+        m_Planet.sync_lock.Lock();
+        if (m_Planet.eclipse_edges_valid)
         {
-            for (int x = 0; x < m_Planet.cols; x++)
+            dc.SetPen(wxPen(wxColour(230, 0, 0), 1, wxPENSTYLE_SOLID));
+            for (int y = 0; y < m_Planet.rows; y++)
             {
-                int index = (y * m_Planet.cols + x);
-                if (m_Planet.eclipse_edges[index])
-                    dc.DrawPoint(x * m_scaleFactor, y * m_scaleFactor);
+                for (int x = 0; x < m_Planet.cols; x++)
+                {
+                    int index = (y * m_Planet.cols + x);
+                    if (m_Planet.eclipse_edges[index])
+                        dc.DrawPoint(x * m_scaleFactor, y * m_scaleFactor);
+                }
             }
         }
+        m_Planet.sync_lock.Unlock();
     }
 
     if (m_draw_PlanetaryHelper)
@@ -1682,13 +1687,19 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         // Create wxImage from the OpenCV Mat
         if (GetPlanetaryThresholdVisual())
         {
+            m_Planet.sync_lock.Lock();
             if (m_Planet.eclipse_edges)
+            {
+                m_Planet.eclipse_edges_valid = false;
                 delete m_Planet.eclipse_edges;
+            }
             size_t dataSize = dilatedEdges.rows * dilatedEdges.cols * dilatedEdges.channels();
             m_Planet.eclipse_edges = new unsigned char[dataSize];
             m_Planet.rows = dilatedEdges.rows;
             m_Planet.cols = dilatedEdges.cols;
             memcpy(m_Planet.eclipse_edges, dilatedEdges.data, dataSize);
+            m_Planet.eclipse_edges_valid = true;
+            m_Planet.sync_lock.Unlock();
         }
 
         // Find contours

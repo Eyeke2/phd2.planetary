@@ -141,6 +141,9 @@ struct Planet
     float center_x;
     float center_y;
     int radius;
+
+    wxMutex sync_lock;
+    bool eclipse_edges_valid;
     unsigned char *eclipse_edges;
     int rows;
     int cols;
