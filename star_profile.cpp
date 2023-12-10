@@ -263,7 +263,8 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         double dStarY = LockY - pFrame->pGuider->CurrentPosition().Y * scaleFactor;
         // grab the subframe
         wxBitmap dBmp(*img);
-        int radius = (pFrame->GetStarFindMode() == Star::FIND_PLANET) && (pFrame->pGuider->m_Planet.radius > HALFW) ? pFrame->pGuider->m_Planet.radius * 5 / 4: 15;
+        int radius = (pFrame->GetStarFindMode() == Star::FIND_PLANET) && (pFrame->pGuider->m_Planet.radius > HALFW) ? pFrame->pGuider->m_Planet.radius * 5 / 4 : 15;
+        radius *= scaleFactor;
         int lkx = ROUND(LockX);
         int l = std::max(0, lkx - radius);
         int r = std::min(dBmp.GetWidth() - 1, lkx + radius);
