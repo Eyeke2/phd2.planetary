@@ -14,6 +14,10 @@
  *  Copyright (c) 2020 Bruce Waddington
  *  All rights reserved.
  *
+ *  Planetary detection extensions by Leo Shatz
+ *  Copyright (c) 2023 Leo Shatz
+ *  All rights reserved.
+ *
  *  This source code is distributed under the following "BSD" license
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
