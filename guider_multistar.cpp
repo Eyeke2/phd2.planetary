@@ -221,6 +221,7 @@ GuiderMultiStar::GuiderMultiStar(wxWindow *parent)
 {
     SetState(STATE_UNINITIALIZED);
     m_primaryDistStats = new DescriptiveStats();
+    m_PlanetWatchdog.Start();
 }
 
 GuiderMultiStar::~GuiderMultiStar()
@@ -1625,6 +1626,12 @@ using namespace cv;
 
 bool GuiderMultiStar::FindPlanet(const usImage *pImage)
 {
+    // Do not run out of real time
+    if (m_PlanetWatchdog.Time() < 100)
+    {
+        return m_Planet.detected;
+    }
+
     int format;
     switch (pImage->BitsPerPixel)
     {
@@ -1665,6 +1672,9 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
             if (c[2] > center[2])
                 center = c;
         }
+
+        m_PlanetWatchdog.Start();
+
         if (center[2])
         {
             m_Planet.center_x = center[0];
@@ -1734,6 +1744,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
 
         // Free allocated storage
         cvReleaseMemStorage(&storage);
+        m_PlanetWatchdog.Start();
 
         if (largest_circle_radius > 0)
         {
