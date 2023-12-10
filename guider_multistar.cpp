@@ -1654,7 +1654,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         HoughCircles(img8, circles, CV_HOUGH_GRADIENT, 1.0, minDist, param1, param2, minRadius, maxRadius);
 
         // Find and use largest circle from the detected set of circles
-        Vec3i center = { 0, 0, 0 };
+        Vec3f center = { 0, 0, 0 };
         for (const auto& c: circles)
         {
             if (c[2] > center[2])
@@ -1664,7 +1664,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         {
             m_Planet.center_x = center[0];
             m_Planet.center_y = center[1];
-            m_Planet.radius = center[2];
+            m_Planet.radius = cvRound(center[2]);
             m_Planet.detected = true;
             return true;
         }
@@ -1698,7 +1698,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         cvFindContours(&thresholded, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
 
         // Fit circle/ellipse to contours and find the largest one
-        CvPoint2D32f largest_circle_center;
+        CvPoint2D32f largest_circle_center = { 0 };
         int largest_circle_radius = 0;
 
         // Find smallest circle encompassing the contour of the eclipsed circle
@@ -1726,8 +1726,8 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
 
         if (largest_circle_radius > 0)
         {
-            m_Planet.center_x = cvRound(largest_circle_center.x);
-            m_Planet.center_y = cvRound(largest_circle_center.y);
+            m_Planet.center_x = largest_circle_center.x;
+            m_Planet.center_y = largest_circle_center.y;
             m_Planet.radius = largest_circle_radius;
             m_Planet.detected = true;
             return true;
