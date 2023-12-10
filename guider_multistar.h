@@ -142,6 +142,9 @@ public:
     void LoadProfileSettings() override;
 
 private:
+    wxStopWatch m_PlanetWatchdog;
+
+private:
     bool IsValidLockPosition(const PHD_Point& pt) final;
     bool IsValidSecondaryStarPosition(const PHD_Point& pt) final;
     void InvalidateCurrentPosition(bool fullReset = false) final;
