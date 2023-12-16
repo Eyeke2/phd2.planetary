@@ -44,6 +44,10 @@
 #ifndef GUIDER_MULTISTAR_H_INCLUDED
 #define GUIDER_MULTISTAR_H_INCLUDED
 
+#include <opencv/cv.h>
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+
 class MassChecker;
 class GuiderMultiStar;
 class GuiderConfigDialogCtrlSet;
@@ -143,6 +147,22 @@ public:
 
 private:
     wxStopWatch m_PlanetWatchdog;
+    typedef struct {
+        float x;
+        float y;
+        float radius;
+    } CircleDescriptor;
+    struct LineParameters {
+        bool  valid;
+        bool  vertical;
+        float slope;
+        float b;
+    } m_DiameterLineParameters;
+    void CalcLineParams(CircleDescriptor p1, CircleDescriptor p2);
+    void FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, int minRadius, int maxRadius);
+    void FindCenters(CvSeq* contours, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, int minRadius, int maxRadius);
+    bool FindPlanet(const usImage* pImage);
+    void PlanetVisualHelper(wxDC& dc);
 
 private:
     bool IsValidLockPosition(const PHD_Point& pt) final;
@@ -150,9 +170,6 @@ private:
     void InvalidateCurrentPosition(bool fullReset = false) final;
     bool UpdateCurrentPosition(const usImage *pImage, GuiderOffset *ofs, FrameDroppedInfo *errorInfo) final;
     bool SetCurrentPosition(const usImage *pImage, const PHD_Point& position) final;
-    bool FindPlanet(const usImage *pImage);
-    void PlanetVisualHelper(wxDC &dc);
-
     void OnLClick(wxMouseEvent& evt);
 
     void SaveStarFITS();
