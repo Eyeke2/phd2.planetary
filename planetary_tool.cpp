@@ -60,6 +60,7 @@ struct PlanetToolWin : public wxDialog
 
     wxButton   *m_CloseButton;
     wxCheckBox *m_EclipseModeCheckBox;
+    wxCheckBox* m_RoiCheckBox;
     bool        m_MouseHoverFlag;
 
     bool init_once;
@@ -87,6 +88,7 @@ struct PlanetToolWin : public wxDialog
     void OnSpinCtrl_minRadius(wxSpinDoubleEvent& event);
     void OnSpinCtrl_maxRadius(wxSpinDoubleEvent& event);
     void OnEclipseModeClick(wxCommandEvent& event);
+    void OnRoiModeClick(wxCommandEvent& event);
 
     void UpdateStatus();
 };
@@ -197,6 +199,8 @@ PlanetToolWin::PlanetToolWin()
 
     m_EclipseModeCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable Eclipse mode"));
     m_EclipseModeCheckBox->SetToolTip(_("Enable Eclipse mode for better tracking of partial solar/lunar disk"));
+    m_RoiCheckBox = new wxCheckBox(this, wxID_ANY, _("Use ROI"));
+    m_RoiCheckBox->SetToolTip(_("Enable ROI for faster processing and lowering CPU usage"));
 
     // Close button
     m_MouseHoverFlag = false;
@@ -211,7 +215,10 @@ PlanetToolWin::PlanetToolWin()
     topSizer->AddSpacer(5);
     topSizer->Add(ParamsSizer, 0, wxEXPAND, 5);
     topSizer->AddSpacer(10);
-    topSizer->Add(m_EclipseModeCheckBox, wxEXPAND, 5);
+    topSizer->Add(m_EclipseModeCheckBox, 0, wxLEFT | wxALIGN_LEFT, 100);
+    topSizer->AddSpacer(10);
+    topSizer->Add(m_RoiCheckBox, 0, wxLEFT | wxALIGN_LEFT, 100);
+    topSizer->AddSpacer(10);
     topSizer->Add(lowThresholdLabel, 0, wxLEFT | wxTOP, 10);
     topSizer->Add(m_lowThresholdSlider, 0, wxALL, 10);
     topSizer->Add(highThresholdLabel, 0, wxLEFT | wxTOP, 10);
@@ -236,6 +243,7 @@ PlanetToolWin::PlanetToolWin()
     m_highThresholdSlider->Bind(wxEVT_LEAVE_WINDOW, &PlanetToolWin::OnMouseLeaveThreshold, this);
 
     m_EclipseModeCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnEclipseModeClick, this);
+    m_RoiCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnRoiModeClick, this);
     Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(PlanetToolWin::OnClose));
     Connect(APPSTATE_NOTIFY_EVENT, wxCommandEventHandler(PlanetToolWin::OnAppStateNotify));
 
@@ -263,6 +271,8 @@ PlanetToolWin::PlanetToolWin()
     m_lowThresholdSlider->SetValue(pFrame->pGuider->GetPlanetaryParam_lowThreshold());
     m_highThresholdSlider->SetValue(pFrame->pGuider->GetPlanetaryParam_highThreshold());
     m_EclipseModeCheckBox->SetValue(pFrame->pGuider->GetEclipseMode());
+    m_RoiCheckBox->SetValue(pFrame->pGuider->GetRoiEnableState());
+
     SetEnabledState(this, pFrame->pGuider->GetPlanetaryEnableState());
 
     UpdateStatus();
@@ -336,6 +346,12 @@ void PlanetToolWin::OnEclipseModeClick(wxCommandEvent& event)
     m_minDist->Enable(!EclipseMode);
     m_param1->Enable(!EclipseMode);
     m_param2->Enable(!EclipseMode);
+}
+
+void PlanetToolWin::OnRoiModeClick(wxCommandEvent& event)
+{
+    bool enabled = m_RoiCheckBox->IsChecked();
+    pFrame->pGuider->SetRoiEnableState(enabled);
 }
 
 void PlanetToolWin::UpdateStatus()

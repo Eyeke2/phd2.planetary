@@ -1261,7 +1261,7 @@ void GuiderMultiStar::PlanetVisualHelper(wxDC &dc)
                 {
                     int index = (y * m_Planet.cols + x);
                     if (m_Planet.eclipse_edges[index])
-                        dc.DrawPoint(x * m_scaleFactor, y * m_scaleFactor);
+                        dc.DrawPoint((x + m_Planet.offset_x) * m_scaleFactor, (y + m_Planet.offset_y) * m_scaleFactor);
                 }
             }
         }
@@ -1644,13 +1644,43 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         m_Planet.detected = false;
         return false;
     }
-    Mat img(pImage->Size.GetHeight(), pImage->Size.GetWidth(), format, pImage->ImageData);
-    Mat img8 = img.clone();
+
+    // Use ROI as optimization
+    bool usingRoi = false;
+    int offsetX = 0;
+    int offsetY = 0;
+    Mat FullFrame(pImage->Size.GetHeight(), pImage->Size.GetWidth(), format, pImage->ImageData);
+    Mat RoiFrame;
+    Mat img8;
+    if ((GetRoiEnableState() && m_Planet.detected) &&
+        (m_Planet.frame_width == pImage->Size.GetWidth()) &&
+        (m_Planet.frame_height == pImage->Size.GetHeight()))
+    {
+        offsetX = m_Planet.center_x - (m_Planet.radius * 3) / 2;
+        if (offsetX < 0)
+            offsetX = 0;
+        offsetY = m_Planet.center_y - (m_Planet.radius * 3) / 2;
+        if (offsetY < 0)
+            offsetY = 0;
+        int w = m_Planet.radius * 3;
+        if (w > pImage->Size.GetWidth() - offsetX)
+            w = pImage->Size.GetWidth() - offsetX;
+        int h = m_Planet.radius * 3;
+        if (h > pImage->Size.GetHeight() - offsetY)
+            h = pImage->Size.GetHeight() - offsetY;
+        Rect roiRect(offsetX, offsetY, w, h);
+        RoiFrame = FullFrame(roiRect);
+        usingRoi = true;
+    }
+    else
+        RoiFrame = FullFrame;
     if (pImage->BitsPerPixel == 16)
-        img8.convertTo(img8, CV_8U, 1.0 / 256.0);
+        RoiFrame.convertTo(img8, CV_8U, 1.0 / 256.0);
+    else
+        img8 = RoiFrame;
 
     // Do slight image bluring to decrease noise impact on results
-    medianBlur(img8, img8, 5);
+    cv::medianBlur(img8, img8, 5);
 
     int minRadius = (int) GetPlanetaryParam_minRadius();
     int maxRadius = (int) GetPlanetaryParam_maxRadius();
@@ -1663,7 +1693,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         double param2 = GetPlanetaryParam_param2();
 
         // Find circles matching given criteria
-        Debug.Write(wxString::Format("Start detection of planetary disk (mind=%.1f,p1=%.1f,p2=%.1f,minr=%d,maxr=%d)\n", minDist, param1, param2, minRadius, maxRadius));
+        Debug.Write(wxString::Format("Start detection of planetary disk (roi:%d mind=%.1f,p1=%.1f,p2=%.1f,minr=%d,maxr=%d)\n", usingRoi, minDist, param1, param2, minRadius, maxRadius));
         vector<Vec3f> circles;
         HoughCircles(img8, circles, CV_HOUGH_GRADIENT, 1.0, minDist, param1, param2, minRadius, maxRadius);
 
@@ -1680,8 +1710,10 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
 
         if (center[2])
         {
-            m_Planet.center_x = center[0];
-            m_Planet.center_y = center[1];
+            m_Planet.frame_width = pImage->Size.GetWidth();
+            m_Planet.frame_height = pImage->Size.GetHeight();
+            m_Planet.center_x = offsetX + center[0];
+            m_Planet.center_y = offsetY + center[1];
             m_Planet.radius = cvRound(center[2]);
             m_Planet.detected = true;
             return true;
@@ -1693,7 +1725,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         int HighThreshold = GetPlanetaryParam_highThreshold();
 
         // Apply Canny edge detection
-        Debug.Write(wxString::Format("Start detection of eclipsed disk (low_tr=%d,high_tr=%d,minr=%d,maxr=%d)\n", LowThreshold, HighThreshold, minRadius, maxRadius));
+        Debug.Write(wxString::Format("Start detection of eclipsed disk (roi:%d low_tr=%d,high_tr=%d,minr=%d,maxr=%d)\n", usingRoi, LowThreshold, HighThreshold, minRadius, maxRadius));
         Mat edges, dilatedEdges;
         Canny(img8, edges, LowThreshold, HighThreshold, 5, true);
         dilate(edges, dilatedEdges, Mat(), Point(-1, -1), 2);
@@ -1711,6 +1743,8 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
             m_Planet.eclipse_edges = new unsigned char[dataSize];
             m_Planet.rows = dilatedEdges.rows;
             m_Planet.cols = dilatedEdges.cols;
+            m_Planet.offset_x = offsetX;
+            m_Planet.offset_y = offsetY;
             memcpy(m_Planet.eclipse_edges, dilatedEdges.data, dataSize);
             m_Planet.eclipse_edges_valid = true;
             m_Planet.sync_lock.Unlock();
@@ -1749,12 +1783,14 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         // Free allocated storage
         cvReleaseMemStorage(&storage);
         Debug.Write(wxString::Format("End detection of eclipsed disk: r=%d, x=%.1f, y=%.1f\n", largest_circle_radius, largest_circle_center.x, largest_circle_center.y));
-        m_PlanetWatchdog.Start();
 
+        m_PlanetWatchdog.Start();
         if (largest_circle_radius > 0)
         {
-            m_Planet.center_x = largest_circle_center.x;
-            m_Planet.center_y = largest_circle_center.y;
+            m_Planet.frame_width = pImage->Size.GetWidth();
+            m_Planet.frame_height = pImage->Size.GetHeight();
+            m_Planet.center_x = offsetX + largest_circle_center.x;
+            m_Planet.center_y = offsetY + largest_circle_center.y;
             m_Planet.radius = largest_circle_radius;
             m_Planet.detected = true;
             return true;
