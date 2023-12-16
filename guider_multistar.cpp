@@ -1618,21 +1618,188 @@ void GuiderMultiStarConfigDialogCtrlSet::OnStarMassEnableChecked(wxCommandEvent&
     m_pMassChangeThreshold->Enable(event.IsChecked());
 }
 
-#include <opencv/cv.h>
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-
 using namespace cv;
+
+void GuiderMultiStar::CalcLineParams(CircleDescriptor p1, CircleDescriptor p2)
+{
+    if ((p1.radius == 0) || (p2.radius == 0))
+    {
+        m_DiameterLineParameters.valid = false;
+        m_DiameterLineParameters.vertical = false;
+        m_DiameterLineParameters.slope = 0;
+        m_DiameterLineParameters.b = 0;
+        return;
+    }
+    // Check to see if line is vertical
+    if (fabs(p1.x - p2.x) < 1)
+    {
+        // Vertical line, slope is undefined
+        m_DiameterLineParameters.valid = true;
+        m_DiameterLineParameters.vertical = true;
+        m_DiameterLineParameters.slope = std::numeric_limits<double>::infinity();
+        m_DiameterLineParameters.b = 0;
+    }
+    else
+    {
+        // Calculate slope (m) and y-intercept (b) for a non-vertical line
+        m_DiameterLineParameters.valid = true;
+        m_DiameterLineParameters.vertical = false;
+        m_DiameterLineParameters.slope = (p2.y - p1.y) / (p2.x - p1.x);
+        m_DiameterLineParameters.b = p1.y - (m_DiameterLineParameters.slope * p1.x);
+    }
+}
+
+// An algorithm to find eclipse center
+void GuiderMultiStar::FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<Point2f>& eclipseContour, int minRadius, int maxRadius)
+{
+    int bestScore = 0;
+    int searchRadius = smallestCircle.radius / 4;
+    Point pointToMeasure;
+
+    // When center of mass (centroid) wasn't found use smallest circle as best guess
+    if (!m_DiameterLineParameters.valid)
+    {
+        eclipseCenter = smallestCircle;
+        return;
+    }
+
+    if (!m_DiameterLineParameters.vertical && (fabs(m_DiameterLineParameters.slope) < 1.0))
+    {
+        // Search along x-axis when line slope is below 45 degrees
+        for (pointToMeasure.x = smallestCircle.x - searchRadius; pointToMeasure.x <= smallestCircle.x + searchRadius; pointToMeasure.x++)
+        {
+            // Count number of points of the contour which are equidistant from pointToMeasure.
+            // The point with maximum score is identified as eclipse center.
+            pointToMeasure.y = m_DiameterLineParameters.slope * pointToMeasure.x + m_DiameterLineParameters.b;
+            float maxDist = 0;
+            float minDist = 999999;
+            int scorePoints = 0;
+            for (const Point& contourPoint : eclipseContour)
+            {
+                float distance = norm(contourPoint - pointToMeasure);
+                if ((distance <= maxRadius) && (distance >= minRadius))
+                {
+                    if (maxDist < distance)
+                        maxDist = distance;
+                    if (minDist > distance)
+                        minDist = distance;
+                }
+            }
+            for (const Point& contourPoint : eclipseContour)
+            {
+                float distance = norm(contourPoint - pointToMeasure);
+                if (fabs(distance - maxDist) < 5)
+                    scorePoints++;
+            }
+            if (scorePoints > bestScore)
+            {
+                bestScore = scorePoints;
+                eclipseCenter.radius = maxDist;
+                eclipseCenter.x = pointToMeasure.x;
+                eclipseCenter.y = pointToMeasure.y;
+            }
+        }
+    }
+    else
+    {
+        // Search along y-axis when slope is above 45 degrees
+        for (pointToMeasure.y = smallestCircle.y - searchRadius; pointToMeasure.y <= smallestCircle.y + searchRadius; pointToMeasure.y++)
+        {
+            // Count number of points of the contour which are equidistant from pointToMeasure.
+            // The point with maximum score is identified as eclipse center.
+            if (m_DiameterLineParameters.vertical)
+                pointToMeasure.x = smallestCircle.x;
+            else
+                pointToMeasure.x = (pointToMeasure.y - m_DiameterLineParameters.b) / m_DiameterLineParameters.slope;
+            float maxDist = 0;
+            float minDist = 999999;
+            int scorePoints = 0;
+            for (const Point& contourPoint : eclipseContour)
+            {
+                float distance = norm(contourPoint - pointToMeasure);
+                if ((distance <= maxRadius) && (distance >= minRadius))
+                {
+                    if (maxDist < distance)
+                        maxDist = distance;
+                    if (minDist > distance)
+                        minDist = distance;
+                }
+            }
+            for (const Point& contourPoint : eclipseContour)
+            {
+                float distance = norm(contourPoint - pointToMeasure);
+                if (fabs(distance - maxDist) < 5)
+                    scorePoints++;
+            }
+            if (scorePoints > bestScore)
+            {
+                bestScore = scorePoints;
+                eclipseCenter.radius = maxDist;
+                eclipseCenter.x = pointToMeasure.x;
+                eclipseCenter.y = pointToMeasure.y;
+            }
+        }
+    }
+}
+
+// Find a minimum enclosing circle of the contour and also its center of mass
+void GuiderMultiStar::FindCenters(CvSeq* contours, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<Point2f>& eclipseContour, int minRadius, int maxRadius)
+{
+    CvSeq* smallestContour = NULL;
+    smallestCircle.radius = 999999;
+
+    for (CvSeq* contour = contours; contour != NULL; contour = contour->h_next)
+    {
+        CvPoint2D32f circleCenter;
+        float circle_radius;
+        if (cvMinEnclosingCircle(contour, &circleCenter, &circle_radius))
+            if ((cvRound(circle_radius) <= maxRadius) &&
+                (cvRound(circle_radius) >= minRadius))
+            {
+                if (circle_radius < smallestCircle.radius)
+                {
+                    smallestContour = contour;
+                    smallestCircle.x = circleCenter.x;
+                    smallestCircle.y = circleCenter.y;
+                    smallestCircle.radius = circle_radius;
+                }
+            }
+    }
+
+    eclipseContour.clear();
+    if (smallestContour)
+    {
+        // Calculate moment
+        Point2f centroid = { 0 };
+        for (int i = 0; i < smallestContour->total; i++)
+        {
+            CvPoint* pt = CV_GET_SEQ_ELEM(CvPoint, smallestContour, i);
+            eclipseContour.push_back(cv::Point(pt->x, pt->y));
+        }
+        Moments mu = moments(eclipseContour, false);
+        if (mu.m00 > 0)
+        {
+            bestCentroid.x = mu.m10 / mu.m00;
+            bestCentroid.y = mu.m01 / mu.m00;
+            bestCentroid.radius = smallestCircle.radius;
+        }
+        else
+            bestCentroid.radius = 0;
+    }
+    else
+        smallestCircle.radius = 0;
+}
 
 bool GuiderMultiStar::FindPlanet(const usImage *pImage)
 {
     // Do not run out of real time
     if (m_PlanetWatchdog.Time() < 100)
     {
-        Debug.Write("Warning: FindPlanet is consuming too much real time\n");
+        Debug.Write("Warning: FindPlanet: running out of real time\n");
         return m_Planet.detected;
     }
 
+    // Make sure to use 8-bit gray image for feature detection
     int format;
     switch (pImage->BitsPerPixel)
     {
@@ -1730,7 +1897,8 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         Canny(img8, edges, LowThreshold, HighThreshold, 5, true);
         dilate(edges, dilatedEdges, Mat(), Point(-1, -1), 2);
 
-        // Create wxImage from the OpenCV Mat
+        // Create wxImage from the OpenCV Mat to be presented as 
+        // a visual aid for tunning of the edge threshold parameters.
         if (GetPlanetaryThresholdVisual())
         {
             m_Planet.sync_lock.Lock();
@@ -1753,45 +1921,35 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage)
         // Find contours
         IplImage thresholded = IplImage(dilatedEdges);
         CvMemStorage *storage = cvCreateMemStorage(0);
-        CvSeq *contour = NULL;
-        cvFindContours(&thresholded, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+        CvSeq *contours = NULL;
+        cvFindContours(&thresholded, storage, &contours, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
 
-        // Fit circle/ellipse to contours and find the largest one
-        CvPoint2D32f largest_circle_center = { 0 };
-        int largest_circle_radius = 0;
+        // Find the smallest circle encompassing contour of the eclipsed disk
+        // and also center of mass within the contour.
+        std::vector<Point2f> eclipseContour;
+        CircleDescriptor smallestCircle = { 0 };
+        CircleDescriptor Centroid = { 0 };
+        CircleDescriptor eclipseCenter = { 0 };
+        FindCenters(contours, Centroid, smallestCircle, eclipseContour, minRadius, maxRadius);
 
-        // Find smallest circle encompassing the contour of the eclipsed circle
-        for (; contour != NULL; contour = contour->h_next)
-        {
-            if (contour->total >= 5)
-            {   // Need at least 5 points to fit ellipse
-                CvPoint2D32f circle_center;
-                float circle_radius;
-                if (cvMinEnclosingCircle(contour, &circle_center, &circle_radius))
-                {
-                    if ((circle_radius > largest_circle_radius) &&
-                        (cvRound(circle_radius) <= maxRadius) &&
-                        (cvRound(circle_radius) >= minRadius))
-                    {
-                        largest_circle_radius = cvRound(circle_radius);
-                        largest_circle_center = circle_center;
-                    }
-                }
-            }
-        }
+        // Look for a point along the line connecting centers of the smallest circle and center of mass
+        // which is most equidistant from the outmost edge of the contour. Consider this point as 
+        // the best match for eclipse central point.
+        CalcLineParams(smallestCircle, Centroid);
+        FindEclipseCenter(eclipseCenter, smallestCircle, eclipseContour, minRadius, maxRadius);
 
         // Free allocated storage
         cvReleaseMemStorage(&storage);
-        Debug.Write(wxString::Format("End detection of eclipsed disk: r=%d, x=%.1f, y=%.1f\n", largest_circle_radius, largest_circle_center.x, largest_circle_center.y));
+        Debug.Write(wxString::Format("End detection of eclipsed disk: t=%d r=%.1f, x=%.1f, y=%.1f\n", m_PlanetWatchdog.Time(), eclipseCenter.radius, offsetX + eclipseCenter.x, offsetY + eclipseCenter.y));
 
         m_PlanetWatchdog.Start();
-        if (largest_circle_radius > 0)
+        if (eclipseCenter.radius > 0)
         {
             m_Planet.frame_width = pImage->Size.GetWidth();
             m_Planet.frame_height = pImage->Size.GetHeight();
-            m_Planet.center_x = offsetX + largest_circle_center.x;
-            m_Planet.center_y = offsetY + largest_circle_center.y;
-            m_Planet.radius = largest_circle_radius;
+            m_Planet.center_x = offsetX + eclipseCenter.x;
+            m_Planet.center_y = offsetY + eclipseCenter.y;
+            m_Planet.radius = eclipseCenter.radius;
             m_Planet.detected = true;
             return true;
         }
