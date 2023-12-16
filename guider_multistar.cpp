@@ -1201,10 +1201,7 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
                 }
                 Debug.Write("MultiStar: single-star usage forced by user star selection\n");
                 if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
-                {
-                    m_draw_PlanetaryHelper = true;
                     pFrame->StatusMsg(wxString::Format(_("Selected planet at (%.1f, %.1f)"), m_primaryStar.X, m_primaryStar.Y));
-                }
                 else
                     pFrame->StatusMsg(wxString::Format(_("Selected star at (%.1f, %.1f)"), m_primaryStar.X, m_primaryStar.Y));
                 pFrame->UpdateStatusBarStarInfo(m_primaryStar.SNR, m_primaryStar.GetError() == Star::STAR_SATURATED);
@@ -1213,6 +1210,9 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
                 pFrame->UpdateButtonsStatus();
                 pFrame->pProfile->UpdateData(pImage, m_primaryStar.X, m_primaryStar.Y);
             }
+
+            if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+                m_draw_PlanetaryHelper = true;
 
             Refresh();
             Update();
