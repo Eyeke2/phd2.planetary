@@ -141,10 +141,14 @@ struct Planet
     float center_x;
     float center_y;
     int radius;
+    int frame_width;
+    int frame_height;
 
     wxMutex sync_lock;
     bool eclipse_edges_valid;
     unsigned char *eclipse_edges;
+    int offset_x;
+    int offset_y;
     int rows;
     int cols;
 };
@@ -186,6 +190,7 @@ class Guider : public wxWindow
     // Planetary guiding parameters
     bool m_Planetary_enabled;
     bool m_EclipseMode;
+    bool m_RoiEnabled;
     double m_Planetary_minDist;
     double m_Planetary_param1;
     double m_Planetary_param2;
@@ -320,6 +325,8 @@ public:
     double GetPlanetaryParam_maxRadius() { return m_Planetary_maxRadius; }
     bool GetEclipseMode() { return m_EclipseMode; }
     void SetEclipseMode(bool mode) { m_EclipseMode = mode; }
+    bool GetRoiEnableState() { return m_RoiEnabled; }
+    void SetRoiEnableState(bool enabled) { m_RoiEnabled = enabled; }
     void SetPlanetaryParam_lowThreshold(int value) { m_Planetary_lowThreshold = value; }
     int  GetPlanetaryParam_lowThreshold() { return m_Planetary_lowThreshold; }
     void SetPlanetaryParam_highThreshold(int value) { m_Planetary_highThreshold = value; }

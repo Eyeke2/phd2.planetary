@@ -193,6 +193,7 @@ Guider::Guider(wxWindow *parent, int xSize, int ySize) :
     m_Planet.eclipse_edges_valid = false;
     m_Planet.eclipse_edges = NULL;
     m_EclipseMode = false;
+    m_RoiEnabled = false;
     m_Planetary_minDist = PT_MIN_DIST_DEFAULT;
     m_Planetary_param1 = PT_PARAM1_DEFAULT;
     m_Planetary_param2 = PT_PARAM2_DEFAULT;
