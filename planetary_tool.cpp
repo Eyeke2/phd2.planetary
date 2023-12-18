@@ -101,7 +101,7 @@ static void SetEnabledState(PlanetToolWin* win, bool active)
     if (active)
     {
         win->SetTitle(wxGetTranslation(TITLE_ACTIVE));
-        win->m_enableButton->SetLabel(_("Enable star detection"));
+        win->m_enableButton->SetLabel(_("Disable planet detection"));
     }
     else
     {
