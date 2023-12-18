@@ -147,6 +147,10 @@ struct Planet
     wxMutex sync_lock;
     bool eclipse_edges_valid;
     unsigned char *eclipse_edges;
+    bool clicked;
+    int clicked_x;
+    int clicked_y;
+    int roi_radius;
     int offset_x;
     int offset_y;
     int rows;
