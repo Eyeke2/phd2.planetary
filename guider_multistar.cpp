@@ -1685,7 +1685,7 @@ void GuiderMultiStar::CalcLineParams(CircleDescriptor p1, CircleDescriptor p2)
 }
 
 // An algorithm to find eclipse center
-void GuiderMultiStar::FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<Point2f>& eclipseContour, int minRadius, int maxRadius)
+int GuiderMultiStar::FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<Point2f>& eclipseContour, int minRadius, int maxRadius)
 {
     int bestScore = 0;
     int searchRadius = smallestCircle.radius / 4;
@@ -1695,7 +1695,7 @@ void GuiderMultiStar::FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleD
     if (!m_DiameterLineParameters.valid)
     {
         eclipseCenter = smallestCircle;
-        return;
+        return 0;
     }
 
     if (!m_DiameterLineParameters.vertical && (fabs(m_DiameterLineParameters.slope) < 1.0))
@@ -1775,6 +1775,7 @@ void GuiderMultiStar::FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleD
             }
         }
     }
+    return bestScore;
 }
 
 // Find a minimum enclosing circle of the contour and also its center of mass
@@ -1979,11 +1980,11 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
         // which is most equidistant from the outmost edge of the contour. Consider this point as 
         // the best match for eclipse central point.
         CalcLineParams(smallestCircle, Centroid);
-        FindEclipseCenter(eclipseCenter, smallestCircle, eclipseContour, minRadius, maxRadius);
+        int score = FindEclipseCenter(eclipseCenter, smallestCircle, eclipseContour, minRadius, maxRadius);
 
         // Free allocated storage
         cvReleaseMemStorage(&storage);
-        Debug.Write(wxString::Format("End detection of eclipsed disk: t=%d r=%.1f, x=%.1f, y=%.1f\n", m_PlanetWatchdog.Time(), eclipseCenter.radius, offsetX + eclipseCenter.x, offsetY + eclipseCenter.y));
+        Debug.Write(wxString::Format("End detection of eclipsed disk (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%d\n", m_PlanetWatchdog.Time(), eclipseCenter.radius, offsetX + eclipseCenter.x, offsetY + eclipseCenter.y, score));
 
         m_PlanetWatchdog.Start();
         // When user clicks a point in the main window, discard detected features 
