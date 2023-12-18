@@ -962,7 +962,14 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
         if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
         {
             if (!FindPlanet(pImage))
+            {
+                errorInfo->starError = newStar.GetError();
+                errorInfo->starMass = 0.0;
+                errorInfo->starSNR = 0.0;
+                errorInfo->starHFD = 0.0;
+                errorInfo->status = _("Object not found");
                 throw ERROR_INFO("UpdateCurrentPosition():newStar not found");
+            }
             double newpos_x = m_Planet.center_x;
             double newpos_y = m_Planet.center_y;
             newStar.SetXY(newpos_x, newpos_y);
@@ -1074,6 +1081,9 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
         pFrame->AdjustAutoExposure(m_primaryStar.SNR);
         pFrame->UpdateStatusBarStarInfo(m_primaryStar.SNR, m_primaryStar.GetError() == Star::STAR_SATURATED);
         errorInfo->status = StarStatus(m_primaryStar);
+
+        if ((GetState() != STATE_GUIDING) && (pFrame->GetStarFindMode() == Star::FIND_PLANET))
+            pFrame->StatusMsg(wxString::Format(_("Object at (%.1f, %.1f) radius=%d"), m_Planet.center_x, m_Planet.center_y, m_Planet.radius));
     }
     catch (const wxString& Msg)
     {
@@ -1222,7 +1232,7 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
                 }
                 Debug.Write("MultiStar: single-star usage forced by user star selection\n");
                 if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
-                    pFrame->StatusMsg(wxString::Format(_("Selected planet at (%.1f, %.1f)"), m_primaryStar.X, m_primaryStar.Y));
+                    pFrame->StatusMsg(wxString::Format(_("Selected point at (%.1f, %.1f)"), m_primaryStar.X, m_primaryStar.Y));
                 else
                     pFrame->StatusMsg(wxString::Format(_("Selected star at (%.1f, %.1f)"), m_primaryStar.X, m_primaryStar.Y));
                 pFrame->UpdateStatusBarStarInfo(m_primaryStar.SNR, m_primaryStar.GetError() == Star::STAR_SATURATED);
