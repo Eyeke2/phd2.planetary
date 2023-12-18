@@ -1202,6 +1202,7 @@ bool GearDialog::DoConnectCamera(bool autoReconnecting)
         }
 
         pFrame->StatusMsg(_("Camera Connected"));
+        pFrame->pGuider->CameraConnectNotify();
 
         pFrame->UpdateStatusBarStateLabels();
         pFrame->pStatsWin->UpdateCooler();
