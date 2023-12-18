@@ -1278,8 +1278,8 @@ void GuiderMultiStar::PlanetVisualHelper(wxDC &dc)
             x -= m_Planet.radius * m_scaleFactor;
 
         // Draw min and max diameters legend
-        const wxString labelTextMin("min radius");
-        const wxString labelTextMax("max radius");
+        const wxString labelTextMin("min diameter");
+        const wxString labelTextMax("max diameter");
         dc.SetPen(wxPen(wxColour(230, 130, 30), 1, wxPENSTYLE_DOT));
         dc.SetTextForeground(wxColour(230, 130, 30));
         dc.DrawLine(x, y - 5, x + GetPlanetaryParam_minRadius() * m_scaleFactor * 2, y - 5);
