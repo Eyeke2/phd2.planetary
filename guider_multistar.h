@@ -159,7 +159,7 @@ private:
         float b;
     } m_DiameterLineParameters;
     void CalcLineParams(CircleDescriptor p1, CircleDescriptor p2);
-    void FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, int minRadius, int maxRadius);
+    int  FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, int minRadius, int maxRadius);
     void FindCenters(CvSeq* contours, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, int minRadius, int maxRadius);
     bool FindPlanet(const usImage* pImage, bool autoSelect = false);
     void PlanetVisualHelper(wxDC& dc);
