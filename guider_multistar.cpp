@@ -1826,6 +1826,42 @@ void GuiderMultiStar::FindCenters(CvSeq* contours, CircleDescriptor& bestCentroi
         smallestCircle.radius = 0;
 }
 
+class AsyncFindCirclesThread : public wxThread
+{
+public:
+    Mat image;
+    vector<Vec3f> circles;
+    double minDist;
+    double param1;
+    double param2;
+    int minRadius;
+    int maxRadius;
+    bool active;
+    bool finished;
+
+public:
+    AsyncFindCirclesThread(Mat img, double min_dist, double param_1, double param_2, int min_radius, int max_radius)
+        : wxThread(wxTHREAD_DETACHED), minDist(min_dist), param1(param_1), param2(param_2),
+          minRadius(min_radius), maxRadius(max_radius)
+        {
+            circles.clear();
+            image = img.clone();
+            active = true;
+            finished = false;
+        }
+    ExitCode Entry() override;
+};
+
+// A thread function to run HoughCircles method
+wxThread::ExitCode AsyncFindCirclesThread::Entry()
+{
+    HoughCircles(image, circles, CV_HOUGH_GRADIENT, 1.0, minDist, param1, param2, minRadius, maxRadius);
+    finished = true;
+    while (active)
+        wxMilliSleep(1);
+    return this;
+}
+
 bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
 {
     Point2f clickedPoint = { (float) m_Planet.clicked_x, (float) m_Planet.clicked_y };
@@ -1902,8 +1938,43 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
 
         // Find circles matching given criteria
         Debug.Write(wxString::Format("Start detection of planetary disk (roi:%d mind=%.1f,p1=%.1f,p2=%.1f,minr=%d,maxr=%d)\n", usingRoi, minDist, param1, param2, minRadius, maxRadius));
+
+        // We are calling HoughCircles HoughCircles in a separate thread to deal with
+        // cases when it takes too long to compure. Under such circumstances,
+        // usually caused by small values of param1 / param2 we stop exposures
+        // and report the problem telling the user to increase their values.
+        // The hanging thread will eventually terminate and no resource leak
+        // or memory corruption should happen as a result.
         vector<Vec3f> circles;
-        HoughCircles(img8, circles, CV_HOUGH_GRADIENT, 1.0, minDist, param1, param2, minRadius, maxRadius);
+        AsyncFindCirclesThread* thread = new AsyncFindCirclesThread(img8, minDist, param1, param2, minRadius, maxRadius);
+        if ((thread->Create() == wxTHREAD_NO_ERROR) && (thread->Run() == wxTHREAD_NO_ERROR))
+        {
+            const int timeout = 2000;
+            int msec;
+            for (msec = 0; msec < timeout && !thread->finished; msec+=1)
+                wxMilliSleep(1);
+            if (msec >= timeout && !thread->finished)
+            {
+                Debug.Write(wxString::Format("Detection timeout out, must increase param1/param2\n"));
+                thread->active = false;
+                m_Planet.detected = false;
+                m_Planet.roi_radius = 0;
+                if (pFrame->CaptureActive)
+                    pFrame->StopCapturing();
+                pFrame->m_StopReason = _("Timeout out: must increase param1/param2! Stopped.");
+                return false;
+            }
+            circles = thread->circles;
+            MemoryBarrier();
+            thread->active = false;
+        }
+        else
+        {
+            delete thread;
+            m_Planet.detected = false;
+            m_Planet.roi_radius = 0;
+            return false;
+        }
 
         // Find and use largest circle from the detected set of circles
         Vec3f center = { 0, 0, 0 };
