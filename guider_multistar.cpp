@@ -482,7 +482,7 @@ bool GuiderMultiStar::AutoSelect(const wxRect& roi)
 
         if (findMode == Star::FIND_PLANET)
         {
-            if (FindPlanet(image))
+            if (FindPlanet(image, true))
             {
                 newStar.X = newStar.referencePoint.X = m_Planet.center_x;
                 newStar.Y = newStar.referencePoint.Y = m_Planet.center_y;
@@ -1790,7 +1790,7 @@ void GuiderMultiStar::FindCenters(CvSeq* contours, CircleDescriptor& bestCentroi
         smallestCircle.radius = 0;
 }
 
-bool GuiderMultiStar::FindPlanet(const usImage *pImage)
+bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
 {
     // Do not run out of real time
     if (m_PlanetWatchdog.Time() < 100)
