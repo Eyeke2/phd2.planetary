@@ -1258,6 +1258,9 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
 inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double scale)
 {
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    double w = ROUND((halfW * 2 + 1) * scale);
+    int xpos = int((star.X - halfW) * scale);
+    int ypos = int((star.Y - halfW) * scale);
     if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
     {
         if (pFrame->pGuider->m_Planet.detected)
@@ -1266,13 +1269,13 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
             int y = int(star.Y * scale + 0.5);
             int r = int(pFrame->pGuider->m_Planet.radius * scale + 0.5);
             dc.DrawCircle(x, y, r);
-            dc.DrawCircle(x, y, r + 1);
+            dc.SetPen(wxPen(dc.GetPen().GetColour(), 1, dc.GetPen().GetStyle()));
+            dc.DrawRectangle(xpos, ypos, w, w);
         }
     }
     else
     {
-        double w = ROUND((halfW * 2 + 1) * scale);
-        dc.DrawRectangle(int((star.X - halfW) * scale), int((star.Y - halfW) * scale), w, w);
+        dc.DrawRectangle(xpos, ypos, w, w);
     }
 }
 
@@ -1385,32 +1388,33 @@ void GuiderMultiStar::OnPaint(wxPaintEvent& event)
         GUIDER_STATE state = GetState();
         bool FoundStar = m_primaryStar.WasFound();
 
-        if (GetPlanetaryEnableState() && (m_draw_PlanetaryHelper || GetPlanetaryThresholdVisual()))
-            PlanetVisualHelper(dc);
-
+        int thickness = pFrame->GetStarFindMode() == Star::FIND_PLANET ? 4 : 1;
         if (state == STATE_SELECTED)
         {
             if (FoundStar)
-                dc.SetPen(wxPen(wxColour(100,255,90), 1, wxPENSTYLE_SOLID));  // Draw the box around the star
+                dc.SetPen(wxPen(wxColour(100,255,90), thickness, wxPENSTYLE_SOLID));  // Draw the box around the star
             else
-                dc.SetPen(wxPen(wxColour(230,130,30), 1, wxPENSTYLE_DOT));
+                dc.SetPen(wxPen(wxColour(230,130,30), thickness, wxPENSTYLE_DOT));
             DrawBox(dc, m_primaryStar, m_searchRegion, m_scaleFactor);
         }
         else if (state == STATE_CALIBRATING_PRIMARY || state == STATE_CALIBRATING_SECONDARY)
         {
             // in the calibration process
-            dc.SetPen(wxPen(wxColour(32,196,32), 1, wxPENSTYLE_SOLID));  // Draw the box around the star
+            dc.SetPen(wxPen(wxColour(32,196,32), thickness, wxPENSTYLE_SOLID));  // Draw the box around the star
             DrawBox(dc, m_primaryStar, m_searchRegion, m_scaleFactor);
         }
         else if (state == STATE_CALIBRATED || state == STATE_GUIDING)
         {
             // locked and guiding
             if (FoundStar)
-                dc.SetPen(wxPen(wxColour(32,196,32), 1, wxPENSTYLE_SOLID));  // Draw the box around the star
+                dc.SetPen(wxPen(wxColour(32,196,32), thickness, wxPENSTYLE_SOLID));  // Draw the box around the star
             else
-                dc.SetPen(wxPen(wxColour(230,130,30), 1, wxPENSTYLE_DOT));
+                dc.SetPen(wxPen(wxColour(230,130,30), thickness, wxPENSTYLE_DOT));
             DrawBox(dc, m_primaryStar, m_searchRegion, m_scaleFactor);
         }
+
+        if (GetPlanetaryEnableState() && (m_draw_PlanetaryHelper || GetPlanetaryThresholdVisual()))
+            PlanetVisualHelper(dc);
     }
     catch (const wxString& Msg)
     {
