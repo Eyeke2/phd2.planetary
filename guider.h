@@ -315,6 +315,10 @@ public:
     unsigned int GetAutoSelDownsample() const;
 
     // Planetary disk detection parameters
+    void CameraConnectNotify() {
+        m_Planet.clicked = false;
+        m_Planet.roi_radius = 0;
+    };
     bool GetPlanetaryEnableState() { return m_Planetary_enabled; }
     void SetPlanetaryEnableState(bool enabled) { m_Planetary_enabled = enabled; }
     void SetPlanetaryParam_minDist(double val) { m_Planetary_minDist = val; }
