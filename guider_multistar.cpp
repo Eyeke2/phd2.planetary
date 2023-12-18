@@ -221,7 +221,6 @@ GuiderMultiStar::GuiderMultiStar(wxWindow *parent)
 {
     SetState(STATE_UNINITIALIZED);
     m_primaryDistStats = new DescriptiveStats();
-    m_PlanetWatchdog.Start();
 }
 
 GuiderMultiStar::~GuiderMultiStar()
@@ -1864,16 +1863,11 @@ wxThread::ExitCode AsyncFindCirclesThread::Entry()
 
 bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
 {
+    m_PlanetWatchdog.Start();
+
     Point2f clickedPoint = { (float) m_Planet.clicked_x, (float) m_Planet.clicked_y };
     if (autoSelect)
         m_Planet.clicked = false;
-
-    // Do not run out of real time
-    if (m_PlanetWatchdog.Time() < 100)
-    {
-        Debug.Write("Warning: FindPlanet: running out of real time\n");
-        return m_Planet.detected;
-    }
 
     // Make sure to use 8-bit gray image for feature detection
     int format;
@@ -1986,9 +1980,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
                 center = c;
         }
 
-        Debug.Write(wxString::Format("End detection of planetary disk: %d circles detected, r=%d x=%.1f y=%.1f\n", circles.size(), cvRound(center[2]), center[0], center[1]));
-        m_PlanetWatchdog.Start();
-
+        Debug.Write(wxString::Format("End detection of planetary disk (t=%d): %d circles detected, r=%d x=%.1f y=%.1f\n", m_PlanetWatchdog.Time(), circles.size(), cvRound(center[2]), center[0], center[1]));
         if (center[2])
         {
             m_Planet.frame_width = pImage->Size.GetWidth();
@@ -2057,7 +2049,6 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
         cvReleaseMemStorage(&storage);
         Debug.Write(wxString::Format("End detection of eclipsed disk (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%d\n", m_PlanetWatchdog.Time(), eclipseCenter.radius, offsetX + eclipseCenter.x, offsetY + eclipseCenter.y, score));
 
-        m_PlanetWatchdog.Start();
         // When user clicks a point in the main window, discard detected features 
         // that are far away from it, similar to manual selection of stars in PHD2.
         Point2f circlePoint = { offsetX + eclipseCenter.x, offsetY + eclipseCenter.y };
