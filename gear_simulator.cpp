@@ -1332,14 +1332,15 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
     cv::Mat *disk_image = &image;
     cv::Mat grayscaleImage;
     cv::Mat grayscale16;
-    if (image.channels() != 1)
+
+    if (disk_image->channels() != 1)
     {
         cvtColor(image, grayscaleImage, cv::COLOR_BGR2GRAY);
         disk_image = &grayscaleImage;
     }
     if (disk_image->depth() != CV_16U)
     {
-        disk_image->convertTo(grayscale16, CV_16UC1);
+        disk_image->convertTo(grayscale16, CV_16UC1, 65535.0 / 255.0);
         disk_image = &grayscale16;
     }
 
