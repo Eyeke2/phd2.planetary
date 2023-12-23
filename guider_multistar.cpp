@@ -1185,7 +1185,9 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
             if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
             {
                 m_Planet.clicked_x = mevent.m_x / ScaleFactor();
+                m_Planet.clicked_x = std::min(m_Planet.clicked_x, pImage->Size.GetWidth() - 1);
                 m_Planet.clicked_y = mevent.m_y / ScaleFactor();
+                m_Planet.clicked_y = std::min(m_Planet.clicked_y, pImage->Size.GetHeight() - 1);
                 m_Planet.clicked = true;
 
                 if (GetRoiEnableState())
@@ -1890,6 +1892,8 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
     Mat RoiFrame;
     Mat img8;
     if (!autoSelect && GetRoiEnableState() &&
+        (m_Planet.center_x < m_Planet.frame_width) &&
+        (m_Planet.center_y < m_Planet.frame_height) &&
         (m_Planet.roi_radius > 0) &&
         (m_Planet.frame_width == pImage->Size.GetWidth()) &&
         (m_Planet.frame_height == pImage->Size.GetHeight()))
