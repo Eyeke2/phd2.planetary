@@ -158,9 +158,20 @@ private:
         float slope;
         float b;
     } m_DiameterLineParameters;
+    typedef struct WeightedCircle {
+        float x;
+        float y;
+        float r;
+        float score;
+    } WeightedCircle;
+    float m_PlanetEccentricity;
+    float m_PlanetAngle;
+
+    float m_gaussianWeight[2000];
     void CalcLineParams(CircleDescriptor p1, CircleDescriptor p2);
-    int  FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, int minRadius, int maxRadius);
-    void FindCenters(CvSeq* contours, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, int minRadius, int maxRadius);
+    float CalcEclipseScore(float& radius, cv::Point2f pointToMeasure, std::vector<cv::Point2f>& eclipseContour, int minRadius, int maxRadius);
+    float FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, cv::Moments& mu, int minRadius, int maxRadius);
+    void FindCenters(cv::Mat image, CvSeq* contours, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, cv::Moments& mu, int minRadius, int maxRadius);
     bool FindPlanet(const usImage* pImage, bool autoSelect = false);
     void PlanetVisualHelper(wxDC& dc);
 
