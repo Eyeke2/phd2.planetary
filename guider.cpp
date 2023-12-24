@@ -194,8 +194,8 @@ Guider::Guider(wxWindow *parent, int xSize, int ySize) :
     m_Planet.clicked = false;
     m_Planet.clicked_x = 0;
     m_Planet.clicked_y = 0;
-    m_Planet.eclipse_edges_valid = false;
-    m_Planet.eclipse_edges = NULL;
+    m_Planet.circles_valid = false;
+    m_Planet.eclipseContour.clear();
     m_EclipseMode = false;
     m_RoiEnabled = false;
     m_Planetary_minDist = PT_MIN_DIST_DEFAULT;
@@ -205,7 +205,8 @@ Guider::Guider(wxWindow *parent, int xSize, int ySize) :
     m_Planetary_maxRadius = PT_MAX_RADIUS_DEFAULT;
     m_Planetary_lowThreshold = PT_LOW_THRESHOLD_DEFAULT;
     m_Planetary_highThreshold = PT_HIGH_THRESHOLD_DEFAULT;
-    m_PlanetaryThresholdVisual = false;
+    m_Planetary_ShowElementsButtonState = false;
+    m_Planetary_ShowElementsVisual = false;
     m_draw_PlanetaryHelper = false;
 
     SetBackgroundStyle(wxBG_STYLE_CUSTOM);

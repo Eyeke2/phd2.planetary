@@ -227,7 +227,6 @@ GuiderMultiStar::~GuiderMultiStar()
 {
     delete m_massChecker;
     delete m_primaryDistStats;
-    delete m_Planet.eclipse_edges;
 }
 
 void GuiderMultiStar::SetMultiStarMode(bool val)
@@ -1280,53 +1279,6 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
     }
 }
 
-// Helper for visualizing planet detection radius
-void GuiderMultiStar::PlanetVisualHelper(wxDC &dc)
-{
-    // Draw the edge bitmap
-    if (GetPlanetaryThresholdVisual())
-    {
-        m_Planet.sync_lock.Lock();
-        if (m_Planet.eclipse_edges_valid)
-        {
-            dc.SetPen(wxPen(wxColour(230, 0, 0), 1, wxPENSTYLE_SOLID));
-            for (int y = 0; y < m_Planet.rows; y++)
-            {
-                for (int x = 0; x < m_Planet.cols; x++)
-                {
-                    int index = (y * m_Planet.cols + x);
-                    if (m_Planet.eclipse_edges[index])
-                        dc.DrawPoint((x + m_Planet.offset_x) * m_scaleFactor, (y + m_Planet.offset_y) * m_scaleFactor);
-                }
-            }
-        }
-        m_Planet.sync_lock.Unlock();
-    }
-
-    if (m_draw_PlanetaryHelper)
-    {
-        m_draw_PlanetaryHelper = false;
-        int x = int(m_primaryStar.X * m_scaleFactor + 0.5);
-        int y = int(m_primaryStar.Y * m_scaleFactor + 0.5);
-
-        if (m_Planet.detected)
-            x -= m_Planet.radius * m_scaleFactor;
-
-        // Draw min and max diameters legend
-        const wxString labelTextMin("min diameter");
-        const wxString labelTextMax("max diameter");
-        dc.SetPen(wxPen(wxColour(230, 130, 30), 1, wxPENSTYLE_DOT));
-        dc.SetTextForeground(wxColour(230, 130, 30));
-        dc.DrawLine(x, y - 5, x + GetPlanetaryParam_minRadius() * m_scaleFactor * 2, y - 5);
-        dc.DrawText(labelTextMin, x - dc.GetTextExtent(labelTextMin).GetWidth() - 5, y - 10 - dc.GetTextExtent(labelTextMin).GetHeight() / 2);
-
-        dc.SetPen(wxPen(wxColour(130, 230, 30), 1, wxPENSTYLE_DOT));
-        dc.SetTextForeground(wxColour(130, 230, 30));
-        dc.DrawLine(x, y + 5, x + GetPlanetaryParam_maxRadius() * m_scaleFactor * 2, y + 5);
-        dc.DrawText(labelTextMax, x - dc.GetTextExtent(labelTextMax).GetWidth() - 5, y + 10 - dc.GetTextExtent(labelTextMax).GetHeight() / 2);
-    }
-}
-
 // Define the repainting behaviour
 void GuiderMultiStar::OnPaint(wxPaintEvent& event)
 {
@@ -1414,7 +1366,7 @@ void GuiderMultiStar::OnPaint(wxPaintEvent& event)
             DrawBox(dc, m_primaryStar, m_searchRegion, m_scaleFactor);
         }
 
-        if (GetPlanetaryEnableState() && (m_draw_PlanetaryHelper || GetPlanetaryThresholdVisual()))
+        if (GetPlanetaryEnableState() && (m_draw_PlanetaryHelper || GetPlanetaryElementsVisual()))
             PlanetVisualHelper(dc);
     }
     catch (const wxString& Msg)
@@ -1656,6 +1608,67 @@ void GuiderMultiStarConfigDialogCtrlSet::OnStarMassEnableChecked(wxCommandEvent&
 
 using namespace cv;
 
+// Helper for visualizing planet detection radius
+void GuiderMultiStar::PlanetVisualHelper(wxDC& dc)
+{
+    // Draw the edge bitmap
+    if (GetPlanetaryElementsVisual())
+    {
+        m_Planet.sync_lock.Lock();
+
+        // Draw all edges detected in eclipse mode
+        if (GetEclipseMode() && m_Planet.eclipseContour.size())
+        {
+            dc.SetPen(wxPen(wxColour(230, 0, 0), 2, wxPENSTYLE_SOLID));
+            for (const Point2f& contourPoint : m_Planet.eclipseContour)
+                dc.DrawCircle((contourPoint.x + m_Planet.offset_x) * m_scaleFactor, (contourPoint.y + m_Planet.offset_y) * m_scaleFactor, 2);
+
+            // Draw ancor circle centers
+            dc.SetLogicalFunction(wxXOR);
+            dc.SetPen(wxPen(wxColour(230, 230, 0), 3, wxPENSTYLE_SOLID));
+            if (m_Planet.centoid_x && m_Planet.centoid_y)
+                dc.DrawCircle((m_Planet.centoid_x + m_Planet.offset_x) * m_scaleFactor, (m_Planet.centoid_y + m_Planet.offset_y) * m_scaleFactor, 3);
+            dc.SetPen(wxPen(wxColour(230, 230, 0), 1, wxPENSTYLE_SOLID));
+            if (m_Planet.sm_circle_x && m_Planet.sm_circle_y)
+                dc.DrawCircle((m_Planet.sm_circle_x + m_Planet.offset_x) * m_scaleFactor, (m_Planet.sm_circle_y + m_Planet.offset_y) * m_scaleFactor, 3);
+            dc.SetLogicalFunction(wxCOPY);
+        }
+
+        // Draw all circles detected by HoughCircles
+        if (!GetEclipseMode() && m_Planet.circles_valid)
+        {
+            dc.SetPen(wxPen(wxColour(230, 0, 0), 2, wxPENSTYLE_SOLID));
+            for (const auto& c : m_Planet.circles)
+                dc.DrawCircle((m_Planet.offset_x + c[0]) * m_scaleFactor, (m_Planet.offset_y + c[1]) * m_scaleFactor, c[2] * m_scaleFactor);
+        }
+
+        m_Planet.sync_lock.Unlock();
+    }
+
+    if (m_draw_PlanetaryHelper)
+    {
+        m_draw_PlanetaryHelper = false;
+        int x = int(m_primaryStar.X * m_scaleFactor + 0.5);
+        int y = int(m_primaryStar.Y * m_scaleFactor + 0.5);
+
+        if (m_Planet.detected)
+            x -= m_Planet.radius * m_scaleFactor;
+
+        // Draw min and max diameters legend
+        const wxString labelTextMin("min diameter");
+        const wxString labelTextMax("max diameter");
+        dc.SetPen(wxPen(wxColour(230, 130, 30), 1, wxPENSTYLE_DOT));
+        dc.SetTextForeground(wxColour(230, 130, 30));
+        dc.DrawLine(x, y - 5, x + GetPlanetaryParam_minRadius() * m_scaleFactor * 2, y - 5);
+        dc.DrawText(labelTextMin, x - dc.GetTextExtent(labelTextMin).GetWidth() - 5, y - 10 - dc.GetTextExtent(labelTextMin).GetHeight() / 2);
+
+        dc.SetPen(wxPen(wxColour(130, 230, 30), 1, wxPENSTYLE_DOT));
+        dc.SetTextForeground(wxColour(130, 230, 30));
+        dc.DrawLine(x, y + 5, x + GetPlanetaryParam_maxRadius() * m_scaleFactor * 2, y + 5);
+        dc.DrawText(labelTextMax, x - dc.GetTextExtent(labelTextMax).GetWidth() - 5, y + 10 - dc.GetTextExtent(labelTextMax).GetHeight() / 2);
+    }
+}
+
 void GuiderMultiStar::CalcLineParams(CircleDescriptor p1, CircleDescriptor p2)
 {
     if ((p1.radius == 0) || (p2.radius == 0))
@@ -1881,6 +1894,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
         break;
     default:
         m_Planet.detected = false;
+        m_Planet.circles_valid = false;
         return false;
     }
 
@@ -1958,6 +1972,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
                     if (pFrame->CaptureActive)
                         pFrame->StopCapturing();
                     pFrame->m_StopReason = _("Timeout out: must increase param1/param2! Stopped.");
+                    m_Planet.circles_valid = false;
                     return false;
                 }
                 circles = thread->circles;
@@ -1980,6 +1995,17 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
                 float distanceAllowed = c[2] * 1.5;
                 if ((c[2] > center[2]) && (!m_Planet.clicked || autoSelect || norm(clickedPoint - circlePoint) <= distanceAllowed))
                     center = c;
+            }
+
+            // Save elements to be presented as a visual aid for tunning of the edge threshold parameters.
+            if (GetPlanetaryElementsVisual())
+            {
+                m_Planet.sync_lock.Lock();
+                m_Planet.offset_x = roiOffsetX;
+                m_Planet.offset_y = roiOffsetY;
+                m_Planet.circles = circles;
+                m_Planet.circles_valid = true;
+                m_Planet.sync_lock.Unlock();
             }
 
             Debug.Write(wxString::Format("End detection of planetary disk (t=%d): %d circles detected, r=%d x=%.1f y=%.1f\n", m_PlanetWatchdog.Time(), circles.size(), cvRound(center[2]), center[0], center[1]));
@@ -2042,22 +2068,16 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
 
             // Create wxImage from the OpenCV Mat to be presented as
             // a visual aid for tunning of the edge threshold parameters.
-            if (GetPlanetaryThresholdVisual())
+            if (GetPlanetaryElementsVisual())
             {
                 m_Planet.sync_lock.Lock();
-                if (m_Planet.eclipse_edges)
-                {
-                    m_Planet.eclipse_edges_valid = false;
-                    delete m_Planet.eclipse_edges;
-                }
-                size_t dataSize = dilatedEdges.rows * dilatedEdges.cols * dilatedEdges.channels();
-                m_Planet.eclipse_edges = new unsigned char[dataSize];
-                m_Planet.rows = dilatedEdges.rows;
-                m_Planet.cols = dilatedEdges.cols;
+                m_Planet.eclipseContour = eclipseContour;
                 m_Planet.offset_x = roiOffsetX;
                 m_Planet.offset_y = roiOffsetY;
-                memcpy(m_Planet.eclipse_edges, dilatedEdges.data, dataSize);
-                m_Planet.eclipse_edges_valid = true;
+                m_Planet.centoid_x = Centroid.x;
+                m_Planet.centoid_y = Centroid.y;
+                m_Planet.sm_circle_x = smallestCircle.x;
+                m_Planet.sm_circle_y = smallestCircle.y;
                 m_Planet.sync_lock.Unlock();
             }
 
