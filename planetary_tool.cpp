@@ -61,6 +61,7 @@ struct PlanetToolWin : public wxDialog
     wxButton   *m_CloseButton;
     wxCheckBox *m_EclipseModeCheckBox;
     wxCheckBox* m_RoiCheckBox;
+    wxCheckBox* m_ShowElements;
     bool        m_MouseHoverFlag;
 
     bool init_once;
@@ -74,8 +75,6 @@ struct PlanetToolWin : public wxDialog
     void OnKeyUp(wxKeyEvent& event);
     void OnMouseEnterCloseBtn(wxMouseEvent& event);
     void OnMouseLeaveCloseBtn(wxMouseEvent& event);
-    void OnMouseEnterThreshold(wxMouseEvent& event);
-    void OnMouseLeaveThreshold(wxMouseEvent& event);
 
     void OnLowThresholdChanged(wxCommandEvent& event);
     void OnHighThresholdChanged(wxCommandEvent& event);
@@ -89,6 +88,7 @@ struct PlanetToolWin : public wxDialog
     void OnSpinCtrl_maxRadius(wxSpinDoubleEvent& event);
     void OnEclipseModeClick(wxCommandEvent& event);
     void OnRoiModeClick(wxCommandEvent& event);
+    void OnShowElementsClick(wxCommandEvent& event);
 
     void UpdateStatus();
 };
@@ -202,6 +202,10 @@ PlanetToolWin::PlanetToolWin()
     m_RoiCheckBox = new wxCheckBox(this, wxID_ANY, _("Use ROI"));
     m_RoiCheckBox->SetToolTip(_("Enable ROI for faster processing and lowering CPU usage"));
 
+    // Show/hide detected elements
+    m_ShowElements = new wxCheckBox(this, wxID_ANY, _("Display internal edges/circles"));
+    m_ShowElements->SetToolTip(_("Display or hide internal detected edges/circles - try to keep number of these features to a reasonable minimum by tuning detection parameters"));
+
     // Close button
     m_MouseHoverFlag = false;
     wxBoxSizer *ButtonSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -225,6 +229,9 @@ PlanetToolWin::PlanetToolWin()
     topSizer->Add(m_highThresholdSlider, 0, wxALL, 10);
     topSizer->AddSpacer(10);
     topSizer->Add(ButtonSizer, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
+    topSizer->AddSpacer(10);
+    topSizer->Add(m_ShowElements, 0, wxLEFT | wxALIGN_LEFT, 30);
+    topSizer->AddSpacer(10);
     topSizer->Add(m_status, 0, wxALL, 5);
 
     SetSizer(topSizer);
@@ -237,13 +244,9 @@ PlanetToolWin::PlanetToolWin()
     m_CloseButton->Bind(wxEVT_KEY_UP, &PlanetToolWin::OnKeyUp, this);
     m_CloseButton->Bind(wxEVT_ENTER_WINDOW, &PlanetToolWin::OnMouseEnterCloseBtn, this);
     m_CloseButton->Bind(wxEVT_LEAVE_WINDOW, &PlanetToolWin::OnMouseLeaveCloseBtn, this);
-    m_lowThresholdSlider->Bind(wxEVT_ENTER_WINDOW, &PlanetToolWin::OnMouseEnterThreshold, this);
-    m_lowThresholdSlider->Bind(wxEVT_LEAVE_WINDOW, &PlanetToolWin::OnMouseLeaveThreshold, this);
-    m_highThresholdSlider->Bind(wxEVT_ENTER_WINDOW, &PlanetToolWin::OnMouseEnterThreshold, this);
-    m_highThresholdSlider->Bind(wxEVT_LEAVE_WINDOW, &PlanetToolWin::OnMouseLeaveThreshold, this);
-
     m_EclipseModeCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnEclipseModeClick, this);
     m_RoiCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnRoiModeClick, this);
+    m_ShowElements->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnShowElementsClick, this);
     Bind(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(PlanetToolWin::OnClose), this);
     Bind(APPSTATE_NOTIFY_EVENT, wxCommandEventHandler(PlanetToolWin::OnAppStateNotify), this);
 
@@ -263,6 +266,8 @@ PlanetToolWin::PlanetToolWin()
     pFrame->pGuider->SetPlanetaryParam_maxRadius(pConfig->Global.GetInt("/PlanetTool/max_radius", PT_MAX_RADIUS_DEFAULT));
     pFrame->pGuider->SetPlanetaryParam_lowThreshold(pConfig->Global.GetInt("/PlanetTool/low_threshold", PT_LOW_THRESHOLD_DEFAULT));
     pFrame->pGuider->SetPlanetaryParam_highThreshold(pConfig->Global.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT));
+    pFrame->pGuider->SetPlanetaryElementsButtonState(false);
+    pFrame->pGuider->SetPlanetaryElementsVisual(false);
 
     m_minDist->SetValue(pFrame->pGuider->GetPlanetaryParam_minDist());
     m_param1->SetValue(pFrame->pGuider->GetPlanetaryParam_param1());
@@ -300,6 +305,9 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
         pFrame->m_PlanetaryMenuItem->Check(false);
         SetEnabledState(this, false);
     }
+
+    // Update elements display state
+    OnShowElementsClick(event);
 }
 
 void PlanetToolWin::OnSpinCtrl_minDist(wxSpinDoubleEvent& event)
@@ -347,12 +355,27 @@ void PlanetToolWin::OnEclipseModeClick(wxCommandEvent& event)
     m_minDist->Enable(!EclipseMode);
     m_param1->Enable(!EclipseMode);
     m_param2->Enable(!EclipseMode);
+
+    // Update elements display state
+    OnShowElementsClick(event);
 }
 
 void PlanetToolWin::OnRoiModeClick(wxCommandEvent& event)
 {
     bool enabled = m_RoiCheckBox->IsChecked();
     pFrame->pGuider->SetRoiEnableState(enabled);
+}
+
+void PlanetToolWin::OnShowElementsClick(wxCommandEvent& event)
+{
+    bool enabled = m_ShowElements->IsChecked();
+    pFrame->pGuider->SetPlanetaryElementsButtonState(enabled);
+    if (pFrame->pGuider->GetPlanetaryEnableState() && enabled)
+        pFrame->pGuider->SetPlanetaryElementsVisual(true);
+    else
+        pFrame->pGuider->SetPlanetaryElementsVisual(false);
+    pFrame->pGuider->Refresh();
+    pFrame->pGuider->Update();
 }
 
 void PlanetToolWin::UpdateStatus()
@@ -402,34 +425,24 @@ void PlanetToolWin::OnMouseLeaveCloseBtn(wxMouseEvent& event)
     event.Skip();
 }
 
-void PlanetToolWin::OnMouseEnterThreshold(wxMouseEvent& event)
-{
-    if (pFrame->pGuider->GetPlanetaryEnableState() && m_EclipseModeCheckBox->IsChecked())
-        pFrame->pGuider->SetPlanetaryThresholdVisual(true);
-}
-
-void PlanetToolWin::OnMouseLeaveThreshold(wxMouseEvent& event)
-{
-    pFrame->pGuider->SetPlanetaryThresholdVisual(false);
-}
-
 void PlanetToolWin::OnLowThresholdChanged(wxCommandEvent& event)
 {
     pFrame->pGuider->SetPlanetaryParam_lowThreshold(event.GetInt());
-    pFrame->pGuider->PlanetVisualRefresh();
 }
 
 void PlanetToolWin::OnHighThresholdChanged(wxCommandEvent& event)
 {
     pFrame->pGuider->SetPlanetaryParam_highThreshold(event.GetInt());
-    pFrame->pGuider->PlanetVisualRefresh();
 }
 
 void PlanetToolWin::OnClose(wxCloseEvent& evt)
 {
-    pFrame->pGuider->SetEclipseMode(m_EclipseModeCheckBox->IsChecked());
-    pFrame->pGuider->SetPlanetaryThresholdVisual(false);
     pFrame->m_PlanetaryMenuItem->Check(pFrame->pGuider->GetPlanetaryEnableState());
+    pFrame->pGuider->SetEclipseMode(m_EclipseModeCheckBox->IsChecked());
+    pFrame->pGuider->SetPlanetaryElementsButtonState(false);
+    pFrame->pGuider->SetPlanetaryElementsVisual(false);
+    pFrame->pGuider->Refresh();
+    pFrame->pGuider->Update();
 
     // save detection parameters
     pConfig->Global.SetInt("/PlanetTool/eclipse_mode", pFrame->pGuider->GetEclipseMode());

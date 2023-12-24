@@ -40,6 +40,10 @@
 #ifndef GUIDER_H_INCLUDED
 #define GUIDER_H_INCLUDED
 
+#include <opencv/cv.h>
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+
 enum GUIDER_STATE
 {
     STATE_UNINITIALIZED = 0,
@@ -145,16 +149,19 @@ struct Planet
     int frame_height;
 
     wxMutex sync_lock;
-    bool eclipse_edges_valid;
-    unsigned char *eclipse_edges;
+    std::vector<cv::Point2f> eclipseContour;
+    bool circles_valid;
+    std::vector<cv::Vec3f> circles;
+    int centoid_x;
+    int centoid_y;
+    int sm_circle_x;
+    int sm_circle_y;
     bool clicked;
     int clicked_x;
     int clicked_y;
     int roi_radius;
     int offset_x;
     int offset_y;
-    int rows;
-    int cols;
 };
 
 class Guider : public wxWindow
@@ -202,7 +209,8 @@ class Guider : public wxWindow
     double m_Planetary_maxRadius;
     int    m_Planetary_lowThreshold;
     int    m_Planetary_highThreshold;
-    bool   m_PlanetaryThresholdVisual;
+    bool   m_Planetary_ShowElementsButtonState;
+    bool   m_Planetary_ShowElementsVisual;
 
 protected:
     int m_searchRegion; // how far u/d/l/r do we do the initial search for a star
@@ -340,8 +348,15 @@ public:
     int  GetPlanetaryParam_lowThreshold() { return m_Planetary_lowThreshold; }
     void SetPlanetaryParam_highThreshold(int value) { m_Planetary_highThreshold = value; }
     int  GetPlanetaryParam_highThreshold() { return m_Planetary_highThreshold; }
-    void SetPlanetaryThresholdVisual(bool state) { m_PlanetaryThresholdVisual = state; }
-    bool GetPlanetaryThresholdVisual() { return m_PlanetaryThresholdVisual; }
+    void SetPlanetaryElementsVisual(bool state) { 
+        m_Planet.sync_lock.Lock();
+        m_Planet.eclipseContour.clear();
+        m_Planetary_ShowElementsVisual = state;
+        m_Planet.sync_lock.Unlock();
+    }
+    bool GetPlanetaryElementsVisual() { return m_Planetary_ShowElementsVisual; }
+    void SetPlanetaryElementsButtonState(bool state) { m_Planetary_ShowElementsButtonState = state; }
+    bool GetPlanetaryElementsButtonState() { return m_Planetary_ShowElementsButtonState; }
 
 public:
     // Displaying visual aid for planetary parameter tuning

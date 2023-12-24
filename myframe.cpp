@@ -1860,6 +1860,11 @@ void MyFrame::StartCapturing()
             ScheduleExposure();
         }
     }
+
+    // In planetary tracking mode update the state used to 
+    // control drawing of the internal detection elements.
+    if (pGuider->GetPlanetaryEnableState() && pGuider->GetPlanetaryElementsButtonState())
+        pGuider->SetPlanetaryElementsVisual(true);
 }
 
 bool MyFrame::StopCapturing()
@@ -1899,6 +1904,11 @@ bool MyFrame::StopCapturing()
             FinishStop();
         }
     }
+
+    // In planetary tracking mode we need to redraw the screen 
+    // without internal detection elements
+    if (pGuider->GetPlanetaryEnableState() && pGuider->GetPlanetaryElementsVisual())
+        pGuider->SetPlanetaryElementsVisual(false);
 
     return finished;
 }
