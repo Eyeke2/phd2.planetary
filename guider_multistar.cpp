@@ -1908,13 +1908,17 @@ void GuiderMultiStar::FindCenters(Mat image, CvSeq* contour, CircleDescriptor& c
                 eclipseContour.push_back(cv::Point(pt->x, pt->y));
             }
 
-            // Calculate center of mass
+            // Calculate center of mass based on contour points
+            mu = cv::moments(eclipseContour, false);
+#if 0
+            // Calculate center of mass based on original image masked by the circle
             Mat maskedImage;
             Mat mask = Mat::zeros(image.size(), CV_8U);
             Point center(circle.x, circle.y);
             cv::circle(mask, center, circle_radius, 255, -1);
             bitwise_and(image, mask, maskedImage);
             mu = cv::moments(maskedImage, false);
+#endif
             if (mu.m00 > 0)
             {
                 centroid.x = mu.m10 / mu.m00;
@@ -2132,11 +2136,12 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
             Canny(img8, edges, LowThreshold, HighThreshold, 5, true);
             dilate(edges, dilatedEdges, Mat(), Point(-1, -1), 2);
 
-            // Find contours
+            // Find contours without interpolation between the points.
+            // We need more points for more accurate calculation of the light disk center.
             IplImage thresholded = IplImage(dilatedEdges);
             CvMemStorage* storage = cvCreateMemStorage(0);
             CvSeq* contours = NULL;
-            cvFindContours(&thresholded, storage, &contours, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+            cvFindContours(&thresholded, storage, &contours, sizeof(CvContour), CV_RETR_LIST, CHAIN_APPROX_NONE);
 
             // Iterate between sets of contours to find the best match
             int contourAllCount = 0;
@@ -2179,6 +2184,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
                 if (!autoSelect && m_Planet.clicked && (eclipseCenter.radius > 0) && norm(clickedPoint - circlePoint) > distanceAllowed)
                     score = 0;
 
+                // Select best fit based on highest score
                 if (score > bestScore)
                 {
                     bestScore = score;
