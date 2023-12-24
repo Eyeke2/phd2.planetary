@@ -2126,10 +2126,6 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
             int LowThreshold = GetPlanetaryParam_lowThreshold();
             int HighThreshold = GetPlanetaryParam_highThreshold();
 
-            // Force low threshold limit
-            if (LowThreshold > HighThreshold / 2)
-                LowThreshold = HighThreshold / 2;
-
             // Apply Canny edge detection
             Debug.Write(wxString::Format("Start detection of eclipsed disk (roi:%d low_tr=%d,high_tr=%d,minr=%d,maxr=%d)\n", usingRoi, LowThreshold, HighThreshold, minRadius, maxRadius));
             Mat edges, dilatedEdges;
