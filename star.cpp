@@ -341,10 +341,15 @@ bool Star::Find(const usImage *pImg, int searchRegion, int base_x, int base_y, F
         }
         else
         {
-            if (mode == FIND_PLANET)
-                thresh = (unsigned short)(mean_bg + sigma_bg + 0.5);
+            // In planetary mode we lower the threshold of mass detection
+            float sigma_factor = (mode == FIND_PLANET) ? 1.0 : 3.0;
+            if ((mode == FIND_PLANET) && pFrame->pGuider->GetEclipseMode())
+            {
+                mean_bg = 0;
+                thresh = 0;
+            }
             else
-                thresh = (unsigned short)(mean_bg + 3.0 * sigma_bg + 0.5);
+                thresh = (unsigned short)(mean_bg + sigma_factor * sigma_bg + 0.5);
 
             // find pixels over threshold within aperture; compute mass and centroid
 
