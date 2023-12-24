@@ -315,7 +315,8 @@ public:
     unsigned int GetAutoSelDownsample() const;
 
     // Planetary disk detection parameters
-    void CameraConnectNotify() {
+    void CameraConnectNotify()
+    {
         m_Planet.clicked = false;
         m_Planet.roi_radius = 0;
     };
@@ -345,7 +346,7 @@ public:
 public:
     // Displaying visual aid for planetary parameter tuning
     bool m_draw_PlanetaryHelper;
-    void PlanetVisualRefresh() { m_draw_PlanetaryHelper = true; Refresh(); Update(); }
+    void PlanetVisualRefresh() { m_draw_PlanetaryHelper = true; }
 
     // virtual functions -- these CAN be overridden by a subclass, which should
     // consider whether they need to call the base class functions as part of

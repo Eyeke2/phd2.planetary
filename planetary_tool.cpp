@@ -447,6 +447,7 @@ void PlanetToolWin::OnClose(wxCloseEvent& evt)
 
 void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
 {
+    // Reset all to defaults
     if (wxGetKeyState(WXK_ALT))
     {
         pFrame->pGuider->SetEclipseMode(false);
