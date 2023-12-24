@@ -1927,153 +1927,161 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
     int minRadius = (int) GetPlanetaryParam_minRadius();
     int maxRadius = (int) GetPlanetaryParam_maxRadius();
 
-    bool eclipse_mode = GetEclipseMode();
-    if (!eclipse_mode)
-    {
-        double minDist = GetPlanetaryParam_minDist();
-        double param1 = GetPlanetaryParam_param1();
-        double param2 = GetPlanetaryParam_param2();
+    try {
 
-        // Find circles matching given criteria
-        Debug.Write(wxString::Format("Start detection of planetary disk (roi:%d mind=%.1f,p1=%.1f,p2=%.1f,minr=%d,maxr=%d)\n", usingRoi, minDist, param1, param2, minRadius, maxRadius));
-
-        // We are calling HoughCircles HoughCircles in a separate thread to deal with
-        // cases when it takes too long to compure. Under such circumstances,
-        // usually caused by small values of param1 / param2 we stop exposures
-        // and report the problem telling the user to increase their values.
-        // The hanging thread will eventually terminate and no resource leak
-        // or memory corruption should happen as a result.
-        vector<Vec3f> circles;
-        AsyncFindCirclesThread* thread = new AsyncFindCirclesThread(img8, minDist, param1, param2, minRadius, maxRadius);
-        if ((thread->Create() == wxTHREAD_NO_ERROR) && (thread->Run() == wxTHREAD_NO_ERROR))
+        bool eclipse_mode = GetEclipseMode();
+        if (!eclipse_mode)
         {
-            const int timeout = 2000;
-            int msec;
-            for (msec = 0; msec < timeout && !thread->finished; msec+=1)
-                wxMilliSleep(1);
-            if (msec >= timeout && !thread->finished)
+            double minDist = GetPlanetaryParam_minDist();
+            double param1 = GetPlanetaryParam_param1();
+            double param2 = GetPlanetaryParam_param2();
+
+            // Find circles matching given criteria
+            Debug.Write(wxString::Format("Start detection of planetary disk (roi:%d mind=%.1f,p1=%.1f,p2=%.1f,minr=%d,maxr=%d)\n", usingRoi, minDist, param1, param2, minRadius, maxRadius));
+
+            // We are calling HoughCircles HoughCircles in a separate thread to deal with
+            // cases when it takes too long to compure. Under such circumstances,
+            // usually caused by small values of param1 / param2 we stop exposures
+            // and report the problem telling the user to increase their values.
+            // The hanging thread will eventually terminate and no resource leak
+            // or memory corruption should happen as a result.
+            vector<Vec3f> circles;
+            AsyncFindCirclesThread* thread = new AsyncFindCirclesThread(img8, minDist, param1, param2, minRadius, maxRadius);
+            if ((thread->Create() == wxTHREAD_NO_ERROR) && (thread->Run() == wxTHREAD_NO_ERROR))
             {
-                Debug.Write(wxString::Format("Detection timeout out, must increase param1/param2\n"));
+                const int timeout = 2000;
+                int msec;
+                for (msec = 0; msec < timeout && !thread->finished; msec += 1)
+                    wxMilliSleep(1);
+                if (msec >= timeout && !thread->finished)
+                {
+                    Debug.Write(wxString::Format("Detection timeout out, must increase param1/param2\n"));
+                    thread->active = false;
+                    m_Planet.detected = false;
+                    m_Planet.roi_radius = 0;
+                    if (pFrame->CaptureActive)
+                        pFrame->StopCapturing();
+                    pFrame->m_StopReason = _("Timeout out: must increase param1/param2! Stopped.");
+                    return false;
+                }
+                circles = thread->circles;
+                MemoryBarrier();
                 thread->active = false;
+            }
+            else
+            {
+                delete thread;
                 m_Planet.detected = false;
                 m_Planet.roi_radius = 0;
-                if (pFrame->CaptureActive)
-                    pFrame->StopCapturing();
-                pFrame->m_StopReason = _("Timeout out: must increase param1/param2! Stopped.");
                 return false;
             }
-            circles = thread->circles;
-            MemoryBarrier();
-            thread->active = false;
+
+            // Find and use largest circle from the detected set of circles
+            Vec3f center = { 0, 0, 0 };
+            for (const auto& c : circles)
+            {
+                Point2f circlePoint = { offsetX + c[0], offsetY + c[1] };
+                float distanceAllowed = c[2] * 1.5;
+                if ((c[2] > center[2]) && (!m_Planet.clicked || autoSelect || norm(clickedPoint - circlePoint) <= distanceAllowed))
+                    center = c;
+            }
+
+            Debug.Write(wxString::Format("End detection of planetary disk (t=%d): %d circles detected, r=%d x=%.1f y=%.1f\n", m_PlanetWatchdog.Time(), circles.size(), cvRound(center[2]), center[0], center[1]));
+            if (center[2])
+            {
+                m_Planet.frame_width = pImage->Size.GetWidth();
+                m_Planet.frame_height = pImage->Size.GetHeight();
+                m_Planet.center_x = offsetX + center[0];
+                m_Planet.center_y = offsetY + center[1];
+                m_Planet.radius = cvRound(center[2]);
+                m_Planet.roi_radius = (m_Planet.radius * 3) / 2;
+                m_Planet.detected = true;
+                return true;
+            }
         }
         else
         {
-            delete thread;
-            m_Planet.detected = false;
-            m_Planet.roi_radius = 0;
-            return false;
-        }
+            int LowThreshold = GetPlanetaryParam_lowThreshold();
+            int HighThreshold = GetPlanetaryParam_highThreshold();
 
-        // Find and use largest circle from the detected set of circles
-        Vec3f center = { 0, 0, 0 };
-        for (const auto& c: circles)
-        {
-            Point2f circlePoint = { offsetX + c[0], offsetY + c[1] };
-            float distanceAllowed = c[2] * 1.5;
-            if ((c[2] > center[2]) && (!m_Planet.clicked || autoSelect || norm(clickedPoint - circlePoint) <= distanceAllowed))
-                center = c;
-        }
+            // Apply Canny edge detection
+            Debug.Write(wxString::Format("Start detection of eclipsed disk (roi:%d low_tr=%d,high_tr=%d,minr=%d,maxr=%d)\n", usingRoi, LowThreshold, HighThreshold, minRadius, maxRadius));
+            Mat edges, dilatedEdges;
+            Canny(img8, edges, LowThreshold, HighThreshold, 5, true);
+            dilate(edges, dilatedEdges, Mat(), Point(-1, -1), 2);
 
-        Debug.Write(wxString::Format("End detection of planetary disk (t=%d): %d circles detected, r=%d x=%.1f y=%.1f\n", m_PlanetWatchdog.Time(), circles.size(), cvRound(center[2]), center[0], center[1]));
-        if (center[2])
-        {
-            m_Planet.frame_width = pImage->Size.GetWidth();
-            m_Planet.frame_height = pImage->Size.GetHeight();
-            m_Planet.center_x = offsetX + center[0];
-            m_Planet.center_y = offsetY + center[1];
-            m_Planet.radius = cvRound(center[2]);
-            m_Planet.roi_radius = (m_Planet.radius * 3) / 2;
-            m_Planet.detected = true;
-            return true;
+            // Find contours
+            IplImage thresholded = IplImage(dilatedEdges);
+            CvMemStorage* storage = cvCreateMemStorage(0);
+            CvSeq* contours = NULL;
+            cvFindContours(&thresholded, storage, &contours, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+
+            // Find the smallest circle encompassing contour of the eclipsed disk
+            // and also center of mass within the contour.
+            std::vector<Point2f> eclipseContour;
+            CircleDescriptor smallestCircle = { 0 };
+            CircleDescriptor Centroid = { 0 };
+            CircleDescriptor eclipseCenter = { 0 };
+            FindCenters(contours, Centroid, smallestCircle, eclipseContour, minRadius, maxRadius);
+
+            // Look for a point along the line connecting centers of the smallest circle and center of mass
+            // which is most equidistant from the outmost edge of the contour. Consider this point as
+            // the best match for eclipse central point.
+            CalcLineParams(smallestCircle, Centroid);
+            int score = FindEclipseCenter(eclipseCenter, smallestCircle, eclipseContour, minRadius, maxRadius);
+
+            // Free allocated storage
+            cvReleaseMemStorage(&storage);
+            Debug.Write(wxString::Format("End detection of eclipsed disk (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%d\n", m_PlanetWatchdog.Time(), eclipseCenter.radius, offsetX + eclipseCenter.x, offsetY + eclipseCenter.y, score));
+
+            // When user clicks a point in the main window, discard detected features
+            // that are far away from it, similar to manual selection of stars in PHD2.
+            Point2f circlePoint = { offsetX + eclipseCenter.x, offsetY + eclipseCenter.y };
+            float distanceAllowed = eclipseCenter.radius * 1.5;
+            if (!autoSelect && m_Planet.clicked && (eclipseCenter.radius > 0) && norm(clickedPoint - circlePoint) > distanceAllowed)
+            {
+                eclipseCenter.radius = 0;
+                Debug.Write(_("Warning: detected object discarded: too far from user's selection\n"));
+            }
+
+            // Create wxImage from the OpenCV Mat to be presented as
+            // a visual aid for tunning of the edge threshold parameters.
+            if (GetPlanetaryThresholdVisual())
+            {
+                m_Planet.sync_lock.Lock();
+                if (m_Planet.eclipse_edges)
+                {
+                    m_Planet.eclipse_edges_valid = false;
+                    delete m_Planet.eclipse_edges;
+                }
+                size_t dataSize = dilatedEdges.rows * dilatedEdges.cols * dilatedEdges.channels();
+                m_Planet.eclipse_edges = new unsigned char[dataSize];
+                m_Planet.rows = dilatedEdges.rows;
+                m_Planet.cols = dilatedEdges.cols;
+                m_Planet.offset_x = offsetX;
+                m_Planet.offset_y = offsetY;
+                memcpy(m_Planet.eclipse_edges, dilatedEdges.data, dataSize);
+                m_Planet.eclipse_edges_valid = true;
+                m_Planet.sync_lock.Unlock();
+            }
+
+            if (eclipseCenter.radius > 0)
+            {
+                m_Planet.frame_width = pImage->Size.GetWidth();
+                m_Planet.frame_height = pImage->Size.GetHeight();
+                m_Planet.center_x = offsetX + eclipseCenter.x;
+                m_Planet.center_y = offsetY + eclipseCenter.y;
+                m_Planet.radius = eclipseCenter.radius;
+                m_Planet.roi_radius = (m_Planet.radius * 3) / 2;
+                m_Planet.detected = true;
+                return true;
+            }
         }
     }
-    else
+    catch (const wxString& msg)
     {
-        int LowThreshold = GetPlanetaryParam_lowThreshold();
-        int HighThreshold = GetPlanetaryParam_highThreshold();
-
-        // Apply Canny edge detection
-        Debug.Write(wxString::Format("Start detection of eclipsed disk (roi:%d low_tr=%d,high_tr=%d,minr=%d,maxr=%d)\n", usingRoi, LowThreshold, HighThreshold, minRadius, maxRadius));
-        Mat edges, dilatedEdges;
-        Canny(img8, edges, LowThreshold, HighThreshold, 5, true);
-        dilate(edges, dilatedEdges, Mat(), Point(-1, -1), 2);
-
-        // Create wxImage from the OpenCV Mat to be presented as 
-        // a visual aid for tunning of the edge threshold parameters.
-        if (GetPlanetaryThresholdVisual())
-        {
-            m_Planet.sync_lock.Lock();
-            if (m_Planet.eclipse_edges)
-            {
-                m_Planet.eclipse_edges_valid = false;
-                delete m_Planet.eclipse_edges;
-            }
-            size_t dataSize = dilatedEdges.rows * dilatedEdges.cols * dilatedEdges.channels();
-            m_Planet.eclipse_edges = new unsigned char[dataSize];
-            m_Planet.rows = dilatedEdges.rows;
-            m_Planet.cols = dilatedEdges.cols;
-            m_Planet.offset_x = offsetX;
-            m_Planet.offset_y = offsetY;
-            memcpy(m_Planet.eclipse_edges, dilatedEdges.data, dataSize);
-            m_Planet.eclipse_edges_valid = true;
-            m_Planet.sync_lock.Unlock();
-        }
-
-        // Find contours
-        IplImage thresholded = IplImage(dilatedEdges);
-        CvMemStorage *storage = cvCreateMemStorage(0);
-        CvSeq *contours = NULL;
-        cvFindContours(&thresholded, storage, &contours, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
-
-        // Find the smallest circle encompassing contour of the eclipsed disk
-        // and also center of mass within the contour.
-        std::vector<Point2f> eclipseContour;
-        CircleDescriptor smallestCircle = { 0 };
-        CircleDescriptor Centroid = { 0 };
-        CircleDescriptor eclipseCenter = { 0 };
-        FindCenters(contours, Centroid, smallestCircle, eclipseContour, minRadius, maxRadius);
-
-        // Look for a point along the line connecting centers of the smallest circle and center of mass
-        // which is most equidistant from the outmost edge of the contour. Consider this point as 
-        // the best match for eclipse central point.
-        CalcLineParams(smallestCircle, Centroid);
-        int score = FindEclipseCenter(eclipseCenter, smallestCircle, eclipseContour, minRadius, maxRadius);
-
-        // Free allocated storage
-        cvReleaseMemStorage(&storage);
-        Debug.Write(wxString::Format("End detection of eclipsed disk (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%d\n", m_PlanetWatchdog.Time(), eclipseCenter.radius, offsetX + eclipseCenter.x, offsetY + eclipseCenter.y, score));
-
-        // When user clicks a point in the main window, discard detected features 
-        // that are far away from it, similar to manual selection of stars in PHD2.
-        Point2f circlePoint = { offsetX + eclipseCenter.x, offsetY + eclipseCenter.y };
-        float distanceAllowed = eclipseCenter.radius * 1.5;
-        if (!autoSelect && m_Planet.clicked && (eclipseCenter.radius > 0) && norm(clickedPoint - circlePoint) > distanceAllowed)
-        {
-            eclipseCenter.radius = 0;
-            Debug.Write(_("Warning: detected object discarded: too far from user's selection\n"));
-        }
-
-        if (eclipseCenter.radius > 0)
-        {
-            m_Planet.frame_width = pImage->Size.GetWidth();
-            m_Planet.frame_height = pImage->Size.GetHeight();
-            m_Planet.center_x = offsetX + eclipseCenter.x;
-            m_Planet.center_y = offsetY + eclipseCenter.y;
-            m_Planet.radius = eclipseCenter.radius;
-            m_Planet.roi_radius = (m_Planet.radius * 3) / 2;
-            m_Planet.detected = true;
-            return true;
-        }
+        POSSIBLY_UNUSED(msg);
+        Debug.Write(wxString::Format("Find planet: exception %s\n", msg));
     }
 
     m_Planet.detected = false;
