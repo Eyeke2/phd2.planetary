@@ -1886,8 +1886,8 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
 
     // Use ROI as optimization
     bool usingRoi = false;
-    int offsetX = 0;
-    int offsetY = 0;
+    int roiOffsetX = 0;
+    int roiOffsetY = 0;
     Mat FullFrame(pImage->Size.GetHeight(), pImage->Size.GetWidth(), format, pImage->ImageData);
     Mat RoiFrame;
     Mat img8;
@@ -1898,19 +1898,15 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
         (m_Planet.frame_width == pImage->Size.GetWidth()) &&
         (m_Planet.frame_height == pImage->Size.GetHeight()))
     {
-        offsetX = m_Planet.center_x - m_Planet.roi_radius;
-        if (offsetX < 0)
-            offsetX = 0;
-        offsetY = m_Planet.center_y - m_Planet.roi_radius;
-        if (offsetY < 0)
-            offsetY = 0;
+        roiOffsetX = m_Planet.center_x - m_Planet.roi_radius;
+        roiOffsetX = max(0, roiOffsetX);
+        roiOffsetY = m_Planet.center_y - m_Planet.roi_radius;
+        roiOffsetY = max(0, roiOffsetY);
         int w = m_Planet.roi_radius * 2;
-        if (w > pImage->Size.GetWidth() - offsetX)
-            w = pImage->Size.GetWidth() - offsetX;
+        w = min(w, pImage->Size.GetWidth() - roiOffsetX);
         int h = m_Planet.roi_radius * 2;
-        if (h > pImage->Size.GetHeight() - offsetY)
-            h = pImage->Size.GetHeight() - offsetY;
-        Rect roiRect(offsetX, offsetY, w, h);
+        h = min(h, pImage->Size.GetHeight() - roiOffsetY);
+        Rect roiRect(roiOffsetX, roiOffsetY, w, h);
         RoiFrame = FullFrame(roiRect);
         usingRoi = true;
     }
@@ -1980,7 +1976,7 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
             Vec3f center = { 0, 0, 0 };
             for (const auto& c : circles)
             {
-                Point2f circlePoint = { offsetX + c[0], offsetY + c[1] };
+                Point2f circlePoint = { roiOffsetX + c[0], roiOffsetY + c[1] };
                 float distanceAllowed = c[2] * 1.5;
                 if ((c[2] > center[2]) && (!m_Planet.clicked || autoSelect || norm(clickedPoint - circlePoint) <= distanceAllowed))
                     center = c;
@@ -1991,8 +1987,8 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
             {
                 m_Planet.frame_width = pImage->Size.GetWidth();
                 m_Planet.frame_height = pImage->Size.GetHeight();
-                m_Planet.center_x = offsetX + center[0];
-                m_Planet.center_y = offsetY + center[1];
+                m_Planet.center_x = roiOffsetX + center[0];
+                m_Planet.center_y = roiOffsetY + center[1];
                 m_Planet.radius = cvRound(center[2]);
                 m_Planet.roi_radius = (m_Planet.radius * 3) / 2;
                 m_Planet.detected = true;
@@ -2032,11 +2028,11 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
 
             // Free allocated storage
             cvReleaseMemStorage(&storage);
-            Debug.Write(wxString::Format("End detection of eclipsed disk (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%d\n", m_PlanetWatchdog.Time(), eclipseCenter.radius, offsetX + eclipseCenter.x, offsetY + eclipseCenter.y, score));
+            Debug.Write(wxString::Format("End detection of eclipsed disk (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%d\n", m_PlanetWatchdog.Time(), eclipseCenter.radius, roiOffsetX + eclipseCenter.x, roiOffsetY + eclipseCenter.y, score));
 
             // When user clicks a point in the main window, discard detected features
             // that are far away from it, similar to manual selection of stars in PHD2.
-            Point2f circlePoint = { offsetX + eclipseCenter.x, offsetY + eclipseCenter.y };
+                Point2f circlePoint = { roiOffsetX + eclipseCenter.x, roiOffsetY + eclipseCenter.y };
             float distanceAllowed = eclipseCenter.radius * 1.5;
             if (!autoSelect && m_Planet.clicked && (eclipseCenter.radius > 0) && norm(clickedPoint - circlePoint) > distanceAllowed)
             {
@@ -2058,8 +2054,8 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
                 m_Planet.eclipse_edges = new unsigned char[dataSize];
                 m_Planet.rows = dilatedEdges.rows;
                 m_Planet.cols = dilatedEdges.cols;
-                m_Planet.offset_x = offsetX;
-                m_Planet.offset_y = offsetY;
+                m_Planet.offset_x = roiOffsetX;
+                m_Planet.offset_y = roiOffsetY;
                 memcpy(m_Planet.eclipse_edges, dilatedEdges.data, dataSize);
                 m_Planet.eclipse_edges_valid = true;
                 m_Planet.sync_lock.Unlock();
@@ -2069,8 +2065,8 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
             {
                 m_Planet.frame_width = pImage->Size.GetWidth();
                 m_Planet.frame_height = pImage->Size.GetHeight();
-                m_Planet.center_x = offsetX + eclipseCenter.x;
-                m_Planet.center_y = offsetY + eclipseCenter.y;
+                m_Planet.center_x = roiOffsetX + eclipseCenter.x;
+                m_Planet.center_y = roiOffsetY + eclipseCenter.y;
                 m_Planet.radius = eclipseCenter.radius;
                 m_Planet.roi_radius = (m_Planet.radius * 3) / 2;
                 m_Planet.detected = true;
