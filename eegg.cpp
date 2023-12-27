@@ -40,7 +40,6 @@
 #include "calreview_dialog.h"
 #include "nudge_lock.h"
 #include "comet_tool.h"
-#include "planetary_tool.h"
 #include "guiding_assistant.h"
 #include "calibration_assistant.h"
 
@@ -266,19 +265,6 @@ void MyFrame::OnCometTool(wxCommandEvent& WXUNUSED(evt))
     if (pCometTool)
     {
         pCometTool->Show();
-    }
-}
-
-void MyFrame::OnPlanetTool(wxCommandEvent& WXUNUSED(evt))
-{
-    if (!pPlanetTool)
-    {
-        pPlanetTool = PlanetTool::CreatePlanetToolWindow();
-    }
-
-    if (pPlanetTool)
-    {
-        pPlanetTool->Show();
     }
 }
 
