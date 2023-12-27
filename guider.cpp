@@ -518,7 +518,8 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
 
                     if (newWidth > 0 && newHeight > 0)
                     {
-                        m_displayedImage->Rescale(newWidth, newHeight, wxIMAGE_QUALITY_HIGH);
+                        wxImageResizeQuality quality = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? wxIMAGE_QUALITY_NORMAL: wxIMAGE_QUALITY_BILINEAR;
+                        m_displayedImage->Rescale(newWidth, newHeight, quality);
                     }
                 }
             }
