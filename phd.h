@@ -119,6 +119,8 @@ WX_DEFINE_ARRAY_DOUBLE(double, ArrayOfDbl);
 
 //#define TEST_TRANSFORMS
 
+//#define FILE_SIMULATOR_MODE 1
+
 #define ROUND(x) (int) floor((x) + 0.5)
 #define ROUNDF(x) (int) floorf((x) + 0.5)
 #define DIV_ROUND_UP(x, y) (((x) + (y) - 1) / (y))

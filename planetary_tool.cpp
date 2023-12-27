@@ -37,6 +37,11 @@
 
 #include <wx/valnum.h>
 
+#if FILE_SIMULATOR_MODE
+wxString simulatorFileTemplate = _("");
+int SimFileIndex = 1;
+#endif
+
 struct PlanetToolWin : public wxDialog
 {
     wxToggleButton *m_enableButton;
@@ -86,6 +91,14 @@ struct PlanetToolWin : public wxDialog
     void OnEclipseModeClick(wxCommandEvent& event);
     void OnRoiModeClick(wxCommandEvent& event);
     void OnShowElementsClick(wxCommandEvent& event);
+
+#if FILE_SIMULATOR_MODE
+    wxTextCtrl* m_filePathTextCtrl;
+    wxSpinCtrlDouble* m_fileIndex;
+    void OnBrowseFileName(wxCommandEvent& event);
+    void OnFileTextChange(wxCommandEvent& event);
+    void OnSpinCtrl_FileIndex(wxSpinDoubleEvent& event);
+#endif
 
     void UpdateStatus();
 };
@@ -206,11 +219,42 @@ PlanetToolWin::PlanetToolWin()
     ButtonSizer->AddSpacer(10);
     ButtonSizer->Add(m_CloseButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
+#if FILE_SIMULATOR_MODE
+    wxStaticText* fileFormatLabel = new wxStaticText(this, wxID_ANY, wxT("file path"));
+    fileFormatLabel->Wrap(-1);
+    wxStaticText* fileIndexLabel = new wxStaticText(this, wxID_ANY, wxT("index"));
+    fileIndexLabel->Wrap(-1);
+
+    m_filePathTextCtrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(200, -1));
+    wxButton* browseButton = new wxButton(this, wxID_ANY, wxT("Browse"));
+
+    m_fileIndex = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 9999, 1);
+
+    wxBoxSizer* x_FilePath = new wxBoxSizer(wxHORIZONTAL);
+    x_FilePath->Add(0, 0, 1, wxEXPAND, 5);
+    x_FilePath->Add(fileFormatLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    x_FilePath->Add(m_filePathTextCtrl, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    x_FilePath->Add(browseButton, 0, wxALL, 5);
+
+    wxBoxSizer* x_FileIndex = new wxBoxSizer(wxHORIZONTAL);
+    x_FileIndex->Add(fileIndexLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    x_FileIndex->Add(m_fileIndex, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+
+    browseButton->Bind(wxEVT_BUTTON, &PlanetToolWin::OnBrowseFileName, this);
+    m_filePathTextCtrl->Bind(wxEVT_TEXT, &PlanetToolWin::OnFileTextChange, this);
+    m_fileIndex->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_FileIndex), NULL, this);
+#endif
+
     // All major controls
     wxBoxSizer *topSizer = new wxBoxSizer(wxVERTICAL);
     topSizer->AddSpacer(5);
     topSizer->Add(ParamsSizer, 0, wxEXPAND, 5);
     topSizer->AddSpacer(10);
+#if FILE_SIMULATOR_MODE
+    topSizer->Add(x_FilePath, 0, wxEXPAND, 5);
+    topSizer->Add(x_FileIndex, 0, wxEXPAND, 5);
+    topSizer->AddSpacer(10);
+#endif
     topSizer->Add(m_EclipseModeCheckBox, 0, wxLEFT | wxALIGN_LEFT, 100);
     topSizer->AddSpacer(10);
     topSizer->Add(m_RoiCheckBox, 0, wxLEFT | wxALIGN_LEFT, 100);
@@ -258,6 +302,13 @@ PlanetToolWin::PlanetToolWin()
     pFrame->pGuider->SetPlanetaryParam_highThreshold(pConfig->Global.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT));
     pFrame->pGuider->SetPlanetaryElementsButtonState(false);
     pFrame->pGuider->SetPlanetaryElementsVisual(false);
+
+#if FILE_SIMULATOR_MODE
+    SimFileIndex = pConfig->Global.GetInt("/PlanetTool/sim_file_index", 1);
+    simulatorFileTemplate = pConfig->Global.GetString("/PlanetTool/sim_filename", _("/Temp/phd2/sim_image.png"));
+    m_filePathTextCtrl->SetValue(simulatorFileTemplate);
+    m_fileIndex->SetValue(SimFileIndex);
+#endif
 
     m_minDist->SetValue(pFrame->pGuider->GetPlanetaryParam_minDist());
     m_param1->SetValue(pFrame->pGuider->GetPlanetaryParam_param1());
@@ -438,6 +489,11 @@ void PlanetToolWin::OnClose(wxCloseEvent& evt)
     pConfig->Global.SetInt("/PlanetTool/max_radius", pFrame->pGuider->GetPlanetaryParam_maxRadius());
     pConfig->Global.SetInt("/PlanetTool/high_threshold", pFrame->pGuider->GetPlanetaryParam_highThreshold());
 
+#if FILE_SIMULATOR_MODE
+    pConfig->Global.SetInt("/PlanetTool/sim_file_index", SimFileIndex);
+    pConfig->Global.SetString("/PlanetTool/sim_filename", simulatorFileTemplate);
+#endif
+
     Destroy();
 }
 
@@ -470,6 +526,32 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
     else
         this->Close();
 }
+
+#if FILE_SIMULATOR_MODE
+void PlanetToolWin::OnBrowseFileName(wxCommandEvent& event)
+{
+    wxFileDialog openFileDialog(this, wxT("Open File"), wxEmptyString, wxEmptyString, wxT("All Files (*.*)|*.*"), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+
+    if (openFileDialog.ShowModal() == wxID_OK)
+    {
+        simulatorFileTemplate = openFileDialog.GetPath();
+        m_filePathTextCtrl->SetValue(simulatorFileTemplate);
+    }
+}
+
+void PlanetToolWin::OnFileTextChange(wxCommandEvent& event)
+{
+    simulatorFileTemplate = m_filePathTextCtrl->GetValue();
+}
+
+void PlanetToolWin::OnSpinCtrl_FileIndex(wxSpinDoubleEvent& event)
+{
+    double v = m_fileIndex->GetValue();
+    if (v > 9999)
+        v = 9999;
+    SimFileIndex = v < 0 ? 0 : v;
+}
+#endif
 
 wxWindow *PlanetTool::CreatePlanetToolWindow()
 {

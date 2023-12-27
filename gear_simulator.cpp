@@ -54,7 +54,15 @@
 #include <opencv/cv.h>
 #include <opencv2/opencv.hpp>
 
+/* Used only for planetary simulations */
+extern wxString simulatorFileTemplate;
+extern int SimFileIndex;
+
+#if FILE_SIMULATOR_MODE
+#define SIMMODE 2   // 1=FITS, 2=BMP, 3=Generate
+#else
 #define SIMMODE 3   // 1=FITS, 2=BMP, 3=Generate
+#endif
 // #define SIMDEBUG
 
 /* simulation parameters for SIMMODE = 3*/
@@ -1304,7 +1312,7 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
     CameraWatchdog watchdog(duration, GetTimeoutMs());
 
     // sleep before rendering the image so that any changes made in the middle of a long exposure (e.g. manual guide pulse) shows up in the image
-
+#if FILE_SIMULATOR_MODE == 0
     if (duration > 5)
     {
         if (WorkerThread::MilliSleep(duration - 5, WorkerThread::INT_ANY))
@@ -1315,10 +1323,12 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
             return true;
         }
     }
+#endif
 
 #if SIMMODE==2
     // Can be also PNG or JPG file
-    cv::Mat image = cv::imread("/Temp/phd2/sim_image.png", cv::IMREAD_ANYDEPTH | cv::IMREAD_ANYCOLOR);
+    wxString filename = simulatorFileTemplate.Format(simulatorFileTemplate, SimFileIndex);
+    cv::Mat image = cv::imread(filename.ToStdString(), cv::IMREAD_ANYDEPTH | cv::IMREAD_ANYCOLOR);
     if (image.empty()) {
         pFrame->Alert(_("Cannot load simulated image"));
         return true;
