@@ -292,7 +292,7 @@ PlanetToolWin::PlanetToolWin()
     m_maxRadius->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_maxRadius), NULL, this);
 
     // Set initial values of the planetary tracking state and parameters
-    pFrame->pGuider->SetEclipseMode(pConfig->Global.GetInt("/PlanetTool/eclipse_mode", 0));
+    pFrame->pGuider->SetEclipseMode(pConfig->Global.GetInt("/PlanetTool/eclipse_mode", 1));
     pFrame->pGuider->SetPlanetaryParam_minDist(pConfig->Global.GetInt("/PlanetTool/min_dist", PT_MIN_DIST_DEFAULT));
     pFrame->pGuider->SetPlanetaryParam_param1(pConfig->Global.GetInt("/PlanetTool/param1", PT_PARAM1_DEFAULT));
     pFrame->pGuider->SetPlanetaryParam_param2(pConfig->Global.GetInt("/PlanetTool/param2", PT_PARAM2_DEFAULT));

@@ -167,9 +167,8 @@ private:
     float m_PlanetEccentricity;
     float m_PlanetAngle;
 
-    float m_gaussianWeight[2000];
     void CalcLineParams(CircleDescriptor p1, CircleDescriptor p2);
-    float CalcEclipseScore(float& radius, cv::Point2f pointToMeasure, std::vector<cv::Point2f>& eclipseContour, int minRadius, int maxRadius);
+    int RefineEclipseCenter(float& bestScore, CircleDescriptor& eclipseCenter, std::vector<cv::Point2f>& eclipseContour, int minRadius, int maxRadius, float searchRadius, float resolution = 1.0);
     float FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, cv::Moments& mu, int minRadius, int maxRadius);
     void FindCenters(cv::Mat image, CvSeq* contours, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, cv::Moments& mu, int minRadius, int maxRadius);
     bool FindPlanet(const usImage* pImage, bool autoSelect = false);
