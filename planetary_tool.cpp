@@ -203,13 +203,13 @@ PlanetToolWin::PlanetToolWin()
     m_ThresholdSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnThresholdChanged, this);
 
     m_EclipseModeCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable Eclipse mode"));
-    m_EclipseModeCheckBox->SetToolTip(_("Enable Eclipse mode for better tracking of partial solar/lunar disk"));
+    m_EclipseModeCheckBox->SetToolTip(_("Enable Eclipse mode for enhanced tracking of partial solar / lunar discs"));
     m_RoiCheckBox = new wxCheckBox(this, wxID_ANY, _("Use ROI"));
-    m_RoiCheckBox->SetToolTip(_("Enable ROI for faster processing and lowering CPU usage"));
+    m_RoiCheckBox->SetToolTip(_("Enable ROI for improved processing speed and reduced CPU usage."));
 
     // Show/hide detected elements
     m_ShowElements = new wxCheckBox(this, wxID_ANY, _("Display internal edges/circles"));
-    m_ShowElements->SetToolTip(_("Display or hide internal detected edges/circles - try to keep number of these features to a reasonable minimum by tuning detection parameters"));
+    m_ShowElements->SetToolTip(_("Toggle the visibility of internally detected edges/circles and tune detection parameters to maintain a manageable number of these features while keeping them as close as possible to the light disk boundary."));
 
     // Close button
     m_MouseHoverFlag = false;
