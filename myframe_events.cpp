@@ -44,6 +44,7 @@
 #include "Refine_DefMap.h"
 #include "starcross_test.h"
 #include "calibration_assistant.h"
+#include "planetary_tool.h"
 
 #include <algorithm>
 #include <memory>
@@ -1317,5 +1318,18 @@ void MyFrame::OnCharHook(wxKeyEvent& evt)
     if (!handled)
     {
         evt.Skip();
+    }
+}
+
+void MyFrame::OnPlanetTool(wxCommandEvent& WXUNUSED(evt))
+{
+    if (!pPlanetTool)
+    {
+        pPlanetTool = PlanetTool::CreatePlanetToolWindow();
+    }
+
+    if (pPlanetTool)
+    {
+        pPlanetTool->Show();
     }
 }
