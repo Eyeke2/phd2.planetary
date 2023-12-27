@@ -209,6 +209,9 @@ BEGIN_EVENT_TABLE(GuiderMultiStar, Guider)
     EVT_LEFT_DOWN(GuiderMultiStar::OnLClick)
 END_EVENT_TABLE()
 
+// Gaussian weights lookup table
+static float gaussianWeight[2000];
+
 // Define a constructor for the guide canvas
 GuiderMultiStar::GuiderMultiStar(wxWindow *parent)
     : Guider(parent, XWinSize, YWinSize),
@@ -224,12 +227,12 @@ GuiderMultiStar::GuiderMultiStar(wxWindow *parent)
 
     // Build gaussian weighting function table used for circle feature detection
     float sigma = 1.0;
-    memset(m_gaussianWeight, 0, sizeof(m_gaussianWeight));
+    memset(gaussianWeight, 0, sizeof(gaussianWeight));
     for (double x = 0; x < 20; x += 0.01)
     {
         int i = x * 100 + 0.5;
-        if (i < ARRAYSIZE(m_gaussianWeight))
-            m_gaussianWeight[i] += exp(-(pow(x, 2) / (2 * pow(sigma, 2))));
+        if (i < ARRAYSIZE(gaussianWeight))
+            gaussianWeight[i] += exp(-(pow(x, 2) / (2 * pow(sigma, 2))));
     }
     m_PlanetEccentricity = 0;
     m_PlanetAngle = 0;
@@ -1270,6 +1273,7 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
 inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double scale)
 {
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    halfW = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? 10 : halfW;
     double w = ROUND((halfW * 2 + 1) * scale);
     int xpos = int((star.X - halfW) * scale);
     int ypos = int((star.Y - halfW) * scale);
@@ -1718,7 +1722,7 @@ void GuiderMultiStar::CalcLineParams(CircleDescriptor p1, CircleDescriptor p2)
 }
 
 // Calculate score for given point
-float GuiderMultiStar::CalcEclipseScore(float& radius, Point2f pointToMeasure, std::vector<Point2f>& eclipseContour, int minRadius, int maxRadius)
+static float CalcEclipseScore(float& radius, Point2f pointToMeasure, std::vector<Point2f>& eclipseContour, int minRadius, int maxRadius)
 {
     float* distances = new float[eclipseContour.size()];
     float minIt = 0;
@@ -1782,14 +1786,121 @@ float GuiderMultiStar::CalcEclipseScore(float& radius, Point2f pointToMeasure, s
     for (int x = 0; x < size; x++)
     {
         int index = fabs(distances[x] - peakDistance) * 100 + 0.5;
-        if (index < ARRAYSIZE(m_gaussianWeight))
-            scorePoints += m_gaussianWeight[index];
+        if (index < ARRAYSIZE(gaussianWeight))
+            scorePoints += gaussianWeight[index];
     }
     delete distances;
 
     // Normalize score by total number points in the contour
     radius = peakDistance;
     return scorePoints / eclipseContour.size();
+}
+
+class AsyncCalcScoreThread : public wxThread
+{
+public:
+    std::vector<Point2f> points;
+    std::vector<Point2f> contour;
+    Point2f center;
+    float radius;
+    float threadBestScore;
+    int minRadius;
+    int maxRadius;
+
+public:
+    AsyncCalcScoreThread(float bestScore, std::vector<Point2f>& eclipseContour, std::vector<Point2f>& workLoad, int min_radius, int max_radius)
+        : wxThread(wxTHREAD_JOINABLE), threadBestScore(bestScore), contour(eclipseContour), points(workLoad), minRadius(min_radius), maxRadius(max_radius)
+    {
+        radius = 0;
+    }
+    // A thread function to run HoughCircles method
+    wxThread::ExitCode Entry()
+    {
+        for (const Point2f& point : points)
+        {
+            float score = ::CalcEclipseScore(radius, point, contour, minRadius, maxRadius);
+            if (score > threadBestScore)
+            {
+                threadBestScore = score;
+                radius = radius;
+                center.x = point.x;
+                center.y = point.y;
+            }
+        }
+        return this;
+    }
+};
+
+/* Find best circle candidate */
+int GuiderMultiStar::RefineEclipseCenter(float& bestScore, CircleDescriptor& eclipseCenter, std::vector<Point2f>& eclipseContour, int minRadius, int maxRadius, float searchRadius, float resolution)
+{
+    const int maxWorkloadSize = 256;
+    const Point2f center = { eclipseCenter.x, eclipseCenter.y };
+    std::vector<AsyncCalcScoreThread *> threads;
+
+    // Check all points within small circle for search of higher score
+    int threadCount = 0;
+    bool useThreads = true;
+    int workloadSize = 0;
+    std::vector<Point2f> workload;
+    for (float x = eclipseCenter.x - searchRadius; x < eclipseCenter.x + searchRadius; x += resolution)
+        for (float y = eclipseCenter.y - searchRadius; y < eclipseCenter.y + searchRadius; y += resolution)
+        {
+            float radius;
+            Point2f pointToMeasure = { x, y };
+            float dist = norm(pointToMeasure - center);
+            if (dist > searchRadius)
+                continue;
+
+            // When finished crearing a workload, create and run new processing thread
+            if (useThreads && (workloadSize++ > maxWorkloadSize))
+            {
+                AsyncCalcScoreThread *thread = new AsyncCalcScoreThread(bestScore, eclipseContour, workload, minRadius, maxRadius);
+                if ((thread->Create() == wxTHREAD_NO_ERROR) && (thread->Run() == wxTHREAD_NO_ERROR))
+                {
+                    threads.push_back(thread);
+                    workload.clear();
+                    workloadSize = 0;
+                    threadCount++;
+                }
+                else
+                {
+                    useThreads = false;
+                    Debug.Write(_("RefineEclipseCenter: failed to start a thread\n"));
+                }
+            }
+            workload.push_back(pointToMeasure);
+        }
+
+    // Process remaining points locally
+    for (const Point2f& point : workload)
+    {
+        float radius;
+        float score = ::CalcEclipseScore(radius, point, eclipseContour, minRadius, maxRadius);
+        if (score > bestScore)
+        {
+            bestScore = score;
+            eclipseCenter.radius = radius;
+            eclipseCenter.x = point.x;
+            eclipseCenter.y = point.y;
+        }
+    }
+
+    // Wait for all threads to terminate and process their results
+    for (auto thread : threads)
+    {
+        thread->Wait();
+        if (thread->threadBestScore > bestScore)
+        {
+            bestScore = thread->threadBestScore;
+            eclipseCenter.radius = thread->radius;
+            eclipseCenter.x = thread->center.x;
+            eclipseCenter.y = thread->center.y;
+        }
+
+        delete thread;
+    }
+    return threadCount;
 }
 
 // An algorithm to find eclipse center
@@ -1895,6 +2006,9 @@ void GuiderMultiStar::FindCenters(Mat image, CvSeq* contour, CircleDescriptor& c
     // outside and inside the given range.
     maxRadius = (maxRadius * 5) / 4;
     minRadius = (minRadius * 3) / 4;
+
+    m_PlanetEccentricity = 0;
+    m_PlanetAngle = 0;
     circle.radius = 0;
     centroid.radius = 0;
     eclipseContour.clear();
@@ -1940,11 +2054,6 @@ void GuiderMultiStar::FindCenters(Mat image, CvSeq* contour, CircleDescriptor& c
                 // Calculate orientation (theta) in radians and convert to degrees
                 float theta = 0.5 * atan2(2 * mu.mu11, (mu.mu20 - mu.mu02));
                 m_PlanetAngle = theta * (180.0 / CV_PI);
-            }
-            else
-            {
-                m_PlanetEccentricity = 0;
-                m_PlanetAngle = 0;
             }
         }
 }
@@ -2188,6 +2297,15 @@ bool GuiderMultiStar::FindPlanet(const usImage *pImage, bool autoSelect)
                 float distanceAllowed = eclipseCenter.radius * 1.5;
                 if (!autoSelect && m_Planet.clicked && (eclipseCenter.radius > 0) && norm(clickedPoint - circlePoint) > distanceAllowed)
                     score = 0;
+
+                /* Refine the best fit */
+                if (score > 0.01)
+                {
+                    float searchRadius = 20 * m_PlanetEccentricity + 3;
+                    RefineEclipseCenter(score, eclipseCenter, eclipseContour, minRadius, maxRadius, searchRadius);
+                    if (score > bestScore * 0.8)
+                        RefineEclipseCenter(score, eclipseCenter, eclipseContour, minRadius, maxRadius, 0.5, 0.1);
+                }
 
                 // Select best fit based on highest score
                 if (score > bestScore)
