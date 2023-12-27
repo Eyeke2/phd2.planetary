@@ -1628,6 +1628,9 @@ void GuiderMultiStar::PlanetVisualHelper(wxDC& dc)
     {
         m_Planet.sync_lock.Lock();
 
+        // Make sure to use transparent brush
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+
         // Draw all edges detected in eclipse mode
         if (GetEclipseMode() && m_Planet.eclipseContour.size())
         {
