@@ -1638,6 +1638,7 @@ void GuiderMultiStar::PlanetVisualHelper(wxDC& dc)
             for (const Point2f& contourPoint : m_Planet.eclipseContour)
                 dc.DrawCircle((contourPoint.x + m_Planet.offset_x) * m_scaleFactor, (contourPoint.y + m_Planet.offset_y) * m_scaleFactor, 2);
 
+#if FILE_SIMULATOR_MODE
             // Draw ancor circle centers
             dc.SetLogicalFunction(wxXOR);
             dc.SetPen(wxPen(wxColour(230, 230, 0), 3, wxPENSTYLE_SOLID));
@@ -1647,6 +1648,7 @@ void GuiderMultiStar::PlanetVisualHelper(wxDC& dc)
             if (m_Planet.sm_circle_x && m_Planet.sm_circle_y)
                 dc.DrawCircle((m_Planet.sm_circle_x + m_Planet.offset_x) * m_scaleFactor, (m_Planet.sm_circle_y + m_Planet.offset_y) * m_scaleFactor, 3);
             dc.SetLogicalFunction(wxCOPY);
+#endif
         }
 
         // Draw all circles detected by HoughCircles
