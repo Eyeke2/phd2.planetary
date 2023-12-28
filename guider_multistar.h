@@ -167,6 +167,7 @@ private:
     float m_PlanetEccentricity;
     float m_PlanetAngle;
 
+    void InitPlanetaryModule();
     void CalcLineParams(CircleDescriptor p1, CircleDescriptor p2);
     int RefineEclipseCenter(float& bestScore, CircleDescriptor& eclipseCenter, std::vector<cv::Point2f>& eclipseContour, int minRadius, int maxRadius, float searchRadius, float resolution = 1.0);
     float FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, cv::Moments& mu, int minRadius, int maxRadius);

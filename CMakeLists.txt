@@ -324,6 +324,7 @@ set(guiding_SRC
   ${phd_src_dir}/guide_algorithms.h
   ${phd_src_dir}/guider_multistar.cpp
   ${phd_src_dir}/guider_multistar.h
+  ${phd_src_dir}/guider_planetary.cpp
   ${phd_src_dir}/guider.cpp
   ${phd_src_dir}/guider.h
   ${phd_src_dir}/guiders.h
