@@ -149,6 +149,9 @@ struct Planet
     int frame_height;
 
     wxMutex sync_lock;
+    int detectionCounter;
+    bool roiActive;
+    cv::Rect roiRect;
     std::vector<cv::Point2f> eclipseContour;
     bool circles_valid;
     std::vector<cv::Vec3f> circles;
@@ -159,9 +162,6 @@ struct Planet
     bool clicked;
     int clicked_x;
     int clicked_y;
-    int roi_radius;
-    int offset_x;
-    int offset_y;
 };
 
 class Guider : public wxWindow
@@ -326,7 +326,6 @@ public:
     void CameraConnectNotify()
     {
         m_Planet.clicked = false;
-        m_Planet.roi_radius = 0;
     };
     bool GetPlanetaryEnableState() { return m_Planetary_enabled; }
     void SetPlanetaryEnableState(bool enabled) { m_Planetary_enabled = enabled; }

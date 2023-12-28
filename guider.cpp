@@ -190,8 +190,9 @@ Guider::Guider(wxWindow *parent, int xSize, int ySize) :
 
     m_Planetary_enabled = false;
     m_Planet.detected = false;
-    m_Planet.roi_radius = 0;
     m_Planet.clicked = false;
+    m_Planet.roiActive = false;
+    m_Planet.detectionCounter = 0;
     m_Planet.clicked_x = 0;
     m_Planet.clicked_y = 0;
     m_Planet.circles_valid = false;

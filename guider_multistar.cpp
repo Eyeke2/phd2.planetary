@@ -1189,15 +1189,13 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
                 m_Planet.clicked_y = mevent.m_y / ScaleFactor();
                 m_Planet.clicked_y = std::min(m_Planet.clicked_y, pImage->Size.GetHeight() - 1);
                 m_Planet.clicked = true;
+                m_Planet.detectionCounter = 0;
 
                 if (GetRoiEnableState())
                 {
                     // Set ROI centered around currently clicked point
                     m_Planet.center_x = m_Planet.clicked_x;
                     m_Planet.center_y = m_Planet.clicked_y;
-                    // In no planet was detected earlier use image height as a search diameter
-                    if (!m_Planet.detected)
-                        m_Planet.roi_radius = std::min(pImage->Size.GetHeight(), pImage->Size.GetWidth()) / 2;
                 }
 
                 // Try to locate a planet
@@ -1265,14 +1263,22 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
     int ypos = int((star.Y - halfW) * scale);
     if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
     {
-        if (pFrame->pGuider->m_Planet.detected)
+        Guider* pGuider = pFrame->pGuider;
+        if (pGuider->m_Planet.detected)
         {
             int x = int(star.X * scale + 0.5);
             int y = int(star.Y * scale + 0.5);
-            int r = int(pFrame->pGuider->m_Planet.radius * scale + 0.5);
+            int r = int(pGuider->m_Planet.radius * scale + 0.5);
             dc.DrawCircle(x, y, r);
             dc.SetPen(wxPen(dc.GetPen().GetColour(), 1, dc.GetPen().GetStyle()));
             dc.DrawRectangle(xpos, ypos, w, w);
+        }
+
+        // Show active processing region
+        if (pGuider->m_Planet.roiActive)
+        {
+            dc.SetPen(wxPen(wxColour(200, 200, 200), 2, wxPENSTYLE_SHORT_DASH));
+            dc.DrawRectangle(pGuider->m_Planet.roiRect.x * scale, pGuider->m_Planet.roiRect.y * scale, pGuider->m_Planet.roiRect.width * scale, pGuider->m_Planet.roiRect.height * scale);
         }
     }
     else
