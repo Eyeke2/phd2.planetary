@@ -321,6 +321,16 @@ PlanetToolWin::PlanetToolWin()
 
     SetEnabledState(this, pFrame->pGuider->GetPlanetaryEnableState());
 
+    int xpos = pConfig->Global.GetInt("/PlanetTool/pos.x", -1);
+    int ypos = pConfig->Global.GetInt("/PlanetTool/pos.y", -1);
+    if (wxGetKeyState(WXK_ALT))
+    {
+        xpos = -1;
+        ypos = -1;
+    }
+
+    MyFrame::PlaceWindowOnScreen(this, xpos, ypos);
+
     UpdateStatus();
 }
 
@@ -493,6 +503,12 @@ void PlanetToolWin::OnClose(wxCloseEvent& evt)
     pConfig->Global.SetInt("/PlanetTool/sim_file_index", SimFileIndex);
     pConfig->Global.SetString("/PlanetTool/sim_filename", simulatorFileTemplate);
 #endif
+
+    // save the window position
+    int x, y;
+    GetPosition(&x, &y);
+    pConfig->Global.SetInt("/PlanetTool/pos.x", x);
+    pConfig->Global.SetInt("/PlanetTool/pos.y", y);
 
     Destroy();
 }
