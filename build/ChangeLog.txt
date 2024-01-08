@@ -1,9 +1,16 @@
-A development version v2.6.13-planet.dev3.rc1
-==============================
+A development version v2.6.13-planet.dev3.rc2
+=============================================
 
 When installing this version, it is advised to choose a destination folder distinct from the standard PHD2 installation path, so you can keep two versions at the same time.
 
 Change log
+
+v2.6.13-planet.dev3.rc2
+* Stop detection when an excessive number of contour points are identified, in order to prevent high CPU usage.
+User is advised to increase the edge threshold or enable ROI to mitigate this issue.
+* Add planet detection time and number of contour points/circles to the stats display.
+* Internal code refactoring and cleanup.
+* Fixed a bug related to memory management.
 
 v2.6.13-planet.dev3.rc1
 * Rebased onto PHD2 master branch.
