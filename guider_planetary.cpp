@@ -706,7 +706,11 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
                 m_syncLock.Unlock();
             }
 
+            // Log results and update stats window
             Debug.Write(wxString::Format("End detection of planetary disk (t=%d): %d circles detected, r=%d x=%.1f y=%.1f\n", m_PlanetWatchdog.Time(), circles.size(), cvRound(center[2]), center[0], center[1]));
+            pFrame->pStatsWin->UpdatePlanetDetectionTime(m_PlanetWatchdog.Time());
+            pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Circles"), circles.size());
+
             if (center[2])
             {
                 m_frameWidth = pImage->Size.GetWidth();
@@ -748,6 +752,8 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
                 cvReleaseMemStorage(&storage);
                 Debug.Write(wxString::Format("Too many contour points detected (%d)\n", totalPoints));
                 m_statusMsg = _("Too many contour points detected: please enable ROI or increase Edge Detection Threshold");
+                pFrame->pStatsWin->UpdatePlanetDetectionTime(m_PlanetWatchdog.Time());
+                pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), totalPoints);
                 m_detected = false;
                 m_detectionCounter = 0;
                 m_syncLock.Lock();
@@ -821,6 +827,10 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
             cvReleaseMemStorage(&storage);
             Debug.Write(wxString::Format("End detection of eclipsed disk (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%.3f, contours=%d/%d\n",
                 m_PlanetWatchdog.Time(), bestEclipseCenter.radius, roiOffsetX + bestEclipseCenter.x, roiOffsetY + bestEclipseCenter.y, bestScore, contourMatchingCount, contourAllCount));
+
+            // Update stats window
+            pFrame->pStatsWin->UpdatePlanetDetectionTime(m_PlanetWatchdog.Time());
+            pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), totalPoints);
 
             // Save latest frame dimensions
             m_frameWidth = pImage->Size.GetWidth();

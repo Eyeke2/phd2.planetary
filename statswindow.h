@@ -40,6 +40,7 @@ class StatsWindow : public wxWindow
     bool m_visible;
     wxGrid *m_grid1;
     wxGrid *m_grid2;
+    wxGrid* m_grid3;
     int m_length;
     OptionsButton *m_pLengthButton;
     wxTimer m_coolerTimer;
@@ -62,6 +63,8 @@ public:
     void UpdateCooler();
     void UpdateImageSize(const wxSize& frameSize);
     void ResetImageSize();
+    void UpdatePlanetDetectionTime(int msec);
+    void UpdatePlanetFeatureCount(wxString label, int count);
     void SetState(bool is_active);
 
     DECLARE_EVENT_TABLE()
