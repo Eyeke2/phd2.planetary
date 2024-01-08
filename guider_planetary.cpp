@@ -307,6 +307,7 @@ int GuiderPlanet::RefineEclipseCenter(float& bestScore, CircleDescriptor& eclips
     bool useThreads = true;
     int workloadSize = 0;
     std::vector<Point2f> workload;
+    workload.reserve(maxWorkloadSize);
     for (float x = eclipseCenter.x - searchRadius; x < eclipseCenter.x + searchRadius; x += resolution)
         for (float y = eclipseCenter.y - searchRadius; y < eclipseCenter.y + searchRadius; y += resolution)
         {
@@ -376,6 +377,7 @@ float GuiderPlanet::FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDes
     int   searchRadius = circle.radius / 2;
     Point2f pointToMeasure;
     std::vector <WeightedCircle> WeightedCircles;
+    WeightedCircles.reserve(searchRadius * 2);
 
     // When center of mass (centroid) wasn't found use smallest circle for measurement
     if (!m_DiameterLineParameters.valid)
@@ -475,6 +477,7 @@ void GuiderPlanet::FindCenters(Mat image, CvSeq* contour, CircleDescriptor& cent
     circle.radius = 0;
     centroid.radius = 0;
     eclipseContour.clear();
+    eclipseContour.reserve(contour->total);
     if (cvMinEnclosingCircle(contour, &circleCenter, &circle_radius))
         if ((circle_radius <= maxRadius) &&
             (circle_radius >= minRadius))
