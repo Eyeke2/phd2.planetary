@@ -343,7 +343,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, int base_x, int base_y, F
         {
             // In planetary mode we lower the threshold of mass detection
             float sigma_factor = (mode == FIND_PLANET) ? 1.0 : 3.0;
-            if ((mode == FIND_PLANET) && pFrame->pGuider->GetEclipseMode())
+            if ((mode == FIND_PLANET) && pFrame->pGuider->m_Planet.GetEclipseMode())
             {
                 mean_bg = 0;
                 thresh = 0;

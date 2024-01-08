@@ -90,7 +90,7 @@ void ProfileWindow::UpdateData(const usImage *img, float xpos, float ypos)
     if (this->data == NULL) return;
 
     Star::FindMode findMode = pFrame->GetStarFindMode();
-    int radius = (findMode == Star::FIND_PLANET) ? pFrame->pGuider->m_Planet.radius * 5 / 4: HALFW;
+    int radius = (findMode == Star::FIND_PLANET) ? pFrame->pGuider->m_Planet.m_radius * 5 / 4: HALFW;
 
     int xstart = ROUNDF(xpos) - radius;
     int ystart = ROUNDF(ypos) - radius;
@@ -263,7 +263,8 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         double dStarY = LockY - pFrame->pGuider->CurrentPosition().Y * scaleFactor;
         // grab the subframe
         wxBitmap dBmp(*img);
-        int radius = (pFrame->GetStarFindMode() == Star::FIND_PLANET) && (pFrame->pGuider->m_Planet.radius > HALFW) ? pFrame->pGuider->m_Planet.radius * 5 / 4 : 15;
+        int planetRadius = pFrame->pGuider->m_Planet.m_radius;
+        int radius = (pFrame->GetStarFindMode() == Star::FIND_PLANET) && (planetRadius > HALFW) ? planetRadius * 5 / 4 : 15;
         radius *= scaleFactor;
         int lkx = ROUND(LockX);
         int l = std::max(0, lkx - radius);

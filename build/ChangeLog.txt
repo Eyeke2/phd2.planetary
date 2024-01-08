@@ -1,0 +1,35 @@
+A development version v2.6.13-planet.dev3.rc1
+==============================
+
+When installing this version, it is advised to choose a destination folder distinct from the standard PHD2 installation path, so you can keep two versions at the same time.
+
+Change log
+
+v2.6.13-planet.dev3.rc1
+* Rebased onto PHD2 master branch.
+
+v2.6.13-planet.dev2
+* Show active ROI region upon activation and improve planetary detection within ROI, enhancing robustness against sudden target jumps or gradual drift.
+* Save/restore dialog box position on screen.
+* Cherry-picked a bug fix from the master branch to address an application crash caused by an inaccessible pointer.
+
+v2.6.13-planet.dev1
+* Rebased onto the latest v2.6.13dev1 version from the main PHD2 repository.
+* Significantly improved the eclipse detection algorithm, resulting in higher accuracy while using multithreading for faster processing.
+* Added a keyboard shortcut (Ctrl-P) and a new tool icon for direct access to the Planetary Tracking control dialogue.
+* Eclipse mode is now the default method for detecting solar/lunar disks, offering enhanced performance, with the standard mode available as a fallback.
+* Removed the low edge threshold control from the UI.
+* Added a checkbox for toggling the visibility of internally detected edges/circles, serving as a visual aid for tuning planetary detection parameters.
+* Implemented stability improvements and addressed various bug fixes.
+
+v2.6.12-planetary.6
+* The user must either use Auto-select star or click on the solar/lunar disk to select it.
+* Improved UI elements and status display at the bottom line.
+* Improved handling of cases where circle recognition exceeds the processing time - exposure looping stops,
+prompting the user to adjust param1 and param2 to avoid future delays.
+* Saving selected eclipse mode in global settings.
+
+v2.6.12-planetary.5
+* Added smarter algorithm to find eclipse center.
+* Added an option for ROI to optimize CPU usage.
+* Fix all-white display issue for captured frames with low contrast.

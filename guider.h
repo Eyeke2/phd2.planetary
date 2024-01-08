@@ -40,9 +40,7 @@
 #ifndef GUIDER_H_INCLUDED
 #define GUIDER_H_INCLUDED
 
-#include <opencv/cv.h>
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
+#include "guider_planetary.h"
 
 enum GUIDER_STATE
 {
@@ -139,31 +137,6 @@ struct GuiderOffset
     PHD_Point mountOfs;
 };
 
-struct Planet
-{
-    bool detected;
-    float center_x;
-    float center_y;
-    int radius;
-    int frame_width;
-    int frame_height;
-
-    wxMutex sync_lock;
-    int detectionCounter;
-    bool roiActive;
-    cv::Rect roiRect;
-    std::vector<cv::Point2f> eclipseContour;
-    bool circles_valid;
-    std::vector<cv::Vec3f> circles;
-    int centoid_x;
-    int centoid_y;
-    int sm_circle_x;
-    int sm_circle_y;
-    bool clicked;
-    int clicked_x;
-    int clicked_y;
-};
-
 class Guider : public wxWindow
 {
     wxImage *m_displayedImage;
@@ -197,20 +170,6 @@ class Guider : public wxWindow
     double m_minAFStarSNR;
     double m_maxStarHFD;
     unsigned int m_autoSelDownsample;  // downsample factor for star auto-selection, 0=Auto
-
-    // Planetary guiding parameters
-    bool m_Planetary_enabled;
-    bool m_EclipseMode;
-    bool m_RoiEnabled;
-    double m_Planetary_minDist;
-    double m_Planetary_param1;
-    double m_Planetary_param2;
-    double m_Planetary_minRadius;
-    double m_Planetary_maxRadius;
-    int    m_Planetary_lowThreshold;
-    int    m_Planetary_highThreshold;
-    bool   m_Planetary_ShowElementsButtonState;
-    bool   m_Planetary_ShowElementsVisual;
 
 protected:
     int m_searchRegion; // how far u/d/l/r do we do the initial search for a star
@@ -323,44 +282,7 @@ public:
     unsigned int GetAutoSelDownsample() const;
 
     // Planetary disk detection parameters
-    void CameraConnectNotify()
-    {
-        m_Planet.clicked = false;
-    };
-    bool GetPlanetaryEnableState() { return m_Planetary_enabled; }
-    void SetPlanetaryEnableState(bool enabled) { m_Planetary_enabled = enabled; }
-    void SetPlanetaryParam_minDist(double val) { m_Planetary_minDist = val; }
-    double GetPlanetaryParam_minDist() { return m_Planetary_minDist; }
-    void   SetPlanetaryParam_param1(double val) { m_Planetary_param1 = val; }
-    double GetPlanetaryParam_param1() { return m_Planetary_param1; }
-    void   SetPlanetaryParam_param2(double val) { m_Planetary_param2 = val; }
-    double GetPlanetaryParam_param2() { return m_Planetary_param2; }
-    void   SetPlanetaryParam_minRadius(double val) { m_Planetary_minRadius = val; }
-    double GetPlanetaryParam_minRadius() { return m_Planetary_minRadius; }
-    void   SetPlanetaryParam_maxRadius(double val) { m_Planetary_maxRadius = val; }
-    double GetPlanetaryParam_maxRadius() { return m_Planetary_maxRadius; }
-    bool GetEclipseMode() { return m_EclipseMode; }
-    void SetEclipseMode(bool mode) { m_EclipseMode = mode; }
-    bool GetRoiEnableState() { return m_RoiEnabled; }
-    void SetRoiEnableState(bool enabled) { m_RoiEnabled = enabled; }
-    void SetPlanetaryParam_lowThreshold(int value) { m_Planetary_lowThreshold = value; }
-    int  GetPlanetaryParam_lowThreshold() { return m_Planetary_lowThreshold; }
-    void SetPlanetaryParam_highThreshold(int value) { m_Planetary_highThreshold = value; }
-    int  GetPlanetaryParam_highThreshold() { return m_Planetary_highThreshold; }
-    void SetPlanetaryElementsVisual(bool state) { 
-        m_Planet.sync_lock.Lock();
-        m_Planet.eclipseContour.clear();
-        m_Planetary_ShowElementsVisual = state;
-        m_Planet.sync_lock.Unlock();
-    }
-    bool GetPlanetaryElementsVisual() { return m_Planetary_ShowElementsVisual; }
-    void SetPlanetaryElementsButtonState(bool state) { m_Planetary_ShowElementsButtonState = state; }
-    bool GetPlanetaryElementsButtonState() { return m_Planetary_ShowElementsButtonState; }
-
-public:
-    // Displaying visual aid for planetary parameter tuning
-    bool m_draw_PlanetaryHelper;
-    void PlanetVisualRefresh() { m_draw_PlanetaryHelper = true; }
+    GuiderPlanet m_Planet;
 
     // virtual functions -- these CAN be overridden by a subclass, which should
     // consider whether they need to call the base class functions as part of
@@ -398,9 +320,6 @@ public:
     usImage *CurrentImage() const;
     wxImage *DisplayedImage() const;
     double ScaleFactor() const;
-
-    // Planet position and properties
-    struct Planet m_Planet;
 
     virtual wxString GetSettingsSummary() const;
 

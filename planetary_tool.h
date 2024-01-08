@@ -32,8 +32,7 @@
  *
  */
 
-#ifndef PLANETARY_TOOL_INCLUDED
-#define PLANETARY_TOOL_INCLUDED
+#pragma once
 
 // Default planetary detection parameters values
 #define PT_MIN_DIST_DEFAULT    10
@@ -42,14 +41,13 @@
 #define PT_MIN_RADIUS_DEFAULT  25
 #define PT_MAX_RADIUS_DEFAULT  50
 #define PT_HIGH_THRESHOLD_DEFAULT 256
+#define PT_HIGH_THRESHOLD_MIN     1
+#define PT_HIGH_THRESHOLD_MAX     400
 
 class PlanetTool
 {
     PlanetTool();
 public:
     static wxWindow *CreatePlanetToolWindow();
-    static void NotifyUpdateLockPos();
     static void UpdatePlanetToolControls(bool updateRates);
 };
-
-#endif

@@ -146,36 +146,6 @@ public:
     void LoadProfileSettings() override;
 
 private:
-    wxStopWatch m_PlanetWatchdog;
-    typedef struct {
-        float x;
-        float y;
-        float radius;
-    } CircleDescriptor;
-    struct LineParameters {
-        bool  valid;
-        bool  vertical;
-        float slope;
-        float b;
-    } m_DiameterLineParameters;
-    typedef struct WeightedCircle {
-        float x;
-        float y;
-        float r;
-        float score;
-    } WeightedCircle;
-    float m_PlanetEccentricity;
-    float m_PlanetAngle;
-
-    void InitPlanetaryModule();
-    void CalcLineParams(CircleDescriptor p1, CircleDescriptor p2);
-    int RefineEclipseCenter(float& bestScore, CircleDescriptor& eclipseCenter, std::vector<cv::Point2f>& eclipseContour, int minRadius, int maxRadius, float searchRadius, float resolution = 1.0);
-    float FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, cv::Moments& mu, int minRadius, int maxRadius);
-    void FindCenters(cv::Mat image, CvSeq* contours, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, cv::Moments& mu, int minRadius, int maxRadius);
-    bool FindPlanet(const usImage* pImage, bool autoSelect = false);
-    void PlanetVisualHelper(wxDC& dc);
-
-private:
     bool IsValidLockPosition(const PHD_Point& pt) final;
     bool IsValidSecondaryStarPosition(const PHD_Point& pt) final;
     void InvalidateCurrentPosition(bool fullReset = false) final;

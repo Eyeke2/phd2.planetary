@@ -221,7 +221,6 @@ GuiderMultiStar::GuiderMultiStar(wxWindow *parent)
 {
     SetState(STATE_UNINITIALIZED);
     m_primaryDistStats = new DescriptiveStats();
-    InitPlanetaryModule();
 }
 
 GuiderMultiStar::~GuiderMultiStar()
@@ -399,7 +398,7 @@ bool GuiderMultiStar::SetCurrentPosition(const usImage *pImage, const PHD_Point&
         }
 
         m_massChecker->Reset();
-        int searchRegion = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? m_Planet.radius : m_searchRegion;
+        int searchRegion = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? m_Planet.m_radius : m_searchRegion;
         bError = !m_primaryStar.Find(pImage, searchRegion, x, y, pFrame->GetStarFindMode(),
                               GetMinStarHFD(), GetMaxStarHFD(), pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE);
     }
@@ -481,11 +480,11 @@ bool GuiderMultiStar::AutoSelect(const wxRect& roi)
 
         if (findMode == Star::FIND_PLANET)
         {
-            if (FindPlanet(image, true))
+            if (m_Planet.FindPlanet(image, true))
             {
-                newStar.X = newStar.referencePoint.X = m_Planet.center_x;
-                newStar.Y = newStar.referencePoint.Y = m_Planet.center_y;
-                searchRegion = m_Planet.radius;
+                newStar.X = newStar.referencePoint.X = m_Planet.m_center_x;
+                newStar.Y = newStar.referencePoint.Y = m_Planet.m_center_y;
+                searchRegion = m_Planet.m_radius;
                 m_guideStars.clear();
                 m_guideStars.push_back(newStar);
             } else
@@ -960,7 +959,7 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
 
         if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
         {
-            if (!FindPlanet(pImage))
+            if (!m_Planet.FindPlanet(pImage))
             {
                 errorInfo->starError = newStar.GetError();
                 errorInfo->starMass = 0.0;
@@ -969,10 +968,10 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
                 errorInfo->status = _("Object not found");
                 throw ERROR_INFO("UpdateCurrentPosition():newStar not found");
             }
-            double newpos_x = m_Planet.center_x;
-            double newpos_y = m_Planet.center_y;
+            double newpos_x = m_Planet.m_center_x;
+            double newpos_y = m_Planet.m_center_y;
             newStar.SetXY(newpos_x, newpos_y);
-            search_region = m_Planet.radius;
+            search_region = m_Planet.m_radius;
         }
 
         if (!newStar.Find(pImage, search_region, pFrame->GetStarFindMode(), GetMinStarHFD(),
@@ -1082,7 +1081,7 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
         errorInfo->status = StarStatus(m_primaryStar);
 
         if ((GetState() != STATE_GUIDING) && (pFrame->GetStarFindMode() == Star::FIND_PLANET))
-            pFrame->StatusMsg(wxString::Format(_("Object at (%.1f, %.1f) radius=%d"), m_Planet.center_x, m_Planet.center_y, m_Planet.radius));
+            pFrame->StatusMsg(wxString::Format(_("Object at (%.1f, %.1f) radius=%d"), m_Planet.m_center_x, m_Planet.m_center_y, m_Planet.m_radius));
     }
     catch (const wxString& Msg)
     {
@@ -1184,28 +1183,28 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
             /* Set ROI to a square around clicked position */
             if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
             {
-                m_Planet.clicked_x = mevent.m_x / ScaleFactor();
-                m_Planet.clicked_x = std::min(m_Planet.clicked_x, pImage->Size.GetWidth() - 1);
-                m_Planet.clicked_y = mevent.m_y / ScaleFactor();
-                m_Planet.clicked_y = std::min(m_Planet.clicked_y, pImage->Size.GetHeight() - 1);
-                m_Planet.clicked = true;
-                m_Planet.detectionCounter = 0;
+                int x = mevent.m_x / ScaleFactor();
+                m_Planet.m_clicked_x = std::min(x, pImage->Size.GetWidth() - 1);
+                int y = mevent.m_y / ScaleFactor();
+                m_Planet.m_clicked_y = std::min(y, pImage->Size.GetHeight() - 1);
+                m_Planet.m_roiClicked = true;
+                m_Planet.m_detectionCounter = 0;
 
-                if (GetRoiEnableState())
+                if (m_Planet.GetRoiEnableState())
                 {
                     // Set ROI centered around currently clicked point
-                    m_Planet.center_x = m_Planet.clicked_x;
-                    m_Planet.center_y = m_Planet.clicked_y;
+                    m_Planet.m_center_x = m_Planet.m_clicked_x;
+                    m_Planet.m_center_y = m_Planet.m_clicked_y;
                 }
 
                 // Try to locate a planet
-                FindPlanet((const usImage*)pImage);
+                m_Planet.FindPlanet((const usImage*)pImage);
             }
 
-            if ((pFrame->GetStarFindMode() == Star::FIND_PLANET) && m_Planet.detected)
+            if ((pFrame->GetStarFindMode() == Star::FIND_PLANET) && m_Planet.m_detected)
             {
-                StarX = (double) m_Planet.center_x;
-                StarY = (double) m_Planet.center_y;
+                StarX = (double) m_Planet.m_center_x;
+                StarY = (double) m_Planet.m_center_y;
             }
             else
             {
@@ -1242,7 +1241,7 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
             }
 
             if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
-                m_draw_PlanetaryHelper = true;
+                m_Planet.m_draw_PlanetaryHelper = true;
 
             Refresh();
             Update();
@@ -1264,21 +1263,21 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
     if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
     {
         Guider* pGuider = pFrame->pGuider;
-        if (pGuider->m_Planet.detected)
+        if (pGuider->m_Planet.m_detected)
         {
             int x = int(star.X * scale + 0.5);
             int y = int(star.Y * scale + 0.5);
-            int r = int(pGuider->m_Planet.radius * scale + 0.5);
+            int r = int(pGuider->m_Planet.m_radius * scale + 0.5);
             dc.DrawCircle(x, y, r);
             dc.SetPen(wxPen(dc.GetPen().GetColour(), 1, dc.GetPen().GetStyle()));
             dc.DrawRectangle(xpos, ypos, w, w);
         }
 
         // Show active processing region
-        if (pGuider->m_Planet.roiActive)
+        if (pGuider->m_Planet.m_roiActive)
         {
             dc.SetPen(wxPen(wxColour(200, 200, 200), 2, wxPENSTYLE_SHORT_DASH));
-            dc.DrawRectangle(pGuider->m_Planet.roiRect.x * scale, pGuider->m_Planet.roiRect.y * scale, pGuider->m_Planet.roiRect.width * scale, pGuider->m_Planet.roiRect.height * scale);
+            dc.DrawRectangle(pGuider->m_Planet.m_roiRect.x * scale, pGuider->m_Planet.m_roiRect.y * scale, pGuider->m_Planet.m_roiRect.width * scale, pGuider->m_Planet.m_roiRect.height * scale);
         }
     }
     else
@@ -1374,8 +1373,8 @@ void GuiderMultiStar::OnPaint(wxPaintEvent& event)
             DrawBox(dc, m_primaryStar, m_searchRegion, m_scaleFactor);
         }
 
-        if (GetPlanetaryEnableState() && (m_draw_PlanetaryHelper || GetPlanetaryElementsVisual()))
-            PlanetVisualHelper(dc);
+        if (m_Planet.GetPlanetaryEnableState() && (m_Planet.m_draw_PlanetaryHelper || m_Planet.GetPlanetaryElementsVisual()))
+            m_Planet.PlanetVisualHelper(dc, m_primaryStar, m_scaleFactor);
     }
     catch (const wxString& Msg)
     {
