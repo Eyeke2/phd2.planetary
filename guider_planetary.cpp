@@ -735,6 +735,24 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
             CvSeq* contours = NULL;
             cvFindContours(&thresholded, storage, &contours, sizeof(CvContour), CV_RETR_LIST, CHAIN_APPROX_NONE);
 
+            // Find total number of contours. If the number is too large, it means that
+            // threshold values are too low and we need to increase them.
+            int totalPoints = 0;
+            for (CvSeq* contour = contours; contour != NULL; contour = contour->h_next)
+                totalPoints += contour->total;
+            if (totalPoints > 256*1024)
+            {
+                cvReleaseMemStorage(&storage);
+                Debug.Write(wxString::Format("Too many contour points detected (%d)\n", totalPoints));
+                m_statusMsg = _("Too many contour points detected: please enable ROI or increase Edge Detection Threshold");
+                m_detected = false;
+                m_detectionCounter = 0;
+                m_syncLock.Lock();
+                m_eclipseContour.clear();
+                m_syncLock.Unlock();
+                return false;
+            }
+
             // Iterate between sets of contours to find the best match
             int contourAllCount = 0;
             int contourMatchingCount = 0;
