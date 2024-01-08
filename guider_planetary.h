@@ -62,6 +62,7 @@ private:
     float m_PlanetAngle;
 
 public:
+    wxString m_statusMsg;
     bool m_detected;
     float m_center_x;
     float m_center_y;

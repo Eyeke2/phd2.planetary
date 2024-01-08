@@ -562,6 +562,9 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
 {
     m_PlanetWatchdog.Start();
 
+    // Default error status message
+    m_statusMsg = _("Object not found");
+
     Point2f clickedPoint = { (float) m_clicked_x, (float)m_clicked_y };
     if (autoSelect)
         m_roiClicked = false;
@@ -665,6 +668,7 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
                     if (pFrame->CaptureActive)
                         pFrame->StopCapturing();
                     pFrame->m_StopReason = _("Timeout out: must increase param1/param2! Stopped.");
+                    m_statusMsg = pFrame->m_StopReason;
                     return false;
                 }
                 circles = thread->circles;
@@ -677,6 +681,7 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
                 m_detected = false;
                 m_detectionCounter = 0;
                 m_circlesValid = false;
+                m_statusMsg = _("Internal error: cannot create/run thread.");
                 return false;
             }
 

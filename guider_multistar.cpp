@@ -965,7 +965,7 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
                 errorInfo->starMass = 0.0;
                 errorInfo->starSNR = 0.0;
                 errorInfo->starHFD = 0.0;
-                errorInfo->status = _("Object not found");
+                errorInfo->status = m_Planet.m_statusMsg;
                 throw ERROR_INFO("UpdateCurrentPosition():newStar not found");
             }
             double newpos_x = m_Planet.m_center_x;
