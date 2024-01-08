@@ -635,7 +635,7 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
     try {
 
         // Do slight image bluring to decrease noise impact on results
-        cv::medianBlur(img8, img8, 5);
+        GaussianBlur(img8, img8, cv::Size(3, 3), 1.5);
 
         bool eclipse_mode = GetEclipseMode();
         if (!eclipse_mode)
