@@ -1,9 +1,15 @@
-A development version v2.6.13-planet.dev3.rc2
+A development version v2.6.13-planet.dev3.rc3
 =============================================
 
 When installing this version, it is advised to choose a destination folder distinct from the standard PHD2 installation path, so you can keep two versions at the same time.
 
 Change log
+
+v2.6.13-planet.dev3.rc3
+* Add initial support for surface feature detection and tracking.
+* Change layout of control dialogue to a minimalistic style and allow resetting dialogue position when user holds down any of the keys
+ALT/CTRL/SHIFT while clicking the Planetary Tool button. This can be useful in cases where dialogue window moves out of the view.
+* Internal code refactoring and synchronizing data shared among threads.
 
 v2.6.13-planet.dev3.rc2
 * Stop detection when an excessive number of contour points are identified, in order to prevent high CPU usage.
