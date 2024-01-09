@@ -521,7 +521,7 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         pPlanet->SetPlanetaryParam_highThreshold(PT_HIGH_THRESHOLD_DEFAULT);
 
         if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
-            pFrame->RestoreStarFindMode();        
+            pFrame->RestoreStarFindMode();
 
         SetEnabledState(this, false);
         m_minDist->SetValue(pPlanet->GetPlanetaryParam_minDist());

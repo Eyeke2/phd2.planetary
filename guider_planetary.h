@@ -152,6 +152,8 @@ public:
     int RefineEclipseCenter(float& bestScore, CircleDescriptor& eclipseCenter, std::vector<cv::Point2f>& eclipseContour, int minRadius, int maxRadius, float searchRadius, float resolution = 1.0);
     float FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, cv::Moments& mu, int minRadius, int maxRadius);
     void FindCenters(cv::Mat image, CvSeq* contours, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, cv::Moments& mu, int minRadius, int maxRadius);
+    bool FindPlanetCircle(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
+    bool FindPlanetEclipse(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
     bool FindPlanet(const usImage* pImage, bool autoSelect = false);
     void PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFactor);
 };
