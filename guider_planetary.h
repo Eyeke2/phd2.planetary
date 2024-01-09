@@ -60,6 +60,14 @@ private:
     bool   m_Planetary_ShowElementsButtonState;
     bool   m_Planetary_ShowElementsVisual;
 
+    // Planet detection modes
+    enum PlanetDetectMode
+    {
+        PLANET_DETECT_MODE_CIRCLES = 0,
+        PLANET_DETECT_MODE_ECLIPSE = 1,
+        PLANET_DETECT_MODE_SURFACE = 2
+    };
+
     float m_PlanetEccentricity;
     float m_PlanetAngle;
 
@@ -78,6 +86,7 @@ public:
     bool m_roiClicked;
     int m_clicked_x;
     int m_clicked_y;
+    cv::Point2f m_prevClickedPoint;
 
     std::vector<cv::Point2f> m_eclipseContour;
     bool m_circlesValid;
@@ -88,10 +97,35 @@ public:
     int m_sm_circle_y;
     int m_detectionCounter;
 
+    // Surface tracking
+    std::vector<cv::KeyPoint> m_referenceKeypoints;
+    cv::Mat m_referenceDescriptors;
+
+    // Reference frame point for surface feature guiding
+    cv::Point2f m_referencePoint;
+
+    // Virtual anchor point for for surface feature guiding
+    cv::Point2f m_surfaceFixationPoint;
+
+    // Matched inliers for visualizing detected surface features
+    std::vector<cv::Point2f> m_inlierPoints;
+
 public:
     GuiderPlanet();
 
     void CameraConnectNotify() { m_roiClicked = false; };
+
+    PlanetDetectMode GetPlanetDetectMode() const
+    {
+        if (m_Planetary_SurfaceTracking)
+            return PLANET_DETECT_MODE_SURFACE;
+        else if (m_EclipseMode)
+            return PLANET_DETECT_MODE_ECLIPSE;
+        else
+            return PLANET_DETECT_MODE_CIRCLES;
+    }
+
+    void GuiderPlanet::GetDetectionStatus(wxString& statusMsg);
 
     bool GetPlanetaryEnableState() { return m_Planetary_enabled; }
     void SetPlanetaryEnableState(bool enabled) { m_Planetary_enabled = enabled; }
@@ -158,8 +192,13 @@ public:
     int RefineEclipseCenter(float& bestScore, CircleDescriptor& eclipseCenter, std::vector<cv::Point2f>& eclipseContour, int minRadius, int maxRadius, float searchRadius, float resolution = 1.0);
     float FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, cv::Moments& mu, int minRadius, int maxRadius);
     void FindCenters(cv::Mat image, CvSeq* contours, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, cv::Moments& mu, int minRadius, int maxRadius);
-    bool FindPlanetCircle(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
-    bool FindPlanetEclipse(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
+    bool FindPlanetCircle(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
+    bool FindPlanetEclipse(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
     bool FindPlanet(const usImage* pImage, bool autoSelect = false);
     void PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFactor);
+
+    cv::Point2f calculateCentroid(const std::vector<cv::KeyPoint>& keypoints, cv::Point2f& clickedPoint);
+    bool areCollinear(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::KeyPoint& kp3);
+    bool validateAndFilterKeypoints(std::vector<cv::KeyPoint>& keypoints, std::vector<cv::KeyPoint>& filteredKeypoints);
+    bool DetectSurfaceFeatures(cv::Mat image, cv::Point2f& clickedPoint);
 };

@@ -38,6 +38,13 @@ Source: Release\inpout32.dll; DestDir: {app}; Flags: replacesameversion
 Source: Release\opencv_core2.dll; DestDir: {app}; Flags: replacesameversion
 Source: Release\opencv_highgui2.dll; DestDir: {app}; Flags: replacesameversion
 Source: Release\opencv_imgproc2.dll; DestDir: {app}; Flags: replacesameversion
+Source: Release\opencv_flann2.dll; DestDir: {app}; Flags: replacesameversion
+Source: Release\opencv_features2d2.dll; DestDir: {app}; Flags: replacesameversion
+Source: Release\opencv_calib3d2.dll; DestDir: {app}; Flags: replacesameversion
+Source: Release\opencv_ocl2.dll; DestDir: {app}; Flags: replacesameversion
+Source: Release\opencv_objdetect2.dll; DestDir: {app}; Flags: replacesameversion
+Source: Release\opencv_ml2.dll; DestDir: {app}; Flags: replacesameversion
+Source: Release\opencv_nonfree2.dll; DestDir: {app}; Flags: replacesameversion
 Source: Release\qhyccd.dll; DestDir: {app}; Flags: replacesameversion
 Source: Release\ShoestringGPUSB_DLL.dll; DestDir: {app}; Flags: replacesameversion
 Source: Release\ShoestringLXUSB_DLL.dll; DestDir: {app}; Flags: replacesameversion

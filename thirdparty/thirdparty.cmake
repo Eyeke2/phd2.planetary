@@ -672,16 +672,37 @@ if(WIN32)
       ${VCPKG_DEBUG_LIB}/opencv_imgproc2d.lib
       ${VCPKG_DEBUG_LIB}/opencv_highgui2d.lib
       ${VCPKG_DEBUG_LIB}/opencv_core2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_features2d2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_flann2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_calib3d2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_ocl2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_objdetect2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_ml2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_nonfree2d.lib
   )
   set(PHD_LINK_EXTERNAL_RELEASE ${PHD_LINK_EXTERNAL_RELEASE}
       ${VCPKG_RELEASE_LIB}/opencv_imgproc2.lib
       ${VCPKG_RELEASE_LIB}/opencv_highgui2.lib
       ${VCPKG_RELEASE_LIB}/opencv_core2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_features2d2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_flann2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_calib3d2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_ocl2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_objdetect2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_ml2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_nonfree2.lib
   )
   set(PHD_COPY_EXTERNAL_DBG ${PHD_COPY_EXTERNAL_DBG}
       ${VCPKG_DEBUG_BIN}/opencv_imgproc2d.dll
       ${VCPKG_DEBUG_BIN}/opencv_highgui2d.dll
       ${VCPKG_DEBUG_BIN}/opencv_core2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_features2d2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_flann2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_calib3d2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_ocl2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_objdetect2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_ml2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_nonfree2d.dll
       ${VCPKG_DEBUG_BIN}/jpeg62.dll
       ${VCPKG_DEBUG_BIN}/libpng16d.dll
       ${VCPKG_DEBUG_BIN}/tiffd.dll
@@ -691,6 +712,13 @@ if(WIN32)
       ${VCPKG_RELEASE_BIN}/opencv_imgproc2.dll
       ${VCPKG_RELEASE_BIN}/opencv_highgui2.dll
       ${VCPKG_RELEASE_BIN}/opencv_core2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_flann2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_features2d2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_calib3d2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_ocl2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_objdetect2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_ml2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_nonfree2.dll
       ${VCPKG_RELEASE_BIN}/jpeg62.dll
       ${VCPKG_RELEASE_BIN}/libpng16.dll
       ${VCPKG_RELEASE_BIN}/tiff.dll

@@ -37,11 +37,13 @@
 #include "planetary_tool.h"
 
 #include <algorithm>
+#include <numeric>
 
 #if ((wxMAJOR_VERSION < 3) && (wxMINOR_VERSION < 9))
 #define wxPENSTYLE_DOT wxDOT
 #endif
 
+// Using OpenCV namespace
 using namespace cv;
 
 // Gaussian weights lookup table
@@ -51,12 +53,16 @@ static float gaussianWeight[2000];
 GuiderPlanet::GuiderPlanet()
 {
     m_Planetary_enabled = false;
+    m_Planetary_SurfaceTracking = false;
     m_detected = false;
+    m_referenceKeypoints.clear();
+    m_inlierPoints.clear();
     m_roiClicked = false;
     m_roiActive = false;
     m_detectionCounter = 0;
     m_clicked_x = 0;
     m_clicked_y = 0;
+    m_prevClickedPoint = Point2f(0, 0);
     m_circlesValid = false;
     m_eclipseContour.clear();
     m_EclipseMode = false;
@@ -85,6 +91,18 @@ GuiderPlanet::GuiderPlanet()
         if (i < ARRAYSIZE(gaussianWeight))
             gaussianWeight[i] += exp(-(pow(x, 2) / (2 * pow(sigma, 2))));
     }
+
+    // Initialize non-free OpenCV components
+    initModule_nonfree();
+}
+
+// Get current detection status
+void GuiderPlanet::GetDetectionStatus(wxString& statusMsg)
+{
+    if (GetPlanetDetectMode() == PLANET_DETECT_MODE_SURFACE)
+        statusMsg = wxString::Format(_("Object at (%.1f, %.1f)"), m_center_x, m_center_y);
+    else
+        statusMsg = wxString::Format(_("Object at (%.1f, %.1f) radius=%d"), m_center_x, m_center_y, m_radius);
 }
 
 // Helper for visualizing planet detection radius
@@ -98,32 +116,46 @@ void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFa
         // Make sure to use transparent brush
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
 
-        // Draw all edges detected in eclipse mode
-        if (GetEclipseMode() && m_eclipseContour.size())
+        switch (GetPlanetDetectMode())
         {
+        case PLANET_DETECT_MODE_SURFACE:
+            // Draw detected surface features
             dc.SetPen(wxPen(wxColour(230, 0, 0), 2, wxPENSTYLE_SOLID));
-            for (const Point2f& contourPoint : m_eclipseContour)
-                dc.DrawCircle((contourPoint.x + m_roiRect.x) * scaleFactor, (contourPoint.y + m_roiRect.y) * scaleFactor, 2);
+            for (const auto& feature : m_inlierPoints)
+            {
+                dc.DrawCircle(feature.x * scaleFactor, feature.y * scaleFactor, 5);
+            }
+            break;
+        case PLANET_DETECT_MODE_CIRCLES:
+            // Draw all circles detected by HoughCircles
+            if (m_circlesValid)
+            {
+                dc.SetPen(wxPen(wxColour(230, 0, 0), 2, wxPENSTYLE_SOLID));
+                for (const auto& c : m_circles)
+                    dc.DrawCircle((m_roiRect.x + c[0]) * scaleFactor, (m_roiRect.y + c[1]) * scaleFactor, c[2] * scaleFactor);
+            }
+            break;
+        case PLANET_DETECT_MODE_ECLIPSE:
+            // Draw all edges detected in eclipse mode
+            if (m_eclipseContour.size())
+            {
+                dc.SetPen(wxPen(wxColour(230, 0, 0), 2, wxPENSTYLE_SOLID));
+                for (const Point2f& contourPoint : m_eclipseContour)
+                    dc.DrawCircle((contourPoint.x + m_roiRect.x) * scaleFactor, (contourPoint.y + m_roiRect.y) * scaleFactor, 2);
 
 #if FILE_SIMULATOR_MODE
-            // Draw ancor circle centers
-            dc.SetLogicalFunction(wxXOR);
-            dc.SetPen(wxPen(wxColour(230, 230, 0), 3, wxPENSTYLE_SOLID));
-            if (m_centoid_x && m_centoid_y)
-                dc.DrawCircle((m_centoid_x + m_roiRect.x) * scaleFactor, (m_centoid_y + m_roiRect.y) * scaleFactor, 3);
-            dc.SetPen(wxPen(wxColour(230, 230, 0), 1, wxPENSTYLE_SOLID));
-            if (m_sm_circle_x && m_sm_circle_y)
-                dc.DrawCircle((m_sm_circle_x + m_roiRect.x) * scaleFactor, (m_sm_circle_y + m_roiRect.y) * scaleFactor, 3);
-            dc.SetLogicalFunction(wxCOPY);
+                // Draw anchor circle centers
+                dc.SetLogicalFunction(wxXOR);
+                dc.SetPen(wxPen(wxColour(230, 230, 0), 3, wxPENSTYLE_SOLID));
+                if (m_centoid_x && m_centoid_y)
+                    dc.DrawCircle((m_centoid_x + m_roiRect.x) * scaleFactor, (m_centoid_y + m_roiRect.y) * scaleFactor, 3);
+                dc.SetPen(wxPen(wxColour(230, 230, 0), 1, wxPENSTYLE_SOLID));
+                if (m_sm_circle_x && m_sm_circle_y)
+                    dc.DrawCircle((m_sm_circle_x + m_roiRect.x) * scaleFactor, (m_sm_circle_y + m_roiRect.y) * scaleFactor, 3);
+                dc.SetLogicalFunction(wxCOPY);
 #endif
-        }
-
-        // Draw all circles detected by HoughCircles
-        if (!GetEclipseMode() && m_circlesValid)
-        {
-            dc.SetPen(wxPen(wxColour(230, 0, 0), 2, wxPENSTYLE_SOLID));
-            for (const auto& c : m_circles)
-                dc.DrawCircle((m_roiRect.x + c[0]) * scaleFactor, (m_roiRect.y + c[1]) * scaleFactor, c[2] * scaleFactor);
+            }
+            break;
         }
 
         m_syncLock.Unlock();
@@ -131,25 +163,28 @@ void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFa
 
     if (m_draw_PlanetaryHelper)
     {
-        m_draw_PlanetaryHelper = false;
-        int x = int(primaryStar.X * scaleFactor + 0.5);
-        int y = int(primaryStar.Y * scaleFactor + 0.5);
+        if (!GetSurfaceTrackingState())
+        {
+            m_draw_PlanetaryHelper = false;
+            int x = int(primaryStar.X * scaleFactor + 0.5);
+            int y = int(primaryStar.Y * scaleFactor + 0.5);
 
-        if (m_detected)
-            x -= m_radius * scaleFactor;
+            if (m_detected)
+                x -= m_radius * scaleFactor;
 
-        // Draw min and max diameters legend
-        const wxString labelTextMin("min diameter");
-        const wxString labelTextMax("max diameter");
-        dc.SetPen(wxPen(wxColour(230, 130, 30), 1, wxPENSTYLE_DOT));
-        dc.SetTextForeground(wxColour(230, 130, 30));
-        dc.DrawLine(x, y - 5, x + GetPlanetaryParam_minRadius() * scaleFactor * 2, y - 5);
-        dc.DrawText(labelTextMin, x - dc.GetTextExtent(labelTextMin).GetWidth() - 5, y - 10 - dc.GetTextExtent(labelTextMin).GetHeight() / 2);
+            // Draw min and max diameters legend
+            const wxString labelTextMin("min diameter");
+            const wxString labelTextMax("max diameter");
+            dc.SetPen(wxPen(wxColour(230, 130, 30), 1, wxPENSTYLE_DOT));
+            dc.SetTextForeground(wxColour(230, 130, 30));
+            dc.DrawLine(x, y - 5, x + GetPlanetaryParam_minRadius() * scaleFactor * 2, y - 5);
+            dc.DrawText(labelTextMin, x - dc.GetTextExtent(labelTextMin).GetWidth() - 5, y - 10 - dc.GetTextExtent(labelTextMin).GetHeight() / 2);
 
-        dc.SetPen(wxPen(wxColour(130, 230, 30), 1, wxPENSTYLE_DOT));
-        dc.SetTextForeground(wxColour(130, 230, 30));
-        dc.DrawLine(x, y + 5, x + GetPlanetaryParam_maxRadius() * scaleFactor * 2, y + 5);
-        dc.DrawText(labelTextMax, x - dc.GetTextExtent(labelTextMax).GetWidth() - 5, y + 10 - dc.GetTextExtent(labelTextMax).GetHeight() / 2);
+            dc.SetPen(wxPen(wxColour(130, 230, 30), 1, wxPENSTYLE_DOT));
+            dc.SetTextForeground(wxColour(130, 230, 30));
+            dc.DrawLine(x, y + 5, x + GetPlanetaryParam_maxRadius() * scaleFactor * 2, y + 5);
+            dc.DrawText(labelTextMax, x - dc.GetTextExtent(labelTextMax).GetWidth() - 5, y + 10 - dc.GetTextExtent(labelTextMax).GetHeight() / 2);
+        }
     }
 }
 
@@ -560,8 +595,279 @@ wxThread::ExitCode AsyncFindCirclesThread::Entry()
     return this;
 }
 
+// Calculate position of fixation point
+Point2f GuiderPlanet::calculateCentroid(const std::vector<KeyPoint>& keypoints, Point2f& clickedPoint)
+{
+    // If no clicked point is available, calculate centroid of keypoints
+    if ((clickedPoint.x == 0) || (clickedPoint.y == 0) || (clickedPoint.x > m_frameWidth) || (clickedPoint.y > m_frameHeight))
+    {
+        // Calculare centroid of keypoints to be used as a virtual tracking point
+        Point2f sum(0, 0);
+        for (const auto& kp : keypoints)
+            sum += kp.pt;
+        return Point2f(sum.x / keypoints.size(), sum.y / keypoints.size());
+    }
+    else
+    {
+        // Find closest keypoint to clicked point
+        double minDist = 999999;
+        Point2f closestPoint = Point2f(0, 0);
+        for (const auto& kp : keypoints)
+        {
+            // Calculate distance between clicked point and keypoint but avoid points too close to the edge
+            const int margin = 50;
+            double dist = norm(kp.pt - clickedPoint);
+            if ((dist < minDist) && (kp.pt.x > 50) && (kp.pt.y > 50) && (kp.pt.x < m_frameWidth - 50) && (kp.pt.y < m_frameHeight - 50))
+            {
+                minDist = dist;
+                closestPoint = kp.pt;
+            }
+        }
+        return closestPoint;
+    }
+}
+
+// Function to check for collinearity
+bool GuiderPlanet::areCollinear(const KeyPoint& kp1, const KeyPoint& kp2, const KeyPoint& kp3)
+{
+    double area2 = abs((kp2.pt.x - kp1.pt.x) * (kp3.pt.y - kp1.pt.y) - (kp3.pt.x - kp1.pt.x) * (kp2.pt.y - kp1.pt.y));
+    return area2 < 2.0;  // Consider using a relative threshold based on image dimensions
+}
+
+// Function to validate and filter keypoints
+bool GuiderPlanet::validateAndFilterKeypoints(std::vector<KeyPoint>& keypoints, std::vector<KeyPoint>& filteredKeypoints)
+{
+    // Check for sufficient keypoints (at least 4):
+    if (keypoints.size() < 4)
+    {
+        return false; // Indicate insufficient keypoints
+    }
+
+    // Filter coincident points:
+    double dist_threshold = 5; // Adjust as needed
+    for (size_t i = 0; i < keypoints.size(); ++i)
+    {
+        bool unique = true;
+        for (size_t j = 0; j < i; ++j)
+        {
+            if (norm(keypoints[i].pt - keypoints[j].pt) < dist_threshold)
+            {
+                unique = false;
+                break;
+            }
+        }
+        if (unique)
+            filteredKeypoints.push_back(keypoints[i]);
+    }
+
+    // Filter collinear points:
+    for (size_t i = 0; i < filteredKeypoints.size(); ++i)
+    {
+        for (size_t j = i + 1; j < filteredKeypoints.size(); ++j)
+        {
+            for (size_t k = j + 1; k < filteredKeypoints.size(); ++k)
+            {
+                if (areCollinear(filteredKeypoints[i], filteredKeypoints[j], filteredKeypoints[k]))
+                {
+                    filteredKeypoints.erase(filteredKeypoints.begin() + k);
+                    --k; // Adjust index after erasing
+                }
+            }
+        }
+    }
+
+    return true; // Indicate successful filtering
+}
+
+// Detect/track surface features
+bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
+{
+    // Create SURF detector
+    int nOctaves = 4;
+    int nOctaveLayers = 2;
+    bool upright = true;
+    bool surfExtended = false;
+    SurfFeatureDetector surfDetector(GetPlanetaryParam_minHessian(), nOctaves, nOctaveLayers, surfExtended, upright);
+
+    // Enhance local contrast before feature detection
+    Mat equalized;
+    int cliplimit = 2;
+    Ptr<CLAHE> clahe = createCLAHE(cliplimit);
+    clahe->apply(image, equalized);
+
+    // Detect keypoints
+    std::vector<KeyPoint> keypoints;
+    surfDetector.detect(equalized, keypoints);
+
+    // Exclude keypoints which are too close to frame edges
+    for (auto it = keypoints.begin(); it != keypoints.end();)
+    {
+        const int edgeMargin = 25;
+        if ((it->pt.x < edgeMargin) || (it->pt.y < edgeMargin) || (it->pt.x > m_frameWidth - edgeMargin) || (it->pt.y > m_frameHeight - edgeMargin))
+            it = keypoints.erase(it);
+        else
+            ++it;
+    }
+
+    // Limit to top N keypoints (N = 500)
+    int maxKeypoints = min(500, (int)keypoints.size());
+    std::vector<KeyPoint> topKeypoints;
+    if (keypoints.size() <= maxKeypoints)
+        topKeypoints.assign(keypoints.begin(), keypoints.end());
+    else
+    {
+        // Sort keypoints by response and limit to top N
+        std::sort(keypoints.begin(), keypoints.end(),
+            [](const KeyPoint& a, const KeyPoint& b)
+            { return (a.response > b.response); });
+        topKeypoints.assign(keypoints.begin(), keypoints.begin() + maxKeypoints);
+    }
+
+    // Filter keypoints
+    std::vector<KeyPoint> filteredKeypoints;
+    if (!validateAndFilterKeypoints(topKeypoints, filteredKeypoints))
+    {
+        // Indicate insufficient keypoints
+        m_statusMsg = _("No detectable features");
+        return false;
+    }
+
+    // Extract descriptors
+    Mat descriptors;
+    SurfDescriptorExtractor extractor;
+    extractor.compute(equalized, filteredKeypoints, descriptors);
+
+    // While not guiding we can still reset the fixation point based on new clicked point
+    if ((pFrame->pGuider->GetState() != STATE_GUIDING) && (clickedPoint != m_prevClickedPoint))
+    {
+        m_referenceKeypoints.clear();
+    }
+
+    // When reference keypoints are available, filter and validate keypoints
+    if (m_referenceKeypoints.size())
+    {
+        // Match descriptors using FLANN matcher
+        std::vector<DMatch> matches;
+        FlannBasedMatcher matcher;
+        matches.reserve(descriptors.rows);
+        matcher.match(m_referenceDescriptors, descriptors, matches);
+
+        // Extract location of good matches
+        std::vector<Point2f> points1;
+        std::vector<Point2f> points2;
+        points1.reserve(matches.size());
+        points2.reserve(matches.size());
+        for (const DMatch& match : matches)
+        {
+            points1.push_back(m_referenceKeypoints[match.queryIdx].pt);
+            points2.push_back(filteredKeypoints[match.trainIdx].pt);
+        }
+
+        // Find homography using RANSAC. A minimum number of 4 points is required
+        if (points1.size() < 4)
+        {
+            m_statusMsg = _("Too few detectable features");
+            return false;
+        }
+        Mat mask; // This will be filled with the inliers mask
+        Mat H = findHomography(points1, points2, CV_RANSAC, 3, mask);
+
+        // Use the mask to filter out the outliers
+        Point2f displacement(0, 0);
+        std::vector<DMatch> inlierMatches;
+        std::vector<Point2f> inlierPoints;
+        std::vector<double> distances;
+        inlierMatches.reserve(mask.rows);  // Pre-allocate for efficiency
+        inlierPoints.reserve(mask.rows);  // Pre-allocate for efficiency
+        distances.reserve(mask.rows);  // Pre-allocate for efficiency
+        for (size_t i = 0; i < mask.rows; i++)
+        {
+            if (mask.at<unsigned char>(i))
+            {
+                auto match = matches[i];
+                inlierMatches.push_back(match);
+                inlierPoints.push_back(filteredKeypoints[match.trainIdx].pt);
+
+                // Compute average displacement Point2f vector between matched keypoints
+                displacement += filteredKeypoints[match.trainIdx].pt - m_referenceKeypoints[match.queryIdx].pt;
+
+                // Calculate distances between matched descriptors
+                // double dist = norm(m_referenceDescriptors.row(match.queryIdx), descriptors.row(match.trainIdx));
+                double dist = norm(m_referenceKeypoints[match.queryIdx].pt - filteredKeypoints[match.trainIdx].pt);
+                distances.push_back(dist);
+            }
+        }
+
+        // Discard if very few inliers were found
+        if (inlierMatches.size() < 2)
+        {
+            m_statusMsg = _("Too few detectable features");
+            return false;
+        }
+
+        // Calculate mean, variance, and score
+        double mean = std::accumulate(distances.begin(), distances.end(), 0.0) / distances.size();
+        double variance = 0.0;
+        for (double distance : distances)
+        {
+            double delta = distance - mean;
+            variance += delta * delta;
+            mean += delta / distances.size();  // Update mean for unbiased estimator
+        }
+        variance /= distances.size() - 1;  // Adjust for unbiased estimator
+
+        // If variance is too high, reject this frame but set new reference frame
+        int refSize = m_referenceKeypoints.size();
+        int curSize = filteredKeypoints.size();
+        float keypointsDiffRatio = fabs((float) (refSize - curSize)) / (float) refSize;
+        if ((variance > 16) || (keypointsDiffRatio > 0.5))
+        {
+            m_referenceKeypoints = filteredKeypoints;
+            m_referenceDescriptors = descriptors;
+            // This is temporary until we have a better way to calculate reference point
+            m_referencePoint = calculateCentroid(m_referenceKeypoints, clickedPoint);
+            m_statusMsg = _("Tracking is lost");
+            return false;
+        }
+
+        // Compute average displacement Point2f vector between matched keypoints
+        displacement.x /= inlierMatches.size();
+        displacement.y /= inlierMatches.size();
+
+        // Calculate new centroid based on average displacement vector and virtual tracking point
+        m_surfaceFixationPoint = m_referencePoint + displacement;
+
+        // Save inlier matches for visualization
+        m_syncLock.Lock();
+        m_inlierPoints = inlierPoints;
+        m_syncLock.Unlock();
+
+        // Set new object position based on updated centroid
+        m_center_x = m_surfaceFixationPoint.x;
+        m_center_y = m_surfaceFixationPoint.y;
+
+        // For surface feature tracking, use a fixed radius
+        m_radius = 50;
+
+        return true;
+    }
+    // Set reference frame keypoints and descriptors
+    else if (descriptors.rows > 4)
+    {
+        m_referenceKeypoints = filteredKeypoints;
+        m_referenceDescriptors = descriptors;
+
+        // Save reference frame centroid
+        m_referencePoint = calculateCentroid(keypoints, clickedPoint);
+        m_surfaceFixationPoint = m_referencePoint;
+    }
+
+    m_statusMsg = _("Initializing ...");
+    return false;
+}
+
 // Find planet center and its radius using HoughCircles method
-bool GuiderPlanet::FindPlanetCircle(Mat img8, int minRadius, int maxRadius, bool roiActive, Point2f clickedPoint, Rect& roiRect, bool activeRoiLimits, float distanceRoiMax)
+bool GuiderPlanet::FindPlanetCircle(Mat img8, int minRadius, int maxRadius, bool roiActive, Point2f& clickedPoint, Rect& roiRect, bool activeRoiLimits, float distanceRoiMax)
 {
     double minDist = GetPlanetaryParam_minDist();
     double param1 = GetPlanetaryParam_param1();
@@ -626,7 +932,6 @@ bool GuiderPlanet::FindPlanetCircle(Mat img8, int minRadius, int maxRadius, bool
 
     // Log results and update stats window
     Debug.Write(wxString::Format("End detection of planetary disk (t=%d): %d circles detected, r=%d x=%.1f y=%.1f\n", m_PlanetWatchdog.Time(), circles.size(), cvRound(center[2]), center[0], center[1]));
-    pFrame->pStatsWin->UpdatePlanetDetectionTime(m_PlanetWatchdog.Time());
     pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Circles"), circles.size());
 
     if (center[2])
@@ -641,7 +946,7 @@ bool GuiderPlanet::FindPlanetCircle(Mat img8, int minRadius, int maxRadius, bool
 }
 
 // Find planet center using circle matching with contours
-bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, bool roiActive, Point2f clickedPoint, Rect& roiRect, bool activeRoiLimits, float distanceRoiMax)
+bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, bool roiActive, Point2f& clickedPoint, Rect& roiRect, bool activeRoiLimits, float distanceRoiMax)
 {
     int LowThreshold = GetPlanetaryParam_lowThreshold();
     int HighThreshold = GetPlanetaryParam_highThreshold();
@@ -669,7 +974,6 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
         cvReleaseMemStorage(&storage);
         Debug.Write(wxString::Format("Too many contour points detected (%d)\n", totalPoints));
         m_statusMsg = _("Too many contour points detected: please enable ROI or increase Edge Detection Threshold");
-        pFrame->pStatsWin->UpdatePlanetDetectionTime(m_PlanetWatchdog.Time());
         pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), totalPoints);
         return false;
     }
@@ -741,7 +1045,6 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
         m_PlanetWatchdog.Time(), bestEclipseCenter.radius, roiRect.x + bestEclipseCenter.x, roiRect.y + bestEclipseCenter.y, bestScore, contourMatchingCount, contourAllCount));
 
     // Update stats window
-    pFrame->pStatsWin->UpdatePlanetDetectionTime(m_PlanetWatchdog.Time());
     pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), totalPoints);
 
     // Create wxImage from the OpenCV Mat to be presented as
@@ -777,6 +1080,7 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
     // Default error status message
     m_statusMsg = _("Object not found");
 
+    // Point clicked by user in the main window
     Point2f clickedPoint = { (float) m_clicked_x, (float)m_clicked_y };
     if (autoSelect)
         m_roiClicked = false;
@@ -847,10 +1151,23 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
         // Do slight image bluring to decrease noise impact on results
         GaussianBlur(img8, img8, cv::Size(3, 3), 1.5);
 
-        if (GetEclipseMode())
-            detectionResult = FindPlanetEclipse(img8, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
-        else
-            detectionResult = FindPlanetCircle(img8, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
+        // Find planet center depending on the selected detection mode
+        switch (GetPlanetDetectMode())
+        {
+            case PLANET_DETECT_MODE_SURFACE:
+                detectionResult = DetectSurfaceFeatures(img8, clickedPoint);
+                pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_inlierPoints.size() : 0);
+                break;
+            case PLANET_DETECT_MODE_CIRCLES:
+                detectionResult = FindPlanetCircle(img8, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
+                break;
+            case PLANET_DETECT_MODE_ECLIPSE:
+                detectionResult = FindPlanetEclipse(img8, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
+                break;
+        }
+
+        // Update detection time stats
+        pFrame->pStatsWin->UpdatePlanetDetectionTime(m_PlanetWatchdog.Time());
 
         if (detectionResult)
         {
@@ -873,9 +1190,11 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
         m_detected = false;
         m_detectionCounter = 0;
         m_eclipseContour.clear();
+        m_inlierPoints.clear();
         m_circlesValid = false;
     }
     m_roiActive = roiActive;
+    m_prevClickedPoint = clickedPoint;
     m_syncLock.Unlock();
 
     return detectionResult;

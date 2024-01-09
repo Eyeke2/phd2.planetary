@@ -1080,8 +1080,13 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
         pFrame->UpdateStatusBarStarInfo(m_primaryStar.SNR, m_primaryStar.GetError() == Star::STAR_SATURATED);
         errorInfo->status = StarStatus(m_primaryStar);
 
+        // Show planet position after successful detection
         if ((GetState() != STATE_GUIDING) && (pFrame->GetStarFindMode() == Star::FIND_PLANET))
-            pFrame->StatusMsg(wxString::Format(_("Object at (%.1f, %.1f) radius=%d"), m_Planet.m_center_x, m_Planet.m_center_y, m_Planet.m_radius));
+        {
+            wxString statusMsg;
+            m_Planet.GetDetectionStatus(statusMsg);
+            pFrame->StatusMsg(statusMsg);
+        }
     }
     catch (const wxString& Msg)
     {
