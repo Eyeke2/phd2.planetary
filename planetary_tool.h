@@ -43,6 +43,7 @@
 #define PT_HIGH_THRESHOLD_DEFAULT 256
 #define PT_HIGH_THRESHOLD_MIN     1
 #define PT_HIGH_THRESHOLD_MAX     400
+#define PT_MIN_HESSIAN_DEFAULT    500
 
 class PlanetTool
 {

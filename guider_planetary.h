@@ -46,6 +46,7 @@ class GuiderPlanet
 private:
     // Planetary guiding parameters
     bool m_Planetary_enabled;
+    bool m_Planetary_SurfaceTracking;
     bool m_EclipseMode;
     bool m_RoiEnabled;
     double m_Planetary_minDist;
@@ -55,6 +56,7 @@ private:
     double m_Planetary_maxRadius;
     int    m_Planetary_lowThreshold;
     int    m_Planetary_highThreshold;
+    int    m_Planetary_minHessian;
     bool   m_Planetary_ShowElementsButtonState;
     bool   m_Planetary_ShowElementsVisual;
 
@@ -93,6 +95,8 @@ public:
 
     bool GetPlanetaryEnableState() { return m_Planetary_enabled; }
     void SetPlanetaryEnableState(bool enabled) { m_Planetary_enabled = enabled; }
+    bool GetSurfaceTrackingState() { return m_Planetary_SurfaceTracking; }
+    void SetSurfaceTrackingState(bool enabled) { m_Planetary_SurfaceTracking = enabled; }
     void SetPlanetaryParam_minDist(double val) { m_Planetary_minDist = val; }
     double GetPlanetaryParam_minDist() { return m_Planetary_minDist; }
     void   SetPlanetaryParam_param1(double val) { m_Planetary_param1 = val; }
@@ -111,6 +115,8 @@ public:
     int  GetPlanetaryParam_lowThreshold() { return m_Planetary_lowThreshold; }
     void SetPlanetaryParam_highThreshold(int value) { m_Planetary_highThreshold = value; }
     int  GetPlanetaryParam_highThreshold() { return m_Planetary_highThreshold; }
+    void SetPlanetaryParam_minHessian(int value) { m_Planetary_minHessian = value; }
+    int  GetPlanetaryParam_minHessian() { return m_Planetary_minHessian; }
 
     void SetPlanetaryElementsVisual(bool state) {
         m_syncLock.Lock();
