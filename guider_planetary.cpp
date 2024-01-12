@@ -784,10 +784,27 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
     if (m_referenceKeypoints.size())
     {
         // Match descriptors using FLANN matcher
-        std::vector<DMatch> matches;
         FlannBasedMatcher matcher;
+        std::vector<std::vector<cv::DMatch>> knnMatches;
+        matcher.knnMatch(m_referenceDescriptors, descriptors, knnMatches, 2);
+
+        // Lowe's Ratio Test : https://docs.opencv.org/3.4/d5/d6f/tutorial_feature_flann_matcher.html
+        // This helps to ensure that matches are distinct and likely to be correct.
+        std::vector<DMatch> matches;
         matches.reserve(descriptors.rows);
-        matcher.match(m_referenceDescriptors, descriptors, matches);
+        const float ratio_thresh = 0.75;
+        for (size_t i = 0; i < knnMatches.size(); i++)
+        {
+            if (knnMatches[i].size() == 2 && knnMatches[i][0].distance < ratio_thresh * knnMatches[i][1].distance)
+                matches.push_back(knnMatches[i][0]);
+        }
+
+        // A minimum number of 4 points is required to find RANSAC homography
+        if (matches.size() < 4)
+        {
+            m_statusMsg = _("Too few matched features");
+            return false;
+        }
 
         // Extract location of good matches
         std::vector<Point2f> points1;
@@ -800,12 +817,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
             points2.push_back(filteredKeypoints[match.trainIdx].pt);
         }
 
-        // Find homography using RANSAC. A minimum number of 4 points is required
-        if (points1.size() < 4)
-        {
-            m_statusMsg = _("Too few detectable features");
-            return false;
-        }
+        // Find homography using RANSAC
         Mat mask; // This will be filled with the inliers mask
         Mat H = findHomography(points1, points2, CV_RANSAC, 3, mask);
 
@@ -836,7 +848,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
         }
 
         // Discard if very few inliers were found
-        if (inlierMatches.size() < 2)
+        if (inlierMatches.size() < 4)
         {
             m_statusMsg = _("Too few detectable features");
             return false;
