@@ -679,6 +679,15 @@ bool GuiderPlanet::validateAndFilterKeypoints(std::vector<KeyPoint>& keypoints, 
     return true; // Indicate successful filtering
 }
 
+// Reverse the slider value to get the actual parameter value
+int GuiderPlanet::GetPlanetaryParam_minHessianPhysical()
+{
+    int value = PT_MIN_HESSIAN_MAX - GetPlanetaryParam_minHessian();
+    if (value < PT_MIN_HESSIAN_MIN)
+        value = PT_MIN_HESSIAN_MIN;
+    return value;
+}
+
 // Detect/track surface features
 bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
 {
@@ -687,7 +696,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
     int nOctaveLayers = 2;
     bool upright = true;
     bool surfExtended = false;
-    SurfFeatureDetector surfDetector(GetPlanetaryParam_minHessian(), nOctaves, nOctaveLayers, surfExtended, upright);
+    SurfFeatureDetector surfDetector(GetPlanetaryParam_minHessianPhysical(), nOctaves, nOctaveLayers, surfExtended, upright);
 
     // Enhance local contrast before feature detection
     Mat equalized;

@@ -151,6 +151,7 @@ public:
     int  GetPlanetaryParam_highThreshold() { return m_Planetary_highThreshold; }
     void SetPlanetaryParam_minHessian(int value) { m_Planetary_minHessian = value; }
     int  GetPlanetaryParam_minHessian() { return m_Planetary_minHessian; }
+    int  GetPlanetaryParam_minHessianPhysical();
 
     void SetPlanetaryElementsVisual(bool state) {
         m_syncLock.Lock();

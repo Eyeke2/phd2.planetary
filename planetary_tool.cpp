@@ -224,9 +224,9 @@ PlanetToolWin::PlanetToolWin()
 
     // Surface tracking elements
     wxStaticText* minHessianLabel = new wxStaticText(m_featuresTab, wxID_ANY, wxT("Detection Sensitivity:"), wxDefaultPosition, wxDefaultSize, 0);
-    m_minHessianSlider = new wxSlider(m_featuresTab, wxID_ANY, PT_MIN_HESSIAN_DEFAULT, PT_MIN_HESSIAN_MIN, PT_MIN_HESSIAN_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
-    minHessianLabel->SetToolTip(_("Adjusts the sensitivity of feature detection. A higher value detects fewer but more robust features. "
-                                  "Lower values increase the number of detected features but may include more noise. "
+    m_minHessianSlider = new wxSlider(m_featuresTab, wxID_ANY, PT_MIN_HESSIAN_MAX - PT_MIN_HESSIAN_DEFAULT, 0, PT_MIN_HESSIAN_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
+    minHessianLabel->SetToolTip(_("Adjusts the sensitivity of feature detection. A lower value detects fewer but more robust features. "
+                                  "Higher values increase the number of detected features but may include more noise. "
                                   "Ideal value depends on image content and quality"));
     m_minHessianSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnMinHessianChanged, this);
     wxStaticBoxSizer* surfaceSizer = new wxStaticBoxSizer(new wxStaticBox(m_featuresTab, wxID_ANY, _("")), wxVERTICAL);
@@ -534,10 +534,6 @@ void PlanetToolWin::OnThresholdChanged(wxCommandEvent& event)
 void PlanetToolWin::OnMinHessianChanged(wxCommandEvent& event)
 {
     int value = event.GetInt();
-    if (value < PT_MIN_HESSIAN_MIN)
-        value = PT_MIN_HESSIAN_MIN;
-    if (value > PT_MIN_HESSIAN_MAX)
-        value = PT_MIN_HESSIAN_MAX;
     pPlanet->SetPlanetaryParam_minHessian(value);
 }
 
