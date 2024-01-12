@@ -699,10 +699,15 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
     std::vector<KeyPoint> keypoints;
     surfDetector.detect(equalized, keypoints);
 
-    // Exclude keypoints which are too close to frame edges
+    // While not guiding we can still reset the fixation point based on new clicked point
+    if ((pFrame->pGuider->GetState() != STATE_GUIDING) && (clickedPoint != m_prevClickedPoint))
+        m_referenceKeypoints.clear();
+
+    // Exclude keypoints which are too close to frame edges.
+    // When setting the reference frame, we limit keypoints to be further away from the edges.
+    const int edgeMargin = m_referenceKeypoints.size() ? 15 : 30;
     for (auto it = keypoints.begin(); it != keypoints.end();)
     {
-        const int edgeMargin = 25;
         if ((it->pt.x < edgeMargin) || (it->pt.y < edgeMargin) || (it->pt.x > m_frameWidth - edgeMargin) || (it->pt.y > m_frameHeight - edgeMargin))
             it = keypoints.erase(it);
         else
@@ -736,12 +741,6 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
     Mat descriptors;
     SurfDescriptorExtractor extractor;
     extractor.compute(equalized, filteredKeypoints, descriptors);
-
-    // While not guiding we can still reset the fixation point based on new clicked point
-    if ((pFrame->pGuider->GetState() != STATE_GUIDING) && (clickedPoint != m_prevClickedPoint))
-    {
-        m_referenceKeypoints.clear();
-    }
 
     // When reference keypoints are available, filter and validate keypoints
     if (m_referenceKeypoints.size())
