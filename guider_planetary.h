@@ -72,6 +72,7 @@ private:
     float m_PlanetAngle;
 
 public:
+    bool m_minHessianChanged;
     wxString m_statusMsg;
     bool m_detected;
     float m_center_x;
@@ -151,7 +152,7 @@ public:
     int  GetPlanetaryParam_lowThreshold() { return m_Planetary_lowThreshold; }
     void SetPlanetaryParam_highThreshold(int value) { m_Planetary_highThreshold = value; }
     int  GetPlanetaryParam_highThreshold() { return m_Planetary_highThreshold; }
-    void SetPlanetaryParam_minHessian(int value) { m_Planetary_minHessian = value; }
+    void SetPlanetaryParam_minHessian(int value) { m_Planetary_minHessian = value; m_minHessianChanged = true; }
     int  GetPlanetaryParam_minHessian() { return m_Planetary_minHessian; }
     int  GetPlanetaryParam_minHessianPhysical();
 

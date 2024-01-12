@@ -57,6 +57,7 @@ GuiderPlanet::GuiderPlanet()
     m_detected = false;
     m_referenceKeypoints.clear();
     m_inlierPoints.clear();
+    m_minHessianChanged = false;
     m_roiClicked = false;
     m_roiActive = false;
     m_detectionCounter = 0;
@@ -874,7 +875,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
 
         // If variance is too high, set new reference frame
         const float varianceThreshold = 16.0;
-        if (variance > varianceThreshold)
+        if ((variance > varianceThreshold) || m_minHessianChanged)
         {
             // Exclude keypoints which are too close to frame edges.
             // When setting the reference frame, we limit keypoints to be further away from the edges.
@@ -904,6 +905,8 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
             // and it will be updated as soon as we have a better estimate.
             if (variance > varianceThreshold)
                 Debug.Write(wxString::Format("Feature matching encountered large variance (%.1f), position may not be accurate.\n", variance));
+
+            m_minHessianChanged = false;
         }
 
         // Save inlier matches for visualization
@@ -934,6 +937,9 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
                 m_inlierPoints.push_back(kp.pt);
             m_syncLock.Unlock();
         }
+
+        // Assume no more changes to minHessian until further notice
+        m_minHessianChanged = false;
     }
 
     // Set new object position based on updated centroid
