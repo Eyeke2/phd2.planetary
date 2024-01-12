@@ -1,9 +1,26 @@
-A development version v2.6.13-planet.dev3.rc3
-=============================================
+A development version v2.6.13-planet.dev3
+=========================================
 
 When installing this version, it is advised to choose a destination folder distinct from the standard PHD2 installation path, so you can keep two versions at the same time.
 
 Change log
+
+v2.6.13-planet.dev3
+* Enhanced Target Lock symbols: introduced color-coded target lock symbols for surface feature tracking to indicate tracking quality.
+A green symbol indicates high-quality tracking, while a red symbol signals that the quality has decreased. Initially, tracking will
+start with a red symbol, which will change based on ongoing tracking performance.
+* Improved Tracking Sensitivity Adjustment: allow dynamic adjusting of the sensitivity threshold for surface feature detection without
+disrupting the tracking process.
+* Refined Tracking Logic: the system now adapts more intelligently to changes in detected features, which results in more accurate
+tracking and a more stable guiding.
+* Inverted the feature tracking sensitivity values for more intuitive control, and updated the tooltips to reflect this change.
+* Enhanced Detection and Tracking by filtering out low-quality surface features.
+* Dynamic Margin for Surface Feature Exclusion: dynamically adjust the margin that excludes features close to the frame edges.
+This allows for greater flexibility and accuracy in finding matches across frames.
+* Update Main Toolbar size to reflect its actual dimensions, which may happen due to adding/removing buttons.
+* Optimized timeout management and enhanced responsiveness during circle detection in Non-Eclipse mode.
+* Fixed and cleaned up the code resetting all parameters to default values.
+* Code refactoring and cleanup.
 
 v2.6.13-planet.dev3.rc3
 * Add initial support for surface feature detection and tracking.
