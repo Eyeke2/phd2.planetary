@@ -865,20 +865,6 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
         }
         variance /= distances.size() - 1;  // Adjust for unbiased estimator
 
-        // If variance is too high, reject this frame but set new reference frame
-        int refSize = m_referenceKeypoints.size();
-        int curSize = filteredKeypoints.size();
-        float keypointsDiffRatio = fabs((float) (refSize - curSize)) / (float) refSize;
-        if ((variance > 16) || (keypointsDiffRatio > 0.5))
-        {
-            m_referenceKeypoints = filteredKeypoints;
-            m_referenceDescriptors = descriptors;
-            // This is temporary until we have a better way to calculate reference point
-            m_referencePoint = calculateCentroid(m_referenceKeypoints, clickedPoint);
-            m_statusMsg = _("Tracking is lost");
-            return false;
-        }
-
         // Compute average displacement Point2f vector between matched keypoints
         displacement.x /= inlierMatches.size();
         displacement.y /= inlierMatches.size();
@@ -886,19 +872,47 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
         // Calculate new centroid based on average displacement vector and virtual tracking point
         m_surfaceFixationPoint = m_referencePoint + displacement;
 
+        // If variance is too high, set new reference frame
+        const float varianceThreshold = 16.0;
+        if (variance > varianceThreshold)
+        {
+            // Exclude keypoints which are too close to frame edges.
+            // When setting the reference frame, we limit keypoints to be further away from the edges.
+            const int edgeMargin = 30;
+            for (auto it = filteredKeypoints.begin(); it != filteredKeypoints.end();)
+            {
+                if ((it->pt.x < edgeMargin) || (it->pt.y < edgeMargin) || (it->pt.x > m_frameWidth - edgeMargin) || (it->pt.y > m_frameHeight - edgeMargin))
+                    it = filteredKeypoints.erase(it);
+                else
+                    ++it;
+            }
+            if (filteredKeypoints.size() < 4)
+            {
+                m_statusMsg = _("Too few detectable features");
+                return false;
+            }
+
+            // We must recompute descriptors for the filtered keypoints
+            extractor.compute(equalized, filteredKeypoints, descriptors);
+
+            // Set new reference frame -- this is temporary until we have a better way to handle this.
+            m_referencePoint = m_surfaceFixationPoint;
+            m_referenceKeypoints = filteredKeypoints;
+            m_referenceDescriptors = descriptors;
+
+            // The new position won't be rather accurate, but it's better than nothing
+            // and it will be updated as soon as we have a better estimate.
+            if (variance > varianceThreshold)
+                Debug.Write(wxString::Format("Feature matching encountered large variance (%.1f), position may not be accurate.\n", variance));
+        }
+
         // Save inlier matches for visualization
-        m_syncLock.Lock();
-        m_inlierPoints = inlierPoints;
-        m_syncLock.Unlock();
-
-        // Set new object position based on updated centroid
-        m_center_x = m_surfaceFixationPoint.x;
-        m_center_y = m_surfaceFixationPoint.y;
-
-        // For surface feature tracking, use a fixed radius
-        m_radius = 50;
-
-        return true;
+        if (GetPlanetaryElementsVisual())
+        {
+            m_syncLock.Lock();
+            m_inlierPoints = inlierPoints;
+            m_syncLock.Unlock();
+        }
     }
     // Set reference frame keypoints and descriptors
     else if (descriptors.rows > 4)
@@ -909,10 +923,27 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
         // Save reference frame centroid
         m_referencePoint = calculateCentroid(keypoints, clickedPoint);
         m_surfaceFixationPoint = m_referencePoint;
+
+        // Save reference keypoints for visualization
+        if (GetPlanetaryElementsVisual())
+        {
+            m_syncLock.Lock();
+            m_inlierPoints.clear();
+            m_inlierPoints.reserve(m_referenceKeypoints.size());
+            for (const auto& kp : m_referenceKeypoints)
+                m_inlierPoints.push_back(kp.pt);
+            m_syncLock.Unlock();
+        }
     }
 
-    m_statusMsg = _("Initializing ...");
-    return false;
+    // Set new object position based on updated centroid
+    m_center_x = m_surfaceFixationPoint.x;
+    m_center_y = m_surfaceFixationPoint.y;
+
+    // For surface feature tracking, use a fixed radius
+    m_radius = 50;
+
+    return true;
 }
 
 // Find planet center and its radius using HoughCircles method
