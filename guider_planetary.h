@@ -125,7 +125,9 @@ public:
             return PLANET_DETECT_MODE_CIRCLES;
     }
 
-    void GuiderPlanet::GetDetectionStatus(wxString& statusMsg);
+    void GetDetectionStatus(wxString& statusMsg);
+    void NotifyStartCapturing();
+    void NotifyStopCapturing();
 
     bool GetPlanetaryEnableState() { return m_Planetary_enabled; }
     void SetPlanetaryEnableState(bool enabled) { m_Planetary_enabled = enabled; }
@@ -153,12 +155,7 @@ public:
     int  GetPlanetaryParam_minHessian() { return m_Planetary_minHessian; }
     int  GetPlanetaryParam_minHessianPhysical();
 
-    void SetPlanetaryElementsVisual(bool state) {
-        m_syncLock.Lock();
-        m_eclipseContour.clear();
-        m_Planetary_ShowElementsVisual = state;
-        m_syncLock.Unlock();
-    }
+    void SetPlanetaryElementsVisual(bool state);
     bool GetPlanetaryElementsVisual() { return m_Planetary_ShowElementsVisual; }
     void SetPlanetaryElementsButtonState(bool state) { m_Planetary_ShowElementsButtonState = state; }
     bool GetPlanetaryElementsButtonState() { return m_Planetary_ShowElementsButtonState; }

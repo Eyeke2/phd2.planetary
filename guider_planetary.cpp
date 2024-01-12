@@ -105,6 +105,35 @@ void GuiderPlanet::GetDetectionStatus(wxString& statusMsg)
         statusMsg = wxString::Format(_("Object at (%.1f, %.1f) radius=%d"), m_center_x, m_center_y, m_radius);
 }
 
+// Update state used to visualize internally detected features
+void GuiderPlanet::SetPlanetaryElementsVisual(bool state)
+{
+    m_syncLock.Lock();
+    m_circlesValid = false;
+    m_eclipseContour.clear();
+    m_inlierPoints.clear();
+    m_Planetary_ShowElementsVisual = state;
+    m_syncLock.Unlock();
+}
+
+// Notification callback about start of capturing
+void GuiderPlanet::NotifyStartCapturing()
+{
+    // In planetary tracking mode update the state used to
+    // control drawing of the internal detection elements.
+    if (GetPlanetaryEnableState() && GetPlanetaryElementsButtonState())
+        SetPlanetaryElementsVisual(true);
+}
+
+// Notification callback about stop of capturing
+void GuiderPlanet::NotifyStopCapturing()
+{
+    // In planetary tracking mode we need to redraw the screen
+    // without internal detection elements
+    if (GetPlanetaryEnableState() && GetPlanetaryElementsVisual())
+        SetPlanetaryElementsVisual(false);
+}
+
 // Helper for visualizing planet detection radius
 void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFactor)
 {

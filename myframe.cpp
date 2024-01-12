@@ -1868,10 +1868,8 @@ void MyFrame::StartCapturing()
         }
     }
 
-    // In planetary tracking mode update the state used to
-    // control drawing of the internal detection elements.
-    if (pGuider->m_Planet.GetPlanetaryEnableState() && pGuider->m_Planet.GetPlanetaryElementsButtonState())
-        pGuider->m_Planet.SetPlanetaryElementsVisual(true);
+    // Notify planetary guider about the start of a new capture
+    pGuider->m_Planet.NotifyStartCapturing();
 }
 
 bool MyFrame::StopCapturing()
@@ -1912,10 +1910,8 @@ bool MyFrame::StopCapturing()
         }
     }
 
-    // In planetary tracking mode we need to redraw the screen
-    // without internal detection elements
-    if (pGuider->m_Planet.GetPlanetaryEnableState() && pGuider->m_Planet.GetPlanetaryElementsVisual())
-        pGuider->m_Planet.SetPlanetaryElementsVisual(false);
+    // Notify planetary guider about the end of a capture
+    pGuider->m_Planet.NotifyStopCapturing();
 
     return finished;
 }
