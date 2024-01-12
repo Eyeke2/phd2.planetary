@@ -60,6 +60,10 @@ private:
     bool   m_Planetary_ShowElementsButtonState;
     bool   m_Planetary_ShowElementsVisual;
 
+    float m_PlanetEccentricity;
+    float m_PlanetAngle;
+
+public:
     // Planet detection modes
     enum PlanetDetectMode
     {
@@ -68,11 +72,21 @@ private:
         PLANET_DETECT_MODE_SURFACE = 2
     };
 
-    float m_PlanetEccentricity;
-    float m_PlanetAngle;
-
-public:
     bool m_minHessianChanged;
+    int m_trackingQuality;
+    int m_cachedScaledWidth;
+    int m_cachedScaledHeight;
+    wxImage* m_cachedTrackerImage;
+    wxBitmap m_cachedTrackerScaledBitmap;
+
+    int m_detectedFeatures;
+    wxImage m_lockTargetImageOk;
+    int m_lockTargetWidthOk;
+    int m_lockTargetHeightOk;
+    wxImage m_lockTargetImageBad;
+    int m_lockTargetWidthBad;
+    int m_lockTargetHeightBad;
+
     wxString m_statusMsg;
     bool m_detected;
     float m_center_x;
@@ -160,6 +174,7 @@ public:
     bool GetPlanetaryElementsVisual() { return m_Planetary_ShowElementsVisual; }
     void SetPlanetaryElementsButtonState(bool state) { m_Planetary_ShowElementsButtonState = state; }
     bool GetPlanetaryElementsButtonState() { return m_Planetary_ShowElementsButtonState; }
+    PHD_Point GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale);
 
 public:
     // Displaying visual aid for planetary parameter tuning

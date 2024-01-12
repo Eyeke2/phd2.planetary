@@ -1270,12 +1270,22 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
         Guider* pGuider = pFrame->pGuider;
         if (pGuider->m_Planet.m_detected)
         {
-            int x = int(star.X * scale + 0.5);
-            int y = int(star.Y * scale + 0.5);
-            int r = int(pGuider->m_Planet.m_radius * scale + 0.5);
-            dc.DrawCircle(x, y, r);
-            dc.SetPen(wxPen(dc.GetPen().GetColour(), 1, dc.GetPen().GetStyle()));
-            dc.DrawRectangle(xpos, ypos, w, w);
+            if (pGuider->m_Planet.GetPlanetDetectMode() == GuiderPlanet::PLANET_DETECT_MODE_SURFACE)
+            {
+                // Draw target lock symbol overlay centered at the tracked location
+                wxBitmap scaledTracker;
+                PHD_Point lockedPos = pGuider->m_Planet.GetScaledTracker(scaledTracker, star, scale);
+                dc.DrawBitmap(scaledTracker, cvRound(lockedPos.X), cvRound(lockedPos.Y));
+            }
+            else
+            {
+                int x = int(star.X * scale + 0.5);
+                int y = int(star.Y * scale + 0.5);
+                int r = int(pGuider->m_Planet.m_radius * scale + 0.5);
+                dc.DrawCircle(x, y, r);
+                dc.SetPen(wxPen(dc.GetPen().GetColour(), 1, dc.GetPen().GetStyle()));
+                dc.DrawRectangle(xpos, ypos, w, w);
+            }
         }
 
         // Show active processing region

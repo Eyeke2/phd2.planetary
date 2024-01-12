@@ -58,6 +58,12 @@ GuiderPlanet::GuiderPlanet()
     m_referenceKeypoints.clear();
     m_inlierPoints.clear();
     m_minHessianChanged = false;
+    m_trackingQuality = 0;
+
+    m_cachedScaledWidth = 0;
+    m_cachedScaledHeight = 0;
+    m_cachedTrackerImage = NULL;
+
     m_roiClicked = false;
     m_roiActive = false;
     m_detectionCounter = 0;
@@ -92,6 +98,25 @@ GuiderPlanet::GuiderPlanet()
         if (i < ARRAYSIZE(gaussianWeight))
             gaussianWeight[i] += exp(-(pow(x, 2) / (2 * pow(sigma, 2))));
     }
+
+    // Load lock target bitmap
+#   include "icons/target_lock_ok.png.h"
+    wxBitmap lockTargetBitmapOk(wxBITMAP_PNG_FROM_DATA(target_lock_ok));
+    m_lockTargetImageOk = wxImage(lockTargetBitmapOk.ConvertToImage());
+
+    // Extract width and height from IHDR chunk data (9-12 bytes for width, 13-16 bytes for height)
+    const uchar* ihdrChunk1 = target_lock_ok_png + 16;
+    m_lockTargetWidthOk = (ihdrChunk1[0] << 24) | (ihdrChunk1[1] << 16) | (ihdrChunk1[2] << 8) | ihdrChunk1[3];
+    m_lockTargetHeightOk = (ihdrChunk1[4] << 24) | (ihdrChunk1[5] << 16) | (ihdrChunk1[6] << 8) | ihdrChunk1[7];
+
+#   include "icons/target_lock_bad.png.h"
+    wxBitmap lockTargetBitmapBad(wxBITMAP_PNG_FROM_DATA(target_lock_bad));
+    m_lockTargetImageBad = wxImage(lockTargetBitmapBad.ConvertToImage());
+
+    // Extract width and height from IHDR chunk data (9-12 bytes for width, 13-16 bytes for height)
+    const uchar* ihdrChunk2 = target_lock_ok_png + 16;
+    m_lockTargetWidthBad = (ihdrChunk2[0] << 24) | (ihdrChunk2[1] << 16) | (ihdrChunk2[2] << 8) | ihdrChunk2[3];
+    m_lockTargetHeightBad = (ihdrChunk2[4] << 24) | (ihdrChunk2[5] << 16) | (ihdrChunk2[6] << 8) | ihdrChunk2[7];
 
     // Initialize non-free OpenCV components
     initModule_nonfree();
@@ -133,6 +158,54 @@ void GuiderPlanet::NotifyStopCapturing()
     // without internal detection elements
     if (GetPlanetaryEnableState() && GetPlanetaryElementsVisual())
         SetPlanetaryElementsVisual(false);
+}
+
+// Return scaled tracking image with lock target symbol
+PHD_Point GuiderPlanet::GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale)
+{
+    // Select tracking symbol based on tracking quality
+    int targetWidth;
+    int targetHeight;
+    wxImage* targetImage;
+    if (m_trackingQuality > 0)
+    {
+        targetImage = &m_lockTargetImageOk;
+        targetWidth = m_lockTargetWidthOk;
+        targetHeight = m_lockTargetHeightOk;
+    }
+    else
+    {
+        targetImage = &m_lockTargetImageBad;
+        targetWidth = m_lockTargetWidthBad;
+        targetHeight = m_lockTargetHeightBad;
+    }
+
+    // Limit size of lock target symbol
+    int scaledWidth = (int) (targetWidth * scale / 5.0);
+    int scaledHeight = (int) (targetHeight * scale / 5.0);
+    scaledWidth = wxMin(scaledWidth, 160);
+    scaledWidth = wxMax(scaledWidth, 96);
+    scaledHeight = wxMin(scaledHeight, 160);
+    scaledHeight = wxMax(scaledHeight, 96);
+
+    // Enforce original aspect ratio before scaling
+    if (targetWidth > targetHeight)
+        scaledHeight = scaledWidth * targetHeight / targetWidth;
+    else
+        scaledWidth = scaledHeight * targetWidth / targetHeight;
+
+    // Don't scale if the cached image is already scaled with the same parameters
+    if ((scaledWidth != m_cachedScaledWidth) || (scaledHeight != m_cachedScaledHeight) || (targetImage != m_cachedTrackerImage))
+    {
+        wxImage scaledTrackerImage = targetImage->Scale(scaledWidth, scaledHeight, wxIMAGE_QUALITY_HIGH);
+        m_cachedTrackerScaledBitmap = wxBitmap(scaledTrackerImage);
+        m_cachedScaledWidth = scaledWidth;
+        m_cachedScaledHeight = scaledHeight;
+        m_cachedTrackerImage = targetImage;
+    }
+
+    scaledBitmap = m_cachedTrackerScaledBitmap;
+    return PHD_Point(star.X * scale - scaledWidth / 2, star.Y * scale - scaledHeight / 2);
 }
 
 // Helper for visualizing planet detection radius
@@ -906,7 +979,14 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
             if (variance > varianceThreshold)
                 Debug.Write(wxString::Format("Feature matching encountered large variance (%.1f), position may not be accurate.\n", variance));
 
+            // Switch to red tracking box as a warning sign
+            m_trackingQuality = 0;
             m_minHessianChanged = false;
+        }
+        else
+        {
+            // Switch to green tracking box
+            m_trackingQuality = 1;
         }
 
         // Save inlier matches for visualization
@@ -920,6 +1000,9 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
     // Set reference frame keypoints and descriptors
     else if (descriptors.rows > 4)
     {
+        // Tracking quality is not available yet
+        m_trackingQuality = 0;
+
         m_referenceKeypoints = filteredKeypoints;
         m_referenceDescriptors = descriptors;
 
