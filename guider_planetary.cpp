@@ -794,6 +794,9 @@ int GuiderPlanet::GetPlanetaryParam_minHessianPhysical()
 // Detect/track surface features
 bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
 {
+    // No detected features yet
+    m_detectedFeatures = 0;
+
     // Create SURF detector
     int nOctaves = 4;
     int nOctaveLayers = 2;
@@ -996,6 +999,9 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
             m_inlierPoints = inlierPoints;
             m_syncLock.Unlock();
         }
+
+        // Count detected features
+        m_detectedFeatures = inlierPoints.size();
     }
     // Set reference frame keypoints and descriptors
     else if (descriptors.rows > 4)
@@ -1020,6 +1026,9 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
                 m_inlierPoints.push_back(kp.pt);
             m_syncLock.Unlock();
         }
+
+        // Count detected features
+        m_detectedFeatures = m_referenceKeypoints.size();
 
         // Assume no more changes to minHessian until further notice
         m_minHessianChanged = false;
@@ -1325,7 +1334,7 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
         {
             case PLANET_DETECT_MODE_SURFACE:
                 detectionResult = DetectSurfaceFeatures(img8, clickedPoint);
-                pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_inlierPoints.size() : 0);
+                pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_detectedFeatures : 0);
                 break;
             case PLANET_DETECT_MODE_CIRCLES:
                 detectionResult = FindPlanetCircle(img8, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
