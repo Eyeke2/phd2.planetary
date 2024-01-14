@@ -1113,6 +1113,7 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
     Mat img8;
     Rect roiRect(0, 0, pImage->Size.GetWidth(), pImage->Size.GetHeight());
     if (!autoSelect && GetRoiEnableState() && m_detected &&
+        !GetSurfaceTrackingState() &&
         (m_center_x < m_frameWidth) &&
         (m_center_y < m_frameHeight) &&
         (m_frameWidth == pImage->Size.GetWidth()) &&
