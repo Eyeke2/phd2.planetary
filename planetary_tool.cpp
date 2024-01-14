@@ -580,7 +580,6 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
     // Reset all to defaults
     if (wxGetKeyState(WXK_ALT))
     {
-        pPlanet->SetEclipseMode(false);
         pPlanet->SetPlanetaryParam_minDist(PT_MIN_DIST_DEFAULT);
         pPlanet->SetPlanetaryParam_param1(PT_PARAM1_DEFAULT);
         pPlanet->SetPlanetaryParam_param2(PT_PARAM2_DEFAULT);
@@ -590,10 +589,6 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         pPlanet->SetPlanetaryParam_highThreshold(PT_HIGH_THRESHOLD_DEFAULT);
         pPlanet->SetPlanetaryParam_minHessian(PT_MIN_HESSIAN_DEFAULT);
 
-        if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
-            pFrame->RestoreStarFindMode();
-
-        SetEnabledState(this, false);
         m_minDist->SetValue(pPlanet->GetPlanetaryParam_minDist());
         m_param1->SetValue(pPlanet->GetPlanetaryParam_param1());
         m_param2->SetValue(pPlanet->GetPlanetaryParam_param2());
@@ -601,7 +596,6 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         m_maxRadius->SetValue(pPlanet->GetPlanetaryParam_maxRadius());
         m_ThresholdSlider->SetValue(pPlanet->GetPlanetaryParam_highThreshold());
         m_minHessianSlider->SetValue(pPlanet->GetPlanetaryParam_minHessian());
-        m_EclipseModeCheckBox->SetValue(false);
     }
     else
         this->Close();
