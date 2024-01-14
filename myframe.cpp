@@ -213,6 +213,7 @@ struct FileDropTarget : public wxFileDropTarget
 MyFrame::MyFrame()
     :
     wxFrame(nullptr, wxID_ANY, wxEmptyString),
+    pGuider(nullptr),
     m_showBookmarksAccel(0),
     m_bookmarkLockPosAccel(0),
     pStatsWin(nullptr)
@@ -1119,6 +1120,7 @@ static bool cond_update_tool(wxAuiToolBar *tb, int toolId, wxMenuItem *mi, bool 
 void MyFrame::UpdateButtonsStatus()
 {
     assert(wxThread::IsMain());
+    assert(pGuider);
 
     bool need_update = false;
 
@@ -1145,7 +1147,7 @@ void MyFrame::UpdateButtonsStatus()
         need_update = true;
     }
 
-    bool guiding_active = pGuider && pGuider->IsCalibratingOrGuiding();         // Not the same as 'bGuideable below
+    bool guiding_active = pGuider->IsCalibratingOrGuiding();         // Not the same as 'bGuideable below
 
     if (!guiding_active ^ m_autoSelectStarMenuItem->IsEnabled())
     {
