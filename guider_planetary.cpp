@@ -878,7 +878,7 @@ bool GuiderPlanet::FindPlanetCircle(Mat img8, int minRadius, int maxRadius, bool
 
     // We are calling HoughCircles HoughCircles in a separate thread to deal with
     // cases when it takes too long to compure. Under such circumstances,
-    // usually caused by small values of param1 / param2 we stop exposures
+    // usually caused by small values of minDist / param1 / param2 we stop exposures
     // and report the problem telling the user to increase their values.
     // The hanging thread will eventually terminate and no resource leak
     // or memory corruption should happen as a result.
@@ -886,17 +886,16 @@ bool GuiderPlanet::FindPlanetCircle(Mat img8, int minRadius, int maxRadius, bool
     AsyncFindCirclesThread* thread = new AsyncFindCirclesThread(img8, minDist, param1, param2, minRadius, maxRadius);
     if ((thread->Create() == wxTHREAD_NO_ERROR) && (thread->Run() == wxTHREAD_NO_ERROR))
     {
-        const int timeout = 2000;
-        int msec;
-        for (msec = 0; msec < timeout && !thread->finished; msec += 1)
+        const int timeout = 3000;
+        while ((m_PlanetWatchdog.Time() < timeout) && !thread->finished)
             wxMilliSleep(1);
-        if (msec >= timeout && !thread->finished)
+        if (!thread->finished)
         {
-            Debug.Write(wxString::Format("Detection timeout out, must increase param1/param2\n"));
+            Debug.Write(wxString::Format("Detection timeout out, must increase minDist/param1/param2\n"));
             thread->active = false;
             if (pFrame->CaptureActive)
                 pFrame->StopCapturing();
-            pFrame->m_StopReason = _("Timeout out: must increase param1/param2! Stopped.");
+            pFrame->m_StopReason = _("Timeout out: exposures stopped! Please increase minDist/param1/param2");
             m_statusMsg = pFrame->m_StopReason;
             return false;
         }
