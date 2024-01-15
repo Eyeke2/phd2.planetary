@@ -313,8 +313,8 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
             if (starX >= imageLeftMargin)
             {
                 dc.SetPen(RedPen);
-                dc.DrawLine(starX - 3, starY, starX + 3, starY);
-                dc.DrawLine(starX, starY - 3, starX, starY + 3);
+                dc.DrawLine(starX - 5, starY, starX + 5, starY);
+                dc.DrawLine(starX, starY - 5, starX, starY + 5);
             }
         }
     }
