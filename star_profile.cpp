@@ -248,6 +248,9 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         dc.DrawLines(FULLW, Prof);
     }
 
+    // Prioritize rendering star image before rendering text
+    dc.SetTextForeground(wxColour(255, 0, 0));
+
     // JBW: draw zoomed guidestar subframe (todo: make constants symbolic)
     wxImage* img = pFrame->pGuider->DisplayedImage();
     double scaleFactor = pFrame->pGuider->ScaleFactor();
@@ -318,9 +321,6 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
             }
         }
     }
-
-    // Prioritize rendering text after rendering enlarged star image
-    dc.SetTextForeground(wxColour(255,0,0));
 
     const Star& star = pFrame->pGuider->PrimaryStar();
     if (star.IsValid())
