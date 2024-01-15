@@ -166,7 +166,14 @@ public:
     int  GetPlanetaryParam_lowThreshold() { return m_Planetary_lowThreshold; }
     void SetPlanetaryParam_highThreshold(int value) { m_Planetary_highThreshold = value; }
     int  GetPlanetaryParam_highThreshold() { return m_Planetary_highThreshold; }
-    void SetPlanetaryParam_minHessian(int value) { m_Planetary_minHessian = value; m_minHessianChanged = true; }
+    void SetPlanetaryParam_minHessian(int value)
+    {
+        if (m_Planetary_minHessian != value)
+        {
+            m_Planetary_minHessian = value;
+            m_minHessianChanged = true;
+        }
+    }
     int  GetPlanetaryParam_minHessian() { return m_Planetary_minHessian; }
     int  GetPlanetaryParam_minHessianPhysical();
 
