@@ -1016,7 +1016,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
         m_referenceDescriptors = descriptors;
 
         // Save reference frame centroid
-        m_referencePoint = calculateCentroid(keypoints, clickedPoint);
+        m_referencePoint = calculateCentroid(filteredKeypoints, clickedPoint);
         m_surfaceFixationPoint = m_referencePoint;
 
         // Save reference keypoints for visualization
