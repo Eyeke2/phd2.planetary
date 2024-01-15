@@ -697,7 +697,7 @@ wxThread::ExitCode AsyncFindCirclesThread::Entry()
     HoughCircles(image, circles, CV_HOUGH_GRADIENT, 1.0, minDist, param1, param2, minRadius, maxRadius);
     finished = true;
     while (active)
-        wxMilliSleep(1);
+        wxMilliSleep(20);
     return this;
 }
 
@@ -1069,7 +1069,7 @@ bool GuiderPlanet::FindPlanetCircle(Mat img8, int minRadius, int maxRadius, bool
     {
         const int timeout = 3000;
         while ((m_PlanetWatchdog.Time() < timeout) && !thread->finished)
-            wxMilliSleep(1);
+            wxMilliSleep(20);
         if (!thread->finished)
         {
             Debug.Write(wxString::Format("Detection timeout out, must increase minDist/param1/param2\n"));
