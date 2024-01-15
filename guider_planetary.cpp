@@ -119,7 +119,10 @@ GuiderPlanet::GuiderPlanet()
     m_lockTargetHeightBad = (ihdrChunk2[4] << 24) | (ihdrChunk2[5] << 16) | (ihdrChunk2[6] << 8) | ihdrChunk2[7];
 
     // Initialize non-free OpenCV components
-    initModule_nonfree();
+    // Note: this may cause a small and limited memory leak.
+    bool nonfreeInit = initModule_nonfree();
+    Debug.Write(wxString::Format("OpenCV nonfree module initialization status: %d\n", nonfreeInit));
+    assert(nonfreeInit);
 }
 
 // Get current detection status
