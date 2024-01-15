@@ -1042,6 +1042,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
     m_center_y = m_surfaceFixationPoint.y;
 
     // For surface feature tracking, use a fixed radius
+    // which defines scaling factor for the Star Profile window.
     m_radius = 50;
 
     return true;

@@ -256,7 +256,7 @@ PlanetToolWin::PlanetToolWin()
     wxStaticText* fileIndexLabel = new wxStaticText(this, wxID_ANY, wxT("index"));
     fileIndexLabel->Wrap(-1);
 
-    m_filePathTextCtrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(200, -1));
+    m_filePathTextCtrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(250, -1));
     wxButton* browseButton = new wxButton(this, wxID_ANY, wxT("Browse"));
 
     m_fileIndex = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 9999, 1);
