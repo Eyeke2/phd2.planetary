@@ -1073,12 +1073,14 @@ bool GuiderPlanet::FindPlanetCircle(Mat img8, int minRadius, int maxRadius, bool
             wxMilliSleep(20);
         if (!thread->finished)
         {
-            Debug.Write(wxString::Format("Detection timeout out, must increase minDist/param1/param2\n"));
             thread->active = false;
             if (pFrame->CaptureActive)
                 pFrame->StopCapturing();
-            pFrame->m_StopReason = _("Timeout out: exposures stopped! Please increase minDist/param1/param2");
-            m_statusMsg = pFrame->m_StopReason;
+            m_statusMsg = _("Timeout -- exposures stopped! Please increase minDist/param1/param2 before resuming exposures/guiding.");
+            pFrame->m_StopReason = pFrame->m_StopReason;
+            pFrame->Alert(m_statusMsg);
+            Debug.Write(m_statusMsg);
+            wxBell();
             return false;
         }
         circles = thread->circles;
@@ -1089,6 +1091,8 @@ bool GuiderPlanet::FindPlanetCircle(Mat img8, int minRadius, int maxRadius, bool
     {
         delete thread;
         m_statusMsg = _("Internal error: cannot create/run thread.");
+        pFrame->Alert(m_statusMsg);
+        wxBell();
         return false;
     }
 
@@ -1154,7 +1158,8 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
     {
         cvReleaseMemStorage(&storage);
         Debug.Write(wxString::Format("Too many contour points detected (%d)\n", totalPoints));
-        m_statusMsg = _("Too many contour points detected: please enable ROI or increase Edge Detection Threshold");
+        m_statusMsg = _("Too many contour points detected: please enable ROI or increase Edge Detection Threshold.");
+        pFrame->Alert(m_statusMsg);
         pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), totalPoints);
         return false;
     }
