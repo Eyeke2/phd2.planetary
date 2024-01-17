@@ -1,9 +1,24 @@
-A development version v2.6.13-planet.dev3
-=========================================
+PHD2 beta program for solar/lunar/planetary imaging
+===================================================
 
 When installing this version, it is advised to choose a destination folder distinct from the standard PHD2 installation path, so you can keep two versions at the same time.
 
 Change log
+
+v2.6.13-planet.dev4.rc1
+* Bug fixes in Star Profile display.
+* Test actual change in minHessian parameter which affects logic of reference frame selection.
+* Minor code changes and cleanup.
+* Using background stats around star diameter for mass calculations is relevant only for star tracking mode
+or circles detection mode in planetary mode.
+* Fix an issue with a color of text message displayed in the Star Profile window.
+* Use correct variable holding filtered key points for calculating new centroid in surface feature detection mode.
+* Increase size of tiny crosshairs by few extra pixels to make it more visible. On 4K screens it was hardly visible.
+* Correct the computation of the small crosshairs' position at the star centroid. The previous code incorrectly
+calculated the scaling factor due to the division of integers without converting to floating-point, leading to
+the small crosshairs being displayed several pixels away from their true position in certain cases.
+* Micro-optimization: use longer time period while waiting for thread to terminate.
+* Add assert verifying that the non-free OpenCV components are available, required for surface feature detection.
 
 v2.6.13-planet.dev3
 * Enhanced Target Lock symbols: introduced color-coded target lock symbols for surface feature tracking to indicate tracking quality.
