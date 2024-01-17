@@ -259,6 +259,7 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
     // JBW: draw zoomed guidestar subframe (todo: make constants symbolic)
     wxImage* img = pFrame->pGuider->DisplayedImage();
     double scaleFactor = pFrame->pGuider->ScaleFactor();
+    imageLeftMargin = (xsize - 15) / 2;
     if (img)
     {
         int width = xsize - imageLeftMargin - 5;
@@ -335,7 +336,6 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
     }
 
     float hfd = star.HFD;
-    imageLeftMargin = (xsize - 15) / 2;
     if (hfd != 0.f)
     {
         float hfdArcSec = hfd * pFrame->GetCameraPixelScale();
