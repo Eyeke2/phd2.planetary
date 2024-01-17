@@ -77,9 +77,17 @@
 #include <math.h>
 #include <stdarg.h>
 
+// For internal use of planetary tool testing
+//#define FILE_SIMULATOR_MODE 1
+#if FILE_SIMULATOR_MODE
+#define PHDEXSUFFIX "-fs"
+#else
+#define PHDEXSUFFIX ""
+#endif
+
 #define APPNAME _T("PHD2 Guiding")
 #define PHDVERSION _T("2.6.13")
-#define PHDSUBVER _T("-planet.dev4.rc1")
+#define PHDSUBVER _T("-planet.dev4.rc1" PHDEXSUFFIX)
 #define FULLVER PHDVERSION PHDSUBVER
 
 #if defined (__WINDOWS__)
@@ -118,8 +126,6 @@ WX_DEFINE_ARRAY_DOUBLE(double, ArrayOfDbl);
 #define MICRONS_SYMBOL "\u00B5m"
 
 //#define TEST_TRANSFORMS
-
-//#define FILE_SIMULATOR_MODE 1
 
 #define ROUND(x) (int) floor((x) + 0.5)
 #define ROUNDF(x) (int) floorf((x) + 0.5)
