@@ -215,13 +215,18 @@ PHD_Point GuiderPlanet::GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point
 // Helper for visualizing planet detection radius
 void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFactor)
 {
-    // Draw the edge bitmap
+    // Clip drawing region to displayed image frame
+    wxImage* pImg = pFrame->pGuider->DisplayedImage();
+    if (pImg)
+        dc.SetClippingRegion(wxRect(0, 0, pImg->GetWidth(), pImg->GetHeight()));
+
+    // Make sure to use transparent brush
+    dc.SetBrush(*wxTRANSPARENT_BRUSH);
+
+    // Display internally detected elements (must be enabled in UI)
     if (GetPlanetaryElementsVisual())
     {
         m_syncLock.Lock();
-
-        // Make sure to use transparent brush
-        dc.SetBrush(*wxTRANSPARENT_BRUSH);
 
         switch (GetPlanetDetectMode())
         {
@@ -268,31 +273,49 @@ void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFa
         m_syncLock.Unlock();
     }
 
+    // Display min/max diameters for visual feedback
     if (m_draw_PlanetaryHelper)
     {
         if (!GetSurfaceTrackingState())
         {
             m_draw_PlanetaryHelper = false;
-            int x = int(primaryStar.X * scaleFactor + 0.5);
-            int y = int(primaryStar.Y * scaleFactor + 0.5);
-
-            if (m_detected)
-                x -= m_radius * scaleFactor;
-
-            // Draw min and max diameters legend
             const wxString labelTextMin("min diameter");
             const wxString labelTextMax("max diameter");
-            dc.SetPen(wxPen(wxColour(230, 130, 30), 1, wxPENSTYLE_DOT));
-            dc.SetTextForeground(wxColour(230, 130, 30));
-            dc.DrawLine(x, y - 5, x + GetPlanetaryParam_minRadius() * scaleFactor * 2, y - 5);
-            dc.DrawText(labelTextMin, x - dc.GetTextExtent(labelTextMin).GetWidth() - 5, y - 10 - dc.GetTextExtent(labelTextMin).GetHeight() / 2);
+            int x = int(primaryStar.X * scaleFactor + 0.5);
+            int y = int(primaryStar.Y * scaleFactor + 0.5);
+            int radius = int(m_radius * scaleFactor + 0.5);
+            float minRadius = GetPlanetaryParam_minRadius() * scaleFactor;
+            float maxRadius = GetPlanetaryParam_maxRadius() * scaleFactor;
+            int minRadius_x = x + minRadius;
+            int maxRadius_x = x + maxRadius;
+            int lineMin_x = x;
+            int lineMax_x = x;
 
-            dc.SetPen(wxPen(wxColour(130, 230, 30), 1, wxPENSTYLE_DOT));
+            // Center the elements at the tracking point
+            if (m_detected)
+            {
+                minRadius_x = maxRadius_x = x;
+                lineMin_x -= minRadius;
+                lineMax_x -= maxRadius;
+            }
+
+            // Draw min and max diameters legends
+            dc.SetPen(wxPen(wxColour(230, 130, 30), 2, wxPENSTYLE_DOT));
+            dc.SetTextForeground(wxColour(230, 130, 30));
+            dc.DrawLine(lineMin_x, y - 5, lineMin_x + minRadius * 2, y - 5);
+            dc.DrawCircle(minRadius_x, y, minRadius);
+            dc.DrawText(labelTextMin, minRadius_x - dc.GetTextExtent(labelTextMin).GetWidth() / 2, y - 10 - dc.GetTextExtent(labelTextMin).GetHeight());
+
+            dc.SetPen(wxPen(wxColour(130, 230, 30), 2, wxPENSTYLE_DOT));
             dc.SetTextForeground(wxColour(130, 230, 30));
-            dc.DrawLine(x, y + 5, x + GetPlanetaryParam_maxRadius() * scaleFactor * 2, y + 5);
-            dc.DrawText(labelTextMax, x - dc.GetTextExtent(labelTextMax).GetWidth() - 5, y + 10 - dc.GetTextExtent(labelTextMax).GetHeight() / 2);
+            dc.DrawLine(lineMax_x, y + 5, lineMax_x + maxRadius * 2, y + 5);
+            dc.DrawCircle(maxRadius_x, y, maxRadius);
+            dc.DrawText(labelTextMax, maxRadius_x - dc.GetTextExtent(labelTextMax).GetWidth() / 2, y + 5);
         }
     }
+
+    // Reset clipping region
+    dc.DestroyClippingRegion();
 }
 
 void GuiderPlanet::CalcLineParams(CircleDescriptor p1, CircleDescriptor p2)

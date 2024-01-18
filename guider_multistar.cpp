@@ -1267,6 +1267,11 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
     int ypos = int((star.Y - halfW) * scale);
     if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
     {
+        // Clip drawing region to displayed image frame
+        wxImage* pImg = pFrame->pGuider->DisplayedImage();
+        if (pImg)
+            dc.SetClippingRegion(wxRect(0, 0, pImg->GetWidth(), pImg->GetHeight()));
+
         Guider* pGuider = pFrame->pGuider;
         if (pGuider->m_Planet.m_detected)
         {
@@ -1294,6 +1299,8 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
             dc.SetPen(wxPen(wxColour(200, 200, 200), 2, wxPENSTYLE_SHORT_DASH));
             dc.DrawRectangle(pGuider->m_Planet.m_roiRect.x * scale, pGuider->m_Planet.m_roiRect.y * scale, pGuider->m_Planet.m_roiRect.width * scale, pGuider->m_Planet.m_roiRect.height * scale);
         }
+
+        dc.DestroyClippingRegion();
     }
     else
     {
