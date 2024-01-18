@@ -72,7 +72,8 @@ public:
         PLANET_DETECT_MODE_SURFACE = 2
     };
 
-    bool m_minHessianChanged;
+    int m_Planetary_maxFeatures;
+    bool m_surfaceDetectionParamsChanging;
     int m_trackingQuality;
     int m_cachedScaledWidth;
     int m_cachedScaledHeight;
@@ -171,10 +172,20 @@ public:
         if (m_Planetary_minHessian != value)
         {
             m_Planetary_minHessian = value;
-            m_minHessianChanged = true;
+            m_surfaceDetectionParamsChanging = true;
         }
     }
+    void SetPlanetaryParam_maxFeatures(int value)
+    {
+        if (m_Planetary_maxFeatures != value)
+        {
+            m_Planetary_maxFeatures = value;
+            m_surfaceDetectionParamsChanging = true;
+        }
+    }
+
     int  GetPlanetaryParam_minHessian() { return m_Planetary_minHessian; }
+    int  GetPlanetaryParam_maxFeatures() { return m_Planetary_maxFeatures; }
     int  GetPlanetaryParam_minHessianPhysical();
 
     void SetPlanetaryElementsVisual(bool state);

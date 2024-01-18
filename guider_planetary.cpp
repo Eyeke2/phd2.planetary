@@ -57,7 +57,7 @@ GuiderPlanet::GuiderPlanet()
     m_detected = false;
     m_referenceKeypoints.clear();
     m_inlierPoints.clear();
-    m_minHessianChanged = false;
+    m_surfaceDetectionParamsChanging = false;
     m_trackingQuality = 0;
 
     m_cachedScaledWidth = 0;
@@ -82,6 +82,7 @@ GuiderPlanet::GuiderPlanet()
     m_Planetary_lowThreshold = PT_HIGH_THRESHOLD_DEFAULT / 2;
     m_Planetary_highThreshold = PT_HIGH_THRESHOLD_DEFAULT;
     m_Planetary_minHessian = PT_MIN_HESSIAN_DEFAULT;
+    m_Planetary_maxFeatures = PT_MAX_SURFACE_FEATURES;
     m_Planetary_ShowElementsButtonState = false;
     m_Planetary_ShowElementsVisual = false;
     m_draw_PlanetaryHelper = false;
@@ -856,8 +857,8 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
             ++it;
     }
 
-    // Limit to top N keypoints (N = 500)
-    int maxKeypoints = min(500, (int)keypoints.size());
+    // Limit to top N keypoints
+    int maxKeypoints = min(m_Planetary_maxFeatures, (int)keypoints.size());
     std::vector<KeyPoint> topKeypoints;
     if (keypoints.size() <= maxKeypoints)
         topKeypoints.assign(keypoints.begin(), keypoints.end());
@@ -978,7 +979,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
 
         // If variance is too high, set new reference frame
         const float varianceThreshold = 16.0;
-        if ((variance > varianceThreshold) || m_minHessianChanged)
+        if ((variance > varianceThreshold) || m_surfaceDetectionParamsChanging)
         {
             // Exclude keypoints which are too close to frame edges.
             // When setting the reference frame, we limit keypoints to be further away from the edges.
@@ -1011,7 +1012,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
 
             // Switch to red tracking box as a warning sign
             m_trackingQuality = 0;
-            m_minHessianChanged = false;
+            m_surfaceDetectionParamsChanging = false;
         }
         else
         {
@@ -1058,7 +1059,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
         m_detectedFeatures = m_referenceKeypoints.size();
 
         // Assume no more changes to minHessian until further notice
-        m_minHessianChanged = false;
+        m_surfaceDetectionParamsChanging = false;
     }
 
     // Set new object position based on updated centroid

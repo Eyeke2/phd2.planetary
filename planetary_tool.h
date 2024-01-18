@@ -46,6 +46,7 @@
 #define PT_MIN_HESSIAN_MIN        1
 #define PT_MIN_HESSIAN_DEFAULT    (PT_MIN_HESSIAN_MAX-800)
 #define PT_MIN_HESSIAN_MAX        10000
+#define PT_MAX_SURFACE_FEATURES   500
 
 class PlanetTool
 {

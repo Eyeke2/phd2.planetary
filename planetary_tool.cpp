@@ -62,6 +62,7 @@ struct PlanetToolWin : public wxDialog
 
     wxSlider *m_ThresholdSlider;
     wxSlider *m_minHessianSlider;
+    wxSlider *m_maxFeaturesSlider;
 
     wxButton   *m_CloseButton;
     wxCheckBox *m_EclipseModeCheckBox;
@@ -80,6 +81,7 @@ struct PlanetToolWin : public wxDialog
     void OnMouseLeaveCloseBtn(wxMouseEvent& event);
     void OnThresholdChanged(wxCommandEvent& event);
     void OnMinHessianChanged(wxCommandEvent& event);
+    void OnMaxFeaturesChanged(wxCommandEvent& event);
     void OnSurfaceTrackingClick(wxCommandEvent& event);
 
     void OnEnableToggled(wxCommandEvent& event);
@@ -123,7 +125,7 @@ PlanetToolWin::PlanetToolWin()
     m_tabs->AddPage(m_planetTab, "Planetary tracking", true);
 
     m_featuresTab = new wxPanel(m_tabs, wxID_ANY);
-    m_tabs->AddPage(m_featuresTab, "Feature tracking", false);
+    m_tabs->AddPage(m_featuresTab, "Surface features tracking", false);
     m_enableCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable planetary tracking"));
     m_enableCheckBox->SetToolTip(_("Toggle star/planetary tracking mode"));
 
@@ -228,12 +230,20 @@ PlanetToolWin::PlanetToolWin()
     minHessianLabel->SetToolTip(_("Adjusts the sensitivity of feature detection. A lower value detects fewer but more robust features. "
                                   "Higher values increase the number of detected features but may include more noise. "
                                   "Ideal value depends on image content and quality"));
+    wxStaticText* maxFeaturesLabel = new wxStaticText(m_featuresTab, wxID_ANY, wxT("Maximum number of surface features:"), wxDefaultPosition, wxDefaultSize, 0);
+    m_maxFeaturesSlider = new wxSlider(m_featuresTab, wxID_ANY, PT_MAX_SURFACE_FEATURES, 10, PT_MAX_SURFACE_FEATURES, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
+    maxFeaturesLabel->SetToolTip(_("Limits maximum number of features used for tracking."));
     m_minHessianSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnMinHessianChanged, this);
+    m_maxFeaturesSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnMaxFeaturesChanged, this);
     wxStaticBoxSizer* surfaceSizer = new wxStaticBoxSizer(new wxStaticBox(m_featuresTab, wxID_ANY, _("")), wxVERTICAL);
     surfaceSizer->AddSpacer(10);
     surfaceSizer->Add(minHessianLabel, 0, wxLEFT | wxTOP, 10);
     surfaceSizer->Add(m_minHessianSlider, 0, wxALL, 10);
     surfaceSizer->AddSpacer(10);
+    surfaceSizer->Add(maxFeaturesLabel, 0, wxLEFT | wxTOP, 10);
+    surfaceSizer->Add(m_maxFeaturesSlider, 0, wxALL, 10);
+    surfaceSizer->AddSpacer(10);
+
     m_featuresTab->SetSizer(surfaceSizer);
     m_featuresTab->Layout();
 
@@ -329,6 +339,7 @@ PlanetToolWin::PlanetToolWin()
     pPlanet->SetPlanetaryParam_lowThreshold(pConfig->Global.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT/2));
     pPlanet->SetPlanetaryParam_highThreshold(pConfig->Global.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT));
     pPlanet->SetPlanetaryParam_minHessian(pConfig->Global.GetInt("/PlanetTool/min_hessian", PT_MIN_HESSIAN_DEFAULT));
+    pPlanet->SetPlanetaryParam_maxFeatures(pConfig->Global.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES));
 
     pPlanet->SetPlanetaryElementsButtonState(false);
     pPlanet->SetPlanetaryElementsVisual(false);
@@ -347,6 +358,7 @@ PlanetToolWin::PlanetToolWin()
     m_maxRadius->SetValue(pPlanet->GetPlanetaryParam_maxRadius());
     m_ThresholdSlider->SetValue(pPlanet->GetPlanetaryParam_highThreshold());
     m_minHessianSlider->SetValue(pPlanet->GetPlanetaryParam_minHessian());
+    m_maxFeaturesSlider->SetValue(pPlanet->GetPlanetaryParam_maxFeatures());
     m_featureTrackingCheckBox->SetValue(pPlanet->GetSurfaceTrackingState());
     m_EclipseModeCheckBox->SetValue(pPlanet->GetEclipseMode());
     m_RoiCheckBox->SetValue(pPlanet->GetRoiEnableState());
@@ -537,6 +549,12 @@ void PlanetToolWin::OnMinHessianChanged(wxCommandEvent& event)
     pPlanet->SetPlanetaryParam_minHessian(value);
 }
 
+void PlanetToolWin::OnMaxFeaturesChanged(wxCommandEvent& event)
+{
+    int value = event.GetInt();
+    pPlanet->SetPlanetaryParam_maxFeatures(value);
+}
+
 void PlanetToolWin::OnClose(wxCloseEvent& evt)
 {
     pFrame->m_PlanetaryMenuItem->Check(pPlanet->GetPlanetaryEnableState());
@@ -556,6 +574,7 @@ void PlanetToolWin::OnClose(wxCloseEvent& evt)
     pConfig->Global.SetInt("/PlanetTool/max_radius", pPlanet->GetPlanetaryParam_maxRadius());
     pConfig->Global.SetInt("/PlanetTool/high_threshold", pPlanet->GetPlanetaryParam_highThreshold());
     pConfig->Global.SetInt("/PlanetTool/min_hessian", pPlanet->GetPlanetaryParam_minHessian());
+    pConfig->Global.SetInt("/PlanetTool/max_features", pPlanet->GetPlanetaryParam_maxFeatures());
 
 #if FILE_SIMULATOR_MODE
     pConfig->Global.SetInt("/PlanetTool/sim_file_index", SimFileIndex);
@@ -584,6 +603,7 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         pPlanet->SetPlanetaryParam_lowThreshold(PT_HIGH_THRESHOLD_DEFAULT/2);
         pPlanet->SetPlanetaryParam_highThreshold(PT_HIGH_THRESHOLD_DEFAULT);
         pPlanet->SetPlanetaryParam_minHessian(PT_MIN_HESSIAN_DEFAULT);
+        pPlanet->SetPlanetaryParam_maxFeatures(PT_MAX_SURFACE_FEATURES);
 
         m_minDist->SetValue(pPlanet->GetPlanetaryParam_minDist());
         m_param1->SetValue(pPlanet->GetPlanetaryParam_param1());
@@ -592,6 +612,7 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         m_maxRadius->SetValue(pPlanet->GetPlanetaryParam_maxRadius());
         m_ThresholdSlider->SetValue(pPlanet->GetPlanetaryParam_highThreshold());
         m_minHessianSlider->SetValue(pPlanet->GetPlanetaryParam_minHessian());
+        m_maxFeaturesSlider->SetValue(pPlanet->GetPlanetaryParam_maxFeatures());
     }
     else
         this->Close();
