@@ -5,6 +5,14 @@ When installing this version, it is advised to choose a destination folder disti
 
 Change log
 
+v2.6.13-planet.dev4.rc2
+* Introduce maximum limit of detected surface features used for tracking.
+* Use PHD2 alerts to draw attention in cases which require user's response in planetary tracking mode.
+* Adding display of circles with min/max radii as visualization aid.
+* Fix handling of star auto select in planetary mode.
+* Prevent resizing of rows and columns in stats grids as protection against inadvertent change of cell size by the user.
+* Fix few cases of uninitialized variables.
+
 v2.6.13-planet.dev4.rc1
 * Bug fixes in Star Profile display.
 * Test actual change in minHessian parameter which affects logic of reference frame selection.
