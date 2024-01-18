@@ -81,6 +81,7 @@ GuiderPlanet::GuiderPlanet()
     m_Planetary_maxRadius = PT_MAX_RADIUS_DEFAULT;
     m_Planetary_lowThreshold = PT_HIGH_THRESHOLD_DEFAULT / 2;
     m_Planetary_highThreshold = PT_HIGH_THRESHOLD_DEFAULT;
+    m_Planetary_minHessian = PT_MIN_HESSIAN_DEFAULT;
     m_Planetary_ShowElementsButtonState = false;
     m_Planetary_ShowElementsVisual = false;
     m_draw_PlanetaryHelper = false;

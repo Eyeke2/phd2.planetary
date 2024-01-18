@@ -61,6 +61,7 @@ ProfileWindow::ProfileWindow(wxWindow *parent) :
     memset(midrow_profile, 0, sizeof(midrow_profile));
     memset(vert_profile, 0, sizeof(vert_profile));
     memset(horiz_profile, 0, sizeof(horiz_profile));
+    imageLeftMargin = 0;
 }
 
 ProfileWindow::~ProfileWindow()
