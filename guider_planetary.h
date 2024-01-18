@@ -232,5 +232,5 @@ public:
     cv::Point2f calculateCentroid(const std::vector<cv::KeyPoint>& keypoints, cv::Point2f& clickedPoint);
     bool areCollinear(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::KeyPoint& kp3);
     bool validateAndFilterKeypoints(std::vector<cv::KeyPoint>& keypoints, std::vector<cv::KeyPoint>& filteredKeypoints);
-    bool DetectSurfaceFeatures(cv::Mat image, cv::Point2f& clickedPoint);
+    bool DetectSurfaceFeatures(cv::Mat image, cv::Point2f& clickedPoint, bool autoSelect);
 };

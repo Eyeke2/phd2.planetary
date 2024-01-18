@@ -820,7 +820,7 @@ int GuiderPlanet::GetPlanetaryParam_minHessianPhysical()
 }
 
 // Detect/track surface features
-bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
+bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool autoSelect)
 {
     // No detected features yet
     m_detectedFeatures = 0;
@@ -842,8 +842,8 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint)
     std::vector<KeyPoint> keypoints;
     surfDetector.detect(equalized, keypoints);
 
-    // While not guiding we can still reset the fixation point based on new clicked point
-    if ((pFrame->pGuider->GetState() != STATE_GUIDING) && (clickedPoint != m_prevClickedPoint))
+    // While not guiding we can still reset the fixation point based on new clicked point or autoselect
+    if ((pFrame->pGuider->GetState() != STATE_GUIDING) && (autoSelect || (clickedPoint != m_prevClickedPoint)))
         m_referenceKeypoints.clear();
 
     // Exclude keypoints which are too close to frame edges.
@@ -1292,9 +1292,13 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
     m_statusMsg = _("Object not found");
 
     // Point clicked by user in the main window
-    Point2f clickedPoint = { (float) m_clicked_x, (float)m_clicked_y };
     if (autoSelect)
+    {
+        m_clicked_x = 0;
+        m_clicked_y = 0;
         m_roiClicked = false;
+    }
+    Point2f clickedPoint = { (float)m_clicked_x, (float)m_clicked_y };
 
     // Make sure to use 8-bit gray image for feature detection
     int format;
@@ -1367,7 +1371,7 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
         switch (GetPlanetDetectMode())
         {
             case PLANET_DETECT_MODE_SURFACE:
-                detectionResult = DetectSurfaceFeatures(img8, clickedPoint);
+                detectionResult = DetectSurfaceFeatures(img8, clickedPoint, autoSelect);
                 pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_detectedFeatures : 0);
                 break;
             case PLANET_DETECT_MODE_CIRCLES:
