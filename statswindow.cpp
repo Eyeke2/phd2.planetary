@@ -174,6 +174,22 @@ StatsWindow::StatsWindow(wxWindow *parent)
     sizer2->Add(m_grid3, wxSizerFlags(0).Border(wxALL, 10));
 
     SetSizerAndFit(sizer2);
+
+    // Save original grid size to prevent resizing of rows and columns
+    m_gridRowHeight = m_grid1->GetRowHeight(0);
+    for (int j = 0; j < m_grid1->GetNumberCols(); ++j)
+        m_grid1ColSize.push_back(m_grid1->GetColSize(j));
+    for (int j = 0; j < m_grid2->GetNumberCols(); ++j)
+        m_grid2ColSize.push_back(m_grid2->GetColSize(j));
+    for (int j = 0; j < m_grid3->GetNumberCols(); ++j)
+        m_grid3ColSize.push_back(m_grid3->GetColSize(j));
+
+    m_grid1->Bind(wxEVT_GRID_COL_SIZE, &StatsWindow::OnGridResize, this);
+    m_grid1->Bind(wxEVT_GRID_ROW_SIZE, &StatsWindow::OnGridResize, this);
+    m_grid2->Bind(wxEVT_GRID_COL_SIZE, &StatsWindow::OnGridResize, this);
+    m_grid2->Bind(wxEVT_GRID_ROW_SIZE, &StatsWindow::OnGridResize, this);
+    m_grid3->Bind(wxEVT_GRID_COL_SIZE, &StatsWindow::OnGridResize, this);
+    m_grid3->Bind(wxEVT_GRID_ROW_SIZE, &StatsWindow::OnGridResize, this);
 }
 
 StatsWindow::~StatsWindow(void)
