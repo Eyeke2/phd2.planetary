@@ -165,8 +165,18 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
     int labelTextHeight;
 
     if (inFocusingMode) {
-        //todo: Tuning the scaling factor
-        int scale = ysize / 50;
+        // As a reference for computing scale factor use the following template
+        // xsize = 5 + sfw * (strlen("HFD:   99999.99\"")) + sfw * scale * strlen("9999.99")
+        float sfw = (float)dc.GetTextExtent("0").GetWidth();
+        const Star& star = pFrame->pGuider->PrimaryStar();
+        float hfd = star.HFD;
+        float hfdArcSec = hfd * pFrame->GetCameraPixelScale();
+
+        int largeLen = wxString::Format("%.2f", hfd).Length();
+        int smallLen = wxString::Format("HFD:   %.2f\"", hfdArcSec).Length();
+        float scale = (xsize - 5 - sfw * smallLen) / (sfw * largeLen);
+        if (scale < 1)
+            scale = 1;
         largeFont = smallFont.Scaled(scale);
 
         dc.SetFont(largeFont);
