@@ -5,6 +5,19 @@ When installing this version, it is advised to choose a destination folder disti
 
 Change log
 
+v2.6.13-planet.dev4.rc3
+* Fix image detection code which has a potential to solve problems reported by ASI cameras users.
+There could be still some issues remaining with ASI devices in Windows 11, which aren't related to PHD2.
+* Star Profile Window: replace HFD metrics by planet radius or surface feature size. Surface feature size is
+calculated on the feature point nearest to the tracking.
+* Star Profile: show HFD or planetary metrics without clipping displayed information whenever possible.
+In cases where the nearest feature is too distant from the tracking position, a value of 999.99 will be shown.
+* Limit displaying tracking selection symbols (green circle or target lock symbol) and min/max radii hints only
+when capturing is active.
+* Treat full pause of capture as stop capture to decide when to draw tracking symbols and min/max radii.
+* Tracking symbols and min/max radii: revert one of recent changes related to drawing min/max circles and radii
+and prefer thin lines/circles which look cleaner and still visible.
+
 v2.6.13-planet.dev4.rc2
 * Introduce maximum limit of detected surface features used for tracking.
 * Use PHD2 alerts to draw attention in cases which require user's response in planetary tracking mode.
