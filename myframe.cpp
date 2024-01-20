@@ -1935,6 +1935,8 @@ void MyFrame::SetPaused(PauseType pause)
         pGuider->SetPaused(pause);
         StatusMsgNoTimeout(_("Paused") + (pause == PAUSE_FULL ? _("/full") : _("/looping")));
         GuideLog.ServerCommand(pGuider, "PAUSE");
+        if (pause == PAUSE_FULL)
+            pGuider->m_Planet.NotifyStopCapturing();
         EvtServer.NotifyPaused();
     }
     else if (pause == PAUSE_NONE && isPaused)
@@ -1949,6 +1951,7 @@ void MyFrame::SetPaused(PauseType pause)
             ScheduleExposure();
         StatusMsg(_("Resumed"));
         GuideLog.ServerCommand(pGuider, "RESUME");
+        pGuider->m_Planet.NotifyStartCapturing();
         EvtServer.NotifyResumed();
     }
 }
