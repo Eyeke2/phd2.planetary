@@ -1294,7 +1294,7 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
         }
 
         // Show active processing region
-        if (pGuider->m_Planet.m_roiActive)
+        if (pGuider->m_Planet.m_roiActive && pFrame->CaptureActive)
         {
             dc.SetPen(wxPen(wxColour(200, 200, 200), 2, wxPENSTYLE_SHORT_DASH));
             dc.DrawRectangle(pGuider->m_Planet.m_roiRect.x * scale, pGuider->m_Planet.m_roiRect.y * scale, pGuider->m_Planet.m_roiRect.width * scale, pGuider->m_Planet.m_roiRect.height * scale);

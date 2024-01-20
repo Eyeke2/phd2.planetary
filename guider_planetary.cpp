@@ -292,12 +292,15 @@ void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFa
         m_syncLock.Unlock();
     }
 
+    // Reset clipping region (don't clip min/max circles)
+    dc.DestroyClippingRegion();
+
     // Display min/max diameters for visual feedback
     if (m_draw_PlanetaryHelper)
     {
-        if (!GetSurfaceTrackingState())
+        m_draw_PlanetaryHelper = false;
+        if (!GetSurfaceTrackingState() && pFrame->CaptureActive)
         {
-            m_draw_PlanetaryHelper = false;
             const wxString labelTextMin("min diameter");
             const wxString labelTextMax("max diameter");
             int x = int(primaryStar.X * scaleFactor + 0.5);
@@ -332,9 +335,6 @@ void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFa
             dc.DrawText(labelTextMax, maxRadius_x - dc.GetTextExtent(labelTextMax).GetWidth() / 2, y + 5);
         }
     }
-
-    // Reset clipping region
-    dc.DestroyClippingRegion();
 }
 
 void GuiderPlanet::CalcLineParams(CircleDescriptor p1, CircleDescriptor p2)
@@ -500,7 +500,7 @@ int GuiderPlanet::RefineEclipseCenter(float& bestScore, CircleDescriptor& eclips
             if (dist > searchRadius)
                 continue;
 
-            // When finished crearing a workload, create and run new processing thread
+            // When finished creating a workload, create and run new processing thread
             if (useThreads && (workloadSize++ >= maxWorkloadSize))
             {
                 AsyncCalcScoreThread *thread = new AsyncCalcScoreThread(bestScore, eclipseContour, workload, minRadius, maxRadius);
@@ -750,7 +750,7 @@ Point2f GuiderPlanet::calculateCentroid(const std::vector<KeyPoint>& keypoints, 
     // If no clicked point is available, calculate centroid of keypoints
     if ((clickedPoint.x == 0) || (clickedPoint.y == 0) || (clickedPoint.x > m_frameWidth) || (clickedPoint.y > m_frameHeight))
     {
-        // Calculare centroid of keypoints to be used as a virtual tracking point
+        // Calculate centroid of keypoints to be used as a virtual tracking point
         Point2f sum(0, 0);
         for (const auto& kp : keypoints)
             sum += kp.pt;
