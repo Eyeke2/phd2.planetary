@@ -301,13 +301,13 @@ void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFa
             }
 
             // Draw min and max diameters legends
-            dc.SetPen(wxPen(wxColour(230, 130, 30), 2, wxPENSTYLE_DOT));
+            dc.SetPen(wxPen(wxColour(230, 130, 30), 1, wxPENSTYLE_DOT));
             dc.SetTextForeground(wxColour(230, 130, 30));
             dc.DrawLine(lineMin_x, y - 5, lineMin_x + minRadius * 2, y - 5);
             dc.DrawCircle(minRadius_x, y, minRadius);
             dc.DrawText(labelTextMin, minRadius_x - dc.GetTextExtent(labelTextMin).GetWidth() / 2, y - 10 - dc.GetTextExtent(labelTextMin).GetHeight());
 
-            dc.SetPen(wxPen(wxColour(130, 230, 30), 2, wxPENSTYLE_DOT));
+            dc.SetPen(wxPen(wxColour(130, 230, 30), 1, wxPENSTYLE_DOT));
             dc.SetTextForeground(wxColour(130, 230, 30));
             dc.DrawLine(lineMax_x, y + 5, lineMax_x + maxRadius * 2, y + 5);
             dc.DrawCircle(maxRadius_x, y, maxRadius);
