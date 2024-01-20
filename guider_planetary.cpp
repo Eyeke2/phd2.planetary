@@ -90,6 +90,7 @@ GuiderPlanet::GuiderPlanet()
     m_frameHeight = 0;
     m_PlanetEccentricity = 0;
     m_PlanetAngle = 0;
+    m_trackedFeatureSize = TRACKING_FEATURE_SIZE_UNDEF;
 
     // Build gaussian weighting function table used for circle feature detection
     float sigma = 1.0;
@@ -125,6 +126,23 @@ GuiderPlanet::GuiderPlanet()
     bool nonfreeInit = initModule_nonfree();
     Debug.Write(wxString::Format("OpenCV nonfree module initialization status: %d\n", nonfreeInit));
     assert(nonfreeInit);
+}
+
+// Planet/feature size depending on planetary detection mode
+double GuiderPlanet::GetHFD()
+{
+    if (GetPlanetDetectMode() == PLANET_DETECT_MODE_SURFACE)
+        return m_trackedFeatureSize;
+    else
+        return m_radius;
+}
+
+wxString GuiderPlanet::GetHfdLabel()
+{
+    if (GetPlanetDetectMode() == PLANET_DETECT_MODE_SURFACE)
+        return _("SIZE: ");
+    else
+        return _("RADIUS: ");
 }
 
 // Get current detection status
@@ -736,12 +754,16 @@ Point2f GuiderPlanet::calculateCentroid(const std::vector<KeyPoint>& keypoints, 
         Point2f sum(0, 0);
         for (const auto& kp : keypoints)
             sum += kp.pt;
+        // Radius affects scaling factor for the Star Profile window
+        m_trackedFeatureSize = TRACKING_FEATURE_SIZE_UNDEF;
+        m_radius = 50;
         return Point2f(sum.x / keypoints.size(), sum.y / keypoints.size());
     }
     else
     {
         // Find closest keypoint to clicked point
         double minDist = 999999;
+        KeyPoint trackedKeypoint;
         Point2f closestPoint = Point2f(0, 0);
         for (const auto& kp : keypoints)
         {
@@ -751,9 +773,13 @@ Point2f GuiderPlanet::calculateCentroid(const std::vector<KeyPoint>& keypoints, 
             if ((dist < minDist) && (kp.pt.x > 50) && (kp.pt.y > 50) && (kp.pt.x < m_frameWidth - 50) && (kp.pt.y < m_frameHeight - 50))
             {
                 minDist = dist;
+                trackedKeypoint = kp;
                 closestPoint = kp.pt;
             }
         }
+        // Keypoint size holds diameter of the meaningful keypoint neighborhood
+        m_trackedFeatureSize = trackedKeypoint.size;
+        m_radius = cvRound(trackedKeypoint.size / 2 * 1.25 + 25);
         return closestPoint;
     }
 }
@@ -1020,6 +1046,30 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
             m_trackingQuality = 1;
         }
 
+        // Find the keypoint closest to the surface fixation point
+        KeyPoint *trackedKeypoint = NULL;
+        float trackedPosMinDistance = 999999.0;
+        for (int i = 0; i < filteredKeypoints.size(); ++i)
+        {
+            double dist = norm(m_surfaceFixationPoint - filteredKeypoints[i].pt);
+            if (dist < trackedPosMinDistance)
+            {
+                trackedPosMinDistance = dist;
+                trackedKeypoint = &filteredKeypoints[i];
+            }
+        }
+        // Keypoint size holds diameter of the meaningful keypoint neighborhood
+        if (trackedPosMinDistance < 15)
+        {
+            m_trackedFeatureSize = trackedKeypoint->size;
+            m_radius = cvRound(trackedKeypoint->size / 2 * 1.25 + 25);
+        }
+        else
+        {
+            m_trackedFeatureSize = TRACKING_FEATURE_SIZE_UNDEF;
+            m_radius = 50;
+        }
+
         // Save inlier matches for visualization
         if (GetPlanetaryElementsVisual())
         {
@@ -1065,10 +1115,6 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
     // Set new object position based on updated centroid
     m_center_x = m_surfaceFixationPoint.x;
     m_center_y = m_surfaceFixationPoint.y;
-
-    // For surface feature tracking, use a fixed radius
-    // which defines scaling factor for the Star Profile window.
-    m_radius = 50;
 
     return true;
 }

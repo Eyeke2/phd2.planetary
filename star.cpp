@@ -417,69 +417,74 @@ bool Star::Find(const usImage *pImg, int searchRegion, int base_x, int base_y, F
             goto done;
         }
 
-        if (SNR < LOW_SNR)
+        // In planetary mode HFD's original meaning is replaced by feature radius
+        if (mode == FIND_PLANET)
         {
-            HFD = 0.;
-            Result = STAR_LOWSNR;
-            goto done;
+            HFD = pFrame->pGuider->m_Planet.GetHFD();
         }
-
-        if (mode != FIND_PLANET)
+        else 
         {
             newX = peak_x + cx / mass;
             newY = peak_y + cy / mass;
-        }
 
-        HFD = 2.0 * hfr(hfrvec, newX, newY, mass);
-        // Check for constraints on HFD value
-        if (mode != FIND_PEAK)
-        {
-            if (HFD < minHFD)
+            if (SNR < LOW_SNR)
             {
-                Result = STAR_LOWHFD;
+                HFD = 0.;
+                Result = STAR_LOWSNR;
                 goto done;
             }
-            if ((mode != FIND_PLANET) && (HFD > maxHFD))
+
+            HFD = 2.0 * hfr(hfrvec, newX, newY, mass);
+            // Check for constraints on HFD value
+            if (mode != FIND_PEAK)
             {
-                Result = STAR_HIHFD;
+                if (HFD < minHFD)
+                {
+                    Result = STAR_LOWHFD;
+                    goto done;
+                }
+                if ((mode != FIND_PLANET) && (HFD > maxHFD))
+                {
+                    Result = STAR_HIHFD;
+                    goto done;
+                }
+            }
+
+            // check for saturation
+
+            unsigned int mx = (unsigned int) max3[0];
+
+            // remove pedestal
+            if (mx >= pImg->Pedestal)
+                mx -= pImg->Pedestal;
+            else
+                mx = 0; // unlikely
+
+            if (maxADU > 0)
+            {
+                // maxADU is known
+                if (mx >= maxADU)
+                    Result = STAR_SATURATED;
                 goto done;
             }
-        }
 
-        // check for saturation
+            // maxADU not known, use the "flat-top" hueristic
+            //
+            // even at saturation, the max values may vary a bit due to noise
+            // Call it saturated if the the top three values are within 32 parts per 65535 of max for 16-bit cameras,
+            // or within 1 part per 191 for 8-bit cameras
+            unsigned int d = (unsigned int) (max3[0] - max3[2]);
 
-        unsigned int mx = (unsigned int) max3[0];
-
-        // remove pedestal
-        if (mx >= pImg->Pedestal)
-            mx -= pImg->Pedestal;
-        else
-            mx = 0; // unlikely
-
-        if (maxADU > 0)
-        {
-            // maxADU is known
-            if (mx >= maxADU)
-                Result = STAR_SATURATED;
-            goto done;
-        }
-
-        // maxADU not known, use the "flat-top" hueristic
-        //
-        // even at saturation, the max values may vary a bit due to noise
-        // Call it saturated if the the top three values are within 32 parts per 65535 of max for 16-bit cameras,
-        // or within 1 part per 191 for 8-bit cameras
-        unsigned int d = (unsigned int) (max3[0] - max3[2]);
-
-        if (pImg->BitsPerPixel < 12)
-        {
-            if (d * 191U < 1U * mx)
-                Result = STAR_SATURATED;
-        }
-        else
-        {
-            if (d * 65535U < 32U * mx)
-                Result = STAR_SATURATED;
+            if (pImg->BitsPerPixel < 12)
+            {
+                if (d * 191U < 1U * mx)
+                    Result = STAR_SATURATED;
+            }
+            else
+            {
+                if (d * 65535U < 32U * mx)
+                    Result = STAR_SATURATED;
+            }
         }
     }
     catch (const wxString& Msg)

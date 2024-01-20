@@ -39,6 +39,9 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/nonfree/nonfree.hpp"
 
+// Marks undefined feature size
+#define TRACKING_FEATURE_SIZE_UNDEF 999.99
+
 // Planetary guiding/tracking state and control class
 class GuiderPlanet
 {
@@ -80,6 +83,7 @@ public:
     wxImage* m_cachedTrackerImage;
     wxBitmap m_cachedTrackerScaledBitmap;
 
+    double m_trackedFeatureSize;
     int m_detectedFeatures;
     wxImage m_lockTargetImageOk;
     int m_lockTargetWidthOk;
@@ -141,6 +145,8 @@ public:
             return PLANET_DETECT_MODE_CIRCLES;
     }
 
+    double GetHFD();
+    wxString GetHfdLabel();
     void GetDetectionStatus(wxString& statusMsg);
     void NotifyStartCapturing();
     void NotifyStopCapturing();

@@ -164,6 +164,9 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
     int largeFontHeight;
     int labelTextHeight;
 
+    // Set label for displaying tracked object measured property, depending on star find mode
+    wxString hfdLabel = pFrame->GetStarFindMode() == Star::FIND_PLANET ? pFrame->pGuider->m_Planet.GetHfdLabel() : _("HFD: ");
+
     if (inFocusingMode) {
         // As a reference for computing scale factor use the following template
         // xsize = 5 + sfw * (strlen("HFD:   99999.99\"")) + sfw * scale * strlen("9999.99")
@@ -173,7 +176,8 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         float hfdArcSec = hfd * pFrame->GetCameraPixelScale();
 
         int largeLen = wxString::Format("%.2f", hfd).Length();
-        int smallLen = wxString::Format("HFD:   %.2f\"", hfdArcSec).Length();
+        int smallLen = wxString::Format("  %.2f\"", hfdArcSec).Length();
+        smallLen += hfdLabel.Length();
         float scale = (xsize - 5 - sfw * smallLen) / (sfw * largeLen);
         if (scale < 1)
             scale = 1;
@@ -359,7 +363,7 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
             if (imageLeftMargin > fwhmLineWidth + 20)
                 dc.DrawText(wxString::Format("X: %0.2f, Y: %0.2f", pFrame->pGuider->CurrentPosition().X, pFrame->pGuider->CurrentPosition().Y), imageLeftMargin, ysize - labelTextHeight + 5);
             int x = 5;
-            wxString s(_("HFD: "));
+            wxString s = hfdLabel;
             dc.DrawText(s, x, ysize - largeFontHeight / 2 - smallFontHeight / 2);
             x += dc.GetTextExtent(s).GetWidth();
 
