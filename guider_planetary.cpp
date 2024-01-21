@@ -183,6 +183,14 @@ void GuiderPlanet::NotifyStopCapturing()
         SetPlanetaryElementsVisual(false);
 }
 
+// Notification callback when stop is finished
+void GuiderPlanet::NotifyFinishStop()
+{
+    // This appears to be required to clear selection (green circle/target lock symbol)
+    if (GetPlanetaryEnableState())
+        pFrame->pGuider->Reset(false);
+}
+
 // Return scaled tracking image with lock target symbol
 PHD_Point GuiderPlanet::GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale)
 {

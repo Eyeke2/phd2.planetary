@@ -150,6 +150,7 @@ public:
     void GetDetectionStatus(wxString& statusMsg);
     void NotifyStartCapturing();
     void NotifyStopCapturing();
+    void NotifyFinishStop();
 
     bool GetPlanetaryEnableState() { return m_Planetary_enabled; }
     void SetPlanetaryEnableState(bool enabled) { m_Planetary_enabled = enabled; }
