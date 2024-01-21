@@ -1312,7 +1312,6 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
     CameraWatchdog watchdog(duration, GetTimeoutMs());
 
     // sleep before rendering the image so that any changes made in the middle of a long exposure (e.g. manual guide pulse) shows up in the image
-#if FILE_SIMULATOR_MODE == 0
     if (duration > 5)
     {
         if (WorkerThread::MilliSleep(duration - 5, WorkerThread::INT_ANY))
@@ -1323,7 +1322,6 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
             return true;
         }
     }
-#endif
 
 #if SIMMODE==2
     // Can be also PNG or JPG file
