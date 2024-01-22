@@ -1418,21 +1418,22 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
     bool detectionResult = false;
     try
     {
-        // Do slight image bluring to decrease noise impact on results
-        GaussianBlur(img8, img8, cv::Size(3, 3), 1.5);
+        // Do slight image blurring to decrease noise impact on results
+        Mat imgFiltered;
+        GaussianBlur(img8, imgFiltered, cv::Size(3, 3), 1.5);
 
         // Find planet center depending on the selected detection mode
         switch (GetPlanetDetectMode())
         {
             case PLANET_DETECT_MODE_SURFACE:
-                detectionResult = DetectSurfaceFeatures(img8, clickedPoint, autoSelect);
+                detectionResult = DetectSurfaceFeatures(imgFiltered, clickedPoint, autoSelect);
                 pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_detectedFeatures : 0);
                 break;
             case PLANET_DETECT_MODE_CIRCLES:
-                detectionResult = FindPlanetCircle(img8, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
+                detectionResult = FindPlanetCircle(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
                 break;
             case PLANET_DETECT_MODE_ECLIPSE:
-                detectionResult = FindPlanetEclipse(img8, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
+                detectionResult = FindPlanetEclipse(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
                 break;
         }
 
