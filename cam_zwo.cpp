@@ -792,13 +792,14 @@ bool Camera_ZWO::Capture(int duration, usImage& img, int options, const wxRect& 
             Debug.Write(wxString::Format("ZWO: setStartPos(%d,%d) => %d\n", frame.GetLeft(), frame.GetTop(), status));
     }
 
-    int poll = wxMin(duration, 100);
-
     unsigned char *const buffer =
         m_bpp == 16 && !useSubframe ? (unsigned char *) img.ImageData : (unsigned char *) m_buffer;
 
     if (m_mode == CM_VIDEO)
     {
+        // As recommended by ASI, best set to exposure * 2 + 500ms
+        int poll = duration * 2 + 500;
+
         // the camera and/or driver will buffer frames and return the oldest frame,
         // which could be quite stale. read out all buffered frames so the frame we
         // get is current
@@ -836,6 +837,8 @@ bool Camera_ZWO::Capture(int duration, usImage& img, int options, const wxRect& 
     else
     {
         // CM_SNAP
+
+        int poll = wxMin(duration, 100);
 
         ASI_BOOL is_dark = HasShutter && ShutterClosed ? ASI_TRUE : ASI_FALSE;
 
