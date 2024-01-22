@@ -1354,32 +1354,15 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
     }
     Point2f clickedPoint = { (float)m_clicked_x, (float)m_clicked_y };
 
-    // Make sure to use 8-bit gray image for feature detection
-    int format;
-    switch (pImage->BitsPerPixel)
-    {
-    case 16: format = CV_16UC1;
-        break;
-    case 8: format = CV_8UC1;
-        break;
-    default:
-        m_detected = false;
-        m_circlesValid = false;
-        m_detectionCounter = 0;
-        return false;
-    }
-
-    int minRadius = (int) GetPlanetaryParam_minRadius();
-    int maxRadius = (int) GetPlanetaryParam_maxRadius();
-    int roiRadius = (int) (maxRadius * 3 / 2.0 + 0.5);
-
     // Use ROI for CPU time optimization
     bool roiActive = false;
+    int minRadius = (int)GetPlanetaryParam_minRadius();
+    int maxRadius = (int)GetPlanetaryParam_maxRadius();
+    int roiRadius = (int)(maxRadius * 3 / 2.0 + 0.5);
     int roiOffsetX = 0;
     int roiOffsetY = 0;
-    Mat FullFrame(pImage->Size.GetHeight(), pImage->Size.GetWidth(), format, pImage->ImageData);
+    Mat FullFrame(pImage->Size.GetHeight(), pImage->Size.GetWidth(), CV_16UC1, pImage->ImageData);
     Mat RoiFrame;
-    Mat img8;
     Rect roiRect(0, 0, pImage->Size.GetWidth(), pImage->Size.GetHeight());
     if (!autoSelect && GetRoiEnableState() && m_detected &&
         !GetSurfaceTrackingState() &&
@@ -1402,10 +1385,13 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
     }
     else
         RoiFrame = FullFrame;
-    if (pImage->BitsPerPixel == 16)
-        RoiFrame.convertTo(img8, CV_8U, 1.0 / 256.0);
-    else
-        img8 = RoiFrame;
+
+    // Make sure to use 8-bit gray image for feature detection
+    // pImage always has 16-bit pixels, but depending on camera bpp
+    // we should properly scale the image.
+    Mat img8;
+    int bppFactor = (pImage->BitsPerPixel >= 8) ? 1 << (pImage->BitsPerPixel - 8) : 1;
+    RoiFrame.convertTo(img8, CV_8U, 1.0 / bppFactor);
 
     // Save latest frame dimensions
     m_frameWidth = pImage->Size.GetWidth();
