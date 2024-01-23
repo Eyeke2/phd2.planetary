@@ -5,6 +5,10 @@ When installing this version, it is advised to choose a destination folder disti
 
 Change log
 
+v2.6.13-planet.dev5.rc1
+* Fix star profile graph and skip FWHM calculation in the planetary mode.
+* Fixed focus metrics calculation by increasing sampling area and droping sharpness normalization.
+
 v2.6.13-planet.dev4
 * Major Bugfix: fix a long standing bug in handling of 8-bit mode camera images.
 * Surface Features Detection: replace feature size metrics in Star Profile by measure of sharpness in a small ROI
