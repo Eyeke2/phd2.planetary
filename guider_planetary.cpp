@@ -55,6 +55,7 @@ GuiderPlanet::GuiderPlanet()
     m_Planetary_enabled = false;
     m_Planetary_SurfaceTracking = false;
     m_detected = false;
+    m_radius = 0;
     m_referenceKeypoints.clear();
     m_inlierPoints.clear();
     m_surfaceDetectionParamsChanging = false;

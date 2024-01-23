@@ -104,6 +104,7 @@ void ProfileWindow::UpdateData(const usImage *img, float xpos, float ypos)
 
     Star::FindMode findMode = pFrame->GetStarFindMode();
     int radius = (findMode == Star::FIND_PLANET) ? pFrame->pGuider->m_Planet.m_radius * 5 / 4: HALFW;
+    radius = wxMax(radius, (int) HALFW);
 
     int xstart = ROUNDF(xpos) - radius;
     int ystart = ROUNDF(ypos) - radius;
@@ -130,6 +131,7 @@ void ProfileWindow::UpdateData(const usImage *img, float xpos, float ypos)
         }
     }
     else
+    {
         for (y = 0; (y < FULLW) && (ystart + y < yrowsize); y++) {
             for (x = 0; (x < FULLW) && (xstart + x < xrowsize); x++, uptr++) {
                 *uptr = *(img->ImageData + xstart + x + (ystart + y) * xrowsize);
@@ -137,6 +139,7 @@ void ProfileWindow::UpdateData(const usImage *img, float xpos, float ypos)
                 vert_profile[y] += (int) *uptr;
             }
         }
+    }
     uptr = this->data + (FULLW * HALFW);
     for (x = 0; x < FULLW; x++, uptr++)
         midrow_profile[x] = (int) *uptr;
@@ -224,7 +227,7 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
     float fwhm = 0.f;
 
     // Figure max and min
-    int Prof_Min, Prof_Max, Prof_Mid;
+    int Prof_Min, Prof_Max;
     Prof_Min = Prof_Max = *profptr;
 
     for (i = 1; i < FULLW; i++)
@@ -239,7 +242,7 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
 
     if (Prof_Min < Prof_Max)
     {
-        Prof_Mid = (Prof_Max - Prof_Min) / 2 + Prof_Min;
+        int Prof_Mid = (Prof_Max - Prof_Min) / 2 + Prof_Min;
         // Figure the actual points in the window
         float Prof_Range = (float)(Prof_Max - Prof_Min) / (float)(ysize - labelTextHeight - 5);
         if (!Prof_Range) Prof_Range = 1;
@@ -248,27 +251,35 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         for (i = 0; i < FULLW; i++)
             Prof[i] = wxPoint(5 + i * wprof, ysize - labelTextHeight - ((float)(*(profptr + i) - Prof_Min) / Prof_Range));
 
-        // fwhm
-        int x1 = 0;
-        int x2 = 0;
-        int profval;
-        int profvalprec;
-        for (i = 1; i < FULLW; i++)
+        if (pFrame->GetStarFindMode() != Star::FIND_PLANET)
         {
-            profval = *(profptr + i);
-            profvalprec = *(profptr + i - 1);
-            if (profvalprec <= Prof_Mid && profval >= Prof_Mid)
-                x1 = i;
-            else if (profvalprec >= Prof_Mid && profval <= Prof_Mid)
-                x2 = i;
+            // fwhm
+            int x1 = 0;
+            int x2 = 0;
+            int profval;
+            int profvalprec;
+            for (i = 1; i < FULLW; i++)
+            {
+                profval = *(profptr + i);
+                profvalprec = *(profptr + i - 1);
+                if (profvalprec <= Prof_Mid && profval >= Prof_Mid)
+                    x1 = i;
+                else if (profvalprec >= Prof_Mid && profval <= Prof_Mid)
+                    x2 = i;
+            }
+            profval = *(profptr + x1);
+            profvalprec = *(profptr + x1 - 1);
+            float f1 = (float)x1 - (float)(profval - Prof_Mid) / (float)(profval - profvalprec);
+            profval = *(profptr + x2);
+            profvalprec = *(profptr + x2 - 1);
+            float f2 = (float)x2 - (float)(profvalprec - Prof_Mid) / (float)(profvalprec - profval);
+            fwhm = f2 - f1;
         }
-        profval = *(profptr + x1);
-        profvalprec = *(profptr + x1 - 1);
-        float f1 = (float)x1 - (float)(profval - Prof_Mid) / (float)(profval - profvalprec);
-        profval = *(profptr + x2);
-        profvalprec = *(profptr + x2 - 1);
-        float f2 = (float)x2 - (float)(profvalprec - Prof_Mid) / (float)(profvalprec - profval);
-        fwhm = f2 - f1;
+        else
+        {
+            // no fwhm in planetary mode, as we use other metrics
+            fwhm = 0.0;
+        }
 
         // Draw it
         dc.SetPen(RedPen);
