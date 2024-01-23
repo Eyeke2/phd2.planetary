@@ -5,6 +5,13 @@ When installing this version, it is advised to choose a destination folder disti
 
 Change log
 
+v2.6.13-planet.dev4
+* Major Bugfix: fix a long standing bug in handling of 8-bit mode camera images.
+* Surface Features Detection: replace feature size metrics in Star Profile by measure of sharpness in a small ROI
+around the tracked point.
+* Image Zoom in Star Profile: when in Surface Feature Tracking mode the zoom factor is controlled by a mouse wheel.
+Also, a mouse L-click while holding the Alt key will reset the zoom factor to its default level.
+
 v2.6.13-planet.dev4.rc3
 * Fix image detection code which has a potential to solve problems reported by ASI cameras users.
 There could be still some issues remaining with ASI devices in Windows 11, which aren't related to PHD2.
