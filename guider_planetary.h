@@ -64,6 +64,7 @@ private:
     bool   m_Planetary_ShowElementsButtonState;
     bool   m_Planetary_ShowElementsVisual;
 
+    double m_focusSharpness;
     float m_PlanetEccentricity;
     float m_PlanetAngle;
 
@@ -146,8 +147,11 @@ public:
             return PLANET_DETECT_MODE_CIRCLES;
     }
 
+    double ComputeSobelSharpness(const cv::Mat& img);
+    void CalcFocusScore(cv::Mat& FullFrame, int bppFactor, bool detectionResult);
     double GetHFD();
     wxString GetHfdLabel();
+    bool IsPixelMetrics();
     void zoomStarProfile(int rotation);
     void GetDetectionStatus(wxString& statusMsg);
     void NotifyStartCapturing();

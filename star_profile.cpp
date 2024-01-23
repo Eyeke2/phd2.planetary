@@ -379,9 +379,12 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
             dc.DrawText(s, x, ysize - largeFontHeight);
             x += dc.GetTextExtent(s).GetWidth();
 
-            dc.SetFont(smallFont);
-            s = wxString::Format(_T("  %.2f\""), hfdArcSec);
-            dc.DrawText(s, x, ysize - largeFontHeight / 2 - smallFontHeight / 2);
+            if (pFrame->pGuider->m_Planet.IsPixelMetrics())
+            {
+                dc.SetFont(smallFont);
+                s = wxString::Format(_T("  %.2f\""), hfdArcSec);
+                dc.DrawText(s, x, ysize - largeFontHeight / 2 - smallFontHeight / 2);
+            }
         }
         else
         {

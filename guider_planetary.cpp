@@ -60,6 +60,7 @@ GuiderPlanet::GuiderPlanet()
     m_surfaceDetectionParamsChanging = false;
     m_trackingQuality = 0;
     m_starProfileSize = 50;
+    m_focusSharpness = 0;
 
     m_cachedScaledWidth = 0;
     m_cachedScaledHeight = 0;
@@ -133,17 +134,22 @@ GuiderPlanet::GuiderPlanet()
 double GuiderPlanet::GetHFD()
 {
     if (GetPlanetDetectMode() == PLANET_DETECT_MODE_SURFACE)
-        return m_trackedFeatureSize;
+        return m_focusSharpness;
     else
-        return m_radius;
+        return m_detected ? m_radius : 0;
 }
 
 wxString GuiderPlanet::GetHfdLabel()
 {
     if (GetPlanetDetectMode() == PLANET_DETECT_MODE_SURFACE)
-        return _("SIZE: ");
+        return _("FOCUS: ");
     else
         return _("RADIUS: ");
+}
+
+bool GuiderPlanet::IsPixelMetrics()
+{
+    return GetPlanetaryEnableState() ? (GetPlanetDetectMode() != PLANET_DETECT_MODE_SURFACE) : true;
 }
 
 // Handle mouse wheel rotation event from Star Profile windows.
@@ -166,6 +172,55 @@ void GuiderPlanet::zoomStarProfile(int rotation)
             starProfileSize = minStarProfileSize;
         m_starProfileSize = starProfileSize;
     }
+}
+
+// The Sobel operator can be used to detect edges in an image, which are more pronounced in
+// focused images. You can apply the Sobel operator to the image and calculate the sum or mean
+// of the absolute values of the gradients.
+double GuiderPlanet::ComputeSobelSharpness(const Mat& img)
+{
+    Mat grad_x, grad_y;
+    Sobel(img, grad_x, CV_64F, 1, 0);
+    Sobel(img, grad_y, CV_64F, 0, 1);
+
+    Mat grad;
+    magnitude(grad_x, grad_y, grad);
+
+    double minVal, maxVal;
+    minMaxLoc(grad, &minVal, &maxVal);
+
+    // Normalize sharpness value to a 0-1 range and then scale to [0-100] range
+    double sharpness = maxVal > 0.001 ? cv::mean(grad)[0] / maxVal : 0;
+    return sharpness * 100;
+}
+
+// Calculate focus metrics around the updated tracked position
+void GuiderPlanet::CalcFocusScore(Mat& FullFrame, int bppFactor, bool detectionResult)
+{
+    Rect focusSubFrame;
+    Mat focusRoi, focusRoi8;
+    const int focusSize = 50;
+    int focusX;
+    int focusY;
+
+    if (detectionResult)
+    {
+        focusX = m_center_x;
+        focusY = m_center_y;
+    }
+    else
+    {
+        focusX = m_frameWidth / 2;
+        focusY = m_frameHeight / 2;
+    }
+    focusX = wxMax(0, focusX - focusSize / 2);
+    focusY = wxMax(0, focusY - focusSize / 2);
+    focusX = wxMin(focusX, m_frameWidth - focusSize);
+    focusY = wxMin(focusY, m_frameHeight - focusSize);
+    focusSubFrame = Rect(focusX, focusY, focusSize, focusSize);
+    focusRoi = FullFrame(focusSubFrame);
+    focusRoi.convertTo(focusRoi8, CV_8U, 1.0 / bppFactor);
+    m_focusSharpness = ComputeSobelSharpness(focusRoi8);
 }
 
 // Get current detection status
@@ -1428,6 +1483,7 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
         {
             case PLANET_DETECT_MODE_SURFACE:
                 detectionResult = DetectSurfaceFeatures(imgFiltered, clickedPoint, autoSelect);
+                CalcFocusScore(FullFrame, bppFactor, detectionResult);
                 pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_detectedFeatures : 0);
                 break;
             case PLANET_DETECT_MODE_CIRCLES:
