@@ -59,6 +59,7 @@ GuiderPlanet::GuiderPlanet()
     m_inlierPoints.clear();
     m_surfaceDetectionParamsChanging = false;
     m_trackingQuality = 0;
+    m_starProfileSize = 50;
 
     m_cachedScaledWidth = 0;
     m_cachedScaledHeight = 0;
@@ -143,6 +144,28 @@ wxString GuiderPlanet::GetHfdLabel()
         return _("SIZE: ");
     else
         return _("RADIUS: ");
+}
+
+// Handle mouse wheel rotation event from Star Profile windows.
+// Positive or negative indicates direction of rotation.
+void GuiderPlanet::zoomStarProfile(int rotation)
+{
+    // Reset profile zoom when user does L-click and hold Alt button
+    if (rotation == 0 && wxGetKeyState(WXK_ALT))
+    {
+        m_starProfileSize = 50;
+    }
+    else
+    {
+        const int maxStarProfileSize = wxMin(m_frameWidth, m_frameHeight) / 4;
+        const int minStarProfileSize = 15;
+        int starProfileSize = m_starProfileSize + ((rotation > 0) ? 5 : -5);
+        if (starProfileSize >= maxStarProfileSize)
+            starProfileSize = maxStarProfileSize;
+        if (starProfileSize < minStarProfileSize)
+            starProfileSize = minStarProfileSize;
+        m_starProfileSize = starProfileSize;
+    }
 }
 
 // Get current detection status
@@ -764,7 +787,7 @@ Point2f GuiderPlanet::calculateCentroid(const std::vector<KeyPoint>& keypoints, 
             sum += kp.pt;
         // Radius affects scaling factor for the Star Profile window
         m_trackedFeatureSize = TRACKING_FEATURE_SIZE_UNDEF;
-        m_radius = 50;
+        m_radius = m_starProfileSize;
         return Point2f(sum.x / keypoints.size(), sum.y / keypoints.size());
     }
     else
@@ -787,7 +810,7 @@ Point2f GuiderPlanet::calculateCentroid(const std::vector<KeyPoint>& keypoints, 
         }
         // Keypoint size holds diameter of the meaningful keypoint neighborhood
         m_trackedFeatureSize = trackedKeypoint.size;
-        m_radius = cvRound(trackedKeypoint.size / 2 * 1.25 + 25);
+        m_radius = m_starProfileSize;
         return closestPoint;
     }
 }
@@ -1067,16 +1090,8 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
             }
         }
         // Keypoint size holds diameter of the meaningful keypoint neighborhood
-        if (trackedPosMinDistance < 15)
-        {
-            m_trackedFeatureSize = trackedKeypoint->size;
-            m_radius = cvRound(trackedKeypoint->size / 2 * 1.25 + 25);
-        }
-        else
-        {
-            m_trackedFeatureSize = TRACKING_FEATURE_SIZE_UNDEF;
-            m_radius = 50;
-        }
+        m_trackedFeatureSize = (trackedPosMinDistance < 15) ? trackedKeypoint->size : TRACKING_FEATURE_SIZE_UNDEF;
+        m_radius = m_starProfileSize;
 
         // Save inlier matches for visualization
         if (GetPlanetaryElementsVisual())

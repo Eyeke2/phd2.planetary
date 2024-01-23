@@ -52,6 +52,7 @@ private:
     bool m_Planetary_SurfaceTracking;
     bool m_EclipseMode;
     bool m_RoiEnabled;
+    int  m_starProfileSize;
     double m_Planetary_minDist;
     double m_Planetary_param1;
     double m_Planetary_param2;
@@ -147,6 +148,7 @@ public:
 
     double GetHFD();
     wxString GetHfdLabel();
+    void zoomStarProfile(int rotation);
     void GetDetectionStatus(wxString& statusMsg);
     void NotifyStartCapturing();
     void NotifyStopCapturing();

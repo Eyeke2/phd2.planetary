@@ -38,6 +38,7 @@
 BEGIN_EVENT_TABLE(ProfileWindow, wxWindow)
     EVT_PAINT(ProfileWindow::OnPaint)
     EVT_LEFT_DOWN(ProfileWindow::OnLClick)
+    EVT_MOUSEWHEEL(ProfileWindow::OnMouseWheel)
 END_EVENT_TABLE()
 
 enum
@@ -81,7 +82,13 @@ void ProfileWindow::OnLClick(wxMouseEvent& mevent)
         this->mode = this->mode + 1;
         if (this->mode > 2) this->mode = 0;
     }
+    pFrame->pGuider->m_Planet.zoomStarProfile(0);
     Refresh();
+}
+
+void ProfileWindow::OnMouseWheel(wxMouseEvent& mevent)
+{
+    pFrame->pGuider->m_Planet.zoomStarProfile(mevent.GetWheelRotation());
 }
 
 void ProfileWindow::SetState(bool is_active)
