@@ -186,12 +186,8 @@ double GuiderPlanet::ComputeSobelSharpness(const Mat& img)
     Mat grad;
     magnitude(grad_x, grad_y, grad);
 
-    double minVal, maxVal;
-    minMaxLoc(grad, &minVal, &maxVal);
-
-    // Normalize sharpness value to a 0-1 range and then scale to [0-100] range
-    double sharpness = maxVal > 0.001 ? cv::mean(grad)[0] / maxVal : 0;
-    return sharpness * 100;
+    double sharpness = cv::mean(grad)[0];
+    return sharpness;
 }
 
 // Calculate focus metrics around the updated tracked position
@@ -199,7 +195,7 @@ void GuiderPlanet::CalcFocusScore(Mat& FullFrame, int bppFactor, bool detectionR
 {
     Rect focusSubFrame;
     Mat focusRoi, focusRoi8;
-    const int focusSize = 50;
+    const int focusSize = 200;
     int focusX;
     int focusY;
 
