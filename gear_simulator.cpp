@@ -1355,8 +1355,8 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
 #if 0
     // Simulate random motion
     unsigned short *dataptr = img.ImageData;
-    int rx = (1 - (double)rand() / 32767.0) * 2 + 0.5;
-    int ry = (1 - (double)rand() / 32767.0) * 2 + 0.5;
+    int rx = (1 - (double)rand() / 32767.0) * 5 + 0.5;
+    int ry = (1 - (double)rand() / 32767.0) * 5 + 0.5;
     for (int y = 0; y < image.rows; ++y)
     {
         unsigned short pixelValue;
