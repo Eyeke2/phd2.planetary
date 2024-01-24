@@ -63,6 +63,10 @@ GuiderPlanet::GuiderPlanet()
     m_starProfileSize = 50;
     m_focusSharpness = 0;
 
+    m_surfaceFixationPoint = Point2f(0, 0);
+    m_guidingFixationPoint = Point2f(0, 0);
+    m_guidingFixationPointValid = false;
+
     m_cachedScaledWidth = 0;
     m_cachedScaledHeight = 0;
     m_cachedTrackerImage = NULL;
@@ -264,6 +268,7 @@ void GuiderPlanet::NotifyFinishStop()
     // This appears to be required to clear selection (green circle/target lock symbol)
     if (GetPlanetaryEnableState())
         pFrame->pGuider->Reset(false);
+    m_guidingFixationPointValid = false;
 }
 
 // Return scaled tracking image with lock target symbol
@@ -951,9 +956,22 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
     std::vector<KeyPoint> keypoints;
     surfDetector.detect(equalized, keypoints);
 
-    // While not guiding we can still reset the fixation point based on new clicked point or autoselect
-    if ((pFrame->pGuider->GetState() != STATE_GUIDING) && (autoSelect || (clickedPoint != m_prevClickedPoint)))
-        m_referenceKeypoints.clear();
+    // Set locked guiding position when guiding starts
+    if (pFrame->pGuider->IsGuiding())
+    {
+        if (!m_guidingFixationPointValid && m_referenceKeypoints.size())
+        {
+            m_guidingFixationPoint = m_surfaceFixationPoint;
+            m_guidingFixationPointValid = true;
+        }
+    }
+    else
+    {
+        // While not guiding we can still reset the fixation point based on new clicked point or autoselect
+        if (autoSelect || (clickedPoint != m_prevClickedPoint))
+            m_referenceKeypoints.clear();
+        m_guidingFixationPointValid = false;
+    }
 
     // Exclude keypoints which are too close to frame edges.
     // When setting the reference frame, we limit keypoints to be further away from the edges.
@@ -1083,50 +1101,61 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
         displacement.x /= inlierMatches.size();
         displacement.y /= inlierMatches.size();
 
-        // Calculate new centroid based on average displacement vector and virtual tracking point
+        // Calculate new position based on average displacement vector and virtual tracking point
         m_surfaceFixationPoint = m_referencePoint + displacement;
 
-        // If variance is too high, set new reference frame
+        // Compute distance from the locked guiding position
+        double distance = m_guidingFixationPointValid ? norm(m_surfaceFixationPoint - m_guidingFixationPoint) : 0;
+
+        // If variance becomes too high, try to switch to the new reference frame
         const float varianceThreshold = 16.0;
         if ((variance > varianceThreshold) || m_surfaceDetectionParamsChanging)
         {
-            // Exclude keypoints which are too close to frame edges.
-            // When setting the reference frame, we limit keypoints to be further away from the edges.
-            const int edgeMargin = 30;
-            for (auto it = filteredKeypoints.begin(); it != filteredKeypoints.end();)
-            {
-                if ((it->pt.x < edgeMargin) || (it->pt.y < edgeMargin) || (it->pt.x > m_frameWidth - edgeMargin) || (it->pt.y > m_frameHeight - edgeMargin))
-                    it = filteredKeypoints.erase(it);
-                else
-                    ++it;
-            }
-            if (filteredKeypoints.size() < 4)
-            {
-                m_statusMsg = _("Too few detectable features");
-                return false;
-            }
-
-            // We must recompute descriptors for the filtered keypoints
-            extractor.compute(equalized, filteredKeypoints, descriptors);
-
-            // Set new reference frame -- this is temporary until we have a better way to handle this.
-            m_referencePoint = m_surfaceFixationPoint;
-            m_referenceKeypoints = filteredKeypoints;
-            m_referenceDescriptors = descriptors;
-
-            // The new position won't be rather accurate, but it's better than nothing
-            // and it will be updated as soon as we have a better estimate.
-            if (variance > varianceThreshold)
-                Debug.Write(wxString::Format("Feature matching encountered large variance (%.1f), position may not be accurate.\n", variance));
-
             // Switch to red tracking box as a warning sign
             m_trackingQuality = 0;
             m_surfaceDetectionParamsChanging = false;
+
+            // When guiding restrict switching to the new reference frame
+            if (!pFrame->pGuider->IsGuiding() || ((distance < 100) && (variance < varianceThreshold * 2)))
+            {
+                // Exclude keypoints which are too close to frame edges.
+                // When setting the reference frame, we limit keypoints to be further away from the edges.
+                const int edgeMargin = 30;
+                for (auto it = filteredKeypoints.begin(); it != filteredKeypoints.end();)
+                {
+                    if ((it->pt.x < edgeMargin) || (it->pt.y < edgeMargin) || (it->pt.x > m_frameWidth - edgeMargin) || (it->pt.y > m_frameHeight - edgeMargin))
+                        it = filteredKeypoints.erase(it);
+                    else
+                        ++it;
+                }
+                if (filteredKeypoints.size() < 4)
+                {
+                    m_statusMsg = _("Too few detectable features");
+                    return false;
+                }
+
+                // We must recalculate descriptors for the filtered keypoints
+                extractor.compute(equalized, filteredKeypoints, descriptors);
+
+                // Set new reference frame -- this is temporary until we have a better way to handle this.
+                // The new position won't be rather accurate, but it's better than nothing
+                // and it will be updated as soon as we have a better estimate.
+                m_referencePoint = m_surfaceFixationPoint;
+                m_referenceKeypoints = filteredKeypoints;
+                m_referenceDescriptors = descriptors;
+            }
+
+            // Warn user about unstable image
+            if ((variance > 100) && pFrame->pGuider->IsGuiding())
+            {
+                Debug.Write(wxString::Format("Feature matching encountered very large variance (%.1f), position may not be accurate.\n", variance));
+                pFrame->Alert(_("WARNING: image is not stable, tracking may not be accurate!"), wxICON_WARNING);
+            }
         }
         else
         {
-            // Switch to green tracking box
-            m_trackingQuality = 1;
+            // Assess tracking quality based on allowed max distance from the reference frame
+            m_trackingQuality = distance < 100 ? 1 : 0;
         }
 
         // Find the keypoint closest to the surface fixation point

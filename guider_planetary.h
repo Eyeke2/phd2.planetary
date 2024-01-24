@@ -128,6 +128,8 @@ public:
 
     // Virtual anchor point for for surface feature guiding
     cv::Point2f m_surfaceFixationPoint;
+    cv::Point2f m_guidingFixationPoint;
+    bool m_guidingFixationPointValid;
 
     // Matched inliers for visualizing detected surface features
     std::vector<cv::Point2f> m_inlierPoints;
