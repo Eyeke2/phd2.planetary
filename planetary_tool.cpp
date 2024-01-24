@@ -52,7 +52,9 @@ struct PlanetToolWin : public wxDialog
     wxCheckBox* m_enableCheckBox;
     wxCheckBox* m_featureTrackingCheckBox;
 
+#if USE_PLANETARY_STATUS
     wxStaticText *m_status;
+#endif
 
     wxSpinCtrlDouble *m_minDist;
     wxSpinCtrlDouble *m_param1;
@@ -120,6 +122,9 @@ PlanetToolWin::PlanetToolWin()
 {
     SetSizeHints(wxDefaultSize, wxDefaultSize);
 
+    // Set custom duration of tooltip display to 10 seconds
+    wxToolTip::SetAutoPop(10000);
+
     m_tabs = new wxNotebook(this, wxID_ANY);
     m_planetTab = new wxPanel(m_tabs, wxID_ANY);
     m_tabs->AddPage(m_planetTab, "Planetary tracking", true);
@@ -129,66 +134,57 @@ PlanetToolWin::PlanetToolWin()
     m_enableCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable planetary tracking"));
     m_enableCheckBox->SetToolTip(_("Toggle star/planetary tracking mode"));
 
-    m_featureTrackingCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable surface feature detection/tracking"));
+    m_featureTrackingCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable surface features detection/tracking"));
     m_featureTrackingCheckBox->SetToolTip(_("Enable surface feature detection/tracking mode for imaging at high magnification"));
 
     wxStaticText* minDist_Label = new wxStaticText(m_planetTab, wxID_ANY, _("min dist:"));
     minDist_Label->Wrap(-1);
-    wxStaticText* param1_Label = new wxStaticText(m_planetTab, wxID_ANY, _("param1:"));
+    wxStaticText* param1_Label = new wxStaticText(m_planetTab, wxID_ANY, _("p1:"));
     param1_Label->Wrap(-1);
-    wxStaticText* param2_Label = new wxStaticText(m_planetTab, wxID_ANY, _("param2:"));
+    wxStaticText* param2_Label = new wxStaticText(m_planetTab, wxID_ANY, _("p2:"));
     param2_Label->Wrap(-1);
     wxStaticText* minRadius_Label = new wxStaticText(m_planetTab, wxID_ANY, _("min radius:"));
     minRadius_Label->Wrap(-1);
     wxStaticText* maxRadius_Label = new wxStaticText(m_planetTab, wxID_ANY, _("max radius:"));
     maxRadius_Label->Wrap(-1);
 
-    m_minDist = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 1024, PT_MIN_DIST_DEFAULT);
+    m_minDist = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 1024, PT_MIN_DIST_DEFAULT);
     minDist_Label->SetToolTip(_("minimum distance between the centers of the detected circles"));
 
-    m_param1 = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 255, PT_PARAM1_DEFAULT);
+    m_param1 = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 255, PT_PARAM1_DEFAULT);
     param1_Label->SetToolTip(_("The higher threshold for the Canny edge detector. Increase this value to avoid false circles"));
 
-    m_param2 = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 512, PT_PARAM2_DEFAULT);
+    m_param2 = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 512, PT_PARAM2_DEFAULT);
     param2_Label->SetToolTip(_("The accumulator threshold for circle centers. Smaller values will mean more circle candidates, "
         "and larger values will suppress weaker circles. You might want to increase this value if you're getting false circles"));
 
-    m_minRadius = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 1024, PT_MIN_RADIUS_DEFAULT);
+    m_minRadius = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 1024, PT_MIN_RADIUS_DEFAULT);
     minRadius_Label->SetToolTip(_("Minimum planet radius in pixels. If set to 0, the minimal size is not limited."));
 
-    m_maxRadius = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 1024, PT_MAX_RADIUS_DEFAULT);
+    m_maxRadius = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 1024, PT_MAX_RADIUS_DEFAULT);
     maxRadius_Label->SetToolTip(_("Maximum planet radius in pixels. If set to 0, the maximal size is not limited. "
         "If neither minRadius nor maxRadius is set, they are estimated from the image size."));
 
-    wxBoxSizer *x_minDist = new wxBoxSizer(wxHORIZONTAL);
-    x_minDist->Add(0, 0, 1, wxEXPAND, 5);
-    x_minDist->Add(minDist_Label, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_minDist->Add(m_minDist, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_minDist->Add(0, 0, 1, wxEXPAND, 5);
+    wxBoxSizer *x_circleParams = new wxBoxSizer(wxHORIZONTAL);
+    x_circleParams->Add(0, 0, 1, wxEXPAND, 5);
+    x_circleParams->Add(minDist_Label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+    x_circleParams->Add(m_minDist, 0, wxALIGN_CENTER_VERTICAL, 5);
+    x_circleParams->Add(0, 0, 1, wxEXPAND, 5);
+    x_circleParams->Add(param1_Label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+    x_circleParams->Add(m_param1, 0, wxALIGN_CENTER_VERTICAL, 5);
+    x_circleParams->Add(0, 0, 1, wxEXPAND, 5);
+    x_circleParams->Add(param2_Label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+    x_circleParams->Add(m_param2, 0, wxALIGN_CENTER_VERTICAL, 5);
+    x_circleParams->Add(0, 0, 1, wxEXPAND, 5);
 
-    wxBoxSizer *x_param1 = new wxBoxSizer(wxHORIZONTAL);
-    x_param1->Add(0, 0, 1, wxEXPAND, 5);
-    x_param1->Add(param1_Label, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_param1->Add(m_param1, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_param1->Add(0, 0, 1, wxEXPAND, 5);
-
-    wxBoxSizer *x_param2 = new wxBoxSizer(wxHORIZONTAL);
-    x_param2->Add(0, 0, 1, wxEXPAND, 5);
-    x_param2->Add(param2_Label, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_param2->Add(m_param2, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_param2->Add(0, 0, 1, wxEXPAND, 5);
-
-    wxBoxSizer *x_minRadius = new wxBoxSizer(wxHORIZONTAL);
-    x_minRadius->Add(0, 0, 1, wxEXPAND, 5);
-    x_minRadius->Add(minRadius_Label, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_minRadius->Add(m_minRadius, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_minRadius->Add(0, 0, 1, wxEXPAND, 5);
-
-    wxBoxSizer *x_maxRadius = new wxBoxSizer(wxHORIZONTAL);
-    x_maxRadius->Add(0, 0, 1, wxEXPAND, 5);
-    x_maxRadius->Add(maxRadius_Label, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_maxRadius->Add(m_maxRadius, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_maxRadius->Add(0, 0, 1, wxEXPAND, 5);
+    wxBoxSizer *x_radii = new wxBoxSizer(wxHORIZONTAL);
+    x_radii->Add(0, 0, 1, wxEXPAND, 5);
+    x_radii->Add(minRadius_Label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+    x_radii->Add(m_minRadius, 0, wxALIGN_CENTER_VERTICAL, 5);
+    x_radii->Add(0, 0, 1, wxEXPAND, 5);
+    x_radii->Add(maxRadius_Label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
+    x_radii->Add(m_maxRadius, 0, wxALIGN_CENTER_VERTICAL, 5);
+    x_radii->Add(0, 0, 1, wxEXPAND, 5);
 
     // Eclipse mode stuff
     m_EclipseModeCheckBox = new wxCheckBox(m_planetTab, wxID_ANY, _("Enable Eclipse mode"));
@@ -197,7 +193,7 @@ PlanetToolWin::PlanetToolWin()
     m_ThresholdSlider = new wxSlider(m_planetTab, wxID_ANY, PT_HIGH_THRESHOLD_DEFAULT, PT_HIGH_THRESHOLD_MIN, PT_HIGH_THRESHOLD_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
     ThresholdLabel->SetToolTip(_("Higher values reduce sensitivity to weaker edges, providing cleaner edge maps. Detected edges are shown in red."));
     m_ThresholdSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnThresholdChanged, this);
-    m_RoiCheckBox = new wxCheckBox(m_planetTab, wxID_ANY, _("Use ROI"));
+    m_RoiCheckBox = new wxCheckBox(m_planetTab, wxID_ANY, _("Enable ROI"));
     m_RoiCheckBox->SetToolTip(_("Enable ROI for improved processing speed and reduced CPU usage."));
 
     // Show/hide detected elements
@@ -207,20 +203,17 @@ PlanetToolWin::PlanetToolWin()
 
     // Add all planetary tab elements
     wxStaticBoxSizer *planetSizer = new wxStaticBoxSizer(new wxStaticBox(m_planetTab, wxID_ANY, _("")), wxVERTICAL);
+    planetSizer->AddSpacer(20);
+    planetSizer->Add(m_EclipseModeCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
     planetSizer->AddSpacer(10);
-    planetSizer->Add(x_minDist, 0, wxEXPAND, 5);
-    planetSizer->Add(x_param1, 0, wxEXPAND, 5);
-    planetSizer->Add(x_param2, 0, wxEXPAND, 5);
-    planetSizer->Add(x_minRadius, 0, wxEXPAND, 5);
-    planetSizer->Add(x_maxRadius, 0, wxEXPAND, 5);
-    planetSizer->AddSpacer(10);
-    planetSizer->Add(m_EclipseModeCheckBox, 0, wxLEFT | wxALIGN_LEFT, 100);
-    planetSizer->AddSpacer(10);
-    planetSizer->Add(m_RoiCheckBox, 0, wxLEFT | wxALIGN_LEFT, 100);
-    planetSizer->AddSpacer(10);
+    planetSizer->Add(m_RoiCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
+    planetSizer->AddSpacer(20);
+    planetSizer->Add(x_circleParams, 0, wxEXPAND, 5);
+    planetSizer->AddSpacer(20);
+    planetSizer->Add(x_radii, 0, wxEXPAND, 5);
+    planetSizer->AddSpacer(20);
     planetSizer->Add(ThresholdLabel, 0, wxLEFT | wxTOP, 10);
     planetSizer->Add(m_ThresholdSlider, 0, wxALL, 10);
-    planetSizer->AddSpacer(10);
     m_planetTab->SetSizer(planetSizer);
     m_planetTab->Layout();
 
@@ -247,12 +240,14 @@ PlanetToolWin::PlanetToolWin()
     m_featuresTab->SetSizer(surfaceSizer);
     m_featuresTab->Layout();
 
+#if USE_PLANETARY_STATUS
     // Status area
     wxPanel* bezelPanel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(420, 90), wxBORDER_STATIC);
     wxBoxSizer* panelSizer = new wxBoxSizer(wxVERTICAL);
     m_status = new wxStaticText(bezelPanel, wxID_ANY, _(""));
     panelSizer->Add(m_status, 0, wxLEFT | wxALIGN_LEFT, 10);
     bezelPanel->SetSizer(panelSizer);
+#endif
 
     // Close button
     m_MouseHoverFlag = false;
@@ -261,48 +256,59 @@ PlanetToolWin::PlanetToolWin()
     ButtonSizer->Add(m_CloseButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
 #if FILE_SIMULATOR_MODE
-    wxStaticText* fileFormatLabel = new wxStaticText(this, wxID_ANY, wxT("file"));
-    fileFormatLabel->Wrap(-1);
-    wxStaticText* fileIndexLabel = new wxStaticText(this, wxID_ANY, wxT("index"));
-    fileIndexLabel->Wrap(-1);
+    bool IsSimCam = pCamera && pCamera->Name == "Simulator";
+    wxBoxSizer* x_FilePath;
+    wxBoxSizer* x_FileIndex;
+    if (IsSimCam)
+    {
+        wxStaticText* fileFormatLabel = new wxStaticText(this, wxID_ANY, wxT("file"));
+        fileFormatLabel->Wrap(-1);
+        wxStaticText* fileIndexLabel = new wxStaticText(this, wxID_ANY, wxT("index"));
+        fileIndexLabel->Wrap(-1);
 
-    m_filePathTextCtrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(250, -1));
-    wxButton* browseButton = new wxButton(this, wxID_ANY, wxT("Browse"));
+        m_filePathTextCtrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(250, -1));
+        wxButton* browseButton = new wxButton(this, wxID_ANY, wxT("Browse"));
 
-    m_fileIndex = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 9999, 1);
+        m_fileIndex = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 9999, 1);
 
-    wxBoxSizer* x_FilePath = new wxBoxSizer(wxHORIZONTAL);
-    x_FilePath->Add(0, 0, 1, wxEXPAND, 5);
-    x_FilePath->Add(fileFormatLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_FilePath->Add(m_filePathTextCtrl, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_FilePath->Add(browseButton, 0, wxALL, 5);
+        x_FilePath = new wxBoxSizer(wxHORIZONTAL);
+        x_FilePath->Add(0, 0, 1, wxEXPAND, 5);
+        x_FilePath->Add(fileFormatLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+        x_FilePath->Add(m_filePathTextCtrl, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+        x_FilePath->Add(browseButton, 0, wxALL, 5);
 
-    wxBoxSizer* x_FileIndex = new wxBoxSizer(wxHORIZONTAL);
-    x_FileIndex->Add(fileIndexLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    x_FileIndex->Add(m_fileIndex, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+        x_FileIndex = new wxBoxSizer(wxHORIZONTAL);
+        x_FileIndex->Add(fileIndexLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+        x_FileIndex->Add(m_fileIndex, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-    browseButton->Bind(wxEVT_BUTTON, &PlanetToolWin::OnBrowseFileName, this);
-    m_filePathTextCtrl->Bind(wxEVT_TEXT, &PlanetToolWin::OnFileTextChange, this);
-    m_fileIndex->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_FileIndex), NULL, this);
+        browseButton->Bind(wxEVT_BUTTON, &PlanetToolWin::OnBrowseFileName, this);
+        m_filePathTextCtrl->Bind(wxEVT_TEXT, &PlanetToolWin::OnFileTextChange, this);
+        m_fileIndex->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_FileIndex), NULL, this);
+    }
 #endif
 
     // All top level controls
     wxBoxSizer *topSizer = new wxBoxSizer(wxVERTICAL);
-    topSizer->AddSpacer(15);
+    topSizer->AddSpacer(10);
     topSizer->Add(m_enableCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
-    topSizer->AddSpacer(15);
+    topSizer->AddSpacer(10);
     topSizer->Add(m_featureTrackingCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
-    topSizer->AddSpacer(15);
+    topSizer->AddSpacer(10);
     topSizer->Add(m_tabs, 1, wxEXPAND | wxALL, 10);
     topSizer->AddSpacer(10);
 #if FILE_SIMULATOR_MODE
-    topSizer->Add(x_FilePath, 0, wxLEFT | wxALIGN_LEFT, 10);
-    topSizer->Add(x_FileIndex, 0, wxLEFT | wxALIGN_LEFT, 10);
-    topSizer->AddSpacer(10);
+    if (IsSimCam)
+    {
+        topSizer->Add(x_FilePath, 0, wxLEFT | wxALIGN_LEFT, 10);
+        topSizer->Add(x_FileIndex, 0, wxLEFT | wxALIGN_LEFT, 10);
+        topSizer->AddSpacer(10);
+    }
 #endif
     topSizer->Add(m_ShowElements, 0, wxLEFT | wxALIGN_LEFT, 20);
     topSizer->AddSpacer(10);
+#if USE_PLANETARY_STATUS
     topSizer->Add(bezelPanel, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 10);
+#endif
     topSizer->Add(ButtonSizer, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 10);
 
     SetSizer(topSizer);
@@ -345,10 +351,13 @@ PlanetToolWin::PlanetToolWin()
     pPlanet->SetPlanetaryElementsVisual(false);
 
 #if FILE_SIMULATOR_MODE
-    SimFileIndex = pConfig->Global.GetInt("/PlanetTool/sim_file_index", 1);
-    simulatorFileTemplate = pConfig->Global.GetString("/PlanetTool/sim_filename", _("/Temp/phd2/sim_image.png"));
-    m_filePathTextCtrl->SetValue(simulatorFileTemplate);
-    m_fileIndex->SetValue(SimFileIndex);
+    if (IsSimCam)
+    {
+        SimFileIndex = pConfig->Global.GetInt("/PlanetTool/sim_file_index", 1);
+        simulatorFileTemplate = pConfig->Global.GetString("/PlanetTool/sim_filename", _("/Temp/phd2/sim_image.png"));
+        m_filePathTextCtrl->SetValue(simulatorFileTemplate);
+        m_fileIndex->SetValue(SimFileIndex);
+    }
 #endif
 
     m_minDist->SetValue(pPlanet->GetPlanetaryParam_minDist());
@@ -365,6 +374,8 @@ PlanetToolWin::PlanetToolWin()
     m_enableCheckBox->SetValue(pPlanet->GetPlanetaryEnableState());
 
     SetEnabledState(this, pPlanet->GetPlanetaryEnableState());
+
+    m_tabs->SetSelection(pPlanet->GetSurfaceTrackingState() ? 1 : 0);
 
     int xpos = pConfig->Global.GetInt("/PlanetTool/pos.x", -1);
     int ypos = pConfig->Global.GetInt("/PlanetTool/pos.y", -1);
@@ -402,14 +413,16 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
     }
 
     // Update elements display state
+    m_tabs->SetSelection(pPlanet->GetSurfaceTrackingState() ? 1 : 0);
     OnShowElementsClick(event);
 }
 
-// Toggle feature detection/tracking mode
+// Toggle surface features detection/tracking mode
 void PlanetToolWin::OnSurfaceTrackingClick(wxCommandEvent& event)
 {
     bool featureTracking = m_featureTrackingCheckBox->IsChecked();
     pPlanet->SetSurfaceTrackingState(featureTracking);
+    m_tabs->SetSelection(featureTracking ? 1 : 0);
     UpdateStatus();
 }
 
@@ -474,12 +487,14 @@ void PlanetToolWin::UpdateStatus()
 {
     bool enabled = pPlanet->GetPlanetaryEnableState();
     bool surfaceTracking = pPlanet->GetSurfaceTrackingState();
+#if USE_PLANETARY_STATUS
     if (enabled)
         m_status->SetLabel(_("In planetary tracking mode.\n"
             "Center the planet in the guiding camera,\n"
             "select it, run calibration and start guiding.\n"));
     else
         m_status->SetLabel(_("In star tracking mode.\n"));
+#endif
 
     // Update planetary tracking controls
     bool EclipseMode = pPlanet->GetEclipseMode();
@@ -496,6 +511,7 @@ void PlanetToolWin::UpdateStatus()
     // Update slider states
     m_ThresholdSlider->Enable(enabled && !surfaceTracking && EclipseMode);
     m_minHessianSlider->Enable(enabled && surfaceTracking);
+    m_maxFeaturesSlider->Enable(enabled && surfaceTracking);
 
     // Update tabs state
     m_featuresTab->Enable(surfaceTracking);
@@ -586,6 +602,9 @@ void PlanetToolWin::OnClose(wxCloseEvent& evt)
     GetPosition(&x, &y);
     pConfig->Global.SetInt("/PlanetTool/pos.x", x);
     pConfig->Global.SetInt("/PlanetTool/pos.y", y);
+
+    // Revert to a default duration of tooltip display (apparently 5 seconds)
+    wxToolTip::SetAutoPop(5000);
 
     Destroy();
 }
