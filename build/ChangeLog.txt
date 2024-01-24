@@ -5,6 +5,21 @@ When installing this version, it is advised to choose a destination folder disti
 
 Change log
 
+v2.6.13-planet.dev5.rc2
+* Star Profile Window: Adjusted the scaling factor for star profile metrics and prevented the star position
+display from overlapping with the star image.
+* Corrected a rounding error in saving the position of the identified planet used for guiding.
+* Enhanced the robustness of surface feature tracking by restricting the switch to a new reference frame unless
+the image has significantly drifted, particularly during guiding. Introduced a 'guide lock position' used to calculate
+the current image displacement, which limits the transition to a new reference frame while guiding. The behavior
+of the quality indicator has been modified to turn red when the image drifts too far away.
+* Refined the planetary tracking dialog layout to reduce its overall size and removed the status element.
+The selected tab is now automatically activated when toggling surface features detection and tracking mode on or off.
+* Added types to alert messages to provide clearer visual feedback to the user.
+* Remove Microsoft Visual Studio Redistributable DLL files from the installation. These DLLs are part of Microsoft
+Visual C++ Redistributables for Visual Studio 2015, 2017, and 2019 and Visual Studio 2013 and must be downloaded
+and installed separately by the user.
+
 v2.6.13-planet.dev5.rc1
 * Fix star profile graph and skip FWHM calculation in the planetary mode.
 * Fixed focus metrics calculation by increasing sampling area and droping sharpness normalization.
