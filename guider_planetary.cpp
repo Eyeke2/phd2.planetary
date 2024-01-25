@@ -3,7 +3,7 @@
  *  PHD Guiding
  *
  *  Planetary detection extensions by Leo Shatz
- *  Copyright (c) 2023 Leo Shatz
+ *  Copyright (c) 2023-2024 Leo Shatz
  *  All rights reserved.
  *
  *  This source code is distributed under the following "BSD" license
