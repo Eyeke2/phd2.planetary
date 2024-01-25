@@ -797,10 +797,12 @@ if(WIN32)
   set(PHD_COPY_EXTERNAL_ALL ${PHD_COPY_EXTERNAL_ALL}  ${PHD_PROJECT_ROOT_DIR}/cameras/moravian/win/lib/gXusb.dll)
   include_directories(${PHD_PROJECT_ROOT_DIR}/cameras/moravian/include)
 
-  set(PHD_COPY_EXTERNAL_ALL ${PHD_COPY_EXTERNAL_ALL}  ${PHD_PROJECT_ROOT_DIR}/WinLibs/msvcr120.dll)
-  set(PHD_COPY_EXTERNAL_ALL ${PHD_COPY_EXTERNAL_ALL}  ${PHD_PROJECT_ROOT_DIR}/WinLibs/msvcp120.dll)
-  set(PHD_COPY_EXTERNAL_ALL ${PHD_COPY_EXTERNAL_ALL}  ${PHD_PROJECT_ROOT_DIR}/WinLibs/vcomp140.dll)
-  set(PHD_COPY_EXTERNAL_ALL ${PHD_COPY_EXTERNAL_ALL}  ${PHD_PROJECT_ROOT_DIR}/WinLibs/vcruntime140.dll)
+  # vcomp140.dll and vcruntime140.dl - Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017, and 2019
+  # msvcr120.dll and msvcp120.dll - Microsoft Visual C++ Redistributable Packages for Visual Studio 2013
+#  set(PHD_COPY_EXTERNAL_ALL ${PHD_COPY_EXTERNAL_ALL}  ${PHD_PROJECT_ROOT_DIR}/WinLibs/msvcr120.dll)
+#  set(PHD_COPY_EXTERNAL_ALL ${PHD_COPY_EXTERNAL_ALL}  ${PHD_PROJECT_ROOT_DIR}/WinLibs/msvcp120.dll)
+#  set(PHD_COPY_EXTERNAL_ALL ${PHD_COPY_EXTERNAL_ALL}  ${PHD_PROJECT_ROOT_DIR}/WinLibs/vcomp140.dll)
+#  set(PHD_COPY_EXTERNAL_ALL ${PHD_COPY_EXTERNAL_ALL}  ${PHD_PROJECT_ROOT_DIR}/WinLibs/vcruntime140.dll)
 
   # ASCOM
   # disabled since not used in the SLN
