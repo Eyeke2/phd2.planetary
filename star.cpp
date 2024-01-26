@@ -123,11 +123,11 @@ static double hfr(std::vector<R2M>& vec, double cx, double cy, double mass)
     return hfr;
 }
 
-bool Star::Find(const usImage *pImg, int searchRegion, int base_x, int base_y, FindMode mode, double minHFD, double maxHFD, unsigned short maxADU, StarFindLogType loggingControl)
+bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double base_y, FindMode mode, double minHFD, double maxHFD, unsigned short maxADU, StarFindLogType loggingControl)
 {
     FindResult Result = STAR_OK;
-    double newX = base_x;
-    double newY = base_y;
+    double newX = (mode == FIND_PLANET) ? base_x : (int) base_x;
+    double newY = (mode == FIND_PLANET) ? base_y : (int) base_y;
 
     try
     {
