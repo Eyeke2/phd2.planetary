@@ -58,11 +58,11 @@ ProfileWindow::ProfileWindow(wxWindow *parent) :
     this->SetBackgroundStyle(wxBG_STYLE_CUSTOM);
     this->data = new unsigned short[FULLW * FULLW];  // 21x21 subframe
 
-    // Start with clean profile states
     memset(midrow_profile, 0, sizeof(midrow_profile));
     memset(vert_profile, 0, sizeof(vert_profile));
     memset(horiz_profile, 0, sizeof(horiz_profile));
     imageLeftMargin = 0;
+    imageBottom = 0;
 }
 
 ProfileWindow::~ProfileWindow()
@@ -178,19 +178,24 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
     wxString hfdLabel = pFrame->GetStarFindMode() == Star::FIND_PLANET ? pFrame->pGuider->m_Planet.GetHfdLabel() : _("HFD: ");
 
     if (inFocusingMode) {
-        // As a reference for computing scale factor use the following template
-        // xsize = 5 + sfw * (strlen("HFD:   99999.99\"")) + sfw * scale * strlen("9999.99")
-        float sfw = (float)dc.GetTextExtent("0").GetWidth();
+        // To compute the scale factor, we use the following formula, which maximizes the use of all available
+        // window width (xsize) while displaying HFD metrics in the exact format. The scaling value is calculated
+        // on the premise that both large font digits are fixed-width, and that font scaling is linear.
+        // The variable 'sfw' represents the width of a single digit displayed using the small font
+        // and 'dotw' represents the width of a single '.' displayed using the small font.
+        // xsize = 10 + smallFontTextWidth + scale * (sfw * strlen(largeFontTextWithoutDot) + dotw);
+        // therefore, scale = (xsize - 10 - smallFontTextWidth) / (sfw * strlen(largeFontTextWithoutDot) + dotw)
         const Star& star = pFrame->pGuider->PrimaryStar();
         float hfd = star.HFD;
+        float sfw = (float)dc.GetTextExtent("0").GetWidth();
+        float dotw = (float)dc.GetTextExtent(".").GetWidth();
         float hfdArcSec = hfd * pFrame->GetCameraPixelScale();
-
-        int largeLen = wxString::Format("%.2f", hfd).Length();
-        int smallLen = wxString::Format("  %.2f\"", hfdArcSec).Length();
-        smallLen += hfdLabel.Length();
-        float scale = (xsize - 5 - sfw * smallLen) / (sfw * largeLen);
-        if (scale < 1)
-            scale = 1;
+        wxString smallFontText = hfdLabel + wxString::Format("  %.2f\"", hfdArcSec);
+        int smallFontTextWidth = dc.GetTextExtent(smallFontText).GetWidth();
+        wxString largeDigitsText = wxString::Format("%.2f", hfd);
+        int largeLenWithoutDot = largeDigitsText.Length() - 1;
+        float scale = (xsize - 10 - smallFontTextWidth) / (sfw * largeLenWithoutDot + dotw);
+        scale = wxMax(1.0, scale);
         largeFont = smallFont.Scaled(scale);
 
         dc.SetFont(largeFont);
@@ -287,7 +292,7 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
     }
 
     // Prioritize rendering star image before rendering text
-    dc.SetTextForeground(wxColour(255, 0, 0));
+    dc.SetTextForeground(wxColour(255,0,0));
 
     // JBW: draw zoomed guidestar subframe (todo: make constants symbolic)
     wxImage* img = pFrame->pGuider->DisplayedImage();
@@ -378,7 +383,7 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
             int fwhmLineWidth = dc.GetTextExtent(fwhmLine).GetWidth();
             dc.DrawText(fwhmLine, 5, ysize - labelTextHeight + 5);
             // Show X/Y of centroid if there's room
-            if (imageLeftMargin > fwhmLineWidth + 20)
+            if ((imageLeftMargin > fwhmLineWidth + 20) && (ysize - labelTextHeight + 5 > imageBottom))
                 dc.DrawText(wxString::Format("X: %0.2f, Y: %0.2f", pFrame->pGuider->CurrentPosition().X, pFrame->pGuider->CurrentPosition().Y), imageLeftMargin, ysize - labelTextHeight + 5);
             int x = 5;
             wxString s = hfdLabel;
