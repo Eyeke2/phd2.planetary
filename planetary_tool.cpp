@@ -342,7 +342,7 @@ PlanetToolWin::PlanetToolWin()
     pPlanet->SetPlanetaryParam_param2(pConfig->Global.GetInt("/PlanetTool/param2", PT_PARAM2_DEFAULT));
     pPlanet->SetPlanetaryParam_minRadius(pConfig->Global.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT));
     pPlanet->SetPlanetaryParam_maxRadius(pConfig->Global.GetInt("/PlanetTool/max_radius", PT_MAX_RADIUS_DEFAULT));
-    pPlanet->SetPlanetaryParam_lowThreshold(pConfig->Global.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT/2));
+    pPlanet->SetPlanetaryParam_lowThreshold(pConfig->Global.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT) / 2);
     pPlanet->SetPlanetaryParam_highThreshold(pConfig->Global.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT));
     pPlanet->SetPlanetaryParam_minHessian(pConfig->Global.GetInt("/PlanetTool/min_hessian", PT_MIN_HESSIAN_DEFAULT));
     pPlanet->SetPlanetaryParam_maxFeatures(pConfig->Global.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES));
