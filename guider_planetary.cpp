@@ -1348,6 +1348,7 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
     CircleDescriptor bestCentroid = { 0 };
     CircleDescriptor bestEclipseCenter = { 0 };
     bestContour.clear();
+    int maxThreadsCount = 0;
     for (CvSeq* contour = contours; contour != NULL; contour = contour->h_next, contourAllCount++)
     {
         // Ignore contours with small number of points
@@ -1383,9 +1384,11 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
         if (score > 0.01)
         {
             float searchRadius = 20 * m_PlanetEccentricity + 3;
-            RefineEclipseCenter(score, eclipseCenter, eclipseContour, minRadius, maxRadius, searchRadius);
+            int threadCount = RefineEclipseCenter(score, eclipseCenter, eclipseContour, minRadius, maxRadius, searchRadius);
+            maxThreadsCount = max(maxThreadsCount, threadCount);
             if (score > bestScore * 0.8)
-                RefineEclipseCenter(score, eclipseCenter, eclipseContour, minRadius, maxRadius, 0.5, 0.1);
+                threadCount = RefineEclipseCenter(score, eclipseCenter, eclipseContour, minRadius, maxRadius, 0.5, 0.1);
+            maxThreadsCount = max(maxThreadsCount, threadCount);
         }
 
         // Select best fit based on highest score
@@ -1402,8 +1405,8 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
 
     // Free allocated storage
     cvReleaseMemStorage(&storage);
-    Debug.Write(wxString::Format("End detection of eclipsed disk (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%.3f, contours=%d/%d\n",
-        m_PlanetWatchdog.Time(), bestEclipseCenter.radius, roiRect.x + bestEclipseCenter.x, roiRect.y + bestEclipseCenter.y, bestScore, contourMatchingCount, contourAllCount));
+    Debug.Write(wxString::Format("End detection of eclipsed disk (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%.3f, contours=%d/%d, threads=%d\n",
+        m_PlanetWatchdog.Time(), bestEclipseCenter.radius, roiRect.x + bestEclipseCenter.x, roiRect.y + bestEclipseCenter.y, bestScore, contourMatchingCount, contourAllCount, maxThreadsCount));
 
     // Update stats window
     pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), totalPoints);
