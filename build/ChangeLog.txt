@@ -5,6 +5,16 @@ When installing this version, it is advised to choose a destination folder disti
 
 Change log
 
+v2.6.13-planet.dev5.rc3
+* Added an experimental noise suppression filter, potentially beneficial for detecting planetary disks
+in highly noisy input images.
+* Restricted the use of excessively large font sizes and updated the label to accurately reflect the planetary mode,
+replacing the previous HFD label.
+* Fixed a bug related to setting the lower threshold in contour detection.
+* Implemented minor bug fixes and conducted code cleanup for improved stability.
+* Implemented a fixed-size region for SNR determination in surface features detection mode, independent of the
+Star Profile zoom factor.
+
 v2.6.13-planet.dev5.rc2
 * Star Profile Window: Adjusted the scaling factor for star profile metrics and prevented the star position
 display from overlapping with the star image.
