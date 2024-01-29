@@ -414,6 +414,7 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
 
     // Update elements display state
     m_tabs->SetSelection(pPlanet->GetSurfaceTrackingState() ? 1 : 0);
+    pFrame->pStatsWin->ClearPlanetStats();
     OnShowElementsClick(event);
 }
 

@@ -334,6 +334,13 @@ void StatsWindow::ResetImageSize()
     m_grid2->SetCellValue(m_pixelScaleRow + 1, 1, wxEmptyString);
 }
 
+void StatsWindow::ClearPlanetStats()
+{
+    m_grid3->SetCellValue(0, 1, _(""));
+    m_grid3->SetCellValue(1, 0, _(""));
+    m_grid3->SetCellValue(1, 1, _(""));
+}
+
 void StatsWindow::UpdatePlanetDetectionTime(int msec)
 {
     wxString timeStr = wxString::Format(_T("%d ms"), msec);
