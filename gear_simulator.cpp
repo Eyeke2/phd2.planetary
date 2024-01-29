@@ -1355,27 +1355,46 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
 #if 0
     // Simulate random motion
     unsigned short *dataptr = img.ImageData;
-    int rx = (1 - (double)rand() / 32767.0) * 5 + 0.5;
-    int ry = (1 - (double)rand() / 32767.0) * 5 + 0.5;
-    for (int y = 0; y < image.rows; ++y)
-    {
-        unsigned short pixelValue;
-        for (int x = 0; x < image.cols; ++x)
-        {
-            int new_x = x + rx;
-            int new_y = y + ry;
-            if ((new_x < image.cols) && (new_x >= 0) && (new_y < image.rows) && (new_y >= 0))
-                pixelValue = disk_image->at<unsigned short>(new_y, new_x);
-            else
-                pixelValue = 0;
-            *dataptr++ = pixelValue;
-        }
-    }
-#else
+
+    // Create a single - channel matrix filled with zeros
+    cv::Mat noiseMat(1, 1, CV_64F, cv::Scalar::all(0));
+    double jitter = 0.5; // 1 pixel jitter
+    double max_offset = 3.0;
+
+    // Generate Gaussian noise to be used as x displacement
+    cv::randn(noiseMat, 0, jitter);
+    double rx = noiseMat.at<double>(0, 0);
+    rx = wxMax(-max_offset, wxMin(max_offset, rx));
+
+    // Generate Gaussian noise to be used as y displacement
+    cv::randn(noiseMat, 0, jitter);
+    double ry = noiseMat.at<double>(0, 0);
+    ry = wxMax(-max_offset, wxMin(max_offset, ry));
+
+    // Translate the image by shifting it few pixels in random direction
+    cv::Mat translatedImage;
+    cv::Mat transMat = cv::Mat::zeros(2, 3, CV_64FC1);
+    transMat.at<double>(0, 0) = 1;
+    transMat.at<double>(0, 2) = rx;
+    transMat.at<double>(1, 1) = 1;
+    transMat.at<double>(1, 2) = ry;
+    cv::warpAffine(*disk_image, translatedImage, transMat, disk_image->size(), cv::INTER_LINEAR);
+
+    // Switch to the updated image
+    disk_image = &translatedImage;
+
+#if 0
+    // Create Gaussian noise and add to image
+    cv::Mat noise(disk_image->size(), disk_image->type());
+    cv::randn(noise, 0, 4096);  // Mean 0, StdDev 256
+    translatedImage += noise;
+    disk_image = &translatedImage;
+#endif
+
+#endif
     // Copy the 16-bit data to result
     int dataSize = image.cols * image.rows * 2;
     memcpy(img.ImageData, disk_image->data, dataSize);
-#endif
 
     QuickLRecon(img);
 #else
