@@ -63,6 +63,7 @@ private:
     int    m_Planetary_minHessian;
     bool   m_Planetary_ShowElementsButtonState;
     bool   m_Planetary_ShowElementsVisual;
+    bool   m_Planetary_NoiseFilterState;
 
     double m_focusSharpness;
     float m_PlanetEccentricity;
@@ -208,6 +209,8 @@ public:
     bool GetPlanetaryElementsVisual() { return m_Planetary_ShowElementsVisual; }
     void SetPlanetaryElementsButtonState(bool state) { m_Planetary_ShowElementsButtonState = state; }
     bool GetPlanetaryElementsButtonState() { return m_Planetary_ShowElementsButtonState; }
+    void SetNoiseFilterState(bool enable) { m_Planetary_NoiseFilterState = enable; }
+    bool GetNoiseFilterState() { return m_Planetary_NoiseFilterState; }
     PHD_Point GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale);
 
 public:

@@ -70,6 +70,7 @@ struct PlanetToolWin : public wxDialog
     wxCheckBox *m_EclipseModeCheckBox;
     wxCheckBox *m_RoiCheckBox;
     wxCheckBox *m_ShowElements;
+    wxCheckBox* m_NoiseFilter;
     bool        m_MouseHoverFlag;
 
     PlanetToolWin();
@@ -95,6 +96,7 @@ struct PlanetToolWin : public wxDialog
     void OnEclipseModeClick(wxCommandEvent& event);
     void OnRoiModeClick(wxCommandEvent& event);
     void OnShowElementsClick(wxCommandEvent& event);
+    void OnNoiseFilterClick(wxCommandEvent& event);
 
 #if FILE_SIMULATOR_MODE
     wxTextCtrl* m_filePathTextCtrl;
@@ -201,6 +203,10 @@ PlanetToolWin::PlanetToolWin()
     m_ShowElements->SetToolTip(_("Toggle the visibility of internally detected edges/features and tune detection parameters "
         "to maintain a manageable number of these features while keeping them as close as possible to the light disk boundary."));
 
+    // Experimental noise filter
+    m_NoiseFilter = new wxCheckBox(this, wxID_ANY, _("Enable noise suppression filter (experimental)"));
+    m_NoiseFilter->SetToolTip(_("Enable noise filtering only for extremely noisy images. Use this option cautiously, as it's recommended only when absolutely necessary."));
+
     // Add all planetary tab elements
     wxStaticBoxSizer *planetSizer = new wxStaticBoxSizer(new wxStaticBox(m_planetTab, wxID_ANY, _("")), wxVERTICAL);
     planetSizer->AddSpacer(20);
@@ -294,6 +300,8 @@ PlanetToolWin::PlanetToolWin()
     topSizer->AddSpacer(10);
     topSizer->Add(m_featureTrackingCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
     topSizer->AddSpacer(10);
+    topSizer->Add(m_NoiseFilter, 0, wxLEFT | wxALIGN_LEFT, 20);
+    topSizer->AddSpacer(10);
     topSizer->Add(m_tabs, 1, wxEXPAND | wxALL, 10);
     topSizer->AddSpacer(10);
 #if FILE_SIMULATOR_MODE
@@ -326,6 +334,7 @@ PlanetToolWin::PlanetToolWin()
     m_EclipseModeCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnEclipseModeClick, this);
     m_RoiCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnRoiModeClick, this);
     m_ShowElements->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnShowElementsClick, this);
+    m_NoiseFilter->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnNoiseFilterClick, this);
     Bind(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(PlanetToolWin::OnClose), this);
 
     m_minDist->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_minDist), NULL, this);
@@ -337,6 +346,7 @@ PlanetToolWin::PlanetToolWin()
     // Set initial values of the planetary tracking state and parameters
     pPlanet->SetSurfaceTrackingState(pConfig->Global.GetInt("/PlanetTool/surface_tracking", 0));
     pPlanet->SetEclipseMode(pConfig->Global.GetInt("/PlanetTool/eclipse_mode", 1));
+    pPlanet->SetNoiseFilterState(pConfig->Global.GetInt("/PlanetTool/noise_filter", 0));
     pPlanet->SetPlanetaryParam_minDist(pConfig->Global.GetInt("/PlanetTool/min_dist", PT_MIN_DIST_DEFAULT));
     pPlanet->SetPlanetaryParam_param1(pConfig->Global.GetInt("/PlanetTool/param1", PT_PARAM1_DEFAULT));
     pPlanet->SetPlanetaryParam_param2(pConfig->Global.GetInt("/PlanetTool/param2", PT_PARAM2_DEFAULT));
@@ -371,6 +381,7 @@ PlanetToolWin::PlanetToolWin()
     m_featureTrackingCheckBox->SetValue(pPlanet->GetSurfaceTrackingState());
     m_EclipseModeCheckBox->SetValue(pPlanet->GetEclipseMode());
     m_RoiCheckBox->SetValue(pPlanet->GetRoiEnableState());
+    m_NoiseFilter->SetValue(pPlanet->GetNoiseFilterState());
     m_enableCheckBox->SetValue(pPlanet->GetPlanetaryEnableState());
 
     SetEnabledState(this, pPlanet->GetPlanetaryEnableState());
@@ -484,6 +495,12 @@ void PlanetToolWin::OnShowElementsClick(wxCommandEvent& event)
     pFrame->pGuider->Update();
 }
 
+void PlanetToolWin::OnNoiseFilterClick(wxCommandEvent& event)
+{
+    bool enabled = m_NoiseFilter->IsChecked();
+    pPlanet->SetNoiseFilterState(enabled);
+}
+
 void PlanetToolWin::UpdateStatus()
 {
     bool enabled = pPlanet->GetPlanetaryEnableState();
@@ -508,6 +525,7 @@ void PlanetToolWin::UpdateStatus()
     m_EclipseModeCheckBox->Enable(enabled && !surfaceTracking);
     m_RoiCheckBox->Enable(enabled && !surfaceTracking);
     m_ShowElements->Enable(enabled);
+    m_NoiseFilter->Enable(enabled);
 
     // Update slider states
     m_ThresholdSlider->Enable(enabled && !surfaceTracking && EclipseMode);
@@ -584,6 +602,7 @@ void PlanetToolWin::OnClose(wxCloseEvent& evt)
     // save detection parameters
     pConfig->Global.SetInt("/PlanetTool/surface_tracking", pPlanet->GetSurfaceTrackingState());
     pConfig->Global.SetInt("/PlanetTool/eclipse_mode", pPlanet->GetEclipseMode());
+    pConfig->Global.SetInt("/PlanetTool/noise_filter", pPlanet->GetNoiseFilterState());
     pConfig->Global.SetInt("/PlanetTool/min_dist", pPlanet->GetPlanetaryParam_minDist());
     pConfig->Global.SetInt("/PlanetTool/param1", pPlanet->GetPlanetaryParam_param1());
     pConfig->Global.SetInt("/PlanetTool/param2", pPlanet->GetPlanetaryParam_param2());
@@ -624,6 +643,7 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         pPlanet->SetPlanetaryParam_highThreshold(PT_HIGH_THRESHOLD_DEFAULT);
         pPlanet->SetPlanetaryParam_minHessian(PT_MIN_HESSIAN_DEFAULT);
         pPlanet->SetPlanetaryParam_maxFeatures(PT_MAX_SURFACE_FEATURES);
+        pPlanet->SetNoiseFilterState(false);
 
         m_minDist->SetValue(pPlanet->GetPlanetaryParam_minDist());
         m_param1->SetValue(pPlanet->GetPlanetaryParam_param1());
@@ -633,6 +653,7 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         m_ThresholdSlider->SetValue(pPlanet->GetPlanetaryParam_highThreshold());
         m_minHessianSlider->SetValue(pPlanet->GetPlanetaryParam_minHessian());
         m_maxFeaturesSlider->SetValue(pPlanet->GetPlanetaryParam_maxFeatures());
+        m_NoiseFilter->SetValue(pPlanet->GetNoiseFilterState());
     }
     else
         this->Close();

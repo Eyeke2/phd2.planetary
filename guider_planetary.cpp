@@ -63,6 +63,7 @@ GuiderPlanet::GuiderPlanet()
     m_trackingQuality = 0;
     m_starProfileSize = 50;
     m_focusSharpness = 0;
+    m_Planetary_NoiseFilterState = false;
 
     m_surfaceFixationPoint = Point2f(0, 0);
     m_guidingFixationPoint = Point2f(0, 0);
@@ -1510,6 +1511,17 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
         // Do slight image blurring to decrease noise impact on results
         Mat imgFiltered;
         GaussianBlur(img8, imgFiltered, cv::Size(3, 3), 1.5);
+
+        // Optional noise suppression filter
+        if (GetNoiseFilterState())
+        {
+            const int d = 10;
+            const double sigmaColor = 5.0;
+            double sigmaSpace = 5.0;
+            Mat filterredImage;
+            bilateralFilter(imgFiltered, filterredImage, d, sigmaColor, sigmaSpace);
+            imgFiltered = filterredImage;
+        }
 
         // Find planet center depending on the selected detection mode
         switch (GetPlanetDetectMode())
