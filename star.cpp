@@ -132,7 +132,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
     try
     {
         if (loggingControl == FIND_LOGGING_VERBOSE)
-            Debug.Write(wxString::Format("Star::Find(%d, %d, %d, %d, (%d,%d,%d,%d), %.1f, %0.1f, %hu) frame %u\n", searchRegion, base_x, base_y, mode,
+            Debug.Write(wxString::Format("Star::Find(%d, %.2f, %.2f, %d, (%d,%d,%d,%d), %.1f, %0.1f, %hu) frame %u\n", searchRegion, base_x, base_y, mode,
             pImg->Subframe.x, pImg->Subframe.y, pImg->Subframe.width, pImg->Subframe.height, minHFD, maxHFD, maxADU, pImg->FrameNum));
 
         int minx, miny, maxx, maxy;
