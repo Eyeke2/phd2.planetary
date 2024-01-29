@@ -183,7 +183,7 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         // on the premise that both large font digits are fixed-width, and that font scaling is linear.
         // The variable 'sfw' represents the width of a single digit displayed using the small font
         // and 'dotw' represents the width of a single '.' displayed using the small font.
-        // xsize = 10 + smallFontTextWidth + scale * (sfw * strlen(largeFontTextWithoutDot) + dotw);
+        // xsize = 20 + smallFontTextWidth + scale * (sfw * strlen(largeFontTextWithoutDot) + dotw);
         // therefore, scale = (xsize - 10 - smallFontTextWidth) / (sfw * strlen(largeFontTextWithoutDot) + dotw)
         const Star& star = pFrame->pGuider->PrimaryStar();
         float hfd = star.HFD;
@@ -194,8 +194,13 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         int smallFontTextWidth = dc.GetTextExtent(smallFontText).GetWidth();
         wxString largeDigitsText = wxString::Format("%.2f", hfd);
         int largeLenWithoutDot = largeDigitsText.Length() - 1;
-        float scale = (xsize - 10 - smallFontTextWidth) / (sfw * largeLenWithoutDot + dotw);
+        float scale = (xsize - 20 - smallFontTextWidth) / (sfw * largeLenWithoutDot + dotw);
         scale = wxMax(1.0, scale);
+
+        // smallFontHeight * scale should be at most 1/2 of the window height
+        // Note: the text extent of the large font based on ths scale factor is only an approximation,
+        // but it's good enough for our purpose.
+        scale = wxMin(scale, (float)ysize / (2.0 * smallFontHeight));
         largeFont = smallFont.Scaled(scale);
 
         dc.SetFont(largeFont);
@@ -404,7 +409,7 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         }
         else
         {
-            dc.DrawText(wxString::Format(_("%s FWHM: %.2f, HFD: %.2f (%.2f\")"), profileLabel, fwhm, hfd, hfdArcSec), 5, ysize - smallFontHeight - 5);
+            dc.DrawText(wxString::Format(_("%s FWHM: %.2f, %s%.2f (%.2f\")"), profileLabel, fwhm, hfdLabel, hfd, hfdArcSec), 5, ysize - smallFontHeight - 5);
         }
     }
     else
