@@ -398,7 +398,7 @@ bool GuiderMultiStar::SetCurrentPosition(const usImage *pImage, const PHD_Point&
         }
 
         m_massChecker->Reset();
-        int searchRegion = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? m_Planet.m_radius : m_searchRegion;
+        int searchRegion = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? m_Planet.m_searchRegion : m_searchRegion;
         bError = !m_primaryStar.Find(pImage, searchRegion, x, y, pFrame->GetStarFindMode(),
                               GetMinStarHFD(), GetMaxStarHFD(), pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE);
     }
@@ -484,7 +484,7 @@ bool GuiderMultiStar::AutoSelect(const wxRect& roi)
             {
                 newStar.X = newStar.referencePoint.X = m_Planet.m_center_x;
                 newStar.Y = newStar.referencePoint.Y = m_Planet.m_center_y;
-                searchRegion = m_Planet.m_radius;
+                searchRegion = m_Planet.m_searchRegion;
                 m_guideStars.clear();
                 m_guideStars.push_back(newStar);
             } else
@@ -971,7 +971,7 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
             double newpos_x = m_Planet.m_center_x;
             double newpos_y = m_Planet.m_center_y;
             newStar.SetXY(newpos_x, newpos_y);
-            search_region = m_Planet.m_radius;
+            search_region = m_Planet.m_searchRegion;
         }
 
         if (!newStar.Find(pImage, search_region, pFrame->GetStarFindMode(), GetMinStarHFD(),

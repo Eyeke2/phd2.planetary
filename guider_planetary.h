@@ -99,6 +99,7 @@ public:
     float m_center_x;
     float m_center_y;
     int m_radius;
+    int m_searchRegion;
     int m_frameWidth;
     int m_frameHeight;
 

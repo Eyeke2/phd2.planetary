@@ -56,6 +56,7 @@ GuiderPlanet::GuiderPlanet()
     m_Planetary_SurfaceTracking = false;
     m_detected = false;
     m_radius = 0;
+    m_searchRegion = 0;
     m_referenceKeypoints.clear();
     m_inlierPoints.clear();
     m_surfaceDetectionParamsChanging = false;
@@ -171,10 +172,8 @@ void GuiderPlanet::zoomStarProfile(int rotation)
         const int maxStarProfileSize = wxMin(m_frameWidth, m_frameHeight) / 4;
         const int minStarProfileSize = 15;
         int starProfileSize = m_starProfileSize + ((rotation > 0) ? 5 : -5);
-        if (starProfileSize >= maxStarProfileSize)
-            starProfileSize = maxStarProfileSize;
-        if (starProfileSize < minStarProfileSize)
-            starProfileSize = minStarProfileSize;
+        starProfileSize = wxMin(starProfileSize, maxStarProfileSize);
+        starProfileSize = wxMax(starProfileSize, minStarProfileSize);
         m_starProfileSize = starProfileSize;
     }
 }
@@ -939,6 +938,9 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
     // No detected features yet
     m_detectedFeatures = 0;
 
+    // Search region for star find is fixed value for surface features tracking
+    m_searchRegion = 50;
+
     // Create SURF detector
     int nOctaves = 4;
     int nOctaveLayers = 2;
@@ -1299,6 +1301,7 @@ bool GuiderPlanet::FindPlanetCircle(Mat img8, int minRadius, int maxRadius, bool
         m_center_x = roiRect.x + center[0];
         m_center_y = roiRect.y + center[1];
         m_radius = cvRound(center[2]);
+        m_searchRegion = m_radius;
         return true;
     }
 
@@ -1430,6 +1433,7 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
         m_center_x = roiRect.x + bestEclipseCenter.x;
         m_center_y = roiRect.y + bestEclipseCenter.y;
         m_radius = cvRound(bestEclipseCenter.radius);
+        m_searchRegion = m_radius;
         return true;
     }
 
