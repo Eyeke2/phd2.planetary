@@ -535,6 +535,9 @@ void PlanetToolWin::UpdateStatus()
     // Update tabs state
     m_featuresTab->Enable(surfaceTracking);
     m_planetTab->Enable(!surfaceTracking);
+
+    // For use with simulator only
+    pPlanet->m_simulationZeroOffset = true;
 }
 
 void PlanetToolWin::OnKeyDown(wxKeyEvent& event)

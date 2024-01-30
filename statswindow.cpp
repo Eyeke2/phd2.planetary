@@ -130,8 +130,13 @@ StatsWindow::StatsWindow(wxWindow *parent)
     m_grid2->ClearSelection();
 
     // Planetary detection stats
+#if FILE_SIMULATOR_MODE
+    const int grid3Rows = 3;
+#else
+    const int grid3Rows = 2;
+#endif
     m_grid3 = new wxGrid(this, wxID_ANY);
-    m_grid3->CreateGrid(2, 2);
+    m_grid3->CreateGrid(grid3Rows, 2);
     m_grid3->SetRowLabelSize(1);
     m_grid3->SetColLabelSize(1);
     m_grid3->EnableEditing(false);
@@ -146,11 +151,19 @@ StatsWindow::StatsWindow(wxWindow *parent)
     m_grid3->SetCellValue(row, col++, _("Contour points"));
     m_grid3->SetCellValue(row, col, _("9999999"));
     ++row, col = 0;
-
+#if FILE_SIMULATOR_MODE
+    m_grid3->SetCellValue(row, col++, _("Detection error"));
+    m_grid3->SetCellValue(row, col, _("9999999"));
+#endif
     m_grid3->AutoSize();
+
     m_grid3->SetCellValue(0, 1, wxEmptyString);
     m_grid3->SetCellValue(1, 0, wxEmptyString);
     m_grid3->SetCellValue(1, 1, wxEmptyString);
+#if FILE_SIMULATOR_MODE
+    m_grid3->SetCellValue(2, 0, wxEmptyString);
+    m_grid3->SetCellValue(2, 1, wxEmptyString);
+#endif
     m_grid3->ClearSelection();
 
     wxSizer *sizer1 = new wxBoxSizer(wxHORIZONTAL);
@@ -339,6 +352,10 @@ void StatsWindow::ClearPlanetStats()
     m_grid3->SetCellValue(0, 1, _(""));
     m_grid3->SetCellValue(1, 0, _(""));
     m_grid3->SetCellValue(1, 1, _(""));
+#if FILE_SIMULATOR_MODE
+    m_grid3->SetCellValue(2, 0, _(""));
+    m_grid3->SetCellValue(2, 1, _(""));
+#endif
 }
 
 void StatsWindow::UpdatePlanetDetectionTime(int msec)
@@ -352,6 +369,15 @@ void StatsWindow::UpdatePlanetFeatureCount(wxString label, int count)
     wxString valueStr = wxString::Format(_T("%d"), count);
     m_grid3->SetCellValue(1, 0, label);
     m_grid3->SetCellValue(1, 1, valueStr);
+}
+
+void StatsWindow::UpdatePlanetError(wxString label, float error)
+{
+#if FILE_SIMULATOR_MODE
+    wxString valueStr = error >= 0 ? wxString::Format(_T("%.2f px"), error) : _("unknown");
+    m_grid3->SetCellValue(2, 0, label);
+    m_grid3->SetCellValue(2, 1, valueStr);
+#endif
 }
 
 void StatsWindow::OnTimerCooler(wxTimerEvent&)

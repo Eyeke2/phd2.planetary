@@ -1352,7 +1352,6 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
         disk_image = &grayscale16;
     }
 
-#if 0
     // Simulate random motion
     unsigned short *dataptr = img.ImageData;
 
@@ -1363,13 +1362,16 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
 
     // Generate Gaussian noise to be used as x displacement
     cv::randn(noiseMat, 0, jitter);
-    double rx = noiseMat.at<double>(0, 0);
+    double rx = pFrame->pGuider->m_Planet.m_simulationZeroOffset ? 0 : noiseMat.at<double>(0, 0);
     rx = wxMax(-max_offset, wxMin(max_offset, rx));
 
     // Generate Gaussian noise to be used as y displacement
     cv::randn(noiseMat, 0, jitter);
-    double ry = noiseMat.at<double>(0, 0);
+    double ry = pFrame->pGuider->m_Planet.m_simulationZeroOffset ? 0 : noiseMat.at<double>(0, 0);
     ry = wxMax(-max_offset, wxMin(max_offset, ry));
+
+    // Save how much we moved for tracking accuracy error analysis
+    pFrame->pGuider->m_Planet.SaveCameraSimulationMove(rx, ry);
 
     // Translate the image by shifting it few pixels in random direction
     cv::Mat translatedImage;
@@ -1391,7 +1393,6 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
     disk_image = &translatedImage;
 #endif
 
-#endif
     // Copy the 16-bit data to result
     int dataSize = image.cols * image.rows * 2;
     memcpy(img.ImageData, disk_image->data, dataSize);

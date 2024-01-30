@@ -69,6 +69,9 @@ private:
     float m_PlanetEccentricity;
     float m_PlanetAngle;
 
+    cv::Point2f m_origPoint;
+    cv::Point2f m_cameraSimulationMove;
+
 public:
     // Planet detection modes
     enum PlanetDetectMode
@@ -120,6 +123,7 @@ public:
     int m_sm_circle_x;
     int m_sm_circle_y;
     int m_detectionCounter;
+    bool m_simulationZeroOffset;
 
     // Surface tracking
     std::vector<cv::KeyPoint> m_referenceKeypoints;
@@ -161,6 +165,7 @@ public:
     void NotifyStartCapturing();
     void NotifyStopCapturing();
     void NotifyFinishStop();
+    void SaveCameraSimulationMove(double rx, double ry);
 
     bool GetPlanetaryEnableState() { return m_Planetary_enabled; }
     void SetPlanetaryEnableState(bool enabled) { m_Planetary_enabled = enabled; }

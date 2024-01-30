@@ -91,6 +91,7 @@ public:
     void ResetImageSize();
     void UpdatePlanetDetectionTime(int msec);
     void UpdatePlanetFeatureCount(wxString label, int count);
+    void UpdatePlanetError(wxString label, float error);
     void ClearPlanetStats();
     void SetState(bool is_active);
 

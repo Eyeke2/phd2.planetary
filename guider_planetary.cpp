@@ -65,9 +65,13 @@ GuiderPlanet::GuiderPlanet()
     m_focusSharpness = 0;
     m_Planetary_NoiseFilterState = false;
 
+    m_guidingFixationPointValid = false;
     m_surfaceFixationPoint = Point2f(0, 0);
     m_guidingFixationPoint = Point2f(0, 0);
-    m_guidingFixationPointValid = false;
+    m_cameraSimulationMove = Point2f(0, 0);
+    m_center_x = m_center_y = 0;
+    m_simulationZeroOffset = false;
+    m_origPoint = Point2f(0, 0);
 
     m_cachedScaledWidth = 0;
     m_cachedScaledHeight = 0;
@@ -251,6 +255,9 @@ void GuiderPlanet::NotifyStartCapturing()
     // control drawing of the internal detection elements.
     if (GetPlanetaryEnableState() && GetPlanetaryElementsButtonState())
         SetPlanetaryElementsVisual(true);
+
+    // Start with zero offset for sync with simulated camera position
+    m_simulationZeroOffset = true;
 }
 
 // Notification callback about stop of capturing
@@ -269,6 +276,11 @@ void GuiderPlanet::NotifyFinishStop()
     if (GetPlanetaryEnableState())
         pFrame->pGuider->Reset(false);
     m_guidingFixationPointValid = false;
+}
+
+void GuiderPlanet::SaveCameraSimulationMove(double rx, double ry)
+{
+    m_cameraSimulationMove = Point2f(rx, ry);
 }
 
 // Return scaled tracking image with lock target symbol
@@ -1442,7 +1454,7 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
 }
 
 // Find planet center of round/crescent shape in the given image
-bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
+bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
 {
     m_PlanetWatchdog.Start();
 
@@ -1452,11 +1464,12 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
     // Point clicked by user in the main window
     if (autoSelect)
     {
+        m_simulationZeroOffset = true;
         m_clicked_x = 0;
         m_clicked_y = 0;
         m_roiClicked = false;
     }
-    Point2f clickedPoint = { (float)m_clicked_x, (float)m_clicked_y };
+    Point2f clickedPoint = Point2f(m_clicked_x, m_clicked_y);
 
     // Use ROI for CPU time optimization
     bool roiActive = false;
@@ -1526,17 +1539,17 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
         // Find planet center depending on the selected detection mode
         switch (GetPlanetDetectMode())
         {
-            case PLANET_DETECT_MODE_SURFACE:
-                detectionResult = DetectSurfaceFeatures(imgFiltered, clickedPoint, autoSelect);
-                CalcFocusScore(FullFrame, bppFactor, detectionResult);
-                pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_detectedFeatures : 0);
-                break;
-            case PLANET_DETECT_MODE_CIRCLES:
-                detectionResult = FindPlanetCircle(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
-                break;
-            case PLANET_DETECT_MODE_ECLIPSE:
-                detectionResult = FindPlanetEclipse(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
-                break;
+        case PLANET_DETECT_MODE_SURFACE:
+            detectionResult = DetectSurfaceFeatures(imgFiltered, clickedPoint, autoSelect);
+            CalcFocusScore(FullFrame, bppFactor, detectionResult);
+            pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_detectedFeatures : 0);
+            break;
+        case PLANET_DETECT_MODE_CIRCLES:
+            detectionResult = FindPlanetCircle(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
+            break;
+        case PLANET_DETECT_MODE_ECLIPSE:
+            detectionResult = FindPlanetEclipse(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
+            break;
         }
 
         // Update detection time stats
@@ -1554,6 +1567,35 @@ bool GuiderPlanet::FindPlanet(const usImage *pImage, bool autoSelect)
         POSSIBLY_UNUSED(msg);
         Debug.Write(wxString::Format("Find planet: exception %s\n", msg));
     }
+
+#if FILE_SIMULATOR_MODE
+    if (pCamera && pCamera->Name == "Simulator")
+    {
+        bool errUnknown = true;
+        bool clicked = (m_prevClickedPoint != clickedPoint);
+
+        if (m_detected)
+        {
+            if (norm(m_cameraSimulationMove) == 0)
+            {
+                m_simulationZeroOffset = false;
+                m_origPoint = Point2f(m_center_x, m_center_y);
+            }
+            else if (!m_simulationZeroOffset && !clicked)
+            {
+                Point2f delta = Point2f(m_center_x, m_center_y) - m_origPoint;
+                pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"), norm(delta - m_cameraSimulationMove));
+                errUnknown = false;
+            }
+        }
+
+        if (errUnknown)
+            pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"), -1);
+
+        if (clicked)
+            m_simulationZeroOffset = true;
+    }
+#endif
 
     // Update data shared with other thread
     m_syncLock.Lock();
