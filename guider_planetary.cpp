@@ -1199,6 +1199,9 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
 
         // Count detected features
         m_detectedFeatures = inlierPoints.size();
+
+        // Update stats
+        pFrame->pStatsWin->UpdatePlanetScore(_T("Uncertainty"), variance);
     }
     // Set reference frame keypoints and descriptors
     else if (descriptors.rows > 4)
@@ -1308,6 +1311,7 @@ bool GuiderPlanet::FindPlanetCircle(Mat img8, int minRadius, int maxRadius, bool
     // Log results and update stats window
     Debug.Write(wxString::Format("End detection of planetary disk (t=%d): %d circles detected, r=%d x=%.1f y=%.1f\n", m_PlanetWatchdog.Time(), circles.size(), cvRound(center[2]), center[0], center[1]));
     pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Circles"), circles.size());
+    pFrame->pStatsWin->UpdatePlanetScore(wxEmptyString);
 
     if (center[2])
     {
@@ -1425,7 +1429,8 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
         m_PlanetWatchdog.Time(), bestEclipseCenter.radius, roiRect.x + bestEclipseCenter.x, roiRect.y + bestEclipseCenter.y, bestScore, contourMatchingCount, contourAllCount, maxThreadsCount));
 
     // Update stats window
-    pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), totalPoints);
+    pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contours/points"), contourMatchingCount, bestContour.size());
+    pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), bestScore);
 
     // Create wxImage from the OpenCV Mat to be presented as
     // a visual aid for tunning of the edge threshold parameters.

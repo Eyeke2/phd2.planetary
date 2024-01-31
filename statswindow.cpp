@@ -131,9 +131,9 @@ StatsWindow::StatsWindow(wxWindow *parent)
 
     // Planetary detection stats
 #if FILE_SIMULATOR_MODE
-    const int grid3Rows = 3;
+    const int grid3Rows = 4;
 #else
-    const int grid3Rows = 2;
+    const int grid3Rows = 3;
 #endif
     m_grid3 = new wxGrid(this, wxID_ANY);
     m_grid3->CreateGrid(grid3Rows, 2);
@@ -148,8 +148,11 @@ StatsWindow::StatsWindow(wxWindow *parent)
     m_grid3->SetCellValue(row, col++, _("Detection time"));
     m_grid3->SetCellValue(row, col, _("000000 ms"));
     ++row, col = 0;
-    m_grid3->SetCellValue(row, col++, _("Contour points"));
-    m_grid3->SetCellValue(row, col, _("9999999"));
+    m_grid3->SetCellValue(row, col++, _("Contours/points"));
+    m_grid3->SetCellValue(row, col, _("9999/9999"));
+    ++row, col = 0;
+    m_grid3->SetCellValue(row, col++, _("Fitting score"));
+    m_grid3->SetCellValue(row, col, _("1.00"));
     ++row, col = 0;
 #if FILE_SIMULATOR_MODE
     m_grid3->SetCellValue(row, col++, _("Detection error"));
@@ -160,9 +163,11 @@ StatsWindow::StatsWindow(wxWindow *parent)
     m_grid3->SetCellValue(0, 1, wxEmptyString);
     m_grid3->SetCellValue(1, 0, wxEmptyString);
     m_grid3->SetCellValue(1, 1, wxEmptyString);
-#if FILE_SIMULATOR_MODE
     m_grid3->SetCellValue(2, 0, wxEmptyString);
     m_grid3->SetCellValue(2, 1, wxEmptyString);
+#if FILE_SIMULATOR_MODE
+    m_grid3->SetCellValue(3, 0, wxEmptyString);
+    m_grid3->SetCellValue(3, 1, wxEmptyString);
 #endif
     m_grid3->ClearSelection();
 
@@ -349,12 +354,14 @@ void StatsWindow::ResetImageSize()
 
 void StatsWindow::ClearPlanetStats()
 {
-    m_grid3->SetCellValue(0, 1, _(""));
-    m_grid3->SetCellValue(1, 0, _(""));
-    m_grid3->SetCellValue(1, 1, _(""));
+    m_grid3->SetCellValue(0, 1, wxEmptyString);
+    m_grid3->SetCellValue(1, 0, wxEmptyString);
+    m_grid3->SetCellValue(1, 1, wxEmptyString);
+    m_grid3->SetCellValue(2, 0, wxEmptyString);
+    m_grid3->SetCellValue(2, 1, wxEmptyString);
 #if FILE_SIMULATOR_MODE
-    m_grid3->SetCellValue(2, 0, _(""));
-    m_grid3->SetCellValue(2, 1, _(""));
+    m_grid3->SetCellValue(3, 0, wxEmptyString);
+    m_grid3->SetCellValue(3, 1, wxEmptyString);
 #endif
 }
 
@@ -371,12 +378,33 @@ void StatsWindow::UpdatePlanetFeatureCount(wxString label, int count)
     m_grid3->SetCellValue(1, 1, valueStr);
 }
 
+void StatsWindow::UpdatePlanetFeatureCount(wxString label, int count1, int count2)
+{
+    wxString valueStr = wxString::Format(_T("%d/%d"), count1, count2);
+    m_grid3->SetCellValue(1, 0, label);
+    m_grid3->SetCellValue(1, 1, valueStr);
+}
+
+void StatsWindow::UpdatePlanetScore(wxString label, float score)
+{
+    if (label == wxEmptyString)
+    {
+        m_grid3->SetCellValue(2, 0, wxEmptyString);
+        m_grid3->SetCellValue(2, 1, wxEmptyString);
+    }
+    else
+    {
+        m_grid3->SetCellValue(2, 0, label);
+        m_grid3->SetCellValue(2, 1, wxString::Format(_T("%.2f"), score));
+    }
+}
+
 void StatsWindow::UpdatePlanetError(wxString label, float error)
 {
 #if FILE_SIMULATOR_MODE
     wxString valueStr = error >= 0 ? wxString::Format(_T("%.2f px"), error) : _("unknown");
-    m_grid3->SetCellValue(2, 0, label);
-    m_grid3->SetCellValue(2, 1, valueStr);
+    m_grid3->SetCellValue(3, 0, label);
+    m_grid3->SetCellValue(3, 1, valueStr);
 #endif
 }
 
