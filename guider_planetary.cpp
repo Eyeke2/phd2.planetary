@@ -168,9 +168,10 @@ bool GuiderPlanet::IsPixelMetrics()
 void GuiderPlanet::zoomStarProfile(int rotation)
 {
     // Reset profile zoom when user does L-click and hold Alt button
-    if (rotation == 0 && wxGetKeyState(WXK_ALT))
+    if (rotation == 0)
     {
-        m_starProfileSize = 50;
+        if (wxGetKeyState(WXK_ALT))
+            m_starProfileSize = 50;
     }
     else
     {

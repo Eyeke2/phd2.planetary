@@ -254,7 +254,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
             PeakVal = peak_val;
         }
 
-        // meaure noise in the annulus with inner radius A and outer radius B
+        // measure noise in the annulus with inner radius A and outer radius B
         int const A = inner_radius;
         int const B = outer_radius;
         int const A2 = A * A;
