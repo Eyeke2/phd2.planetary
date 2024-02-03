@@ -53,6 +53,12 @@ private:
     int imageLeftMargin;
     int imageBottom;
     bool visible;
+
+    // Rectangle where HFD label is drawn
+    bool m_inFocusingMode;
+    int m_labelX, m_labelY;
+    int m_labelWidth, m_labelHeight;
+
     unsigned short *data;
     int horiz_profile[21], vert_profile[21], midrow_profile[21];
     DECLARE_EVENT_TABLE()

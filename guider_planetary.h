@@ -65,6 +65,8 @@ private:
     bool   m_Planetary_ShowElementsVisual;
     bool   m_Planetary_NoiseFilterState;
 
+    bool   m_measuringSharpnessMode;
+    bool   m_unknownHFD;
     double m_focusSharpness;
     float m_PlanetEccentricity;
     float m_PlanetAngle;
@@ -156,11 +158,12 @@ public:
     }
 
     double ComputeSobelSharpness(const cv::Mat& img);
-    void CalcFocusScore(cv::Mat& FullFrame, int bppFactor, bool detectionResult);
+    double CalcSharpness(cv::Mat& FullFrame, int bppFactor, cv::Point2f& clickedPoint, bool detectionResult);
     double GetHFD();
     wxString GetHfdLabel();
     bool IsPixelMetrics();
-    void zoomStarProfile(int rotation);
+    void ZoomStarProfile(int rotation);
+    void ToggleSharpness();
     void GetDetectionStatus(wxString& statusMsg);
     void NotifyStartCapturing();
     void NotifyStopCapturing();
@@ -170,7 +173,12 @@ public:
     bool GetPlanetaryEnableState() { return m_Planetary_enabled; }
     void SetPlanetaryEnableState(bool enabled) { m_Planetary_enabled = enabled; }
     bool GetSurfaceTrackingState() { return m_Planetary_SurfaceTracking; }
-    void SetSurfaceTrackingState(bool enabled) { m_Planetary_SurfaceTracking = enabled; }
+    void SetSurfaceTrackingState(bool enabled)
+    {
+        m_Planetary_SurfaceTracking = enabled;
+        m_measuringSharpnessMode = enabled;
+        m_unknownHFD = true;
+    }
     void SetPlanetaryParam_minDist(double val) { m_Planetary_minDist = val; }
     double GetPlanetaryParam_minDist() { return m_Planetary_minDist; }
     void   SetPlanetaryParam_param1(double val) { m_Planetary_param1 = val; }

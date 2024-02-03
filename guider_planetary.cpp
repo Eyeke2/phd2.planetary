@@ -62,6 +62,8 @@ GuiderPlanet::GuiderPlanet()
     m_surfaceDetectionParamsChanging = false;
     m_trackingQuality = 0;
     m_starProfileSize = 50;
+    m_measuringSharpnessMode = false;
+    m_unknownHFD = true;
     m_focusSharpness = 0;
     m_Planetary_NoiseFilterState = false;
 
@@ -144,7 +146,9 @@ GuiderPlanet::GuiderPlanet()
 // Planet/feature size depending on planetary detection mode
 double GuiderPlanet::GetHFD()
 {
-    if (GetPlanetDetectMode() == PLANET_DETECT_MODE_SURFACE)
+    if (m_unknownHFD)
+        return std::nan("1");
+    if (m_measuringSharpnessMode)
         return m_focusSharpness;
     else
         return m_detected ? m_radius : 0;
@@ -152,20 +156,20 @@ double GuiderPlanet::GetHFD()
 
 wxString GuiderPlanet::GetHfdLabel()
 {
-    if (GetPlanetDetectMode() == PLANET_DETECT_MODE_SURFACE)
-        return _("FOCUS: ");
+    if (m_measuringSharpnessMode)
+        return _("SHARPNESS: ");
     else
         return _("RADIUS: ");
 }
 
 bool GuiderPlanet::IsPixelMetrics()
 {
-    return GetPlanetaryEnableState() ? (GetPlanetDetectMode() != PLANET_DETECT_MODE_SURFACE) : true;
+    return GetPlanetaryEnableState() ? !m_measuringSharpnessMode : true;
 }
 
 // Handle mouse wheel rotation event from Star Profile windows.
 // Positive or negative indicates direction of rotation.
-void GuiderPlanet::zoomStarProfile(int rotation)
+void GuiderPlanet::ZoomStarProfile(int rotation)
 {
     // Reset profile zoom when user does L-click and hold Alt button
     if (rotation == 0)
@@ -181,6 +185,17 @@ void GuiderPlanet::zoomStarProfile(int rotation)
         starProfileSize = wxMin(starProfileSize, maxStarProfileSize);
         starProfileSize = wxMax(starProfileSize, minStarProfileSize);
         m_starProfileSize = starProfileSize;
+    }
+}
+
+// Toggle between sharpness and radius display
+void GuiderPlanet::ToggleSharpness()
+{
+    // In surface tracking mode sharpness is always displayed
+    if (GetPlanetDetectMode() != PLANET_DETECT_MODE_SURFACE)
+    {
+        m_measuringSharpnessMode = !m_measuringSharpnessMode;
+        m_unknownHFD = true;
     }
 }
 
@@ -201,11 +216,9 @@ double GuiderPlanet::ComputeSobelSharpness(const Mat& img)
 }
 
 // Calculate focus metrics around the updated tracked position
-void GuiderPlanet::CalcFocusScore(Mat& FullFrame, int bppFactor, bool detectionResult)
+double GuiderPlanet::CalcSharpness(Mat& FullFrame, int bppFactor, Point2f& clickedPoint, bool detectionResult)
 {
-    Rect focusSubFrame;
-    Mat focusRoi, focusRoi8;
-    const int focusSize = 200;
+    Mat focusRoi8;
     int focusX;
     int focusY;
 
@@ -214,19 +227,27 @@ void GuiderPlanet::CalcFocusScore(Mat& FullFrame, int bppFactor, bool detectionR
         focusX = m_center_x;
         focusY = m_center_y;
     }
+    else if (norm(clickedPoint))
+    {
+        focusX = clickedPoint.x;
+        focusY = clickedPoint.y;
+    }
     else
     {
-        focusX = m_frameWidth / 2;
-        focusY = m_frameHeight / 2;
+        // For failed auto selected star use entire frame for sharpness calculation
+        FullFrame.convertTo(focusRoi8, CV_8U, 1.0 / bppFactor);
+        return ComputeSobelSharpness(focusRoi8);
     }
+
+    const int focusSize = (GetPlanetDetectMode() == PLANET_DETECT_MODE_SURFACE) ? 200 : m_Planetary_maxRadius * 3 / 2.0;
     focusX = wxMax(0, focusX - focusSize / 2);
     focusY = wxMax(0, focusY - focusSize / 2);
     focusX = wxMin(focusX, m_frameWidth - focusSize);
     focusY = wxMin(focusY, m_frameHeight - focusSize);
-    focusSubFrame = Rect(focusX, focusY, focusSize, focusSize);
-    focusRoi = FullFrame(focusSubFrame);
+    Rect focusSubFrame = Rect(focusX, focusY, focusSize, focusSize);
+    Mat focusRoi = FullFrame(focusSubFrame);
     focusRoi.convertTo(focusRoi8, CV_8U, 1.0 / bppFactor);
-    m_focusSharpness = ComputeSobelSharpness(focusRoi8);
+    return ComputeSobelSharpness(focusRoi8);
 }
 
 // Get current detection status
@@ -1537,9 +1558,9 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
             const int d = 10;
             const double sigmaColor = 5.0;
             double sigmaSpace = 5.0;
-            Mat filterredImage;
-            bilateralFilter(imgFiltered, filterredImage, d, sigmaColor, sigmaSpace);
-            imgFiltered = filterredImage;
+            Mat filteredImage;
+            bilateralFilter(imgFiltered, filteredImage, d, sigmaColor, sigmaSpace);
+            imgFiltered = filteredImage;
         }
 
         // Find planet center depending on the selected detection mode
@@ -1547,7 +1568,6 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
         {
         case PLANET_DETECT_MODE_SURFACE:
             detectionResult = DetectSurfaceFeatures(imgFiltered, clickedPoint, autoSelect);
-            CalcFocusScore(FullFrame, bppFactor, detectionResult);
             pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_detectedFeatures : 0);
             break;
         case PLANET_DETECT_MODE_CIRCLES:
@@ -1558,6 +1578,10 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
             break;
         }
 
+        // Calculate sharpness of the image
+        if (m_measuringSharpnessMode)
+            m_focusSharpness = CalcSharpness(FullFrame, bppFactor, clickedPoint, detectionResult);
+
         // Update detection time stats
         pFrame->pStatsWin->UpdatePlanetDetectionTime(m_PlanetWatchdog.Time());
 
@@ -1567,6 +1591,8 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
             if (m_detectionCounter++ > 3)
                 m_roiClicked = false;
         }
+        if (m_measuringSharpnessMode || detectionResult)
+            m_unknownHFD = false;
     }
     catch (const wxString& msg)
     {

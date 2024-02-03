@@ -63,6 +63,8 @@ ProfileWindow::ProfileWindow(wxWindow *parent) :
     memset(horiz_profile, 0, sizeof(horiz_profile));
     imageLeftMargin = 0;
     imageBottom = 0;
+
+    m_inFocusingMode = false;
 }
 
 ProfileWindow::~ProfileWindow()
@@ -76,19 +78,30 @@ void ProfileWindow::OnLClick(wxMouseEvent& mevent)
     {
         rawMode = !rawMode;
         pConfig->Global.SetBoolean("/ProfileRawMode", rawMode);
+        pFrame->pGuider->m_Planet.ZoomStarProfile(0);
     }
     else
     {
-        this->mode = this->mode + 1;
-        if (this->mode > 2) this->mode = 0;
+        // Check to see if point is within the metrics label area
+        if ((pFrame->GetStarFindMode() == Star::FIND_PLANET) &&
+            m_inFocusingMode && (mevent.GetX() <= m_labelX + m_labelWidth + 5) && (mevent.GetY() >= m_labelY - 5))
+        {
+            // Toggle between radius and sharpness metrics
+            pFrame->pGuider->m_Planet.ToggleSharpness();
+        }
+        else if (mevent.GetX() < imageLeftMargin)
+        {
+            this->mode = this->mode + 1;
+            if (this->mode > 2) this->mode = 0;
+        }
     }
-    pFrame->pGuider->m_Planet.zoomStarProfile(0);
     Refresh();
 }
 
 void ProfileWindow::OnMouseWheel(wxMouseEvent& mevent)
 {
-    pFrame->pGuider->m_Planet.zoomStarProfile(mevent.GetWheelRotation());
+    if (mevent.GetX() > imageLeftMargin && mevent.GetY() <= imageBottom)
+        pFrame->pGuider->m_Planet.ZoomStarProfile(mevent.GetWheelRotation());
 }
 
 void ProfileWindow::SetState(bool is_active)
@@ -177,6 +190,8 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
     // Set label for displaying tracked object measured property, depending on star find mode
     wxString hfdLabel = pFrame->GetStarFindMode() == Star::FIND_PLANET ? pFrame->pGuider->m_Planet.GetHfdLabel() : _("HFD: ");
 
+    const Star& star = pFrame->pGuider->PrimaryStar();
+    float hfd = pFrame->GetStarFindMode() == Star::FIND_PLANET ? pFrame->pGuider->m_Planet.GetHFD() : star.HFD;
     if (inFocusingMode) {
         // To compute the scale factor, we use the following formula, which maximizes the use of all available
         // window width (xsize) while displaying HFD metrics in the exact format. The scaling value is calculated
@@ -186,13 +201,17 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         // xsize = 20 + smallFontTextWidth + scale * (sfw * strlen(largeFontTextWithoutDot) + dotw);
         // therefore, scale = (xsize - 10 - smallFontTextWidth) / (sfw * strlen(largeFontTextWithoutDot) + dotw)
         const Star& star = pFrame->pGuider->PrimaryStar();
-        float hfd = star.HFD;
+        float hfd = pFrame->GetStarFindMode() == Star::FIND_PLANET ? pFrame->pGuider->m_Planet.GetHFD() : star.HFD;
         float sfw = (float)dc.GetTextExtent("0").GetWidth();
         float dotw = (float)dc.GetTextExtent(".").GetWidth();
-        float hfdArcSec = hfd * pFrame->GetCameraPixelScale();
-        wxString smallFontText = hfdLabel + wxString::Format("  %.2f\"", hfdArcSec);
+        wxString smallFontText = hfdLabel;
+        if (pFrame->pGuider->m_Planet.IsPixelMetrics() && !std::isnan(hfd))
+        {
+            float hfdArcSec = hfd * pFrame->GetCameraPixelScale();
+            smallFontText += wxString::Format("  %.2f\"", hfdArcSec);
+        }
         int smallFontTextWidth = dc.GetTextExtent(smallFontText).GetWidth();
-        wxString largeDigitsText = wxString::Format("%.2f", hfd);
+        wxString largeDigitsText = wxString::Format(_T("%.2f"), hfd);
         int largeLenWithoutDot = largeDigitsText.Length() - 1;
         float scale = (xsize - 20 - smallFontTextWidth) / (sfw * largeLenWithoutDot + dotw);
         scale = wxMax(1.0, scale);
@@ -208,7 +227,8 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         dc.SetFont(smallFont);
         labelTextHeight = 5 + smallFontHeight + largeFontHeight + 5;
     }
-    else {
+    else
+    {
         labelTextHeight = 5 + smallFontHeight + 5;
     }
 
@@ -371,52 +391,66 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         }
     }
 
-    const Star& star = pFrame->pGuider->PrimaryStar();
     if (star.IsValid())
     {
         dc.DrawText(_("Peak"), 3, 3);
         dc.DrawText(wxString::Format("%u", star.PeakVal), 3, 3 + smallFontHeight);
     }
 
-    float hfd = star.HFD;
+    wxString fwhmLine = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? profileLabel : wxString::Format(_("%s FWHM: %.2f"), profileLabel, fwhm);
     if (hfd != 0.f)
     {
         float hfdArcSec = hfd * pFrame->GetCameraPixelScale();
         if (inFocusingMode)
         {
-            wxString fwhmLine = wxString::Format(_("%s FWHM: %.2f"), profileLabel, fwhm);
             int fwhmLineWidth = dc.GetTextExtent(fwhmLine).GetWidth();
-            if (pFrame->GetStarFindMode() != Star::FIND_PLANET)
-                dc.DrawText(fwhmLine, 5, ysize - labelTextHeight + 5);
+            dc.DrawText(fwhmLine, 5, ysize - labelTextHeight + 5);
 
             // Show X/Y of centroid if there's room
             if ((imageLeftMargin > fwhmLineWidth + 20) && (ysize - labelTextHeight + 5 > imageBottom))
                 dc.DrawText(wxString::Format("X: %0.2f, Y: %0.2f", pFrame->pGuider->CurrentPosition().X, pFrame->pGuider->CurrentPosition().Y), imageLeftMargin, ysize - labelTextHeight + 5);
-            int x = 5;
-            wxString s = hfdLabel;
-            dc.DrawText(s, x, ysize - largeFontHeight / 2 - smallFontHeight / 2);
-            x += dc.GetTextExtent(s).GetWidth();
 
-            dc.SetFont(largeFont);
-            s = wxString::Format(_T("%.2f"), hfd);
-            dc.DrawText(s, x, ysize - largeFontHeight);
-            x += dc.GetTextExtent(s).GetWidth();
+            // Show metrics label using small font
+            m_labelX = 5;
+            m_labelY = ysize - largeFontHeight / 2 - smallFontHeight / 2;
+            m_labelWidth = dc.GetTextExtent(hfdLabel).GetWidth();
+            m_labelHeight = smallFontHeight;
+            dc.DrawText(hfdLabel, m_labelX, m_labelY);
 
-            if (pFrame->pGuider->m_Planet.IsPixelMetrics())
+            m_inFocusingMode = true;
+            int x = m_labelX + m_labelWidth;
+            wxString s = wxString::Format(_T("%.2f"), hfd);
+            if (std::isnan(hfd))
             {
-                dc.SetFont(smallFont);
-                s = wxString::Format(_T("  %.2f\""), hfdArcSec);
-                dc.DrawText(s, x, ysize - largeFontHeight / 2 - smallFontHeight / 2);
+                dc.DrawText(_T("LOADING ..."), x, m_labelY);
+            }
+            else
+            {
+                dc.SetFont(largeFont);
+                dc.DrawText(s, x, ysize - largeFontHeight);
+                x += dc.GetTextExtent(s).GetWidth();
+
+                if (pFrame->pGuider->m_Planet.IsPixelMetrics())
+                {
+                    dc.SetFont(smallFont);
+                    s = wxString::Format(_T("  %.2f\""), hfdArcSec);
+                    dc.DrawText(s, x, ysize - largeFontHeight / 2 - smallFontHeight / 2);
+                }
             }
         }
         else
         {
-            dc.DrawText(wxString::Format(_("%s FWHM: %.2f, %s%.2f (%.2f\")"), profileLabel, fwhm, hfdLabel, hfd, hfdArcSec), 5, ysize - smallFontHeight - 5);
+            if (pFrame->pGuider->m_Planet.IsPixelMetrics())
+                dc.DrawText(wxString::Format(_("%s FWHM: %.2f, %s%.2f (%.2f\")"), profileLabel, fwhm, hfdLabel, hfd, hfdArcSec), 5, ysize - smallFontHeight - 5);
+            else
+                dc.DrawText(wxString::Format(_("%s; %s%.2f"), profileLabel, hfdLabel, hfd), 5, ysize - smallFontHeight - 5);
+            m_inFocusingMode = false;
         }
     }
     else
     {
-        dc.DrawText(wxString::Format(_("%s FWHM: %.2f"), profileLabel, fwhm), 5, ysize - smallFontHeight - 5);
+        dc.DrawText(fwhmLine, 5, ysize - smallFontHeight - 5);
+        m_inFocusingMode = false;
     }
 }
 

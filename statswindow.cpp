@@ -402,7 +402,7 @@ void StatsWindow::UpdatePlanetScore(wxString label, float score)
 void StatsWindow::UpdatePlanetError(wxString label, float error)
 {
 #if FILE_SIMULATOR_MODE
-    wxString valueStr = error >= 0 ? wxString::Format(_T("%.2f px"), error) : _("unknown");
+    wxString valueStr = error >= 0 ? wxString::Format(_T("%.2f px"), error) : _("loading");
     m_grid3->SetCellValue(3, 0, label);
     m_grid3->SetCellValue(3, 1, valueStr);
 #endif
