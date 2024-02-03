@@ -5,6 +5,14 @@ When installing this version, it is advised to choose a destination folder disti
 
 Change log
 
+v2.6.13-planet.dev5
+* Enabled toggling between Sharpness and Radius metrics in Planetary Tracking mode, now supporting sharpness
+measurements across all planet detection algorithms. Improved the Star Profile display in planetary mode by
+removing irrelevant FWHM metrics.
+* Removed the display of FWHM metrics in Planetary Tracking mode.
+* Corrected zoom behavior in the Star Profile view.
+* Enhanced the stats window with additional entries specifically relevant to planetary detection.
+
 v2.6.13-planet.dev5.rc3
 * Added an experimental noise suppression filter, potentially beneficial for detecting planetary disks
 in highly noisy input images.
