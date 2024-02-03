@@ -478,7 +478,7 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
             // - The image is either too big
             // - The image is so small that at least one dimension is less
             //   than half the width of the window or
-            // - The user has requsted rescaling
+            // - The user has requested rescaling
 
             if (xScaleFactor > 1.0 || yScaleFactor > 1.0 ||
                 xScaleFactor < 0.45 || yScaleFactor < 0.45 || m_scaleImage)
