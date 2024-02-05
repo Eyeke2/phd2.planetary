@@ -82,6 +82,7 @@ StatsWindow::StatsWindow(wxWindow *parent)
     m_grid1->SetCellValue(1, 1, "");
     m_grid1->SetCellValue(1, 2, "");
     m_grid1->ClearSelection();
+    m_grid1->DisableDragGridSize();
 
     m_grid2 = new wxGrid(this, wxID_ANY);
     m_grid2->CreateGrid(12, 2);
@@ -128,6 +129,7 @@ StatsWindow::StatsWindow(wxWindow *parent)
     m_grid2->SetCellValue(3, 1, wxEmptyString);
     m_grid2->SetCellValue(m_pixelScaleRow + 1, 1, wxEmptyString); // field of view row
     m_grid2->ClearSelection();
+    m_grid2->DisableDragGridSize();
 
     // Planetary detection stats
 #if FILE_SIMULATOR_MODE
@@ -170,6 +172,7 @@ StatsWindow::StatsWindow(wxWindow *parent)
     m_grid3->SetCellValue(3, 1, wxEmptyString);
 #endif
     m_grid3->ClearSelection();
+    m_grid3->DisableDragGridSize();
 
     wxSizer *sizer1 = new wxBoxSizer(wxHORIZONTAL);
 
@@ -192,22 +195,6 @@ StatsWindow::StatsWindow(wxWindow *parent)
     sizer2->Add(m_grid3, wxSizerFlags(0).Border(wxALL, 10));
 
     SetSizerAndFit(sizer2);
-
-    // Save original grid size to prevent resizing of rows and columns
-    m_gridRowHeight = m_grid1->GetRowHeight(0);
-    for (int j = 0; j < m_grid1->GetNumberCols(); ++j)
-        m_grid1ColSize.push_back(m_grid1->GetColSize(j));
-    for (int j = 0; j < m_grid2->GetNumberCols(); ++j)
-        m_grid2ColSize.push_back(m_grid2->GetColSize(j));
-    for (int j = 0; j < m_grid3->GetNumberCols(); ++j)
-        m_grid3ColSize.push_back(m_grid3->GetColSize(j));
-
-    m_grid1->Bind(wxEVT_GRID_COL_SIZE, &StatsWindow::OnGridResize, this);
-    m_grid1->Bind(wxEVT_GRID_ROW_SIZE, &StatsWindow::OnGridResize, this);
-    m_grid2->Bind(wxEVT_GRID_COL_SIZE, &StatsWindow::OnGridResize, this);
-    m_grid2->Bind(wxEVT_GRID_ROW_SIZE, &StatsWindow::OnGridResize, this);
-    m_grid3->Bind(wxEVT_GRID_COL_SIZE, &StatsWindow::OnGridResize, this);
-    m_grid3->Bind(wxEVT_GRID_ROW_SIZE, &StatsWindow::OnGridResize, this);
 }
 
 StatsWindow::~StatsWindow(void)

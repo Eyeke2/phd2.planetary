@@ -54,32 +54,6 @@ class StatsWindow : public wxWindow
     void OnButtonClear(wxCommandEvent&);
     void OnTimerCooler(wxTimerEvent&);
 
-    // Original column/row sizes
-    int m_gridRowHeight;
-    std::vector<int> m_grid1ColSize;
-    std::vector<int> m_grid2ColSize;
-    std::vector<int> m_grid3ColSize;
-
-    // Prevent resizing of rows and columns
-    void OnGridResize(wxGridSizeEvent& event)
-    {
-        wxGrid* grid = dynamic_cast<wxGrid*>(event.GetEventObject());
-        std::vector<int> colSize;
-        if (grid == m_grid1)
-            colSize = m_grid1ColSize;
-        else if (grid == m_grid2)
-            colSize = m_grid2ColSize;
-        else if (grid == m_grid3)
-            colSize = m_grid3ColSize;
-        else
-            return;
-
-        for (int i = 0; i < grid->GetNumberRows(); ++i)
-            grid->SetRowSize(i, m_gridRowHeight);
-        for (int j = 0; j < grid->GetNumberCols(); ++j)
-            grid->SetColSize(j, colSize[j]);
-    }
-
 public:
     StatsWindow(wxWindow *parent);
     ~StatsWindow();
