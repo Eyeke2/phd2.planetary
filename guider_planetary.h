@@ -73,6 +73,7 @@ private:
 
     cv::Point2f m_origPoint;
     cv::Point2f m_cameraSimulationMove;
+    cv::Point2f m_cameraSimulationRefPoint;
 
 public:
     // Planet detection modes
@@ -126,6 +127,7 @@ public:
     int m_sm_circle_y;
     int m_detectionCounter;
     bool m_simulationZeroOffset;
+    bool m_cameraSimulationRefPointValid;
 
     // Surface tracking
     std::vector<cv::KeyPoint> m_referenceKeypoints;

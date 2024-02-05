@@ -537,6 +537,7 @@ void PlanetToolWin::UpdateStatus()
     m_planetTab->Enable(!surfaceTracking);
 
     // For use with simulator only
+    pPlanet->m_cameraSimulationRefPointValid = false;
     pPlanet->m_simulationZeroOffset = true;
 }
 

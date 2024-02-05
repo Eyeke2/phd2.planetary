@@ -79,6 +79,7 @@ struct SimCamParams
     static double dec_backlash;
     static double pe_scale;
     static double dec_drift_rate;
+    static double ra_drift_rate;
     static double seeing_scale;
     static double cam_angle;
     static double guide_rate;
@@ -107,7 +108,8 @@ unsigned int SimCamParams::nr_hot_pixels;        // number of hot pixels to gene
 double SimCamParams::noise_multiplier;           // noise factor, increase to increase noise
 double SimCamParams::dec_backlash;               // dec backlash amount (pixels)
 double SimCamParams::pe_scale;                   // scale factor controlling magnitude of simulated periodic error
-double SimCamParams::dec_drift_rate;             // dec drift rate (pixels per second)
+double SimCamParams::dec_drift_rate;             // dec drift rate (arcsec/sec)
+double SimCamParams::ra_drift_rate;              // ra drift rate (arcsec/sec)
 double SimCamParams::seeing_scale;               // simulated seeing scale factor
 double SimCamParams::cam_angle;                  // simulated camera angle (degrees)
 double SimCamParams::guide_rate;                 // guide rate, pixels per second
@@ -135,7 +137,9 @@ unsigned int SimCamParams::frame_download_ms;    // frame download time, ms
 #define DEC_BACKLASH_DEFAULT 5.0                  // arc-sec
 #define DEC_BACKLASH_MAX 100.0
 #define DEC_DRIFT_DEFAULT 5.0                     // arc-sec per minute
+#define RA_DRIFT_DEFAULT  5.0                     // arc-sec per minute
 #define DEC_DRIFT_MAX 30.0
+#define RA_DRIFT_MAX 30.0
 #define SEEING_DEFAULT 2.0                        // arc-sec FWHM
 #define SEEING_MAX 5.0
 #define CAM_ANGLE_DEFAULT 15.0
@@ -177,7 +181,9 @@ static void load_sim_params()
     SimCamParams::custom_pe_period = pConfig->Profile.GetDouble("/SimCam/pe_cust_period", PE_CUSTOM_PERIOD_DEFAULT);
 
     double dval = pConfig->Profile.GetDouble("/SimCam/dec_drift", DEC_DRIFT_DEFAULT);
-    SimCamParams::dec_drift_rate = range_check(dval, -DEC_DRIFT_MAX, DEC_DRIFT_MAX) / (SimCamParams::image_scale * 60.0);  //a-s per min is saved
+    SimCamParams::dec_drift_rate = range_check(dval, -DEC_DRIFT_MAX, DEC_DRIFT_MAX) / 60.0;  //a-s per min is saved
+    double rval = pConfig->Profile.GetDouble("/SimCam/ra_drift", RA_DRIFT_DEFAULT);
+    SimCamParams::ra_drift_rate = range_check(rval, -RA_DRIFT_MAX, RA_DRIFT_MAX) / 60.0;  //a-s per min is saved
     // backlash is in arc-secs in UI - map to px for internal use
     dval = pConfig->Profile.GetDouble("/SimCam/dec_backlash", DEC_BACKLASH_DEFAULT);
     SimCamParams::dec_backlash = range_check(dval, 0, DEC_BACKLASH_MAX) / SimCamParams::image_scale;
@@ -209,7 +215,8 @@ static void save_sim_params()
     pConfig->Profile.SetDouble("/SimCam/pe_scale", SimCamParams::pe_scale);
     pConfig->Profile.SetDouble("/SimCam/pe_cust_amp", SimCamParams::custom_pe_amp);
     pConfig->Profile.SetDouble("/SimCam/pe_cust_period", SimCamParams::custom_pe_period);
-    pConfig->Profile.SetDouble("/SimCam/dec_drift", SimCamParams::dec_drift_rate * 60.0 * SimCamParams::image_scale);
+    pConfig->Profile.SetDouble("/SimCam/dec_drift", SimCamParams::dec_drift_rate * 60.0);
+    pConfig->Profile.SetDouble("/SimCam/ra_drift", SimCamParams::ra_drift_rate * 60.0);
     pConfig->Profile.SetDouble("/SimCam/seeing_scale", SimCamParams::seeing_scale);
     pConfig->Profile.SetDouble("/SimCam/clouds_opacity", SimCamParams::clouds_opacity);
     pConfig->Profile.SetDouble("/SimCam/cam_angle", SimCamParams::cam_angle);
@@ -545,8 +552,13 @@ struct SimCamState
     double ra_ofs;           // assume no backlash in RA
     BacklashVal dec_ofs;     // simulate backlash in DEC
     double cum_dec_drift;    // cumulative dec drift
+    double cum_ra_drift;     // cumulative ra drift
+    bool init_once;
+    double s_ra_offset;
+    double s_prev_ra;
+    double s_prev_dec;
     wxStopWatch timer;       // platform-independent timer
-    long last_exposure_time; // last expoure time, milliseconds
+    long last_exposure_time; // last exposure time, milliseconds
     Cooler cooler;           // simulated cooler
     StictionSim stictionSim;
 
@@ -571,6 +583,7 @@ struct SimCamState
 
     void Initialize();
     void FillImage(usImage& img, const wxRect& subframe, int exptime, int gain, int offset);
+    double SimulateDisplacement(double& total_shift_x, double& total_shift_y);
 };
 
 void SimCamState::Initialize()
@@ -614,6 +627,11 @@ void SimCamState::Initialize()
     ra_ofs = 0.;
     dec_ofs = BacklashVal(SimCamParams::dec_backlash);
     cum_dec_drift = 0.;
+    cum_ra_drift = 0.;
+    s_prev_ra = 0;
+    s_prev_dec = 0;
+    s_ra_offset = 0;
+    init_once = true;
     last_exposure_time = 0;
 
 #if SIMMODE == 1
@@ -926,7 +944,6 @@ static void render_clouds(usImage& img, const wxRect& subframe, int exptime, int
             // Compute a randomized brightness contribution from clouds, then overlay that on the guide frame
              cloud_amt = (unsigned short)(SimCamParams::clouds_inten * ((double)gain / 10.0 * offset * exptime / 100.0 + ((rand() % (gain * 100)) / 30.0)));
              *p = (unsigned short) (SimCamParams::clouds_opacity * cloud_amt + (1 - SimCamParams::clouds_opacity) * *p);
-
         }
     }
 }
@@ -983,6 +1000,138 @@ void SimCamState::ReadDisplacements(double& incX, double& incY)
 }
 #endif
 
+// Simulate image displacement
+double SimCamState::SimulateDisplacement(double& total_shift_x, double& total_shift_y)
+{
+    total_shift_x = 0;
+    total_shift_y = 0;
+    double total_shift_ra = 0;
+    double total_shift_dec = 0;
+    double now = 0;
+
+#ifdef SIM_FILE_DISPLACEMENTS
+    double inc_x;
+    double inc_y;
+    if (pText)
+    {
+        ReadDisplacements(inc_x, inc_y);
+        total_shift_ra = ra_ofs + inc_x;
+        total_shift_dec = dec_ofs.val() + inc_y;
+        // If user has disabled guiding, let him see the raw behavior of the displacement data - the
+        // ra_ofs and dec_ofs variables are normally updated in the ST-4 guide function
+        if (!pMount->GetGuidingEnabled())
+        {
+            ra_ofs += inc_x;
+            dec_ofs.incr(inc_y);
+        }
+    }
+#else // SIM_FILE_DISPLACEMENTS
+    long const cur_time = timer.Time();
+    long const delta_time_ms = init_once ? 0 : last_exposure_time - cur_time;
+    last_exposure_time = cur_time;
+
+    // simulate worm phase changing with RA slew
+    double st = 0, dec = 0, ra = 0;
+    if (pPointingSource)
+        pPointingSource->GetCoordinates(&ra, &dec, &st);
+
+    if (init_once)
+    {
+        init_once = false;
+        s_prev_ra = ra;
+        s_prev_dec = dec;
+    }
+    double dra = norm(ra - s_prev_ra, -12.0, 12.0);
+    double ddec = norm(dec - s_prev_dec, -90.0, 90.0);
+    s_prev_ra = ra;
+    s_prev_dec = dec;
+
+    // convert RA (hms) and DEC (dms) to arcseconds
+    double mount_ra_delta_arcsec = dra * 15.0 * 3600;
+    double mount_dec_delta_arcsec = ddec * 3600.0;
+
+    // convert RA hours to SI seconds
+    const double SIDEREAL_SECONDS_PER_SEC = 0.9973;
+    dra *= 3600 / SIDEREAL_SECONDS_PER_SEC;
+    s_ra_offset += dra;
+
+    // an increase in RA means the worm moved backwards
+    now = cur_time / 1000. - s_ra_offset;
+
+    // Compute PE - canned PE terms create some "steep" sections of the curve
+    static double const max_amp = 4.85;         // max amplitude of canned PE
+    double pe = 0.;
+
+    if (SimCamParams::use_pe)
+    {
+        if (SimCamParams::use_default_pe_params)
+        {
+            static double const period[] = { 230.5, 122.0, 49.4, 9.56, 76.84, };
+            static double const amp[] = { 2.02, 0.69, 0.22, 0.137, 0.14 };   // in a-s
+            static double const phase[] = { 0.0, 1.4, 98.8, 35.9, 150.4, };
+
+            for (unsigned int i = 0; i < WXSIZEOF(period); i++)
+                pe += amp[i] * cos((now - phase[i]) / period[i] * 2. * M_PI);
+
+            pe *= (SimCamParams::pe_scale / max_amp);      // modulated PE in px
+        }
+        else
+        {
+            pe = SimCamParams::custom_pe_amp * cos(now / SimCamParams::custom_pe_period * 2.0 * M_PI);
+        }
+    }
+
+    // simulate drift in RA and DEC
+    cum_ra_drift += (double)delta_time_ms * SimCamParams::ra_drift_rate / 1000. + mount_ra_delta_arcsec;
+    cum_dec_drift += (double)delta_time_ms * SimCamParams::dec_drift_rate / 1000. + mount_dec_delta_arcsec;
+
+    // Total movements from all sources, in units of arcseconds
+    total_shift_ra = cum_ra_drift + pe;
+    total_shift_dec = cum_dec_drift;
+
+    // simulate seeing (x/y)
+    if (SimCamParams::seeing_scale > 0.0)
+    {
+        double seeing[2] = { 0.0 };
+        rand_normal(seeing);
+        static const double seeing_adjustment = (2.345 * 1.4 * 2.4);        // FWHM, geometry, empirical
+        double sigma = SimCamParams::seeing_scale / (seeing_adjustment * SimCamParams::image_scale);
+        seeing[0] *= sigma;
+        seeing[1] *= sigma;
+        total_shift_x += seeing[0];
+        total_shift_y += seeing[1];
+    }
+
+#endif // SIM_FILE_DISPLACEMENTS
+
+    // check for pier-flip
+    if (pPointingSource)
+    {
+        PierSide new_side = pPointingSource->SideOfPier();
+        if (new_side != SimCamParams::pier_side)
+        {
+            Debug.Write(wxString::Format("Cam simulator: pointing source pier side changed from %d to %d\n", SimCamParams::pier_side, new_side));
+            SimCamParams::pier_side = new_side;
+        }
+    }
+
+    // Transform mount coordinates in a-s to camera coordinates in pixels
+    double theta = radians(SimCamParams::cam_angle);
+    if (SimCamParams::pier_side == PIER_SIDE_WEST)
+        theta += M_PI;
+    double const cos_t = cos(theta);
+    double const sin_t = sin(theta);
+    double x = total_shift_ra * cos_t - total_shift_dec * sin_t;
+    double y = total_shift_ra * sin_t + total_shift_dec * cos_t;
+    total_shift_x += x / SimCamParams::image_scale;
+    total_shift_y += y / SimCamParams::image_scale;
+
+    // Log the displacement in both coordinate systems
+    Debug.Write(wxString::Format("sim offset: RA/DEC=%.2f/%.2f; X/Y=%.1f/%.1f\n", total_shift_ra, total_shift_dec, total_shift_x, total_shift_y));
+
+    return now;
+}
+
 void SimCamState::FillImage(usImage& img, const wxRect& subframe, int exptime, int gain, int offset)
 {
     unsigned int const nr_stars = stars.size();
@@ -1002,97 +1151,9 @@ void SimCamState::FillImage(usImage& img, const wxRect& subframe, int exptime, i
     for (unsigned int i = 0; i < nr_stars; i++)
         pos[i] = stars[i].pos;
 
-    double total_shift_x = 0;
-    double total_shift_y = 0;
-
-#ifdef SIM_FILE_DISPLACEMENTS
-
-    double inc_x;
-    double inc_y;
-    if (pText)
-    {
-        ReadDisplacements(inc_x, inc_y);
-        total_shift_x = ra_ofs + inc_x;
-        total_shift_y = dec_ofs.val() + inc_y;
-        // If user has disabled guiding, let him see the raw behavior of the displacement data - the
-        // ra_ofs and dec_ofs variables are normally updated in the ST-4 guide function
-        if (!pMount->GetGuidingEnabled())
-        {
-            ra_ofs += inc_x;
-            dec_ofs.incr(inc_y);
-        }
-    }
-
-#else // SIM_FILE_DISPLACEMENTS
-
-    long const cur_time = timer.Time();
-    long const delta_time_ms = last_exposure_time - cur_time;
-    last_exposure_time = cur_time;
-
-    // simulate worm phase changing with RA slew
-    double dec, st, ra = 0.;
-    if (pPointingSource)
-        pPointingSource->GetCoordinates(&ra, &dec, &st);
-
-    static double s_prev_ra;
-    double dra = norm(ra - s_prev_ra, -12.0, 12.0);
-    s_prev_ra = ra;
-
-    // convert RA hours to SI seconds
-    const double SECONDS_PER_HOUR = 60. * 60.;
-    const double SIDEREAL_SECONDS_PER_SEC = 0.9973;
-    dra *= SECONDS_PER_HOUR / SIDEREAL_SECONDS_PER_SEC;
-    static double s_ra_offset;
-    s_ra_offset += dra;
-
-    // an increase in RA means the worm moved backwards
-    double const now = cur_time / 1000. - s_ra_offset;
-
-    // Compute PE - canned PE terms create some "steep" sections of the curve
-    static double const max_amp = 4.85;         // max amplitude of canned PE
-    double pe = 0.;
-
-    if (SimCamParams::use_pe)
-    {
-        if (SimCamParams::use_default_pe_params)
-        {
-            static double const period[] = { 230.5, 122.0, 49.4, 9.56, 76.84, };
-            static double const amp[] =    {2.02, 0.69, 0.22, 0.137, 0.14};   // in a-s
-            static double const phase[] =  { 0.0,     1.4, 98.8, 35.9, 150.4, };
-
-            for (unsigned int i = 0; i < WXSIZEOF(period); i++)
-                pe += amp[i] * cos((now - phase[i]) / period[i] * 2. * M_PI);
-
-            pe *= (SimCamParams::pe_scale / (max_amp * SimCamParams::image_scale));      // modulated PE in px
-        }
-        else
-        {
-            pe = SimCamParams::custom_pe_amp * cos(now / SimCamParams::custom_pe_period * 2.0 * M_PI) / SimCamParams::image_scale;
-        }
-    }
-
-    // simulate drift in DEC
-    cum_dec_drift += (double) delta_time_ms * SimCamParams::dec_drift_rate / 1000.;
-
-    // Compute total movements from all sources - ra_ofs and dec_ofs are cumulative sums of all guider movements relative to zero-point
-    total_shift_x = pe + ra_ofs;
-    total_shift_y = cum_dec_drift + dec_ofs.val();
-
-    double seeing[2] = { 0.0 };
-
-    // simulate seeing
-    if (SimCamParams::seeing_scale > 0.0)
-    {
-        rand_normal(seeing);
-        static const double seeing_adjustment = (2.345 * 1.4 * 2.4);        //FWHM, geometry, empirical
-        double sigma = SimCamParams::seeing_scale / (seeing_adjustment * SimCamParams::image_scale);
-        seeing[0] *= sigma;
-        seeing[1] *= sigma;
-        total_shift_x += seeing[0];
-        total_shift_y += seeing[1];
-    }
-
-#endif // SIM_FILE_DISPLACEMENTS
+    double total_shift_x;
+    double total_shift_y;
+    double const now = SimulateDisplacement(total_shift_x, total_shift_y);
 
     for (unsigned int i = 0; i < nr_stars; i++)
     {
@@ -1111,28 +1172,11 @@ void SimCamState::FillImage(usImage& img, const wxRect& subframe, int exptime, i
 #endif
 #endif
 
-    // check for pier-flip
-    if (pPointingSource)
-    {
-        PierSide new_side = pPointingSource->SideOfPier();
-        if (new_side != SimCamParams::pier_side)
-        {
-            Debug.Write(wxString::Format("Cam simulator: pointing source pier side changed from %d to %d\n", SimCamParams::pier_side, new_side));
-            SimCamParams::pier_side = new_side;
-        }
-    }
-
     // convert to camera coordinates
     wxVector<wxRealPoint> cc(nr_stars);
-    double angle = radians(SimCamParams::cam_angle);
-
-    if (SimCamParams::pier_side == PIER_SIDE_WEST)
-        angle += M_PI;
-    double const cos_t = cos(angle);
-    double const sin_t = sin(angle);
     for (unsigned int i = 0; i < nr_stars; i++) {
-        cc[i].x = pos[i].x * cos_t - pos[i].y * sin_t + width / 2.0;
-        cc[i].y = pos[i].x * sin_t + pos[i].y * cos_t + height / 2.0;
+        cc[i].x = pos[i].x + width / 2.0;
+        cc[i].y = pos[i].y + height / 2.0;
     }
 
 #ifdef STEPGUIDER_SIMULATOR
@@ -1168,6 +1212,12 @@ void SimCamState::FillImage(usImage& img, const wxRect& subframe, int exptime, i
 #ifndef SIM_FILE_DISPLACEMENTS
         if (SimCamParams::show_comet)
         {
+            double angle = radians(SimCamParams::cam_angle);
+            if (SimCamParams::pier_side == PIER_SIDE_WEST)
+                angle += M_PI;
+            double const cos_t = cos(angle);
+            double const sin_t = sin(angle);
+
             double x = total_shift_x + now * SimCamParams::comet_rate_x / 3600.;
             double y = total_shift_y + now * SimCamParams::comet_rate_y / 3600.;
             double cx = x * cos_t - y * sin_t + width / 2.0;
@@ -1336,6 +1386,10 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
         return true;
     }
 
+    // Save full frame size
+    FullSize.x = image.size().width;
+    FullSize.y = image.size().height;
+
     // Convert to grayscale
     cv::Mat *disk_image = &image;
     cv::Mat grayscaleImage;
@@ -1352,25 +1406,11 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
         disk_image = &grayscale16;
     }
 
-    // Simulate random motion
-    unsigned short *dataptr = img.ImageData;
+    // Simulate scope motion
+    double rx, ry;
+    sim.SimulateDisplacement(rx, ry);
 
-    // Create a single - channel matrix filled with zeros
-    cv::Mat noiseMat(1, 1, CV_64F, cv::Scalar::all(0));
-    double jitter = 0.5; // 1 pixel jitter
-    double max_offset = 3.0;
-
-    // Generate Gaussian noise to be used as x displacement
-    cv::randn(noiseMat, 0, jitter);
-    double rx = pFrame->pGuider->m_Planet.m_simulationZeroOffset ? 0 : noiseMat.at<double>(0, 0);
-    rx = wxMax(-max_offset, wxMin(max_offset, rx));
-
-    // Generate Gaussian noise to be used as y displacement
-    cv::randn(noiseMat, 0, jitter);
-    double ry = pFrame->pGuider->m_Planet.m_simulationZeroOffset ? 0 : noiseMat.at<double>(0, 0);
-    ry = wxMax(-max_offset, wxMin(max_offset, ry));
-
-    // Save how much we moved for tracking accuracy error analysis
+    // Save actual simulator displacement for tracking accuracy error analysis
     pFrame->pGuider->m_Planet.SaveCameraSimulationMove(rx, ry);
 
     // Translate the image by shifting it few pixels in random direction
@@ -1385,17 +1425,17 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
     // Switch to the updated image
     disk_image = &translatedImage;
 
-#if 0
-    // Create Gaussian noise and add to image
-    cv::Mat noise(disk_image->size(), disk_image->type());
-    cv::randn(noise, 0, 4096);  // Mean 0, StdDev 256
-    translatedImage += noise;
-    disk_image = &translatedImage;
-#endif
-
     // Copy the 16-bit data to result
     int dataSize = image.cols * image.rows * 2;
     memcpy(img.ImageData, disk_image->data, dataSize);
+
+    // Finally, render clouds
+    if (SimCamParams::clouds_opacity > 0)
+    {
+        if (pFrame->pGuider->m_Planet.GetPlanetaryEnableState())
+            subframe = wxRect(0, 0, FullSize.x, FullSize.y);
+        render_clouds(img, subframe, duration, 30, 100);
+    }
 
     QuickLRecon(img);
 #else
@@ -1462,8 +1502,6 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
 
     return false;
 }
-
-
 
 bool CameraSimulator::ST4PulseGuideScope(int direction, int duration)
 {
@@ -1643,7 +1681,8 @@ struct SimCamDialog : public wxDialog
     wxSlider *pNoiseSlider;
     wxSlider *pCloudSlider;
     wxSpinCtrlDouble *pBacklashSpin;
-    wxSpinCtrlDouble *pDriftSpin;
+    wxSpinCtrlDouble *pDriftSpinDEC;
+    wxSpinCtrlDouble* pDriftSpinRA;
     wxSpinCtrlDouble *pGuideRateSpin;
     wxSpinCtrlDouble *pCameraAngleSpin;
     wxSpinCtrlDouble *pSeeingSpin;
@@ -1818,8 +1857,10 @@ SimCamDialog::SimCamDialog(wxWindow *parent)
     wxFlexGridSizer *pMountTable = new wxFlexGridSizer(2, 6, 5, 15);
     pBacklashSpin = NewSpinner(this, SimCamParams::dec_backlash * imageScale, 0, DEC_BACKLASH_MAX, 0.1, _("Dec backlash, arc-secs"));
     AddTableEntryPair(this, pMountTable, _("Dec backlash"), pBacklashSpin);
-    pDriftSpin = NewSpinner(this, SimCamParams::dec_drift_rate * 60.0 * imageScale, -DEC_DRIFT_MAX, DEC_DRIFT_MAX, 0.5, _("Dec drift, arc-sec/min"));
-    AddTableEntryPair(this, pMountTable, _("Dec drift"), pDriftSpin);
+    pDriftSpinDEC = NewSpinner(this, SimCamParams::dec_drift_rate * 60.0, -DEC_DRIFT_MAX, DEC_DRIFT_MAX, 0.5, _("Dec drift, arc-sec/min"));
+    pDriftSpinRA = NewSpinner(this, SimCamParams::ra_drift_rate * 60.0, -RA_DRIFT_MAX, RA_DRIFT_MAX, 0.5, _("Ra drift, arc-sec/min"));
+    AddTableEntryPair(this, pMountTable, _("Dec drift"), pDriftSpinDEC);
+    AddTableEntryPair(this, pMountTable, _("Ra drift"), pDriftSpinRA);
     pGuideRateSpin = NewSpinner(this, SimCamParams::guide_rate / 15.0, 0.25, GUIDE_RATE_MAX, 0.25, _("Guide rate, x sidereal"));
     AddTableEntryPair(this, pMountTable, _("Guide rate"), pGuideRateSpin);
     pUseStiction = NewCheckBox(this, SimCamParams::use_stiction, _("Apply stiction"), _("Simulate dec axis stiction"));
@@ -1930,7 +1971,8 @@ void SimCamDialog::OnReset(wxCommandEvent& event)
     pBacklashSpin->SetValue(DEC_BACKLASH_DEFAULT);
     pCloudSlider->SetValue(0);
 
-    pDriftSpin->SetValue(DEC_DRIFT_DEFAULT);
+    pDriftSpinDEC->SetValue(DEC_DRIFT_DEFAULT);
+    pDriftSpinRA->SetValue(RA_DRIFT_DEFAULT);
     pSeeingSpin->SetValue(SEEING_DEFAULT);
     pCameraAngleSpin->SetValue(CAM_ANGLE_DEFAULT);
     pGuideRateSpin->SetValue(GUIDE_RATE_DEFAULT / GUIDE_RATE_MAX);
@@ -2006,10 +2048,11 @@ void CameraSimulator::ShowPropertyDialog()
             dlg.pPECustomAmp->GetValue().ToDouble(&SimCamParams::custom_pe_amp);
             dlg.pPECustomPeriod->GetValue().ToDouble(&SimCamParams::custom_pe_period);
         }
-        SimCamParams::dec_drift_rate =   dlg.pDriftSpin->GetValue() / (imageScale * 60.0);  // a-s per min to px per second
-        SimCamParams::seeing_scale =     dlg.pSeeingSpin->GetValue();                      // already in a-s
+        SimCamParams::dec_drift_rate = dlg.pDriftSpinDEC->GetValue() / 60.0;  // a-s per min to a-s second
+        SimCamParams::ra_drift_rate = dlg.pDriftSpinRA->GetValue() / 60.0;    // a-s per min to a-s per second
+        SimCamParams::seeing_scale = dlg.pSeeingSpin->GetValue();             // already in a-s
         upd.Update(SimCamParams::cam_angle, dlg.pCameraAngleSpin->GetValue());
-        SimCamParams::guide_rate =       dlg.pGuideRateSpin->GetValue() * 15.0;
+        SimCamParams::guide_rate = dlg.pGuideRateSpin->GetValue() * 15.0;
         SimCamParams::pier_side = dlg.pPierSide;
         SimCamParams::reverse_dec_pulse_on_west_side = dlg.pReverseDecPulseCbx->GetValue();
         SimCamParams::show_comet = dlg.showComet->GetValue();

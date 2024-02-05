@@ -71,8 +71,10 @@ GuiderPlanet::GuiderPlanet()
     m_surfaceFixationPoint = Point2f(0, 0);
     m_guidingFixationPoint = Point2f(0, 0);
     m_cameraSimulationMove = Point2f(0, 0);
-    m_center_x = m_center_y = 0;
+    m_cameraSimulationRefPoint = Point2f(0, 0);
+    m_cameraSimulationRefPointValid = false;
     m_simulationZeroOffset = false;
+    m_center_x = m_center_y = 0;
     m_origPoint = Point2f(0, 0);
 
     m_cachedScaledWidth = 0;
@@ -279,6 +281,7 @@ void GuiderPlanet::NotifyStartCapturing()
         SetPlanetaryElementsVisual(true);
 
     // Start with zero offset for sync with simulated camera position
+    m_cameraSimulationRefPointValid = false;
     m_simulationZeroOffset = true;
 }
 
@@ -303,6 +306,11 @@ void GuiderPlanet::NotifyFinishStop()
 void GuiderPlanet::SaveCameraSimulationMove(double rx, double ry)
 {
     m_cameraSimulationMove = Point2f(rx, ry);
+    if (m_simulationZeroOffset)
+    {
+        m_cameraSimulationRefPoint = m_cameraSimulationMove;
+        m_cameraSimulationRefPointValid = true;
+    }
 }
 
 // Return scaled tracking image with lock target symbol
@@ -1491,6 +1499,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
     // Point clicked by user in the main window
     if (autoSelect)
     {
+        m_cameraSimulationRefPointValid = false;
         m_simulationZeroOffset = true;
         m_clicked_x = 0;
         m_clicked_y = 0;
@@ -1608,15 +1617,16 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
 
         if (m_detected)
         {
-            if (norm(m_cameraSimulationMove) == 0)
+            if (m_cameraSimulationRefPointValid)
             {
                 m_simulationZeroOffset = false;
+                m_cameraSimulationRefPointValid = false;
                 m_origPoint = Point2f(m_center_x, m_center_y);
             }
             else if (!m_simulationZeroOffset && !clicked)
             {
                 Point2f delta = Point2f(m_center_x, m_center_y) - m_origPoint;
-                pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"), norm(delta - m_cameraSimulationMove));
+                pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"), norm(delta - (m_cameraSimulationMove - m_cameraSimulationRefPoint)));
                 errUnknown = false;
             }
         }
@@ -1625,7 +1635,10 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
             pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"), -1);
 
         if (clicked)
+        {
+            m_cameraSimulationRefPointValid = false;
             m_simulationZeroOffset = true;
+        }
     }
 #endif
 
