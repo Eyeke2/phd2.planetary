@@ -1380,7 +1380,7 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
     transMat.at<double>(0, 2) = rx;
     transMat.at<double>(1, 1) = 1;
     transMat.at<double>(1, 2) = ry;
-    cv::warpAffine(*disk_image, translatedImage, transMat, disk_image->size(), cv::INTER_LINEAR);
+    cv::warpAffine(*disk_image, translatedImage, transMat, disk_image->size(), cv::INTER_CUBIC);
 
     // Switch to the updated image
     disk_image = &translatedImage;
