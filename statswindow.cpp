@@ -173,6 +173,7 @@ StatsWindow::StatsWindow(wxWindow *parent)
 #endif
     m_grid3->ClearSelection();
     m_grid3->DisableDragGridSize();
+    ShowPlanetStats(false);
 
     wxSizer *sizer1 = new wxBoxSizer(wxHORIZONTAL);
 
@@ -350,6 +351,15 @@ void StatsWindow::ClearPlanetStats()
     m_grid3->SetCellValue(3, 0, wxEmptyString);
     m_grid3->SetCellValue(3, 1, wxEmptyString);
 #endif
+}
+
+void StatsWindow::ShowPlanetStats(bool show)
+{
+    if (show)
+        m_grid3->Show();
+    else
+        m_grid3->Hide();
+    Layout();
 }
 
 void StatsWindow::UpdatePlanetDetectionTime(int msec)

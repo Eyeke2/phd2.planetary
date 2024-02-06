@@ -536,6 +536,9 @@ void PlanetToolWin::UpdateStatus()
     m_featuresTab->Enable(surfaceTracking);
     m_planetTab->Enable(!surfaceTracking);
 
+    // Toggle the visibility of planetary stats grid
+    pFrame->pStatsWin->ShowPlanetStats(enabled);
+
     // For use with simulator only
     pPlanet->m_cameraSimulationRefPointValid = false;
     pPlanet->m_simulationZeroOffset = true;
