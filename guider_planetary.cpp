@@ -308,6 +308,7 @@ void GuiderPlanet::NotifyCameraConnect(bool connected)
 {
     bool isSimCam = (pCamera && pCamera->Name == "Simulator");
     pFrame->pStatsWin->ShowSimulatorStats(isSimCam && connected);
+    pFrame->pStatsWin->ShowPlanetStats(GetPlanetaryEnableState() && connected);
 }
 
 void GuiderPlanet::SaveCameraSimulationMove(double rx, double ry)
