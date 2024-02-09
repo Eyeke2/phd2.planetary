@@ -5,6 +5,21 @@ When installing this version, it is advised to choose a destination folder disti
 
 Change log
 
+v2.6.13-planet.dev6.rc1
+* Camera Simulator: Refactored code to enable dynamic selection between simulation methods: star generator or
+input from an image file. Removed and cleaned up file simulation UI elements from the Planetary Tracking mode,
+as it's now supported through a simulated camera parameters dialogue box. Added an option to enable or disable
+mount dynamics for testing purposes.
+* Camera Simulator: Converted the dialogue box from modal to non-modal, allowing access to other PHD2 windows
+and tools while it remains open.
+* Camera simulator: raise the minimum brightness level of simulated stars to prevent them from appearing overly dim.
+* Target Window: Fixed label positions to prevent overlap with scale numbers and avoid clipping.
+* Camera Simulator: Updated the camera simulation logic to accurately simulate telescope operations and improved
+its integration with the planetary tracking mode. Introduced an option for simulating DEC drift and clouds
+overlaying image files.
+* Planetary Tool: Implemented higher quality interpolation for simulating image movements in the camera simulator.
+* Planetary Tool: Now displays the planetary stats grid only when planetary tracking is enabled.
+
 v2.6.13-planet.dev5
 * Enabled toggling between Sharpness and Radius metrics in Planetary Tracking mode, now supporting sharpness
 measurements across all planet detection algorithms. Improved the Star Profile display in planetary mode by
