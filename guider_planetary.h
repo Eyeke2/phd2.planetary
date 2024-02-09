@@ -167,6 +167,7 @@ public:
     void ZoomStarProfile(int rotation);
     void ToggleSharpness();
     void GetDetectionStatus(wxString& statusMsg);
+    void NotifyCameraConnect(bool connected);
     void NotifyStartCapturing();
     void NotifyStopCapturing();
     void NotifyFinishStop();

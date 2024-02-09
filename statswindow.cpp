@@ -132,11 +132,7 @@ StatsWindow::StatsWindow(wxWindow *parent)
     m_grid2->DisableDragGridSize();
 
     // Planetary detection stats
-#if FILE_SIMULATOR_MODE
     const int grid3Rows = 4;
-#else
-    const int grid3Rows = 3;
-#endif
     m_grid3 = new wxGrid(this, wxID_ANY);
     m_grid3->CreateGrid(grid3Rows, 2);
     m_grid3->SetRowLabelSize(1);
@@ -156,10 +152,8 @@ StatsWindow::StatsWindow(wxWindow *parent)
     m_grid3->SetCellValue(row, col++, _("Fitting score"));
     m_grid3->SetCellValue(row, col, _("1.00"));
     ++row, col = 0;
-#if FILE_SIMULATOR_MODE
     m_grid3->SetCellValue(row, col++, _("Detection error"));
     m_grid3->SetCellValue(row, col, _("9999999"));
-#endif
     m_grid3->AutoSize();
 
     m_grid3->SetCellValue(0, 1, wxEmptyString);
@@ -167,12 +161,11 @@ StatsWindow::StatsWindow(wxWindow *parent)
     m_grid3->SetCellValue(1, 1, wxEmptyString);
     m_grid3->SetCellValue(2, 0, wxEmptyString);
     m_grid3->SetCellValue(2, 1, wxEmptyString);
-#if FILE_SIMULATOR_MODE
     m_grid3->SetCellValue(3, 0, wxEmptyString);
     m_grid3->SetCellValue(3, 1, wxEmptyString);
-#endif
     m_grid3->ClearSelection();
     m_grid3->DisableDragGridSize();
+    m_grid3->HideRow(3);
     ShowPlanetStats(false);
 
     wxSizer *sizer1 = new wxBoxSizer(wxHORIZONTAL);
@@ -347,10 +340,8 @@ void StatsWindow::ClearPlanetStats()
     m_grid3->SetCellValue(1, 1, wxEmptyString);
     m_grid3->SetCellValue(2, 0, wxEmptyString);
     m_grid3->SetCellValue(2, 1, wxEmptyString);
-#if FILE_SIMULATOR_MODE
     m_grid3->SetCellValue(3, 0, wxEmptyString);
     m_grid3->SetCellValue(3, 1, wxEmptyString);
-#endif
 }
 
 void StatsWindow::ShowPlanetStats(bool show)
@@ -360,6 +351,14 @@ void StatsWindow::ShowPlanetStats(bool show)
     else
         m_grid3->Hide();
     Layout();
+}
+
+void StatsWindow::ShowSimulatorStats(bool show)
+{
+    if (show)
+        m_grid3->ShowRow(3);
+    else
+        m_grid3->HideRow(3);
 }
 
 void StatsWindow::UpdatePlanetDetectionTime(int msec)
@@ -398,11 +397,12 @@ void StatsWindow::UpdatePlanetScore(wxString label, float score)
 
 void StatsWindow::UpdatePlanetError(wxString label, float error)
 {
-#if FILE_SIMULATOR_MODE
-    wxString valueStr = error >= 0 ? wxString::Format(_T("%.2f px"), error) : _("loading");
-    m_grid3->SetCellValue(3, 0, label);
-    m_grid3->SetCellValue(3, 1, valueStr);
-#endif
+    if (pCamera && pCamera->Name == "Simulator")
+    {
+        wxString valueStr = error >= 0 ? wxString::Format(_T("%.2f px"), error) : _("loading");
+        m_grid3->SetCellValue(3, 0, label);
+        m_grid3->SetCellValue(3, 1, valueStr);
+    }
 }
 
 void StatsWindow::OnTimerCooler(wxTimerEvent&)

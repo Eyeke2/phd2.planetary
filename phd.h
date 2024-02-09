@@ -77,17 +77,11 @@
 #include <math.h>
 #include <stdarg.h>
 
-// For internal use of planetary tool testing
-//#define FILE_SIMULATOR_MODE 1
-#if FILE_SIMULATOR_MODE
-#define PHDEXSUFFIX "-fs"
-#else
-#define PHDEXSUFFIX ""
-#endif
+//#define DEVELOPER_MODE
 
 #define APPNAME _T("PHD2 Guiding")
 #define PHDVERSION _T("2.6.13")
-#define PHDSUBVER _T("-planet.dev5" PHDEXSUFFIX)
+#define PHDSUBVER _T("-planet.dev5")
 #define FULLVER PHDVERSION PHDSUBVER
 
 #if defined (__WINDOWS__)

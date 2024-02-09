@@ -54,22 +54,22 @@
 #include <opencv/cv.h>
 #include <opencv2/opencv.hpp>
 
-/* Used only for planetary simulations */
-extern wxString simulatorFileTemplate;
-extern int SimFileIndex;
-
-#if FILE_SIMULATOR_MODE
-#define SIMMODE 2   // 1=FITS, 2=BMP, 3=Generate
-#else
-#define SIMMODE 3   // 1=FITS, 2=BMP, 3=Generate
-#endif
 // #define SIMDEBUG
 
-/* simulation parameters for SIMMODE = 3*/
-// #define SIM_FILE_DISPLACEMENTS          // subset of SIMMODE = 3, reading raw star displacements from a file
+// subset of SIMMODE_GENERATE, reading raw star displacements from a file
+// #define SIM_FILE_DISPLACEMENTS
+
+enum SimMode
+{
+    SIMMODE_GENERATE = 0,
+    SIMMODE_BMP = 1,
+    SIMMODE_FITS = 2,
+    SIMMODE_DRIFT = 3
+};
 
 struct SimCamParams
 {
+    static SimMode SimulatorMode;
     static unsigned int width;
     static unsigned int height;
     static unsigned int border;
@@ -98,8 +98,13 @@ struct SimCamParams
     static double comet_rate_y;
     static bool allow_async_st4;
     static unsigned int frame_download_ms;
+
+    static bool mount_dynamics;
+    static unsigned int SimFileIndex;
+    static wxString SimFileTemplate;
 };
 
+SimMode SimCamParams::SimulatorMode = SIMMODE_GENERATE;
 unsigned int SimCamParams::width = 752;          // simulated camera image width
 unsigned int SimCamParams::height = 580;         // simulated camera image height
 unsigned int SimCamParams::border = 12;          // do not place any stars within this size border
@@ -128,6 +133,9 @@ double SimCamParams::comet_rate_x;
 double SimCamParams::comet_rate_y;
 bool SimCamParams::allow_async_st4 = true;
 unsigned int SimCamParams::frame_download_ms;    // frame download time, ms
+bool SimCamParams::mount_dynamics = false;
+unsigned int SimCamParams::SimFileIndex = 1;
+wxString SimCamParams::SimFileTemplate = _("C:\\Temp\\phd2\\sim_image.png");
 
 // Note: these are all in units appropriate for the UI
 #define NR_STARS_DEFAULT 20
@@ -201,6 +209,11 @@ static void load_sim_params()
     SimCamParams::comet_rate_y = pConfig->Profile.GetDouble("/SimCam/comet_rate_y", COMET_RATE_Y_DEFAULT);
 
     SimCamParams::frame_download_ms = pConfig->Profile.GetInt("/SimCam/frame_download_ms", 50);
+
+    SimCamParams::SimulatorMode = (SimMode)pConfig->Profile.GetInt("/SimCam/simulator_mode", SIMMODE_GENERATE);
+    SimCamParams::mount_dynamics = pConfig->Profile.GetBoolean("/SimCam/mount_dynamics", false);
+    SimCamParams::SimFileIndex = pConfig->Profile.GetInt("/SimCam/sim_file_index", 1);
+    SimCamParams::SimFileTemplate = pConfig->Profile.GetString("/SimCam/sim_filename", _("C:\\Temp\\phd2\\sim_image.png"));
 }
 
 static void save_sim_params()
@@ -227,6 +240,11 @@ static void save_sim_params()
     pConfig->Profile.SetDouble("/SimCam/comet_rate_x", SimCamParams::comet_rate_x);
     pConfig->Profile.SetDouble("/SimCam/comet_rate_y", SimCamParams::comet_rate_y);
     pConfig->Profile.SetInt("/SimCam/frame_download_ms", SimCamParams::frame_download_ms);
+
+    pConfig->Profile.SetInt("/SimCam/simulator_mode", SimCamParams::SimulatorMode);
+    pConfig->Profile.SetInt("/SimCam/mount_dynamics", SimCamParams::mount_dynamics);
+    pConfig->Profile.SetInt("/SimCam/sim_file_index", SimCamParams::SimFileIndex);
+    pConfig->Profile.SetString("/SimCam/sim_filename", SimCamParams::SimFileTemplate);
 }
 
 #ifdef STEPGUIDER_SIMULATOR
@@ -575,11 +593,10 @@ struct SimCamState
     void ReadDisplacements(double& cumX, double& cumY);
 #endif
 
-#if SIMMODE == 1
+    // Used by FITS file simulation
     wxDir dir;
     bool dirStarted;
     bool ReadNextImage(usImage& img, const wxRect& subframe);
-#endif
 
     void Initialize();
     void FillImage(usImage& img, const wxRect& subframe, int exptime, int gain, int offset);
@@ -634,9 +651,8 @@ void SimCamState::Initialize()
     init_once = true;
     last_exposure_time = 0;
 
-#if SIMMODE == 1
-    dirStarted = false;
-#endif
+    if (SimCamParams::SimulatorMode == SIMMODE_FITS)
+        dirStarted = false;
 
 #ifdef SIM_FILE_DISPLACEMENTS
     pIStream = nullptr;
@@ -676,7 +692,7 @@ void SimCamState::Initialize()
 #endif
 }
 
-#if SIMMODE == 1
+// Simulate camera image stream from FITS files
 bool SimCamState::ReadNextImage(usImage& img, const wxRect& subframe)
 {
     wxString filename;
@@ -786,7 +802,6 @@ bool SimCamState::ReadNextImage(usImage& img, const wxRect& subframe)
 
     return false;
 }
-#endif // SIMMODE == 1
 
 // get a pair of normally-distributed independent random values - Box-Muller algorithm, sigma=1
 static void rand_normal(double r[2])
@@ -1082,8 +1097,15 @@ double SimCamState::SimulateDisplacement(double& total_shift_x, double& total_sh
     }
 
     // simulate drift in RA and DEC
-    cum_ra_drift += (double)delta_time_ms * SimCamParams::ra_drift_rate / 1000. + mount_ra_delta_arcsec;
-    cum_dec_drift += (double)delta_time_ms * SimCamParams::dec_drift_rate / 1000. + mount_dec_delta_arcsec;
+    cum_ra_drift += (double)delta_time_ms * SimCamParams::ra_drift_rate / 1000.;
+    cum_dec_drift += (double)delta_time_ms * SimCamParams::dec_drift_rate / 1000.;
+
+    // Include mount tracking in the drift if enabled
+    if (SimCamParams::mount_dynamics)
+    {
+        cum_ra_drift += mount_ra_delta_arcsec;
+        cum_dec_drift += mount_dec_delta_arcsec;
+    }
 
     // Total movements from all sources, in units of arcseconds
     total_shift_ra = cum_ra_drift + pe;
@@ -1250,8 +1272,9 @@ void SimCamState::FillImage(usImage& img, const wxRect& subframe, int exptime, i
 
 class CameraSimulator : public GuideCamera
 {
-    SimCamState sim;
 public:
+    SimCamState sim;
+
     CameraSimulator();
     ~CameraSimulator();
     bool     Capture(int duration, usImage& img, int options, const wxRect& subframe) override;
@@ -1343,7 +1366,7 @@ CameraSimulator::~CameraSimulator()
 #endif
 }
 
-#if SIMMODE == 3
+// Used with the SIMMODE_GENERATE mode
 static void fill_noise(usImage& img, const wxRect& subframe, int exptime, int gain, int offset)
 {
     unsigned short *p0 = &img.Pixel(subframe.GetLeft(), subframe.GetTop());
@@ -1354,7 +1377,6 @@ static void fill_noise(usImage& img, const wxRect& subframe, int exptime, int ga
             *p = (unsigned short) (SimCamParams::noise_multiplier * ((double) gain / 10.0 * offset * exptime / 100.0 + (rand() % (gain * 100))));
     }
 }
-#endif // SIMMODE == 3
 
 bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxRect& subframeArg)
 {
@@ -1373,119 +1395,124 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
         }
     }
 
-#if SIMMODE==2
-    // Can be also PNG or JPG file
-    wxString filename = simulatorFileTemplate.Format(simulatorFileTemplate, SimFileIndex);
-    cv::Mat image = cv::imread(filename.ToStdString(), cv::IMREAD_ANYDEPTH | cv::IMREAD_ANYCOLOR);
-    if (image.empty()) {
-        pFrame->Alert(_("Cannot load simulated image"));
-        return true;
-    }
-    if (img.Init(image.cols, image.rows)) {
-        pFrame->Alert(_("Memory allocation error"));
-        return true;
-    }
-
-    // Save full frame size
-    FullSize.x = image.size().width;
-    FullSize.y = image.size().height;
-
-    // Convert to grayscale
-    cv::Mat *disk_image = &image;
-    cv::Mat grayscaleImage;
-    cv::Mat grayscale16;
-
-    if (disk_image->channels() != 1)
+    switch (SimCamParams::SimulatorMode)
     {
-        cvtColor(image, grayscaleImage, cv::COLOR_BGR2GRAY);
-        disk_image = &grayscaleImage;
+        case SIMMODE_GENERATE:
+        {
+            int width = sim.width / Binning;
+            int height = sim.height / Binning;
+            FullSize = wxSize(width, height);
+
+            bool usingSubframe = UseSubframes;
+            if (subframe.width <= 0 || subframe.height <= 0 || subframe.GetRight() >= width || subframe.GetBottom() >= height)
+                usingSubframe = false;
+            if (!usingSubframe)
+                subframe = wxRect(0, 0, FullSize.GetWidth(), FullSize.GetHeight());
+
+            int const exptime = duration;
+            int const gain = 30;
+            int const offset = 100;
+
+            if (img.Init(FullSize))
+            {
+                pFrame->Alert(_("Memory allocation error"));
+                return true;
+            }
+
+            if (usingSubframe)
+                img.Clear();
+
+            fill_noise(img, subframe, exptime, gain, offset);
+
+            sim.FillImage(img, subframe, exptime, gain, offset);
+
+            if (usingSubframe)
+                img.Subframe = subframe;
+
+            if (options & CAPTURE_SUBTRACT_DARK)
+                SubtractDark(img);
+            break;
+        }
+        case SIMMODE_BMP:
+        {
+            // Can be also PNG or JPG file
+            wxString filename = wxString::Format(SimCamParams::SimFileTemplate, SimCamParams::SimFileIndex);
+            cv::Mat image = cv::imread(filename.ToStdString(), cv::IMREAD_ANYDEPTH | cv::IMREAD_ANYCOLOR);
+            if (image.empty()) {
+                pFrame->Alert(_("Cannot load simulated image"));
+                return true;
+            }
+            if (img.Init(image.cols, image.rows)) {
+                pFrame->Alert(_("Memory allocation error"));
+                return true;
+            }
+
+            // Save full frame size
+            FullSize.x = image.size().width;
+            FullSize.y = image.size().height;
+
+            // Convert to grayscale
+            cv::Mat* disk_image = &image;
+            cv::Mat grayscaleImage;
+            cv::Mat grayscale16;
+
+            if (disk_image->channels() != 1)
+            {
+                cvtColor(image, grayscaleImage, cv::COLOR_BGR2GRAY);
+                disk_image = &grayscaleImage;
+            }
+            if (disk_image->depth() != CV_16U)
+            {
+                disk_image->convertTo(grayscale16, CV_16UC1, 65535.0 / 255.0);
+                disk_image = &grayscale16;
+            }
+
+            // Simulate scope motion
+            double rx, ry;
+            sim.SimulateDisplacement(rx, ry);
+
+            // Save actual simulator displacement for tracking accuracy error analysis
+            pFrame->pGuider->m_Planet.SaveCameraSimulationMove(rx, ry);
+
+            // Translate the image by shifting it few pixels in random direction
+            cv::Mat translatedImage;
+            cv::Mat transMat = cv::Mat::zeros(2, 3, CV_64FC1);
+            transMat.at<double>(0, 0) = 1;
+            transMat.at<double>(0, 2) = rx;
+            transMat.at<double>(1, 1) = 1;
+            transMat.at<double>(1, 2) = ry;
+            cv::warpAffine(*disk_image, translatedImage, transMat, disk_image->size(), cv::INTER_CUBIC);
+
+            // Switch to the updated image
+            disk_image = &translatedImage;
+
+            // Copy the 16-bit data to result
+            int dataSize = image.cols * image.rows * 2;
+            memcpy(img.ImageData, disk_image->data, dataSize);
+
+            // Finally, render clouds
+            if (SimCamParams::clouds_opacity > 0)
+            {
+                if (pFrame->pGuider->m_Planet.GetPlanetaryEnableState())
+                    subframe = wxRect(0, 0, FullSize.x, FullSize.y);
+                render_clouds(img, subframe, duration, 30, 100);
+            }
+
+            QuickLRecon(img);
+            break;
+        }
+        case SIMMODE_FITS:
+        {
+            if (!UseSubframes)
+                subframe = wxRect();
+
+            if (sim.ReadNextImage(img, subframe))
+                return true;
+
+            FullSize = img.Size;
+            break;
+        }
     }
-    if (disk_image->depth() != CV_16U)
-    {
-        disk_image->convertTo(grayscale16, CV_16UC1, 65535.0 / 255.0);
-        disk_image = &grayscale16;
-    }
-
-    // Simulate scope motion
-    double rx, ry;
-    sim.SimulateDisplacement(rx, ry);
-
-    // Save actual simulator displacement for tracking accuracy error analysis
-    pFrame->pGuider->m_Planet.SaveCameraSimulationMove(rx, ry);
-
-    // Translate the image by shifting it few pixels in random direction
-    cv::Mat translatedImage;
-    cv::Mat transMat = cv::Mat::zeros(2, 3, CV_64FC1);
-    transMat.at<double>(0, 0) = 1;
-    transMat.at<double>(0, 2) = rx;
-    transMat.at<double>(1, 1) = 1;
-    transMat.at<double>(1, 2) = ry;
-    cv::warpAffine(*disk_image, translatedImage, transMat, disk_image->size(), cv::INTER_CUBIC);
-
-    // Switch to the updated image
-    disk_image = &translatedImage;
-
-    // Copy the 16-bit data to result
-    int dataSize = image.cols * image.rows * 2;
-    memcpy(img.ImageData, disk_image->data, dataSize);
-
-    // Finally, render clouds
-    if (SimCamParams::clouds_opacity > 0)
-    {
-        if (pFrame->pGuider->m_Planet.GetPlanetaryEnableState())
-            subframe = wxRect(0, 0, FullSize.x, FullSize.y);
-        render_clouds(img, subframe, duration, 30, 100);
-    }
-
-    QuickLRecon(img);
-#else
-
-#if SIMMODE == 1
-
-    if (!UseSubframes)
-        subframe = wxRect();
-
-    if (sim.ReadNextImage(img, subframe))
-        return true;
-
-    FullSize = img.Size;
-
-#else
-
-    int width = sim.width / Binning;
-    int height = sim.height / Binning;
-    FullSize = wxSize(width, height);
-
-    bool usingSubframe = UseSubframes;
-    if (subframe.width <= 0 || subframe.height <= 0 || subframe.GetRight() >= width || subframe.GetBottom() >= height)
-        usingSubframe = false;
-    if (!usingSubframe)
-        subframe = wxRect(0, 0, FullSize.GetWidth(), FullSize.GetHeight());
-
-    int const exptime = duration;
-    int const gain = 30;
-    int const offset = 100;
-
-    if (img.Init(FullSize))
-    {
-        pFrame->Alert(_("Memory allocation error"));
-        return true;
-    }
-
-    if (usingSubframe)
-        img.Clear();
-
-    fill_noise(img, subframe, exptime, gain, offset);
-
-    sim.FillImage(img, subframe, exptime, gain, offset);
-
-    if (usingSubframe)
-        img.Subframe = subframe;
-
-    if (options & CAPTURE_SUBTRACT_DARK) SubtractDark(img);
-
-#endif // SIMMODE == 1
-#endif // SIMMODE == 2
 
     unsigned int tot_dur = duration + SimCamParams::frame_download_ms;
     long elapsed = watchdog.Time();
@@ -1610,7 +1637,7 @@ void CameraSimulator::FlipPierSide()
     Debug.Write(wxString::Format("CamSimulator FlipPierSide: side = %d  cam_angle = %.1f\n", SimCamParams::pier_side, SimCamParams::cam_angle));
 }
 
-#if SIMMODE == 4
+#ifdef SIMMODE_LEGACY_DRIFT_ENABLED
 bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxRect& subframe)
 {
     int xsize, ysize;
@@ -1672,7 +1699,7 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
     return false;
 
 }
-#endif // SIMMODE == 4
+#endif // SIMMODE_LEGACY_DRIFT_ENABLED
 
 struct SimCamDialog : public wxDialog
 {
@@ -1686,6 +1713,10 @@ struct SimCamDialog : public wxDialog
     wxSpinCtrlDouble *pGuideRateSpin;
     wxSpinCtrlDouble *pCameraAngleSpin;
     wxSpinCtrlDouble *pSeeingSpin;
+    wxSpinCtrlDouble *pFileIndex;
+    wxCheckBox* pMountDynamicsCheckBox;
+    wxTextCtrl* pSimFile;
+    wxButton* pBrowseBtn;
     wxCheckBox* showComet;
     wxCheckBox *pUsePECbx;
     wxCheckBox *pUseStiction;
@@ -1708,6 +1739,12 @@ struct SimCamDialog : public wxDialog
     void OnRbDefaultPE(wxCommandEvent& evt);
     void OnRbCustomPE(wxCommandEvent& evt);
     void OnOkClick(wxCommandEvent& evt);
+    void OnSimModeChange(wxCommandEvent& event);
+    void OnMountDynamicsCheck(wxCommandEvent& event);
+    void OnRecenterButton(wxCommandEvent& event);
+    void OnSpinCtrlFileIndex(wxSpinDoubleEvent& event);
+    void OnBrowseFileName(wxCommandEvent& event);
+    void OnFileTextChange(wxCommandEvent& event);
 
     DECLARE_EVENT_TABLE()
 };
@@ -1789,6 +1826,21 @@ static void SetControlStates(SimCamDialog *dlg, bool captureActive)
     dlg->pPierFlip->Enable(enable);
     dlg->pReverseDecPulseCbx->Enable(enable);
     dlg->pResetBtn->Enable(enable);
+
+    // Enable star generation controls only in star mode
+    bool isStarMode = SimCamParams::SimulatorMode == SIMMODE_GENERATE;
+    dlg->pStarsSlider->Enable(isStarMode);
+    dlg->pHotpxSlider->Enable(isStarMode);
+    dlg->pNoiseSlider->Enable(isStarMode);
+    dlg->showComet->Enable(isStarMode);
+
+    // Enable file, browse and index controls only in file mode
+    bool isFileMode = SimCamParams::SimulatorMode == SIMMODE_BMP;
+    dlg->pSimFile->Enable(isFileMode);
+    dlg->pBrowseBtn->Enable(isFileMode);
+#if DEVELOPER_MODE
+    dlg->pFileIndex->Enable(isFileMode);
+#endif
 }
 
 // Event handlers
@@ -1843,6 +1895,47 @@ SimCamDialog::SimCamDialog(wxWindow *parent)
     // Camera group controls
     wxStaticBoxSizer *pCamGroup = new wxStaticBoxSizer(wxVERTICAL, this, _("Camera"));
     wxFlexGridSizer *pCamTable = new wxFlexGridSizer(1, 6, 15, 15);
+
+    // Add simulation mode drop-down (SIMMODE_FITS is not supported in the UI)
+    wxBoxSizer* modeFileSizer = new wxBoxSizer(wxHORIZONTAL);
+    wxArrayString simModes;
+    simModes.Add(_(" Generate stars"));
+    simModes.Add(_(" Image file"));
+    wxStaticText* modeLabel = new wxStaticText(this, wxID_ANY, _("Mode: "));
+    modeLabel->SetToolTip(_("Choose between simulating star field or using image files"));
+    wxChoice *pSimMode = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, simModes);
+    pSimMode->SetSelection(SimCamParams::SimulatorMode);
+    pSimMode->Bind(wxEVT_CHOICE, &SimCamDialog::OnSimModeChange, this);
+    modeFileSizer->Add(modeLabel, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    modeFileSizer->Add(pSimMode, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    modeFileSizer->AddSpacer(10);
+    wxStaticText* fileLabel = new wxStaticText(this, wxID_ANY, _("File: "));
+    wxString fileLabelTip = _("Full image file path (BMP/PNG/TIFF/JPG)");
+#if DEVELOPER_MODE
+    fileLabelTip += _(" - must be a valid format string, f.e. C:\\temp\\phd2\\sun_%04d.png");
+#endif
+    fileLabel->SetToolTip(fileLabelTip);
+    pSimFile = new wxTextCtrl(this, wxID_ANY, SimCamParams::SimFileTemplate, wxDefaultPosition, wxSize(350, -1));
+    pSimFile->Bind(wxEVT_TEXT, &SimCamDialog::OnFileTextChange, this);
+    pBrowseBtn = new wxButton(this, wxID_ANY, _("..."), wxDefaultPosition, wxSize(60, -1));
+    pBrowseBtn->Bind(wxEVT_BUTTON, &SimCamDialog::OnBrowseFileName, this);
+    pBrowseBtn->SetToolTip(_("Select an image file to use for the simulation"));
+    modeFileSizer->Add(fileLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    modeFileSizer->Add(pSimFile, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    modeFileSizer->AddSpacer(10);
+    modeFileSizer->Add(pBrowseBtn, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+#if DEVELOPER_MODE
+    wxStaticText* pFileIndexLabel = new wxStaticText(this, wxID_ANY, _("File index: "));
+    pFileIndexLabel->SetToolTip(_("File index for simulation (optional)"));
+    pFileIndex = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(100, -1), wxSP_ARROW_KEYS, 0, 9999, 0);
+    pFileIndex->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(SimCamDialog::OnSpinCtrlFileIndex), NULL, this);
+    pFileIndex->SetValue(SimCamParams::SimFileIndex);
+    wxBoxSizer* fileIndexSizer = new wxBoxSizer(wxHORIZONTAL);
+    fileIndexSizer->Add(pFileIndexLabel, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    fileIndexSizer->Add(pFileIndex, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    fileIndexSizer->AddSpacer(10);
+#endif
+
     pStarsSlider = NewSlider(this, SimCamParams::nr_stars, 1, 100, _("Number of simulated stars"));
     AddTableEntryPair(this, pCamTable, _("Stars"), pStarsSlider);
     pHotpxSlider = NewSlider(this, SimCamParams::nr_hot_pixels, 0, 50, _("Number of hot pixels"));
@@ -1850,6 +1943,11 @@ SimCamDialog::SimCamDialog(wxWindow *parent)
     pNoiseSlider = NewSlider(this, (int)floor(SimCamParams::noise_multiplier * 100 / NOISE_MAX), 0, 100,
         /* xgettext:no-c-format */ _("% Simulated noise"));
     AddTableEntryPair(this, pCamTable, _("Noise"), pNoiseSlider);
+    pCamGroup->Add(modeFileSizer);
+#if DEVELOPER_MODE
+    pCamGroup->Add(fileIndexSizer);
+#endif
+    pCamGroup->AddSpacer(10);
     pCamGroup->Add(pCamTable);
 
     // Mount group controls
@@ -1864,8 +1962,28 @@ SimCamDialog::SimCamDialog(wxWindow *parent)
     pGuideRateSpin = NewSpinner(this, SimCamParams::guide_rate / 15.0, 0.25, GUIDE_RATE_MAX, 0.25, _("Guide rate, x sidereal"));
     AddTableEntryPair(this, pMountTable, _("Guide rate"), pGuideRateSpin);
     pUseStiction = NewCheckBox(this, SimCamParams::use_stiction, _("Apply stiction"), _("Simulate dec axis stiction"));
-    pUseStiction->Enable(false);                            // too crude to put in hands of users
+#if !DEVELOPER_MODE
+    // too crude to put in hands of users
+    pUseStiction->Enable(false);
+#endif
+
+    pMountDynamicsCheckBox = new wxCheckBox(this, wxID_ANY, _("Simulate Mount Dynamics"));
+    pMountDynamicsCheckBox->SetToolTip(_("Toggle to simulate the effects of mount tracking, slewing and guiding on the image's position. "
+        "When activated, the simulated image position on the screen will dynamically adjust to reflect these mount movements. "
+        "Deactivating this option will maintain a static image position except simulated drift and PE."));
+    pMountDynamicsCheckBox->SetValue(SimCamParams::mount_dynamics);
+    pMountDynamicsCheckBox->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &SimCamDialog::OnMountDynamicsCheck, this);
+
+    // Mount dynamics controls
+    wxButton* RecenterBtn = new wxButton(this, wxID_ANY, _("Recenter"));
+    RecenterBtn->Bind(wxEVT_BUTTON, &SimCamDialog::OnRecenterButton, this);
+    RecenterBtn->SetToolTip(_("Recenter simulated image"));
+    wxFlexGridSizer* pDynamicsTable = new wxFlexGridSizer(1, 2, 5, 15);
+    pDynamicsTable->Add(pMountDynamicsCheckBox, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    pDynamicsTable->Add(RecenterBtn, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     pMountTable->Add(pUseStiction, 1, wxBOTTOM, 15);
+    pMountGroup->Add(pDynamicsTable);
+    pMountGroup->AddSpacer(10);
     pMountGroup->Add(pMountTable);
 
     // Add embedded group for PE info (still within mount group)
@@ -1911,8 +2029,8 @@ SimCamDialog::SimCamDialog(wxWindow *parent)
     pPiersideLabel = new wxStaticText(this, wxID_ANY, _("Side of Pier: MMMMM"));
     pMiscSizer->Add(pReverseDecPulseCbx, wxSizerFlags().Border(10).Expand());
     pPierFlip = new wxButton(this, wxID_CONVERT, _("Pier Flip"));
-    pMiscSizer->Add(pPierFlip, wxSizerFlags().Border(wxLEFT, 30).Expand());
-    pMiscSizer->Add(pPiersideLabel , wxSizerFlags().Border(wxLEFT, 30).Expand());
+    pMiscSizer->Add(pPierFlip, wxSizerFlags().Border(wxLEFT, 30).Align(wxALIGN_CENTER_VERTICAL));
+    pMiscSizer->Add(pPiersideLabel, wxSizerFlags().Border(wxLEFT, 30).Align(wxALIGN_CENTER_VERTICAL));
     pMountGroup->Add(pPEGroup, wxSizerFlags().Center().Border(10).Expand());
     pMountGroup->Add(pMiscSizer, wxSizerFlags().Border(wxTOP, 10).Expand());
 
@@ -1999,6 +2117,56 @@ void SimCamDialog::OnPierFlip(wxCommandEvent& event)
     pCameraAngleSpin->SetValue(angle);
     pPierSide= OtherSide(pPierSide);
     UpdatePierSideLabel();
+}
+
+void SimCamDialog::OnSimModeChange(wxCommandEvent& event)
+{
+    SimCamParams::SimulatorMode = (SimMode) event.GetInt();
+    SetControlStates(this, pFrame->CaptureActive);
+}
+
+void SimCamDialog::OnSpinCtrlFileIndex(wxSpinDoubleEvent& event)
+{
+    int v = pFileIndex->GetValue();
+    v = wxMin(v, 9999);
+    v = wxMax(v, 0);
+    SimCamParams::SimFileIndex = v;
+}
+
+void SimCamDialog::OnBrowseFileName(wxCommandEvent& event)
+{
+    // Open file dialog to open BMP|PNG|TIFF|JPG file types
+    wxFileDialog openFileDialog(this, _("Select File"), wxEmptyString, wxEmptyString,
+        wxT("Image Files (*.bmp;*.png;*.tif;*.tiff;*.jpg;*.jpeg)|*.bmp;*.png;*.tif;*.tiff;*.jpg;*.jpeg"),
+        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+
+    if (openFileDialog.ShowModal() == wxID_OK)
+    {
+        SimCamParams::SimFileTemplate = openFileDialog.GetPath();
+        pSimFile->SetValue(SimCamParams::SimFileTemplate);
+    }
+}
+
+void SimCamDialog::OnFileTextChange(wxCommandEvent& event)
+{
+    SimCamParams::SimFileTemplate = pSimFile->GetValue();
+}
+
+void SimCamDialog::OnMountDynamicsCheck(wxCommandEvent& event)
+{
+    SimCamParams::mount_dynamics = pMountDynamicsCheckBox->GetValue();
+}
+
+void SimCamDialog::OnRecenterButton(wxCommandEvent& event)
+{
+    CameraSimulator* simcam = static_cast<CameraSimulator*>(pCamera);
+    if (pCamera->Name == "Simulator")
+    {
+        simcam->sim.init_once = true;
+        simcam->sim.cum_ra_drift = 0;
+        simcam->sim.cum_dec_drift = 0;
+        simcam->sim.s_ra_offset = 0;
+    }
 }
 
 void SimCamDialog::UpdatePierSideLabel()

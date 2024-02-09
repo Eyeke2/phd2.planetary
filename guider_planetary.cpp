@@ -303,6 +303,13 @@ void GuiderPlanet::NotifyFinishStop()
     m_guidingFixationPointValid = false;
 }
 
+// Notification callback when camera is connected
+void GuiderPlanet::NotifyCameraConnect(bool connected)
+{
+    bool isSimCam = (pCamera && pCamera->Name == "Simulator");
+    pFrame->pStatsWin->ShowSimulatorStats(isSimCam && connected);
+}
+
 void GuiderPlanet::SaveCameraSimulationMove(double rx, double ry)
 {
     m_cameraSimulationMove = Point2f(rx, ry);
@@ -404,16 +411,20 @@ void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFa
                 for (const Point2f& contourPoint : m_eclipseContour)
                     dc.DrawCircle((contourPoint.x + m_roiRect.x) * scaleFactor, (contourPoint.y + m_roiRect.y) * scaleFactor, 2);
 
-#if FILE_SIMULATOR_MODE
-                // Draw anchor circle centers
-                dc.SetLogicalFunction(wxXOR);
-                dc.SetPen(wxPen(wxColour(230, 230, 0), 3, wxPENSTYLE_SOLID));
-                if (m_centoid_x && m_centoid_y)
-                    dc.DrawCircle((m_centoid_x + m_roiRect.x) * scaleFactor, (m_centoid_y + m_roiRect.y) * scaleFactor, 3);
-                dc.SetPen(wxPen(wxColour(230, 230, 0), 1, wxPENSTYLE_SOLID));
-                if (m_sm_circle_x && m_sm_circle_y)
-                    dc.DrawCircle((m_sm_circle_x + m_roiRect.x) * scaleFactor, (m_sm_circle_y + m_roiRect.y) * scaleFactor, 3);
-                dc.SetLogicalFunction(wxCOPY);
+#if DEVELOPER_MODE
+                // Mark positions of detected centroid and smallest enclosing circle centers - in simulator mode only
+                if (pCamera && pCamera->Name == "Simulator")
+                {
+                    // Draw anchor circle centers
+                    dc.SetLogicalFunction(wxXOR);
+                    dc.SetPen(wxPen(wxColour(230, 230, 0), 3, wxPENSTYLE_SOLID));
+                    if (m_centoid_x && m_centoid_y)
+                        dc.DrawCircle((m_centoid_x + m_roiRect.x) * scaleFactor, (m_centoid_y + m_roiRect.y) * scaleFactor, 3);
+                    dc.SetPen(wxPen(wxColour(230, 230, 0), 1, wxPENSTYLE_SOLID));
+                    if (m_sm_circle_x && m_sm_circle_y)
+                        dc.DrawCircle((m_sm_circle_x + m_roiRect.x) * scaleFactor, (m_sm_circle_y + m_roiRect.y) * scaleFactor, 3);
+                    dc.SetLogicalFunction(wxCOPY);
+                }
 #endif
             }
             break;
@@ -1609,7 +1620,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
         Debug.Write(wxString::Format("Find planet: exception %s\n", msg));
     }
 
-#if FILE_SIMULATOR_MODE
+    // For simulated camera, calculate detection error by comparing with the simulated position
     if (pCamera && pCamera->Name == "Simulator")
     {
         bool errUnknown = true;
@@ -1640,7 +1651,6 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
             m_simulationZeroOffset = true;
         }
     }
-#endif
 
     // Update data shared with other thread
     m_syncLock.Lock();
