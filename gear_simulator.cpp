@@ -1272,6 +1272,8 @@ void SimCamState::FillImage(usImage& img, const wxRect& subframe, int exptime, i
 
 class CameraSimulator : public GuideCamera
 {
+    struct SimCamDialog* pCameraSimTool;
+
 public:
     SimCamState sim;
 
@@ -1297,6 +1299,7 @@ public:
 CameraSimulator::CameraSimulator()
 {
     Connected = false;
+    pCameraSimTool = nullptr;
     Name = _T("Simulator");
     m_hasGuideOutput = true;
     HasShutter = true;
@@ -1822,7 +1825,9 @@ static void SetControlStates(SimCamDialog *dlg, bool captureActive)
     dlg->pPECustomPeriod->Enable(enable);
     dlg->pPECustomRb->Enable(enable);
     dlg->pUsePECbx->Enable(enable);
+#if !DEVELOPER_MODE
     dlg->pUseStiction->Show(false);                          // no good for end-users
+#endif
     dlg->pPierFlip->Enable(enable);
     dlg->pReverseDecPulseCbx->Enable(enable);
     dlg->pResetBtn->Enable(enable);
@@ -1854,6 +1859,22 @@ void SimCamDialog::OnRbCustomPE(wxCommandEvent& evt)
     SetRBState(this, false);
 }
 
+struct UpdateChecker
+{
+    bool updated;
+    UpdateChecker() : updated(false) { }
+    template<typename T, typename U>
+    void Update(T& val, const U& newval)
+    {
+        if (val != newval)
+        {
+            val = newval;
+            updated = true;
+        }
+    }
+    bool WasModified() const { return updated; }
+};
+
 // Need to enforce semantics on free-form user input
 void SimCamDialog::OnOkClick(wxCommandEvent& evt)
 {
@@ -1881,7 +1902,47 @@ void SimCamDialog::OnOkClick(wxCommandEvent& evt)
     }
 
     if (bOk)
-        wxDialog::EndModal(wxID_OK);
+    {
+        UpdateChecker upd; // keep track of whether any values changed
+        double imageScale = pFrame->GetCameraPixelScale();
+        upd.Update(SimCamParams::nr_stars, pStarsSlider->GetValue());
+        upd.Update(SimCamParams::nr_hot_pixels, pHotpxSlider->GetValue());
+        SimCamParams::noise_multiplier = (double) pNoiseSlider->GetValue() * NOISE_MAX / 100.0;
+        upd.Update(SimCamParams::dec_backlash, pBacklashSpin->GetValue() / imageScale);    // a-s -> px
+
+        bool use_pe = pUsePECbx->GetValue();
+        SimCamParams::use_pe = use_pe;
+        SimCamParams::use_stiction = pUseStiction->GetValue();
+        bool use_default_pe_params = pPEDefaultRb->GetValue();
+        SimCamParams::use_default_pe_params = use_default_pe_params;
+        if (SimCamParams::use_default_pe_params)
+        {
+            SimCamParams::pe_scale = pPEDefScale->GetValue();
+        }
+        else
+        {
+            pPECustomAmp->GetValue().ToDouble(&SimCamParams::custom_pe_amp);
+            pPECustomPeriod->GetValue().ToDouble(&SimCamParams::custom_pe_period);
+        }
+        SimCamParams::dec_drift_rate = pDriftSpinDEC->GetValue() / 60.0;  // a-s per min to a-s second
+        SimCamParams::ra_drift_rate = pDriftSpinRA->GetValue() / 60.0;    // a-s per min to a-s per second
+        SimCamParams::seeing_scale = pSeeingSpin->GetValue();             // already in a-s
+        upd.Update(SimCamParams::cam_angle, pCameraAngleSpin->GetValue());
+        SimCamParams::guide_rate = pGuideRateSpin->GetValue() * 15.0;
+        SimCamParams::pier_side = pPierSide;
+        SimCamParams::reverse_dec_pulse_on_west_side = pReverseDecPulseCbx->GetValue();
+        SimCamParams::show_comet = showComet->GetValue();
+        SimCamParams::clouds_opacity = pCloudSlider->GetValue() / 100.0;
+        save_sim_params();
+
+        if (upd.WasModified())
+        {
+            CameraSimulator* simcam = static_cast<CameraSimulator*>(pCamera);
+            simcam->sim.Initialize();
+        }
+
+        this->Close();
+    }
 }
 
 SimCamDialog::SimCamDialog(wxWindow *parent)
@@ -2075,10 +2136,6 @@ SimCamDialog::SimCamDialog(wxWindow *parent)
         wxSizerFlags(0).Center() );
 
     SetSizerAndFit(pVSizer);
-    SetControlStates(this, pFrame->CaptureActive);
-    if (!pFrame->CaptureActive)
-        SetRBState(this, pPEDefaultRb->GetValue());        // Enable matching PE-related controls
-    UpdatePierSideLabel();
 }
 
 void SimCamDialog::OnReset(wxCommandEvent& event)
@@ -2103,7 +2160,7 @@ void SimCamDialog::OnReset(wxCommandEvent& event)
     pPECustomAmp->SetValue(wxString::Format("%0.1f",PE_CUSTOM_AMP_DEFAULT));
     pPECustomPeriod->SetValue(wxString::Format("%0.1f", PE_CUSTOM_PERIOD_DEFAULT));
     pPierSide = PIER_SIDE_DEFAULT;
-    SetRBState( this, USE_PE_DEFAULT_PARAMS);
+    SetRBState(this, USE_PE_DEFAULT_PARAMS);
     UpdatePierSideLabel();
     showComet->SetValue(SHOW_COMET_DEFAULT);
 }
@@ -2174,61 +2231,25 @@ void SimCamDialog::UpdatePierSideLabel()
     pPiersideLabel->SetLabel(wxString::Format(_("Side of pier: %s"), pPierSide == PIER_SIDE_EAST ? _("East") : _("West")));
 }
 
-struct UpdateChecker
-{
-    bool updated;
-    UpdateChecker() : updated(false) { }
-    template<typename T, typename U>
-    void Update(T& val, const U& newval) {
-        if (val != newval)
-        {
-            val = newval;
-            updated = true;
-        }
-    }
-    bool WasModified() const { return updated; }
-};
-
 void CameraSimulator::ShowPropertyDialog()
 {
-    SimCamDialog dlg(pFrame);
-    double imageScale = pFrame->GetCameraPixelScale();              // arc-sec/pixel, defaults to 1.0 if no user specs
-    SimCamParams::image_scale = imageScale;                         // keep current - might have gotten changed in brain dialog
-    if (dlg.ShowModal() == wxID_OK)
+    // arc-sec/pixel, defaults to 1.0 if no user specs
+    // keep current - might have gotten changed in brain dialog
+    SimCamParams::image_scale = pFrame->GetCameraPixelScale();
+
+    if (!pCameraSimTool)
     {
-        UpdateChecker upd; // keep track of whether any values changed
-        upd.Update(SimCamParams::nr_stars, dlg.pStarsSlider->GetValue());
-        upd.Update(SimCamParams::nr_hot_pixels, dlg.pHotpxSlider->GetValue());
-        SimCamParams::noise_multiplier = (double) dlg.pNoiseSlider->GetValue() * NOISE_MAX / 100.0;
-        upd.Update(SimCamParams::dec_backlash, dlg.pBacklashSpin->GetValue() / imageScale);    // a-s -> px
+        pCameraSimTool = new SimCamDialog(pFrame);
+    }
 
-        bool use_pe = dlg.pUsePECbx->GetValue();
-        SimCamParams::use_pe = use_pe;
-        SimCamParams::use_stiction = dlg.pUseStiction->GetValue();
-        bool use_default_pe_params = dlg.pPEDefaultRb->GetValue();
-        SimCamParams::use_default_pe_params = use_default_pe_params;
-        if (SimCamParams::use_default_pe_params)
-        {
-            SimCamParams::pe_scale = dlg.pPEDefScale->GetValue();
-        }
-        else
-        {
-            dlg.pPECustomAmp->GetValue().ToDouble(&SimCamParams::custom_pe_amp);
-            dlg.pPECustomPeriod->GetValue().ToDouble(&SimCamParams::custom_pe_period);
-        }
-        SimCamParams::dec_drift_rate = dlg.pDriftSpinDEC->GetValue() / 60.0;  // a-s per min to a-s second
-        SimCamParams::ra_drift_rate = dlg.pDriftSpinRA->GetValue() / 60.0;    // a-s per min to a-s per second
-        SimCamParams::seeing_scale = dlg.pSeeingSpin->GetValue();             // already in a-s
-        upd.Update(SimCamParams::cam_angle, dlg.pCameraAngleSpin->GetValue());
-        SimCamParams::guide_rate = dlg.pGuideRateSpin->GetValue() * 15.0;
-        SimCamParams::pier_side = dlg.pPierSide;
-        SimCamParams::reverse_dec_pulse_on_west_side = dlg.pReverseDecPulseCbx->GetValue();
-        SimCamParams::show_comet = dlg.showComet->GetValue();
-        SimCamParams::clouds_opacity = dlg.pCloudSlider->GetValue() / 100.0;
-        save_sim_params();
-
-        if (upd.WasModified())
-            sim.Initialize();
+    if (pCameraSimTool)
+    {
+        pCameraSimTool->Show();
+        SetControlStates(pCameraSimTool, pFrame->CaptureActive);
+        // Enable matching PE-related controls
+        if (!pFrame->CaptureActive)
+            SetRBState(pCameraSimTool, pCameraSimTool->pPEDefaultRb->GetValue());
+        pCameraSimTool->UpdatePierSideLabel();
     }
 }
 
