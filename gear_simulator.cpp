@@ -62,7 +62,7 @@
 enum SimMode
 {
     SIMMODE_GENERATE = 0,
-    SIMMODE_BMP = 1,
+    SIMMODE_FILE = 1,
     SIMMODE_FITS = 2,
     SIMMODE_DRIFT = 3
 };
@@ -213,7 +213,7 @@ static void load_sim_params()
     SimCamParams::SimulatorMode = (SimMode)pConfig->Profile.GetInt("/SimCam/simulator_mode", SIMMODE_GENERATE);
     SimCamParams::mount_dynamics = pConfig->Profile.GetBoolean("/SimCam/mount_dynamics", false);
     SimCamParams::SimFileIndex = pConfig->Profile.GetInt("/SimCam/sim_file_index", 1);
-    SimCamParams::SimFileTemplate = pConfig->Profile.GetString("/SimCam/sim_filename", _("C:\\Temp\\phd2\\sim_image.png"));
+    SimCamParams::SimFileTemplate = pConfig->Profile.GetString("/SimCam/sim_filename", wxFileName(Debug.GetLogDir(), "sim_images").GetFullPath());
 }
 
 static void save_sim_params()
@@ -596,7 +596,8 @@ struct SimCamState
     // Used by FITS file simulation
     wxDir dir;
     bool dirStarted;
-    bool ReadNextImage(usImage& img, const wxRect& subframe);
+    void CloseDir();
+    bool ReadFitImage(usImage& img, wxString& filename, const wxRect& subframe);
 
     void Initialize();
     void FillImage(usImage& img, const wxRect& subframe, int exptime, int gain, int offset);
@@ -650,9 +651,7 @@ void SimCamState::Initialize()
     s_ra_offset = 0;
     init_once = true;
     last_exposure_time = 0;
-
-    if (SimCamParams::SimulatorMode == SIMMODE_FITS)
-        dirStarted = false;
+    CloseDir();
 
 #ifdef SIM_FILE_DISPLACEMENTS
     pIStream = nullptr;
@@ -692,33 +691,17 @@ void SimCamState::Initialize()
 #endif
 }
 
-// Simulate camera image stream from FITS files
-bool SimCamState::ReadNextImage(usImage& img, const wxRect& subframe)
+// Make sure to close the directory when done
+void SimCamState::CloseDir()
 {
-    wxString filename;
-
-    if (!dir.IsOpened())
-    {
-        dir.Open(wxFileName(Debug.GetLogDir(), "sim_images").GetFullPath());
-    }
+    dirStarted = false;
     if (dir.IsOpened())
-    {
-        if (!dirStarted)
-        {
-            dir.GetFirst(&filename, "*.fit", wxDIR_FILES);
-            dirStarted = true;
-        }
-        else
-        {
-            if (!dir.GetNext(&filename))
-                dir.GetFirst(&filename, "*.fit", wxDIR_FILES);
-        }
-    }
-    if (filename.IsEmpty())
-    {
-        return true;
-    }
+        dir.Close();
+}
 
+// Load image from FIT file
+bool SimCamState::ReadFitImage(usImage& img, wxString& filename, const wxRect& subframe)
+{
     Debug.Write("Sim file opened: " + filename + "\n");
     fitsfile *fptr;  // FITS file pointer
     int status = 0;  // CFITSIO status value MUST be initialized to zero!
@@ -1352,6 +1335,7 @@ bool CameraSimulator::Connect(const wxString& camId)
 
 bool CameraSimulator::Disconnect()
 {
+    sim.CloseDir();
     Connected = false;
     return false;
 }
@@ -1436,18 +1420,40 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
                 SubtractDark(img);
             break;
         }
-        case SIMMODE_BMP:
+        case SIMMODE_FILE:  // Can be PNG|TIF|BMP|JPG|FIT file
         {
-            // Can be also PNG or JPG file
+            cv::Mat image;
             wxString filename = wxString::Format(SimCamParams::SimFileTemplate, SimCamParams::SimFileIndex);
-            cv::Mat image = cv::imread(filename.ToStdString(), cv::IMREAD_ANYDEPTH | cv::IMREAD_ANYCOLOR);
-            if (image.empty()) {
-                pFrame->Alert(_("Cannot load simulated image"));
-                return true;
+            wxFileName wxf = wxFileName(filename);
+            if ((wxf.GetExt().CmpNoCase("fit") == 0) || (wxf.GetExt().CmpNoCase("fits") == 0))
+            {
+                sim.dir.Open(wxf.GetPath());
+                if (sim.ReadFitImage(img, filename, wxRect()))
+                {
+                    sim.CloseDir();
+                    pFrame->Alert(_("Cannot load FIT image file"));
+                    return true;
+                }
+                sim.CloseDir();
+                image = cv::Mat(img.Size.GetHeight(), img.Size.GetWidth(), CV_16UC1, img.ImageData);
+                if (image.empty())
+                {
+                    pFrame->Alert(_("Cannot load FIT image file"));
+                    return true;
+                }
             }
-            if (img.Init(image.cols, image.rows)) {
-                pFrame->Alert(_("Memory allocation error"));
-                return true;
+            else
+            {
+                image = cv::imread(filename.ToStdString(), cv::IMREAD_ANYDEPTH | cv::IMREAD_ANYCOLOR);
+                if (image.empty())
+                {
+                    pFrame->Alert(_("Cannot load image file"));
+                    return true;
+                }
+                if (img.Init(image.cols, image.rows)) {
+                    pFrame->Alert(_("Memory allocation error"));
+                    return true;
+                }
             }
 
             // Save full frame size
@@ -1504,13 +1510,41 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
             QuickLRecon(img);
             break;
         }
-        case SIMMODE_FITS:
+        case SIMMODE_FITS:  // Simulate camera image stream from FIT files
         {
+            wxString filename = SimCamParams::SimFileTemplate;
+            if (!sim.dir.IsOpened())
+            {
+                wxFileName wxf = wxFileName(filename);
+                sim.dir.Open(wxf.GetFullPath());
+            }
+            if (sim.dir.IsOpened())
+            {
+                if (!sim.dirStarted)
+                {
+                    sim.dir.GetFirst(&filename, "*.fit", wxDIR_FILES);
+                    sim.dirStarted = true;
+                }
+                else
+                {
+                    if (!sim.dir.GetNext(&filename))
+                        sim.dir.GetFirst(&filename, "*.fit", wxDIR_FILES);
+                }
+            }
+            else
+            {
+                pFrame->Alert(_("Cannot open FIT file directory"));
+                return true;
+            }
+
             if (!UseSubframes)
                 subframe = wxRect();
 
-            if (sim.ReadNextImage(img, subframe))
+            if (sim.ReadFitImage(img, filename, subframe))
+            {
+                pFrame->Alert(_("Cannot find/open FIT file"));
                 return true;
+            }
 
             FullSize = img.Size;
             break;
@@ -1840,7 +1874,7 @@ static void SetControlStates(SimCamDialog *dlg, bool captureActive)
     dlg->showComet->Enable(isStarMode);
 
     // Enable file, browse and index controls only in file mode
-    bool isFileMode = SimCamParams::SimulatorMode == SIMMODE_BMP;
+    bool isFileMode = (SimCamParams::SimulatorMode == SIMMODE_FILE) || (SimCamParams::SimulatorMode == SIMMODE_FITS);
     dlg->pSimFile->Enable(isFileMode);
     dlg->pBrowseBtn->Enable(isFileMode);
 #if DEVELOPER_MODE
@@ -1957,30 +1991,35 @@ SimCamDialog::SimCamDialog(wxWindow *parent)
     wxStaticBoxSizer *pCamGroup = new wxStaticBoxSizer(wxVERTICAL, this, _("Camera"));
     wxFlexGridSizer *pCamTable = new wxFlexGridSizer(1, 6, 15, 15);
 
-    // Add simulation mode drop-down (SIMMODE_FITS is not supported in the UI)
+    // Add simulation mode drop-down
     wxBoxSizer* modeFileSizer = new wxBoxSizer(wxHORIZONTAL);
     wxArrayString simModes;
     simModes.Add(_(" Generate stars"));
     simModes.Add(_(" Image file"));
+#if DEVELOPER_MODE
+    simModes.Add(_(" FIT folder"));
+#endif
     wxStaticText* modeLabel = new wxStaticText(this, wxID_ANY, _("Mode: "));
-    modeLabel->SetToolTip(_("Choose between simulating star field or using image files"));
+    modeLabel->SetToolTip(_("Choose between simulating star field or streaming image files"));
     wxChoice *pSimMode = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, simModes);
     pSimMode->SetSelection(SimCamParams::SimulatorMode);
     pSimMode->Bind(wxEVT_CHOICE, &SimCamDialog::OnSimModeChange, this);
     modeFileSizer->Add(modeLabel, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     modeFileSizer->Add(pSimMode, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     modeFileSizer->AddSpacer(10);
-    wxStaticText* fileLabel = new wxStaticText(this, wxID_ANY, _("File: "));
-    wxString fileLabelTip = _("Full image file path (BMP/PNG/TIFF/JPG)");
+    wxStaticText* fileLabel = new wxStaticText(this, wxID_ANY, _("Path: "));
+    wxString fileLabelTip = _("Select an image file (BMP|PNG|TIF|JPG|FIT) to use for the simulation");
+    wxString browseTip = _T("Select an image file to use for the simulation");
 #if DEVELOPER_MODE
-    fileLabelTip += _(" - must be a valid format string, f.e. C:\\temp\\phd2\\sun_%04d.png");
+    fileLabelTip += _(" or folder with sequence of FIT files (f.e. C:\\temp\\phd2\\sun_%04d.png)");
+    browseTip += _(" or folder with sequence of FIT files");
 #endif
     fileLabel->SetToolTip(fileLabelTip);
     pSimFile = new wxTextCtrl(this, wxID_ANY, SimCamParams::SimFileTemplate, wxDefaultPosition, wxSize(350, -1));
     pSimFile->Bind(wxEVT_TEXT, &SimCamDialog::OnFileTextChange, this);
     pBrowseBtn = new wxButton(this, wxID_ANY, _("..."), wxDefaultPosition, wxSize(60, -1));
     pBrowseBtn->Bind(wxEVT_BUTTON, &SimCamDialog::OnBrowseFileName, this);
-    pBrowseBtn->SetToolTip(_("Select an image file to use for the simulation"));
+    pBrowseBtn->SetToolTip(browseTip);
     modeFileSizer->Add(fileLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     modeFileSizer->Add(pSimFile, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     modeFileSizer->AddSpacer(10);
@@ -2163,6 +2202,12 @@ void SimCamDialog::OnReset(wxCommandEvent& event)
     SetRBState(this, USE_PE_DEFAULT_PARAMS);
     UpdatePierSideLabel();
     showComet->SetValue(SHOW_COMET_DEFAULT);
+    if (SimCamParams::SimulatorMode == SIMMODE_FITS)
+    {
+        pSimFile->SetValue(wxFileName(Debug.GetLogDir(), "sim_images").GetFullPath());
+        CameraSimulator* simcam = static_cast<CameraSimulator*>(pCamera);
+        simcam->sim.CloseDir();
+    }
 }
 
 void SimCamDialog::OnPierFlip(wxCommandEvent& event)
@@ -2192,21 +2237,37 @@ void SimCamDialog::OnSpinCtrlFileIndex(wxSpinDoubleEvent& event)
 
 void SimCamDialog::OnBrowseFileName(wxCommandEvent& event)
 {
-    // Open file dialog to open BMP|PNG|TIFF|JPG file types
-    wxFileDialog openFileDialog(this, _("Select File"), wxEmptyString, wxEmptyString,
-        wxT("Image Files (*.bmp;*.png;*.tif;*.tiff;*.jpg;*.jpeg)|*.bmp;*.png;*.tif;*.tiff;*.jpg;*.jpeg"),
-        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-
-    if (openFileDialog.ShowModal() == wxID_OK)
+    if (SimCamParams::SimulatorMode == SIMMODE_FITS)
     {
-        SimCamParams::SimFileTemplate = openFileDialog.GetPath();
-        pSimFile->SetValue(SimCamParams::SimFileTemplate);
+        // Open folder dialog to select folder for FITS files
+        wxDirDialog openDirDialog(this, _("Select Folder"), wxEmptyString, wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+        if (openDirDialog.ShowModal() == wxID_OK)
+        {
+            SimCamParams::SimFileTemplate = openDirDialog.GetPath();
+            pSimFile->SetValue(SimCamParams::SimFileTemplate);
+        }
     }
+    else
+    {
+        // Open file dialog to open BMP|PNG|TIFF|JPG|FIT file
+        wxFileDialog openFileDialog(this, _("Select File"), wxEmptyString, wxEmptyString,
+            _("Image Files (*.bmp;*.png;*.tif;*.tiff;*.jpg;*.jpeg;*.fit;*.fits)|*.bmp;*.png;*.tif;*.tiff;*.jpg;*.jpeg;*.fit;*.fits"),
+            wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        if (openFileDialog.ShowModal() == wxID_OK)
+        {
+            SimCamParams::SimFileTemplate = openFileDialog.GetPath();
+            pSimFile->SetValue(SimCamParams::SimFileTemplate);
+        }
+    }
+    CameraSimulator* simcam = static_cast<CameraSimulator*>(pCamera);
+    simcam->sim.CloseDir();
 }
 
 void SimCamDialog::OnFileTextChange(wxCommandEvent& event)
 {
     SimCamParams::SimFileTemplate = pSimFile->GetValue();
+    CameraSimulator* simcam = static_cast<CameraSimulator*>(pCamera);
+    simcam->sim.CloseDir();
 }
 
 void SimCamDialog::OnMountDynamicsCheck(wxCommandEvent& event)
