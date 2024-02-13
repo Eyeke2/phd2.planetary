@@ -82,7 +82,11 @@
 #define APPNAME _T("PHD2 Guiding")
 #define PHDVERSION _T("2.6.13")
 #define PHDSUBVER _T("-planet.dev6.rc1")
+#ifdef DEVELOPER_MODE
+#define FULLVER PHDVERSION PHDSUBVER _T(" (Developer mode)")
+#else
 #define FULLVER PHDVERSION PHDSUBVER
+#endif
 
 #if defined (__WINDOWS__)
 # pragma warning(disable:4189)

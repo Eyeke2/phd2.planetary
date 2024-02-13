@@ -412,7 +412,7 @@ void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFa
                 for (const Point2f& contourPoint : m_eclipseContour)
                     dc.DrawCircle((contourPoint.x + m_roiRect.x) * scaleFactor, (contourPoint.y + m_roiRect.y) * scaleFactor, 2);
 
-#if DEVELOPER_MODE
+#ifdef DEVELOPER_MODE
                 // Mark positions of detected centroid and smallest enclosing circle centers - in simulator mode only
                 if (pCamera && pCamera->Name == "Simulator")
                 {

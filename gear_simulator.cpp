@@ -1859,7 +1859,7 @@ static void SetControlStates(SimCamDialog *dlg, bool captureActive)
     dlg->pPECustomPeriod->Enable(enable);
     dlg->pPECustomRb->Enable(enable);
     dlg->pUsePECbx->Enable(enable);
-#if !DEVELOPER_MODE
+#ifndef DEVELOPER_MODE
     dlg->pUseStiction->Show(false);                          // no good for end-users
 #endif
     dlg->pPierFlip->Enable(enable);
@@ -1877,7 +1877,7 @@ static void SetControlStates(SimCamDialog *dlg, bool captureActive)
     bool isFileMode = (SimCamParams::SimulatorMode == SIMMODE_FILE) || (SimCamParams::SimulatorMode == SIMMODE_FITS);
     dlg->pSimFile->Enable(isFileMode);
     dlg->pBrowseBtn->Enable(isFileMode);
-#if DEVELOPER_MODE
+#ifdef DEVELOPER_MODE
     dlg->pFileIndex->Enable(isFileMode);
 #endif
 }
@@ -1996,7 +1996,7 @@ SimCamDialog::SimCamDialog(wxWindow *parent)
     wxArrayString simModes;
     simModes.Add(_(" Generate stars"));
     simModes.Add(_(" Image file"));
-#if DEVELOPER_MODE
+#ifdef DEVELOPER_MODE
     simModes.Add(_(" FIT folder"));
 #endif
     wxStaticText* modeLabel = new wxStaticText(this, wxID_ANY, _("Mode: "));
@@ -2010,7 +2010,7 @@ SimCamDialog::SimCamDialog(wxWindow *parent)
     wxStaticText* fileLabel = new wxStaticText(this, wxID_ANY, _("Path: "));
     wxString fileLabelTip = _("Select an image file (BMP|PNG|TIF|JPG|FIT) to use for the simulation");
     wxString browseTip = _T("Select an image file to use for the simulation");
-#if DEVELOPER_MODE
+#ifdef DEVELOPER_MODE
     fileLabelTip += _(" or folder with sequence of FIT files (f.e. C:\\temp\\phd2\\sun_%04d.png)");
     browseTip += _(" or folder with sequence of FIT files");
 #endif
@@ -2024,7 +2024,7 @@ SimCamDialog::SimCamDialog(wxWindow *parent)
     modeFileSizer->Add(pSimFile, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     modeFileSizer->AddSpacer(10);
     modeFileSizer->Add(pBrowseBtn, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-#if DEVELOPER_MODE
+#ifdef DEVELOPER_MODE
     wxStaticText* pFileIndexLabel = new wxStaticText(this, wxID_ANY, _("File index: "));
     pFileIndexLabel->SetToolTip(_("File index for simulation (optional)"));
     pFileIndex = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(100, -1), wxSP_ARROW_KEYS, 0, 9999, 0);
@@ -2044,7 +2044,7 @@ SimCamDialog::SimCamDialog(wxWindow *parent)
         /* xgettext:no-c-format */ _("% Simulated noise"));
     AddTableEntryPair(this, pCamTable, _("Noise"), pNoiseSlider);
     pCamGroup->Add(modeFileSizer);
-#if DEVELOPER_MODE
+#ifdef DEVELOPER_MODE
     pCamGroup->Add(fileIndexSizer);
 #endif
     pCamGroup->AddSpacer(10);
@@ -2062,7 +2062,7 @@ SimCamDialog::SimCamDialog(wxWindow *parent)
     pGuideRateSpin = NewSpinner(this, SimCamParams::guide_rate / 15.0, 0.25, GUIDE_RATE_MAX, 0.25, _("Guide rate, x sidereal"));
     AddTableEntryPair(this, pMountTable, _("Guide rate"), pGuideRateSpin);
     pUseStiction = NewCheckBox(this, SimCamParams::use_stiction, _("Apply stiction"), _("Simulate dec axis stiction"));
-#if !DEVELOPER_MODE
+#ifndef DEVELOPER_MODE
     // too crude to put in hands of users
     pUseStiction->Enable(false);
 #endif
