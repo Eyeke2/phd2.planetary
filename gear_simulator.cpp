@@ -1822,8 +1822,8 @@ static wxCheckBox *NewCheckBox(wxWindow *parent, bool val, const wxString& label
 static void AddTableEntryPair(wxWindow *parent, wxFlexGridSizer *pTable, const wxString& label, wxWindow *pControl)
 {
     wxStaticText *pLabel = new wxStaticText(parent, wxID_ANY, label + _(": "), wxPoint(-1,-1), wxSize(-1,-1));
-    pTable->Add(pLabel, 1, wxALL, 5);
-    pTable->Add(pControl, 1, wxALL, 5);
+    pTable->Add(pLabel, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    pTable->Add(pControl, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 }
 
 static wxTextCtrl *AddCustomPEField(wxWindow *parent, wxFlexGridSizer *pTable, const wxString& label, const wxString& tip, double val)
@@ -2081,7 +2081,7 @@ SimCamDialog::SimCamDialog(wxWindow *parent)
     wxFlexGridSizer* pDynamicsTable = new wxFlexGridSizer(1, 2, 5, 15);
     pDynamicsTable->Add(pMountDynamicsCheckBox, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     pDynamicsTable->Add(RecenterBtn, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    pMountTable->Add(pUseStiction, 1, wxBOTTOM, 15);
+    pMountTable->Add(pUseStiction, 1, wxBOTTOM | wxALIGN_CENTER_VERTICAL, 15);
     pMountGroup->Add(pDynamicsTable);
     pMountGroup->AddSpacer(10);
     pMountGroup->Add(pMountTable);

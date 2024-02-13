@@ -200,7 +200,7 @@ PlanetToolWin::PlanetToolWin()
     planetSizer->Add(x_circleParams, 0, wxEXPAND, 5);
     planetSizer->AddSpacer(20);
     planetSizer->Add(x_radii, 0, wxEXPAND, 5);
-    planetSizer->AddSpacer(20);
+    planetSizer->AddSpacer(10);
     planetSizer->Add(ThresholdLabel, 0, wxLEFT | wxTOP, 10);
     planetSizer->Add(m_ThresholdSlider, 0, wxALL, 10);
     m_planetTab->SetSizer(planetSizer);
