@@ -242,7 +242,7 @@ PlanetToolWin::PlanetToolWin()
                                   "Higher values increase the number of detected features but may include more noise. "
                                   "Ideal value depends on image content and quality"));
     wxStaticText* maxFeaturesLabel = new wxStaticText(m_featuresTab, wxID_ANY, wxT("Maximum number of surface features:"), wxDefaultPosition, wxDefaultSize, 0);
-    m_maxFeaturesSlider = new wxSlider(m_featuresTab, wxID_ANY, PT_MAX_SURFACE_FEATURES, 10, PT_MAX_SURFACE_FEATURES, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
+    m_maxFeaturesSlider = new wxSlider(m_featuresTab, wxID_ANY, PT_MAX_SURFACE_FEATURES, 5, PT_MAX_SURFACE_FEATURES, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
     maxFeaturesLabel->SetToolTip(_("Limits maximum number of features used for tracking."));
     m_minHessianSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnMinHessianChanged, this);
     m_maxFeaturesSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnMaxFeaturesChanged, this);
@@ -612,10 +612,8 @@ void PlanetToolWin::OnMouseLeaveCloseBtn(wxMouseEvent& event)
 void PlanetToolWin::OnThresholdChanged(wxCommandEvent& event)
 {
     int value = event.GetInt();
-    if (value < PT_HIGH_THRESHOLD_MIN)
-        value = PT_HIGH_THRESHOLD_MIN;
-    if (value > PT_HIGH_THRESHOLD_MAX)
-        value = PT_HIGH_THRESHOLD_MAX;
+    value = wxMin(value, PT_HIGH_THRESHOLD_MAX);
+    value = wxMax(value, PT_HIGH_THRESHOLD_MIN);
     pPlanet->SetPlanetaryParam_lowThreshold(value/2);
     pPlanet->SetPlanetaryParam_highThreshold(value);
 }
