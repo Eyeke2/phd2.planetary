@@ -1,9 +1,19 @@
 PHD2 beta program for solar/lunar/planetary imaging
 ===================================================
 
-When installing this version, it is advised to choose a destination folder distinct from the standard PHD2 installation path, so you can keep two versions at the same time.
+When installing this version, it is advised to choose a destination folder distinct from the standard PHD2
+installation path, so you can keep two versions at the same time.
 
 Change log
+
+v2.6.13-planet.dev6.rc2
+* Added camera exposure, time lapse, and gain controls to the planetary tracking dialog box to enhance
+and streamline the end-user experience. When enabling planetary tracking, Star Mass Detection and
+Subframes are automatically disabled.
+* Planetary tool: utilized profile storage for saving non-volatile settings instead of using a global.
+* Sync with Master branch: updated Spanish translation from Mario (#1171).
+* Sync with Master branch: set LIBNOVA when using bundled Indi (#1172).
+* Sync with Master branch: update Touptek lib to version 55.24621.20240204 (#1169)
 
 v2.6.13-planet.dev6.rc1
 * Camera Simulator: Refactored code to enable dynamic selection between simulation methods: star generator or
