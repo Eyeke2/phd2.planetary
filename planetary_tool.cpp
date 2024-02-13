@@ -275,18 +275,18 @@ PlanetToolWin::PlanetToolWin()
     m_maxRadius->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_maxRadius), NULL, this);
 
     // Set initial values of the planetary tracking state and parameters
-    pPlanet->SetSurfaceTrackingState(pConfig->Global.GetInt("/PlanetTool/surface_tracking", 0));
-    pPlanet->SetEclipseMode(pConfig->Global.GetInt("/PlanetTool/eclipse_mode", 1));
-    pPlanet->SetNoiseFilterState(pConfig->Global.GetInt("/PlanetTool/noise_filter", 0));
-    pPlanet->SetPlanetaryParam_minDist(pConfig->Global.GetInt("/PlanetTool/min_dist", PT_MIN_DIST_DEFAULT));
-    pPlanet->SetPlanetaryParam_param1(pConfig->Global.GetInt("/PlanetTool/param1", PT_PARAM1_DEFAULT));
-    pPlanet->SetPlanetaryParam_param2(pConfig->Global.GetInt("/PlanetTool/param2", PT_PARAM2_DEFAULT));
-    pPlanet->SetPlanetaryParam_minRadius(pConfig->Global.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT));
-    pPlanet->SetPlanetaryParam_maxRadius(pConfig->Global.GetInt("/PlanetTool/max_radius", PT_MAX_RADIUS_DEFAULT));
-    pPlanet->SetPlanetaryParam_lowThreshold(pConfig->Global.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT) / 2);
-    pPlanet->SetPlanetaryParam_highThreshold(pConfig->Global.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT));
-    pPlanet->SetPlanetaryParam_minHessian(pConfig->Global.GetInt("/PlanetTool/min_hessian", PT_MIN_HESSIAN_DEFAULT));
-    pPlanet->SetPlanetaryParam_maxFeatures(pConfig->Global.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES));
+    pPlanet->SetSurfaceTrackingState(pConfig->Profile.GetInt("/PlanetTool/surface_tracking", 0));
+    pPlanet->SetEclipseMode(pConfig->Profile.GetInt("/PlanetTool/eclipse_mode", 1));
+    pPlanet->SetNoiseFilterState(pConfig->Profile.GetInt("/PlanetTool/noise_filter", 0));
+    pPlanet->SetPlanetaryParam_minDist(pConfig->Profile.GetInt("/PlanetTool/min_dist", PT_MIN_DIST_DEFAULT));
+    pPlanet->SetPlanetaryParam_param1(pConfig->Profile.GetInt("/PlanetTool/param1", PT_PARAM1_DEFAULT));
+    pPlanet->SetPlanetaryParam_param2(pConfig->Profile.GetInt("/PlanetTool/param2", PT_PARAM2_DEFAULT));
+    pPlanet->SetPlanetaryParam_minRadius(pConfig->Profile.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT));
+    pPlanet->SetPlanetaryParam_maxRadius(pConfig->Profile.GetInt("/PlanetTool/max_radius", PT_MAX_RADIUS_DEFAULT));
+    pPlanet->SetPlanetaryParam_lowThreshold(pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT) / 2);
+    pPlanet->SetPlanetaryParam_highThreshold(pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT));
+    pPlanet->SetPlanetaryParam_minHessian(pConfig->Profile.GetInt("/PlanetTool/min_hessian", PT_MIN_HESSIAN_DEFAULT));
+    pPlanet->SetPlanetaryParam_maxFeatures(pConfig->Profile.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES));
 
     pPlanet->SetPlanetaryElementsButtonState(false);
     pPlanet->SetPlanetaryElementsVisual(false);
@@ -309,8 +309,8 @@ PlanetToolWin::PlanetToolWin()
 
     m_tabs->SetSelection(pPlanet->GetSurfaceTrackingState() ? 1 : 0);
 
-    int xpos = pConfig->Global.GetInt("/PlanetTool/pos.x", -1);
-    int ypos = pConfig->Global.GetInt("/PlanetTool/pos.y", -1);
+    int xpos = pConfig->Profile.GetInt("/PlanetTool/pos.x", -1);
+    int ypos = pConfig->Profile.GetInt("/PlanetTool/pos.y", -1);
     if (wxGetKeyState(WXK_ALT))
     {
         xpos = -1;
@@ -520,23 +520,23 @@ void PlanetToolWin::OnClose(wxCloseEvent& evt)
     pFrame->pGuider->Update();
 
     // save detection parameters
-    pConfig->Global.SetInt("/PlanetTool/surface_tracking", pPlanet->GetSurfaceTrackingState());
-    pConfig->Global.SetInt("/PlanetTool/eclipse_mode", pPlanet->GetEclipseMode());
-    pConfig->Global.SetInt("/PlanetTool/noise_filter", pPlanet->GetNoiseFilterState());
-    pConfig->Global.SetInt("/PlanetTool/min_dist", pPlanet->GetPlanetaryParam_minDist());
-    pConfig->Global.SetInt("/PlanetTool/param1", pPlanet->GetPlanetaryParam_param1());
-    pConfig->Global.SetInt("/PlanetTool/param2", pPlanet->GetPlanetaryParam_param2());
-    pConfig->Global.SetInt("/PlanetTool/min_radius", pPlanet->GetPlanetaryParam_minRadius());
-    pConfig->Global.SetInt("/PlanetTool/max_radius", pPlanet->GetPlanetaryParam_maxRadius());
-    pConfig->Global.SetInt("/PlanetTool/high_threshold", pPlanet->GetPlanetaryParam_highThreshold());
-    pConfig->Global.SetInt("/PlanetTool/min_hessian", pPlanet->GetPlanetaryParam_minHessian());
-    pConfig->Global.SetInt("/PlanetTool/max_features", pPlanet->GetPlanetaryParam_maxFeatures());
+    pConfig->Profile.SetInt("/PlanetTool/surface_tracking", pPlanet->GetSurfaceTrackingState());
+    pConfig->Profile.SetInt("/PlanetTool/eclipse_mode", pPlanet->GetEclipseMode());
+    pConfig->Profile.SetInt("/PlanetTool/noise_filter", pPlanet->GetNoiseFilterState());
+    pConfig->Profile.SetInt("/PlanetTool/min_dist", pPlanet->GetPlanetaryParam_minDist());
+    pConfig->Profile.SetInt("/PlanetTool/param1", pPlanet->GetPlanetaryParam_param1());
+    pConfig->Profile.SetInt("/PlanetTool/param2", pPlanet->GetPlanetaryParam_param2());
+    pConfig->Profile.SetInt("/PlanetTool/min_radius", pPlanet->GetPlanetaryParam_minRadius());
+    pConfig->Profile.SetInt("/PlanetTool/max_radius", pPlanet->GetPlanetaryParam_maxRadius());
+    pConfig->Profile.SetInt("/PlanetTool/high_threshold", pPlanet->GetPlanetaryParam_highThreshold());
+    pConfig->Profile.SetInt("/PlanetTool/min_hessian", pPlanet->GetPlanetaryParam_minHessian());
+    pConfig->Profile.SetInt("/PlanetTool/max_features", pPlanet->GetPlanetaryParam_maxFeatures());
 
     // save the window position
     int x, y;
     GetPosition(&x, &y);
-    pConfig->Global.SetInt("/PlanetTool/pos.x", x);
-    pConfig->Global.SetInt("/PlanetTool/pos.y", y);
+    pConfig->Profile.SetInt("/PlanetTool/pos.x", x);
+    pConfig->Profile.SetInt("/PlanetTool/pos.y", y);
 
     // Revert to a default duration of tooltip display (apparently 5 seconds)
     wxToolTip::SetAutoPop(5000);
