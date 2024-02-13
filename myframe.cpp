@@ -214,6 +214,7 @@ MyFrame::MyFrame()
     :
     wxFrame(nullptr, wxID_ANY, wxEmptyString),
     pGuider(nullptr),
+    pPlanetTool(nullptr),
     m_showBookmarksAccel(0),
     m_bookmarkLockPosAccel(0),
     pStatsWin(nullptr)
@@ -652,7 +653,7 @@ int MyFrame::GetExposureDelay()
 void MyFrame::SetComboBoxWidth(wxComboBox *pComboBox, unsigned int extra)
 {
     unsigned int i;
-    int width=-1;
+    int width = GetTextWidth(pComboBox, _("Custom: 0.999 s"));
 
     for (i = 0; i < pComboBox->GetCount(); i++)
     {
@@ -713,7 +714,7 @@ static int dur_index(int duration)
     return -1;
 }
 
-bool MyFrame::SetExposureDuration(int val)
+bool MyFrame::SetExposureDuration(int val, bool updateCustom)
 {
     if (val < 0)
     {
@@ -724,7 +725,15 @@ bool MyFrame::SetExposureDuration(int val)
     {
         int idx = dur_index(val);
         if (idx == -1)
-            return false;
+        {
+            if (updateCustom)
+            {
+                SetCustomExposureDuration(val);
+                idx = dur_index(val);
+            }
+            if (idx == -1)
+                return false;
+        }
         Dur_Choice->SetSelection(idx + 1); // skip Auto
     }
 
@@ -1021,7 +1030,7 @@ void MyFrame::SetupToolBar()
     Dur_Choice = new wxComboBox(MainToolbar, BUTTON_DURATION, wxEmptyString, wxDefaultPosition, wxDefaultSize,
         durs, wxCB_READONLY);
     Dur_Choice->SetToolTip(_("Camera exposure duration"));
-    SetComboBoxWidth(Dur_Choice, 10);
+    SetComboBoxWidth(Dur_Choice, 35);
 
     Gamma_Slider = new wxSlider(MainToolbar, CTRL_GAMMA, GAMMA_DEFAULT, GAMMA_MIN, GAMMA_MAX, wxPoint(-1,-1), wxSize(160,-1));
     Gamma_Slider->SetBackgroundColour(wxColor(60, 60, 60));         // Slightly darker than toolbar background
@@ -1123,6 +1132,18 @@ static bool cond_update_tool(wxAuiToolBar *tb, int toolId, wxMenuItem *mi, bool 
     return ret;
 }
 
+void MyFrame::UpdateCameraSettings()
+{
+    eventLock.Lock();
+    if (pPlanetTool)
+    {
+        wxCommandEvent event(APPSTATE_NOTIFY_EVENT, GetId());
+        event.SetEventObject(this);
+        wxPostEvent(pPlanetTool, event);
+    }
+    eventLock.Unlock();
+}
+
 void MyFrame::UpdateButtonsStatus()
 {
     assert(wxThread::IsMain());
@@ -1211,9 +1232,6 @@ void MyFrame::UpdateButtonsStatus()
 
     if (pCometTool)
         CometTool::UpdateCometToolControls(false);
-
-    if (pPlanetTool)
-        PlanetTool::UpdatePlanetToolControls(false);
 
     if (pGuidingAssistant)
         GuidingAssistant::UpdateUIControls();
@@ -2723,6 +2741,8 @@ bool MyFrame::SetTimeLapse(int timeLapse)
     }
 
     pConfig->Profile.SetInt("/frame/timeLapse", m_timeLapse);
+
+    UpdateCameraSettings();
 
     return bError;
 }

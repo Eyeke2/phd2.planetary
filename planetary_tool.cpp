@@ -57,6 +57,12 @@ struct PlanetToolWin : public wxDialog
     wxSlider *m_minHessianSlider;
     wxSlider *m_maxFeaturesSlider;
 
+    // Controls for camera settings, duplicating the ones from camera setup dialog and exposure time dropdown.
+    // Used for streamlining the planetary tracking user experience.
+    wxSpinCtrlDouble* m_ExposureCtrl;
+    wxSpinCtrlDouble* m_DelayCtrl;
+    wxSpinCtrlDouble* m_GainCtrl;
+
     wxButton   *m_CloseButton;
     wxCheckBox *m_EclipseModeCheckBox;
     wxCheckBox *m_RoiCheckBox;
@@ -67,6 +73,7 @@ struct PlanetToolWin : public wxDialog
     PlanetToolWin();
     ~PlanetToolWin();
 
+    void OnAppStateNotify(wxCommandEvent& event);
     void OnClose(wxCloseEvent& event);
     void OnCloseButton(wxCommandEvent& event);
     void OnKeyDown(wxKeyEvent& event);
@@ -89,6 +96,10 @@ struct PlanetToolWin : public wxDialog
     void OnShowElementsClick(wxCommandEvent& event);
     void OnNoiseFilterClick(wxCommandEvent& event);
 
+    void OnExposureChanged(wxSpinDoubleEvent& event);
+    void OnDelayChanged(wxSpinDoubleEvent& event);
+    void OnGainChanged(wxSpinDoubleEvent& event);
+
     void UpdateStatus();
 };
 
@@ -99,6 +110,24 @@ static void SetEnabledState(PlanetToolWin* win, bool active)
 {
     win->SetTitle(wxGetTranslation(active ? TITLE_ACTIVE : TITLE));
     win->UpdateStatus();
+}
+
+// Utility function to add the <label, input> pairs to a flexgrid
+static void AddTableEntryPair(wxWindow* parent, wxFlexGridSizer* pTable, const wxString& label, wxWindow* pControl, const wxString& tooltip)
+{
+    wxStaticText* pLabel = new wxStaticText(parent, wxID_ANY, label + _(": "), wxPoint(-1, -1), wxSize(-1, -1));
+    pLabel->SetToolTip(tooltip);
+    pTable->Add(pLabel, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    pTable->Add(pControl, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+}
+
+static wxSpinCtrlDouble* NewSpinner(wxWindow* parent, double val, double minval, double maxval, double inc)
+{
+    wxSize sz = pFrame->GetTextExtent(wxString::Format("%d", (int) (maxval + 0.5)));
+    wxSpinCtrlDouble* pNewCtrl = pFrame->MakeSpinCtrlDouble(parent, wxID_ANY, wxEmptyString, wxDefaultPosition,
+        sz, wxSP_ARROW_KEYS, minval, maxval, val, inc);
+    pNewCtrl->SetDigits(0);
+    return pNewCtrl;
 }
 
 PlanetToolWin::PlanetToolWin()
@@ -229,6 +258,21 @@ PlanetToolWin::PlanetToolWin()
     m_featuresTab->SetSizer(surfaceSizer);
     m_featuresTab->Layout();
 
+    // Camera settings group
+    wxStaticBoxSizer* pCamGroup = new wxStaticBoxSizer(wxVERTICAL, this, _("Camera settings"));
+    wxFlexGridSizer* pCamTable = new wxFlexGridSizer(2, 4, 10, 10);
+    m_ExposureCtrl = NewSpinner(this, 1000, 1, 9999, 1);
+    m_GainCtrl = NewSpinner(this, 0, 0, 100, 1);
+    m_DelayCtrl = NewSpinner(this, 100, 0, 60000, 100);
+    m_ExposureCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnExposureChanged, this);
+    m_GainCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnGainChanged, this);
+    m_DelayCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnDelayChanged, this);
+    AddTableEntryPair(this, pCamTable, _("Exposure (ms)"), m_ExposureCtrl, _("Camera exposure in milliseconds)"));
+    AddTableEntryPair(this, pCamTable, _("Gain"), m_GainCtrl, _("Camera gain (0-100)"));
+    AddTableEntryPair(this, pCamTable, _("Time Lapse (ms)"), m_DelayCtrl,
+        _("How long should PHD wait between guide frames? Useful when using very short exposures but wanting to send guide commands less frequently"));
+    pCamGroup->Add(pCamTable);
+
     // Close button
     m_MouseHoverFlag = false;
     wxBoxSizer *ButtonSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -247,6 +291,8 @@ PlanetToolWin::PlanetToolWin()
     topSizer->Add(m_tabs, 1, wxEXPAND | wxALL, 10);
     topSizer->AddSpacer(10);
     topSizer->Add(m_ShowElements, 0, wxLEFT | wxALIGN_LEFT, 20);
+    topSizer->AddSpacer(10);
+    topSizer->Add(pCamGroup);
     topSizer->AddSpacer(10);
     topSizer->Add(ButtonSizer, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 10);
 
@@ -309,6 +355,26 @@ PlanetToolWin::PlanetToolWin()
 
     m_tabs->SetSelection(pPlanet->GetSurfaceTrackingState() ? 1 : 0);
 
+    // Get the current camera settings
+    int exposureMsec;
+    bool auto_exp;
+    pFrame->GetExposureInfo(&exposureMsec, &auto_exp);
+    if (exposureMsec)
+    {
+        exposureMsec = wxMin(exposureMsec, 9999);
+        m_ExposureCtrl->SetValue(exposureMsec);
+        pFrame->SetExposureDuration(exposureMsec, true);
+    }
+    else
+    {
+        exposureMsec = pConfig->Profile.GetInt("/ExposureDurationMs", 1000);
+    }
+    m_DelayCtrl->SetValue(pFrame->GetTimeLapse());
+    if (pCamera)
+        m_GainCtrl->SetValue(pCamera->GetCameraGain());
+
+    Connect(APPSTATE_NOTIFY_EVENT, wxCommandEventHandler(PlanetToolWin::OnAppStateNotify));
+
     int xpos = pConfig->Profile.GetInt("/PlanetTool/pos.x", -1);
     int ypos = pConfig->Profile.GetInt("/PlanetTool/pos.y", -1);
     if (wxGetKeyState(WXK_ALT))
@@ -324,11 +390,15 @@ PlanetToolWin::PlanetToolWin()
 
 PlanetToolWin::~PlanetToolWin(void)
 {
-    pFrame->pPlanetTool = 0;
+    pFrame->eventLock.Lock();
+    pFrame->pPlanetTool = nullptr;
+    pFrame->eventLock.Unlock();
 }
 
 void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
 {
+    GuiderMultiStar* pMultiGuider = dynamic_cast<GuiderMultiStar*>(pFrame->pGuider);
+
     if (m_enableCheckBox->IsChecked())
     {
         pFrame->SaveStarFindMode();
@@ -336,12 +406,39 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
         pPlanet->SetPlanetaryEnableState(true);
         pFrame->m_PlanetaryMenuItem->Check(true);
         SetEnabledState(this, true);
-    } else
+
+        if (pMultiGuider)
+        {
+            // Save the current state of the mass change threshold and disable it
+            bool old = pMultiGuider->GetMassChangeThresholdEnabled();
+            pMultiGuider->SetMassChangeThresholdEnabled(false);
+            pConfig->Profile.SetBoolean("/guider/onestar/MassChangeThresholdEnabled", old);
+
+            // Disable subframes
+            if (pCamera)
+            {
+                pConfig->Profile.SetBoolean("/camera/UseSubframes", pCamera->UseSubframes);
+                pCamera->UseSubframes = false;
+            }
+        }
+    }
+    else
     {
         pFrame->RestoreStarFindMode();
         pPlanet->SetPlanetaryEnableState(false);
         pFrame->m_PlanetaryMenuItem->Check(false);
         SetEnabledState(this, false);
+
+        if (pMultiGuider)
+        {
+            // Restore the previous state of the mass change threshold
+            bool old = pConfig->Profile.GetBoolean("/guider/onestar/MassChangeThresholdEnabled", 0);
+            pMultiGuider->SetMassChangeThresholdEnabled(old);
+
+            // Restore subframes
+            if (pCamera)
+                pCamera->UseSubframes = pConfig->Profile.GetBoolean("/camera/UseSubframes", 0);
+        }
     }
 
     // Update elements display state
@@ -420,6 +517,31 @@ void PlanetToolWin::OnNoiseFilterClick(wxCommandEvent& event)
 {
     bool enabled = m_NoiseFilter->IsChecked();
     pPlanet->SetNoiseFilterState(enabled);
+}
+
+void PlanetToolWin::OnExposureChanged(wxSpinDoubleEvent& event)
+{
+    int expMsec = m_ExposureCtrl->GetValue();
+    expMsec = wxMin(expMsec, 9999);
+    expMsec = wxMax(expMsec, 1);
+    pFrame->SetExposureDuration(expMsec, true);
+}
+
+void PlanetToolWin::OnDelayChanged(wxSpinDoubleEvent& event)
+{
+    int delayMsec = m_DelayCtrl->GetValue();
+    delayMsec = wxMin(delayMsec, 60000);
+    delayMsec = wxMax(delayMsec, 0);
+    pFrame->SetTimeLapse(delayMsec);
+}
+
+void PlanetToolWin::OnGainChanged(wxSpinDoubleEvent& event)
+{
+    int gain = m_GainCtrl->GetValue();
+    gain = wxMin(gain, 100.0);
+    gain = wxMax(gain, 0.0);
+    if (pCamera)
+        pCamera->SetCameraGain(gain);
 }
 
 void PlanetToolWin::UpdateStatus()
@@ -574,19 +696,32 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         this->Close();
 }
 
+// Sync local camera settings with the main frame changes
+void PlanetToolWin::OnAppStateNotify(wxCommandEvent& event)
+{
+    int exposureMsec;
+    bool auto_exp;
+    pFrame->GetExposureInfo(&exposureMsec, &auto_exp);
+    if (exposureMsec)
+    {
+        exposureMsec = wxMin(exposureMsec, 9999);
+        if (exposureMsec != m_ExposureCtrl->GetValue())
+            m_ExposureCtrl->SetValue(exposureMsec);
+    }
+
+    int const delayMsec = pFrame->GetTimeLapse();
+    if (delayMsec != m_DelayCtrl->GetValue())
+        m_DelayCtrl->SetValue(delayMsec);
+
+    if (pCamera)
+    {
+        int const gain = pCamera->GetCameraGain();
+        if (gain != m_GainCtrl->GetValue())
+            m_GainCtrl->SetValue(gain);
+    }
+}
+
 wxWindow *PlanetTool::CreatePlanetToolWindow()
 {
     return new PlanetToolWin();
-}
-
-void PlanetTool::UpdatePlanetToolControls(bool update)
-{
-    // notify planet tool to update its controls
-    if (pFrame && pFrame->pPlanetTool)
-    {
-        wxCommandEvent event(APPSTATE_NOTIFY_EVENT, pFrame->GetId());
-        event.SetEventObject(pFrame);
-        event.SetInt(update ? 1 : 0);
-        wxPostEvent(pFrame->pPlanetTool, event);
-    }
 }

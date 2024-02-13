@@ -227,11 +227,13 @@ protected:
     int GetTimeLapse() const;
     int GetExposureDelay();
 
+    wxMutex eventLock;
     bool SetFocalLength(int focalLength);
 
     friend class MyFrameConfigDialogPane;
     friend class MyFrameConfigDialogCtrlSet;
     friend class WorkerThread;
+    friend class PlanetToolWin;
 
 private:
 
@@ -406,7 +408,7 @@ public:
     const std::vector<int>& GetExposureDurations() const;
     bool SetCustomExposureDuration(int ms);
     void GetExposureInfo(int *currExpMs, bool *autoExp) const;
-    bool SetExposureDuration(int val);
+    bool SetExposureDuration(int val, bool updateCustom = false);
     const AutoExposureCfg& GetAutoExposureCfg() const { return m_autoExp; }
     bool SetAutoExposureCfg(int minExp, int maxExp, double targetSNR);
     void ResetAutoExposure();
@@ -487,6 +489,7 @@ public:
 
     void NotifyUpdateButtonsStatus(); // can be called from any thread
     void UpdateButtonsStatus();
+    void UpdateCameraSettings();
 
     static double GetPixelScale(double pixelSizeMicrons, int focalLengthMm, int binning);
     double GetCameraPixelScale() const;

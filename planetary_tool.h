@@ -53,5 +53,4 @@ class PlanetTool
     PlanetTool();
 public:
     static wxWindow *CreatePlanetToolWindow();
-    static void UpdatePlanetToolControls(bool updateRates);
 };
