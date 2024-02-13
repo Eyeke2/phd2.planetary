@@ -47,10 +47,6 @@ struct PlanetToolWin : public wxDialog
     wxCheckBox* m_enableCheckBox;
     wxCheckBox* m_featureTrackingCheckBox;
 
-#if USE_PLANETARY_STATUS
-    wxStaticText *m_status;
-#endif
-
     wxSpinCtrlDouble *m_minDist;
     wxSpinCtrlDouble *m_param1;
     wxSpinCtrlDouble *m_param2;
@@ -233,15 +229,6 @@ PlanetToolWin::PlanetToolWin()
     m_featuresTab->SetSizer(surfaceSizer);
     m_featuresTab->Layout();
 
-#if USE_PLANETARY_STATUS
-    // Status area
-    wxPanel* bezelPanel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(420, 90), wxBORDER_STATIC);
-    wxBoxSizer* panelSizer = new wxBoxSizer(wxVERTICAL);
-    m_status = new wxStaticText(bezelPanel, wxID_ANY, _(""));
-    panelSizer->Add(m_status, 0, wxLEFT | wxALIGN_LEFT, 10);
-    bezelPanel->SetSizer(panelSizer);
-#endif
-
     // Close button
     m_MouseHoverFlag = false;
     wxBoxSizer *ButtonSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -261,9 +248,6 @@ PlanetToolWin::PlanetToolWin()
     topSizer->AddSpacer(10);
     topSizer->Add(m_ShowElements, 0, wxLEFT | wxALIGN_LEFT, 20);
     topSizer->AddSpacer(10);
-#if USE_PLANETARY_STATUS
-    topSizer->Add(bezelPanel, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 10);
-#endif
     topSizer->Add(ButtonSizer, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 10);
 
     SetSizer(topSizer);
@@ -442,14 +426,6 @@ void PlanetToolWin::UpdateStatus()
 {
     bool enabled = pPlanet->GetPlanetaryEnableState();
     bool surfaceTracking = pPlanet->GetSurfaceTrackingState();
-#if USE_PLANETARY_STATUS
-    if (enabled)
-        m_status->SetLabel(_("In planetary tracking mode.\n"
-            "Center the planet in the guiding camera,\n"
-            "select it, run calibration and start guiding.\n"));
-    else
-        m_status->SetLabel(_("In star tracking mode.\n"));
-#endif
 
     // Update planetary tracking controls
     bool EclipseMode = pPlanet->GetEclipseMode();
