@@ -39,6 +39,8 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/nonfree/nonfree.hpp"
 
+#include "ser_file.h"
+
 // Marks undefined feature size
 #define TRACKING_FEATURE_SIZE_UNDEF 999.99
 
@@ -118,6 +120,10 @@ private:
 
     // Matched inliers for visualizing detected surface features
     std::vector<cv::Point2f> m_inlierPoints;
+
+    // SER file currently used for logging image frames
+    bool m_videoLogEnabled;
+    SERFile *m_SER;
 
 public:
     // Planet detection modes
@@ -228,6 +234,10 @@ public:
     bool GetPlanetaryElementsButtonState() { return m_Planetary_ShowElementsButtonState; }
     void SetNoiseFilterState(bool enable) { m_Planetary_NoiseFilterState = enable; }
     bool GetNoiseFilterState() { return m_Planetary_NoiseFilterState; }
+
+    void SetVideoLogging(bool enable) { m_videoLogEnabled = enable; }
+    bool GetVideoLogging() { return m_videoLogEnabled; }
+
     PHD_Point GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale);
 
 public:
@@ -257,6 +267,7 @@ private:
     } WeightedCircle;
 
 private:
+    void    SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool roiActive, int bppFactor);
     double  ComputeSobelSharpness(const cv::Mat& img);
     double  CalcSharpness(cv::Mat& FullFrame, int bppFactor, cv::Point2f& clickedPoint, bool detectionResult);
     void    CalcLineParams(CircleDescriptor p1, CircleDescriptor p2);

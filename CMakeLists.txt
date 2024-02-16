@@ -429,6 +429,8 @@ set(phd2_SRC
   ${phd_src_dir}/pierflip_tool.h
   ${phd_src_dir}/planetary_tool.cpp
   ${phd_src_dir}/planetary_tool.h
+  ${phd_src_dir}/ser_file.cpp
+  ${phd_src_dir}/ser_file.h
   ${phd_src_dir}/polardrift_tool.h
   ${phd_src_dir}/polardrift_toolwin.h
   ${phd_src_dir}/polardrift_toolwin.cpp

@@ -109,6 +109,9 @@ GuiderPlanet::GuiderPlanet()
     m_PlanetAngle = 0;
     m_trackedFeatureSize = TRACKING_FEATURE_SIZE_UNDEF;
 
+    m_videoLogEnabled = false;
+    m_SER = nullptr;
+
     // Build gaussian weighting function table used for circle feature detection
     float sigma = 1.0;
     memset(gaussianWeight, 0, sizeof(gaussianWeight));
@@ -147,6 +150,7 @@ GuiderPlanet::GuiderPlanet()
 
 GuiderPlanet::~GuiderPlanet()
 {
+    delete m_SER;
 }
 
 // Planet/feature size depending on planetary detection mode
@@ -1504,6 +1508,38 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
     return false;
 }
 
+// Save full 8-bit frame to SER file
+void GuiderPlanet::SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool roiActive, int bppFactor)
+{
+    Mat FullFrame8;
+    if (roiActive)
+        FullFrame.convertTo(FullFrame8, CV_8U, 1.0 / bppFactor);
+    else
+        FullFrame8 = img8;
+
+    // Create new SER file on first frame or when frame dimensions change - close previous file first
+    if (!m_SER || !m_SER->IsOpen() ||
+        (m_SER->FrameWidth() != FullFrame.cols) || (m_SER->FrameHeight() != FullFrame.rows))
+    {
+        // Close previous SER file and open a new one
+        if (m_SER && m_SER->IsOpen())
+        {
+            m_SER->Close();
+            delete m_SER;
+        }
+
+        // Create new SER file
+        wxDateTime dt = wxDateTime::Now();
+        const wxString m_serFileName = Debug.GetLogDir() + _("\\") + dt.Format(_T("PHD2_VideoLog_%Y-%m-%d_%H%M%S.ser"));
+        m_SER = new SERFile(m_serFileName, FullFrame8.cols, FullFrame8.rows, _("PHD2"), pCamera->Name, pMount->Name());
+        m_SER->Open();
+    }
+    if (m_SER && m_SER->IsOpen())
+    {
+        m_SER->WriteFrame(FullFrame8);
+    }
+}
+
 // Find planet center of round/crescent shape in the given image
 bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
 {
@@ -1565,6 +1601,12 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
     // Save latest frame dimensions
     m_frameWidth = pImage->Size.GetWidth();
     m_frameHeight = pImage->Size.GetHeight();
+
+    // Save frames to SER file only when guiding is active
+    if (GetVideoLogging() && pFrame->pGuider->IsGuiding())
+    {
+        SaveVideoFrame(FullFrame, img8, roiActive, bppFactor);
+    }
 
     // ROI current state and limit
     bool activeRoiLimits = m_roiClicked && GetRoiEnableState();
