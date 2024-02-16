@@ -46,6 +46,7 @@ struct PlanetToolWin : public wxDialog
     wxPanel* m_featuresTab;
     wxCheckBox* m_enableCheckBox;
     wxCheckBox* m_featureTrackingCheckBox;
+    wxCheckBox* m_SaveVideoLogCheckBox;
 
     wxSpinCtrlDouble *m_minDist;
     wxSpinCtrlDouble *m_param1;
@@ -99,6 +100,7 @@ struct PlanetToolWin : public wxDialog
     void OnExposureChanged(wxSpinDoubleEvent& event);
     void OnDelayChanged(wxSpinDoubleEvent& event);
     void OnGainChanged(wxSpinDoubleEvent& event);
+    void OnSaveVideoLog(wxCommandEvent& event);
 
     void UpdateStatus();
 };
@@ -264,13 +266,18 @@ PlanetToolWin::PlanetToolWin()
     m_ExposureCtrl = NewSpinner(this, 1000, 1, 9999, 1);
     m_GainCtrl = NewSpinner(this, 0, 0, 100, 1);
     m_DelayCtrl = NewSpinner(this, 100, 0, 60000, 100);
+    m_SaveVideoLogCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable video log"));
+    m_SaveVideoLogCheckBox->SetToolTip(_("Enable recording camera frames to video log file during guiding (using SER format)"));
     m_ExposureCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnExposureChanged, this);
+    m_SaveVideoLogCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnSaveVideoLog, this);
     m_GainCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnGainChanged, this);
     m_DelayCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnDelayChanged, this);
     AddTableEntryPair(this, pCamTable, _("Exposure (ms)"), m_ExposureCtrl, _("Camera exposure in milliseconds)"));
     AddTableEntryPair(this, pCamTable, _("Gain"), m_GainCtrl, _("Camera gain (0-100)"));
     AddTableEntryPair(this, pCamTable, _("Time Lapse (ms)"), m_DelayCtrl,
         _("How long should PHD wait between guide frames? Useful when using very short exposures but wanting to send guide commands less frequently"));
+    pCamTable->AddSpacer(10);
+    pCamTable->Add(m_SaveVideoLogCheckBox, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     pCamGroup->Add(pCamTable);
 
     // Close button
@@ -550,6 +557,13 @@ void PlanetToolWin::OnGainChanged(wxSpinDoubleEvent& event)
     gain = wxMax(gain, 0.0);
     if (pCamera)
         pCamera->SetCameraGain(gain);
+}
+
+void PlanetToolWin::OnSaveVideoLog(wxCommandEvent& event)
+{
+    bool enabled = m_SaveVideoLogCheckBox->IsChecked();
+    pPlanet->SetVideoLogging(enabled);
+    Debug.Write(wxString::Format("Planetary tracking: %s video log\n", enabled ? "enabled" : "disabled"));
 }
 
 void PlanetToolWin::UpdateStatus()
