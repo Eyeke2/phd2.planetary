@@ -1582,6 +1582,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
             Mat filteredImage;
             bilateralFilter(imgFiltered, filteredImage, d, sigmaColor, sigmaSpace);
             imgFiltered = filteredImage;
+            Debug.Write(_("Find planet: noise filter applied\n"));
         }
 
         // Find planet center depending on the selected detection mode

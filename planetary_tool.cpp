@@ -421,6 +421,8 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
                 pCamera->UseSubframes = false;
             }
         }
+
+        Debug.Write(_("Planetary tracking: enabled\n"));
     }
     else
     {
@@ -439,6 +441,8 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
             if (pCamera)
                 pCamera->UseSubframes = pConfig->Profile.GetBoolean("/camera/UseSubframes", 0);
         }
+
+        Debug.Write(_("Planetary tracking: disabled\n"));
     }
 
     // Update elements display state
@@ -454,6 +458,7 @@ void PlanetToolWin::OnSurfaceTrackingClick(wxCommandEvent& event)
     pPlanet->SetSurfaceTrackingState(featureTracking);
     m_tabs->SetSelection(featureTracking ? 1 : 0);
     UpdateStatus();
+    Debug.Write(wxString::Format("Planetary tracking: %s surface features mode\n", featureTracking ? "enabled" : "disabled"));
 }
 
 void PlanetToolWin::OnSpinCtrl_minDist(wxSpinDoubleEvent& event)
@@ -493,12 +498,14 @@ void PlanetToolWin::OnEclipseModeClick(wxCommandEvent& event)
     bool EclipseMode = m_EclipseModeCheckBox->IsChecked();
     pPlanet->SetEclipseMode(EclipseMode);
     UpdateStatus();
+    Debug.Write(wxString::Format("Planetary tracking: %s eclipse mode\n", EclipseMode ? "enabled" : "disabled"));
 }
 
 void PlanetToolWin::OnRoiModeClick(wxCommandEvent& event)
 {
     bool enabled = m_RoiCheckBox->IsChecked();
     pPlanet->SetRoiEnableState(enabled);
+    Debug.Write(wxString::Format("Planetary tracking: %s ROI\n", enabled ? "enabled" : "disabled"));
 }
 
 void PlanetToolWin::OnShowElementsClick(wxCommandEvent& event)
@@ -517,6 +524,7 @@ void PlanetToolWin::OnNoiseFilterClick(wxCommandEvent& event)
 {
     bool enabled = m_NoiseFilter->IsChecked();
     pPlanet->SetNoiseFilterState(enabled);
+    Debug.Write(wxString::Format("Planetary tracking: %s noise filter\n", enabled ? "enabled" : "disabled"));
 }
 
 void PlanetToolWin::OnExposureChanged(wxSpinDoubleEvent& event)
