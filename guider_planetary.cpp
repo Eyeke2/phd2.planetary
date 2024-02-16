@@ -145,6 +145,10 @@ GuiderPlanet::GuiderPlanet()
     assert(nonfreeInit);
 }
 
+GuiderPlanet::~GuiderPlanet()
+{
+}
+
 // Planet/feature size depending on planetary detection mode
 double GuiderPlanet::GetHFD()
 {
