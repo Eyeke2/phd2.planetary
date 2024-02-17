@@ -6,6 +6,14 @@ installation path, so you can keep two versions at the same time.
 
 Change log
 
+v2.6.13-planet.dev6.rc3
+* Planetary Tool Feature Addition: implemented the capability to save captured camera frames to a video log file
+in the SER file format (alongside PHD2's debug and guide log files). This functionality is particularly beneficial
+for analyzing and troubleshooting remote observing sessions.
+* Planetary Tool Improvements: enhanced the SNR calculation in planetary tracking mode for greater accuracy and robustness.
+* Status Line Enhancements: adjusted the SNR field width and repositioned the DEC arrows on the status line
+to ensure clear and unobstructed visibility.
+
 v2.6.13-planet.dev6.rc2
 * Added camera exposure, time lapse, and gain controls to the planetary tracking dialog box to enhance
 and streamline the end-user experience. When enabling planetary tracking, Star Mass Detection and
