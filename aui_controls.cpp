@@ -376,7 +376,7 @@ SBStarIndicators::SBStarIndicators(SBPanel *panel, std::vector<int>& fldWidths)
 
     int txtHeight;
     panel->GetTextExtent(_("SNR"), &snrLabelWidth, &txtHeight);
-    panel->GetTextExtent("999.9", &snrValueWidth, &txtHeight);
+    panel->GetTextExtent("99999.9", &snrValueWidth, &txtHeight);
     panel->GetTextExtent(_("SAT"), &satWidth, &txtHeight);
     fldWidths.push_back(satWidth + 1 * panel->emWidth);
     fldWidths.push_back(snrLabelWidth + snrValueWidth + 2 * panel->emWidth);
@@ -425,7 +425,7 @@ void SBStarIndicators::UpdateState(double MassPct, double SNR, bool Saturated)
                 txtSNRValue->SetForegroundColour(*wxRED);
         }
         m_parentPanel->ShowControl(txtSNRLabel, true);
-        txtSNRValue->SetLabelText(wxString::Format("%3.1f", SNR));
+        txtSNRValue->SetLabelText(wxString::Format("%5.1f", SNR));
         m_parentPanel->ShowControl(txtStarInfo, true);
         m_parentPanel->ShowControl(txtSNRValue, true);
         if (pFrame->pGuider->GetMultiStarMode())
@@ -512,7 +512,7 @@ void SBGuideIndicators::PositionControls()
     wxPoint decPosition = m_parentPanel->FieldLoc(fieldNum);
     txtDecAmounts->SetPosition(decPosition);
 
-    decPosition.x += txtWidth + 8;
+    decPosition.x += txtWidth + 18;
     decPosition.y -= 1;
     bitmapDec->SetPosition(decPosition);
 }
