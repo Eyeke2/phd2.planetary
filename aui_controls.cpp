@@ -431,20 +431,16 @@ void SBStarIndicators::UpdateState(double MassPct, double SNR, bool Saturated)
         txtSNRValue->SetLabelText(wxString::Format("%5.1f", SNR));
         m_parentPanel->ShowControl(txtStarInfo, true);
         m_parentPanel->ShowControl(txtSNRValue, true);
-        if (pFrame->pGuider->GetMultiStarMode())
-        {
-            wxString txtCount = pFrame->pGuider->GetStarCount();
-            txtStarInfo->SetLabelText(txtCount);
-        }
+
+        // Update the star info text
+        wxString starText;
+        if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+            starText = _T("PLANET");
+        else if (pFrame->pGuider->GetMultiStarMode())
+            starText = pFrame->pGuider->GetStarCount();
         else
-        {
-            if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
-                txtStarInfo->SetLabelText(_T("PLANET"));
-            else if (Saturated)
-                txtStarInfo->SetLabelText(_T(" SAT "));
-            else
-                txtStarInfo->SetLabelText(_T("STAR*"));
-        }
+            starText = Saturated ? _T(" SAT ") : _T("STAR*");
+        txtStarInfo->SetLabelText(starText);
     }
     else
     {

@@ -417,17 +417,22 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
         if (pMultiGuider)
         {
             // Save the current state of the mass change threshold and disable it
-            bool old = pMultiGuider->GetMassChangeThresholdEnabled();
+            bool prev = pMultiGuider->GetMassChangeThresholdEnabled();
             pMultiGuider->SetMassChangeThresholdEnabled(false);
-            pConfig->Profile.SetBoolean("/guider/onestar/MassChangeThresholdEnabled", old);
-
-            // Disable subframes
-            if (pCamera)
-            {
-                pConfig->Profile.SetBoolean("/camera/UseSubframes", pCamera->UseSubframes);
-                pCamera->UseSubframes = false;
-            }
+            pConfig->Profile.SetBoolean("/guider/onestar/MassChangeThresholdEnabled", prev);
         }
+
+        // Disable subframes
+        if (pCamera)
+        {
+            pConfig->Profile.SetBoolean("/camera/UseSubframes", pCamera->UseSubframes);
+            pCamera->UseSubframes = false;
+        }
+
+        // Disable multi-star mode
+        bool prev = pFrame->pGuider->GetMultiStarMode();
+        pFrame->pGuider->SetMultiStarMode(false);
+        pConfig->Profile.SetBoolean("/guider/multistar/enabled", prev);
 
         Debug.Write(_("Planetary tracking: enabled\n"));
     }
@@ -438,16 +443,22 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
         pFrame->m_PlanetaryMenuItem->Check(false);
         SetEnabledState(this, false);
 
+        // Restore the previous state of the mass change threshold
         if (pMultiGuider)
         {
-            // Restore the previous state of the mass change threshold
-            bool old = pConfig->Profile.GetBoolean("/guider/onestar/MassChangeThresholdEnabled", 0);
-            pMultiGuider->SetMassChangeThresholdEnabled(old);
-
-            // Restore subframes
-            if (pCamera)
-                pCamera->UseSubframes = pConfig->Profile.GetBoolean("/camera/UseSubframes", 0);
+            bool prev = pConfig->Profile.GetBoolean("/guider/onestar/MassChangeThresholdEnabled", false);
+            pMultiGuider->SetMassChangeThresholdEnabled(prev);
         }
+
+        // Restore subframes
+        if (pCamera)
+        {
+            pCamera->UseSubframes = pConfig->Profile.GetBoolean("/camera/UseSubframes", false);
+        }
+
+        // Restore multi-star mode
+        bool prev = pConfig->Profile.GetBoolean("/guider/multistar/enabled", false);
+        pFrame->pGuider->SetMultiStarMode(prev);
 
         Debug.Write(_("Planetary tracking: disabled\n"));
     }
