@@ -1365,6 +1365,28 @@ static void fill_noise(usImage& img, const wxRect& subframe, int exptime, int ga
     }
 }
 
+static double calculateBorderAverage(const cv::Mat& image)
+{
+    double sum = 0;
+    int borderPixelCount = 0;
+
+    // Top and bottom rows
+    for (int col = 0; col < image.cols; ++col) {
+        sum += image.at<ushort>(0, col) + image.at<ushort>(image.rows - 1, col);
+    }
+    borderPixelCount += 2 * image.cols; // Added all top and bottom row pixels
+
+    // Left and right columns, excluding the already counted corners
+    for (int row = 1; row < image.rows - 1; ++row) {
+        sum += image.at<ushort>(row, 0) + image.at<ushort>(row, image.cols - 1);
+    }
+    borderPixelCount += 2 * (image.rows - 2); // Added all left and right column pixels, excluding corners
+
+    // Calculate average
+    double average = sum / borderPixelCount;
+    return average;
+}
+
 bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxRect& subframeArg)
 {
     wxRect subframe(subframeArg);
@@ -1484,13 +1506,14 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
             pFrame->pGuider->m_Planet.SaveCameraSimulationMove(rx, ry);
 
             // Translate the image by shifting it few pixels in random direction
+            double borderValue = calculateBorderAverage(*disk_image);
             cv::Mat translatedImage;
             cv::Mat transMat = cv::Mat::zeros(2, 3, CV_64FC1);
             transMat.at<double>(0, 0) = 1;
             transMat.at<double>(0, 2) = rx;
             transMat.at<double>(1, 1) = 1;
             transMat.at<double>(1, 2) = ry;
-            cv::warpAffine(*disk_image, translatedImage, transMat, disk_image->size(), cv::INTER_CUBIC);
+            cv::warpAffine(*disk_image, translatedImage, transMat, disk_image->size(), cv::INTER_CUBIC, cv::BORDER_CONSTANT, cv::Scalar(borderValue));
 
             // Switch to the updated image
             disk_image = &translatedImage;

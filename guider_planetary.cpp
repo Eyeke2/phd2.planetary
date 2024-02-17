@@ -1483,7 +1483,7 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
     pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), bestScore);
 
     // Create wxImage from the OpenCV Mat to be presented as
-    // a visual aid for tunning of the edge threshold parameters.
+    // a visual aid for tuning of the edge threshold parameters.
     if (GetPlanetaryElementsVisual())
     {
         m_syncLock.Lock();

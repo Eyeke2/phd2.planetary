@@ -235,7 +235,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
             peak_x = base_x;
             peak_y = base_y;
             inner_radius = searchRegion;       // inner radius
-            outer_radius = searchRegion + 5;   // outer radius
+            outer_radius = searchRegion + 15;  // outer radius
 
             for (int y = start_y + 1; y <= end_y - 1; y++)
             {
@@ -272,6 +272,8 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
         double mean_bg = 0., prev_mean_bg;
         double sigma2_bg = 0.;
         double sigma_bg = 0.;
+        double bg_max = wxMin(pImg->MinADU * 10, pImg->MaxADU / 2);
+        bg_max = wxMax(bg_max, pImg->MinADU * 2);
 
         for (int iter = 0; iter < 9; iter++)
         {
@@ -297,6 +299,10 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
                     double const val = (double) row[x];
 
                     if (iter > 0 && (val < mean_bg - 2.0 * sigma_bg || val > mean_bg + 2.0 * sigma_bg))
+                        continue;
+
+                    // exclude points high above the background
+                    if ((mode == FIND_PLANET) && (val > bg_max))
                         continue;
 
                     sum += val;
