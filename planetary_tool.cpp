@@ -154,15 +154,10 @@ PlanetToolWin::PlanetToolWin()
     m_featureTrackingCheckBox->SetToolTip(_("Enable surface feature detection/tracking mode for imaging at high magnification"));
 
     wxStaticText* minDist_Label = new wxStaticText(m_planetTab, wxID_ANY, _("min dist:"));
-    minDist_Label->Wrap(-1);
     wxStaticText* param1_Label = new wxStaticText(m_planetTab, wxID_ANY, _("p1:"));
-    param1_Label->Wrap(-1);
     wxStaticText* param2_Label = new wxStaticText(m_planetTab, wxID_ANY, _("p2:"));
-    param2_Label->Wrap(-1);
     wxStaticText* minRadius_Label = new wxStaticText(m_planetTab, wxID_ANY, _("min radius:"));
-    minRadius_Label->Wrap(-1);
     wxStaticText* maxRadius_Label = new wxStaticText(m_planetTab, wxID_ANY, _("max radius:"));
-    maxRadius_Label->Wrap(-1);
 
     m_minDist = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 1024, PT_MIN_DIST_DEFAULT);
     minDist_Label->SetToolTip(_("minimum distance between the centers of the detected circles"));
