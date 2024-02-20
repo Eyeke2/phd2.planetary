@@ -6,6 +6,24 @@ installation path, so you can keep two versions at the same time.
 
 Change log
 
+v2.6.13-planet.dev6.rc4
+* Planetary Tool Feature Addition: introduced a new 'blind' mode designed to keep the object centered in the frame
+when it's obscured by external obstructions, such as clouds or during the totality phase of a solar eclipse.
+This mode utilizes previously computed RA/DEC drifts from the Guiding Assistant, combined with mount movement measurements,
+to calculate the estimated position of the object. The update includes a new framework and UI enhancements for fine-tuning
+the blind guiding model. Additionally, the planetary tool dialog box has been revised to feature an Advanced panel,
+relocating several previously existing UI elements to streamline basic operation and control.
+* Added the existing IDENTITY guiding algorithm for use with the new 'blind guiding' mode in planetary tracking. This algorithm
+will appear as 'None' in the dropdown list of available methods, serving to directly feed guiding pulses without any filtering.
+No user action is required for its selection. The software automatically chooses and utilizes this algorithm when the
+'blind guiding' mode is activated, ensuring seamless operation in planetary tracking mode.
+* Introduced a filtering mechanism for the star search region within the planetary tool to smooth out spikes in the detection
+algorithm, enhancing star metric calculations.
+* Refactored the planetary tool to enhance parameter load/save functionality by relocating it from the dialog box to the
+GuiderPlanet object. This change enables parameter saving without requiring the planetary tracking dialog box to be closed.
+Additionally, several default parameter values have been updated.
+* Gear simulator: increase max RA/DEC drift values to 60 acrsec/min.
+
 v2.6.13-planet.dev6.rc3
 * Planetary Tool Feature Addition: implemented the capability to save captured camera frames to a video log file
 in the SER file format (alongside PHD2's debug and guide log files). This functionality is particularly beneficial
