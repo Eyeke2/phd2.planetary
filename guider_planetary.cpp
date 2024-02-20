@@ -53,6 +53,7 @@ static float gaussianWeight[2000];
 GuiderPlanet::GuiderPlanet()
 {
     m_Planetary_enabled = false;
+    m_showAdvancedSettings = false;
     m_Planetary_SurfaceTracking = false;
     m_detected = false;
     m_radius = 0;
@@ -67,6 +68,11 @@ GuiderPlanet::GuiderPlanet()
     m_unknownHFD = true;
     m_focusSharpness = 0;
     m_Planetary_NoiseFilterState = false;
+
+    m_measuredDriftValid = false;
+    m_blindGuiding = false;
+    m_forceBlindGuiding = false;
+    m_blindGuidingActive = false;
 
     m_guidingFixationPointValid = false;
     m_surfaceFixationPoint = Point2f(0, 0);
@@ -142,6 +148,27 @@ GuiderPlanet::GuiderPlanet()
     m_lockTargetWidthBad = (ihdrChunk2[0] << 24) | (ihdrChunk2[1] << 16) | (ihdrChunk2[2] << 8) | ihdrChunk2[3];
     m_lockTargetHeightBad = (ihdrChunk2[4] << 24) | (ihdrChunk2[5] << 16) | (ihdrChunk2[6] << 8) | ihdrChunk2[7];
 
+    // Load previously measured drift but only if the time difference is not too large
+    wxString dateTimeStr = pConfig->Profile.GetString("/PlanetTool/Drift/timestamp", wxEmptyString);
+    wxDateTime measuredDateTime;
+    if (measuredDateTime.ParseDateTime(dateTimeStr))
+    {
+        wxDateTime now = wxDateTime::Now();
+        wxTimeSpan timeDiff = now.Subtract(measuredDateTime);
+        if (timeDiff.GetSeconds() < 3600 * 3)
+        {
+            m_raDriftPixelsPerSecond = pConfig->Profile.GetDouble("/PlanetTool/Drift/ra_drift_pixels_per_second", 0);
+            m_decDriftPixelsPerSecond = pConfig->Profile.GetDouble("/PlanetTool/Drift/dec_drift_pixels_per_second", 0);
+            m_cosdec = pConfig->Profile.GetDouble("/PlanetTool/Drift/cosdec", 0);
+            m_measuredDriftValid = true;
+        }
+    }
+    if (!m_measuredDriftValid)
+    {
+        // Delete drift measurements from profile
+        pConfig->Profile.DeleteGroup("/PlanetTool/Drift");
+    }
+
     // Get initial values of the planetary tracking state and parameters from configuration
     SetSurfaceTrackingState(pConfig->Profile.GetBoolean("/PlanetTool/surface_tracking", false));
     SetEclipseMode(pConfig->Profile.GetBoolean("/PlanetTool/eclipse_mode", true));
@@ -163,6 +190,12 @@ GuiderPlanet::GuiderPlanet()
     m_Planetary_minHessian = wxMax(PT_MIN_HESSIAN_MIN, wxMin(PT_MIN_HESSIAN_MAX, m_Planetary_minHessian));
     m_Planetary_maxFeatures = pConfig->Profile.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES);
     m_Planetary_maxFeatures = wxMax(PT_MIN_SURFACE_FEATURES, wxMin(PT_MAX_SURFACE_FEATURES, m_Planetary_maxFeatures));
+
+    // Get blind guiding parameters from configuration
+    m_blindDriftRaGain = pConfig->Profile.GetDouble("/PlanetTool/blind_ra_drift_gain", PT_BLIND_DRIFT_GAIN_DEFAULT);
+    m_blindDriftRaGain = wxMax(PT_BLIND_DRIFT_GAIN_MIN, wxMin(PT_BLIND_DRIFT_GAIN_MAX, m_blindDriftRaGain));
+    m_blindDriftDecGain = pConfig->Profile.GetDouble("/PlanetTool/blind_dec_drift_gain", PT_BLIND_DRIFT_GAIN_DEFAULT);
+    m_blindDriftDecGain = wxMax(PT_BLIND_DRIFT_GAIN_MIN, wxMin(PT_BLIND_DRIFT_GAIN_MAX, m_blindDriftDecGain));
 
     // Initialize non-free OpenCV components
     // Note: this may cause a small and limited memory leak.
@@ -187,6 +220,8 @@ GuiderPlanet::~GuiderPlanet()
     pConfig->Profile.SetInt("/PlanetTool/high_threshold", GetPlanetaryParam_highThreshold());
     pConfig->Profile.SetInt("/PlanetTool/min_hessian", GetPlanetaryParam_minHessian());
     pConfig->Profile.SetInt("/PlanetTool/max_features", GetPlanetaryParam_maxFeatures());
+    pConfig->Profile.SetDouble("/PlanetTool/blind_ra_drift_gain", GetDriftRaGain());
+    pConfig->Profile.SetDouble("/PlanetTool/blind_dec_drift_gain", GetDriftDecGain());
     pConfig->Flush();
 }
 
@@ -315,6 +350,26 @@ void GuiderPlanet::SetPlanetaryElementsVisual(bool state)
     m_inlierPoints.clear();
     m_Planetary_ShowElementsVisual = state;
     m_syncLock.Unlock();
+}
+
+// Save drift measurement for blind guiding
+void GuiderPlanet::SaveMeasuredDrift(double raDriftPixelsPerSecond, double decDriftPixelsPerSecond, double cosdec)
+{
+    m_raDriftPixelsPerSecond = raDriftPixelsPerSecond;
+    m_decDriftPixelsPerSecond = decDriftPixelsPerSecond;
+    m_cosdec = cosdec;
+
+    // Save measured drift alongside current timestamp for later use if session gets restarted.
+    // We won't allow using saved drift measurements if the time difference is too large.
+    pConfig->Profile.SetDouble("/PlanetTool/Drift/ra_drift_pixels_per_second", m_raDriftPixelsPerSecond);
+    pConfig->Profile.SetDouble("/PlanetTool/Drift/dec_drift_pixels_per_second", m_decDriftPixelsPerSecond);
+    pConfig->Profile.SetDouble("/PlanetTool/Drift/cosdec", m_cosdec);
+
+    // Save current time in ISO 8601 format "YYYY-MM-DD HH:MM:SS"
+    wxString dateTimeStr = wxDateTime::Now().Format("%Y-%m-%d %H:%M:%S");
+    pConfig->Profile.SetString("/PlanetTool/Drift/timestamp", dateTimeStr);
+
+    m_measuredDriftValid = true;
 }
 
 // Notification callback about start of capturing
@@ -1577,6 +1632,133 @@ void GuiderPlanet::SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool roiAct
     }
 }
 
+// Estimate the position of the object based on RA/DEC drift rates.
+// Use direct guiding algorithm to drive blind guiding without additional filtering.
+void GuiderPlanet::BlindGuidingLogic()
+{
+    bool bErr;
+
+    try
+    {
+        // In blind guiding mode, we can only estimate object position based on ra and dec drift rates
+        // and changes in mount coordinates.
+        // After meridian flip must redo guiding assistant to find new drift rates.
+        if (m_measuredDriftValid && (m_blindGuiding || m_forceBlindGuiding) &&
+            pPointingSource && !pPointingSource->Slewing() && pFrame->pGuider->IsGuiding())
+        {
+            // In the test mode we require valid object detection to start blind guiding.
+            if (!m_blindGuidingActive && m_detected)
+            {
+                // Save current guiding algorithms and set identity guiding algorithms in both axes.
+                AdvancedDialog* pAdvancedDlg = pFrame->pAdvancedDialog;
+                if (pAdvancedDlg && pAdvancedDlg->GetCurrentMountPane())
+                {
+                    PauseType prev = pFrame->pGuider->SetPaused(PAUSE_GUIDING);
+                    GUIDE_ALGORITHM prevXGuideAlgo = pMount->GetXGuideAlgorithmSelection();
+                    GUIDE_ALGORITHM prevYGuideAlgo = pMount->GetYGuideAlgorithmSelection();
+                    Mount::MountConfigDialogPane* mountPane = pAdvancedDlg->GetCurrentMountPane();
+                    mountPane->SelectXAlgorithmChoice(GUIDE_ALGORITHM_IDENTITY);
+                    mountPane->SelectYAlgorithmChoice(GUIDE_ALGORITHM_IDENTITY);
+                    if (pFrame->pGraphLog)
+                        pFrame->pGraphLog->UpdateControls();
+                    pConfig->Profile.SetInt("/scope/YGuideAlgorithm", prevXGuideAlgo);
+                    pConfig->Profile.SetInt("/scope/XGuideAlgorithm", prevYGuideAlgo);
+                    pFrame->pGuider->SetPaused(prev);
+                }
+
+                // Get current mount coordinates
+                bErr = pPointingSource->GetCoordinates(&m_blindMountRA, &m_blindMountDEC, &m_blindMountST);
+                if (bErr)
+                {
+                    throw (wxString("Failed to get mount coordinates"));
+                }
+
+                // Save initial mount coordinates and detection results for blind guiding
+                m_blindGuidingWatchdog.Start();
+                m_blindSearchRegion = m_searchRegion;
+                m_blindRadius = m_radius;
+                m_blindGuidingPosX = m_center_x;
+                m_blindGuidingPosY = m_center_y;
+                m_blindGuidingActive = true;
+                Debug.Write(_T("Blind guiding: starting now!\n"));
+            }
+
+            // Start blind guiding when initial position is set
+            if (m_blindGuidingActive)
+            {
+                // Get current mount coordinates and convert RA (hms) and DEC (dms) to arcseconds
+                double currRA, currDEC, currST;
+                bErr = pPointingSource->GetCoordinates(&currRA, &currDEC, &currST);
+                if (bErr)
+                {
+                    throw (wxString("Failed to get mount coordinates"));
+                }
+
+                // Convert mount coordinates displacement to pixels in RA/DEC
+                double pxscale = pFrame->GetCameraPixelScale();
+                double diffRA = norm(currRA - m_blindMountRA, -12.0, 12.0) * 15.0 * 3600.0 / pxscale;
+                double diffDEC = norm(currDEC - m_blindMountDEC, -90.0, 90.0) * 3600.0 / pxscale;
+
+                // Try to predict current position based on the drift rates and mount coordinates.
+                // raOffset and decOffset are estimation of the changes to the mount position
+                // relative to the initial position at the start of blind guiding, based on the
+                // drift rates without taking into account guiding corrections, PE and noise.
+                // diffRA and diffDEC are changes in mount position since the start of blind guiding,
+                // added (after scaling by a gain factor) to the estimated position to close the feedback loop.
+                double timeInterval = m_blindGuidingWatchdog.Time() / 1000.0;
+                double raOffset = m_raDriftPixelsPerSecond * timeInterval;
+                double decOffset = m_decDriftPixelsPerSecond * timeInterval;
+                raOffset = raOffset * m_blindDriftRaGain + diffRA;
+                decOffset = decOffset * m_blindDriftDecGain + diffDEC;
+
+                // Convert from mount coordinates to camera coordinates
+                GuiderOffset ofs;
+                ofs.mountOfs.SetXY(raOffset, decOffset);
+                bErr = pMount->TransformMountCoordinatesToCameraCoordinates(ofs.mountOfs, ofs.cameraOfs, false);
+                if (bErr)
+                {
+                    throw (wxString("Failed to transform mount coordinates"));
+                }
+
+                double blindGuidingPosX = m_blindGuidingPosX + ofs.cameraOfs.X;
+                double blindGuidingPosY = m_blindGuidingPosY + ofs.cameraOfs.Y;
+                m_center_x = blindGuidingPosX;
+                m_center_y = blindGuidingPosY;
+                m_searchRegion = m_blindSearchRegion;
+                m_radius = m_blindRadius;
+                m_detected = true;
+                pFrame->StatusMsg("Blind guiding");
+                Debug.Write(wxString::Format("Blind guiding: current estimate at %.1f/%.1f RA/DEC %.2f/%.2f\n", m_center_x, m_center_y, currRA, currDEC));
+            }
+        }
+        // Revert to normal guiding mode
+        else if (m_blindGuidingActive && !(m_blindGuiding || m_forceBlindGuiding))
+        {
+            // Restore guiding algorithms and reset blind guiding state
+            m_blindGuidingActive = false;
+            AdvancedDialog* pAdvancedDlg = pFrame->pAdvancedDialog;
+            if (pAdvancedDlg && pAdvancedDlg->GetCurrentMountPane())
+            {
+                PauseType prev = pFrame->pGuider->SetPaused(PAUSE_GUIDING);
+                Mount::MountConfigDialogPane* mountPane = pAdvancedDlg->GetCurrentMountPane();
+                mountPane->SelectXAlgorithmChoice((GUIDE_ALGORITHM)pConfig->Profile.GetInt("/scope/XGuideAlgorithm", GUIDE_ALGORITHM_HYSTERESIS));
+                mountPane->SelectYAlgorithmChoice((GUIDE_ALGORITHM)pConfig->Profile.GetInt("/scope/YGuideAlgorithm", GUIDE_ALGORITHM_RESIST_SWITCH));
+                if (pFrame->pGraphLog)
+                    pFrame->pGraphLog->UpdateControls();
+                pFrame->pGuider->SetPaused(prev);
+            }
+            if (pFrame->pGuider->IsGuiding())
+                pFrame->StatusMsg("Guiding");
+            Debug.Write(_("Blind guiding: guiding algorithms restored\n"));
+        }
+    }
+    catch (const wxString& msg)
+    {
+        pFrame->Alert(_("Blind guiding: ") + msg, wxICON_ERROR);
+        Debug.Write(wxString::Format("Blind guiding: %s\n", msg));
+    }
+}
+
 // Find planet center of round/crescent shape in the given image
 bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
 {
@@ -1708,6 +1890,9 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
         POSSIBLY_UNUSED(msg);
         Debug.Write(wxString::Format("Find planet: exception %s\n", msg));
     }
+
+    // Blind guiding logic
+    BlindGuidingLogic();
 
     // For simulated camera, calculate detection error by comparing with the simulated position
     if (pCamera && pCamera->Name == "Simulator")

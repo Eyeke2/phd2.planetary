@@ -129,6 +129,14 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
     double newX = (mode == FIND_PLANET) ? base_x : (int) base_x;
     double newY = (mode == FIND_PLANET) ? base_y : (int) base_y;
 
+    // In planetary tracking mode when blind guiding is active, we cannot calculate SNR/HFD/mass metrics
+    // since the object can be hidden.
+    if ((mode == FIND_PLANET) && pFrame->pGuider->m_Planet.GetBlindGuidingState())
+    {
+        // Will use last known values for SNR/HFD/mass and peak
+        goto done;
+    }
+
     try
     {
         if (loggingControl == FIND_LOGGING_VERBOSE)

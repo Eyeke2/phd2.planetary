@@ -41,12 +41,17 @@ struct PlanetToolWin : public wxDialog
 {
     GuiderPlanet* pPlanet;
 
+    wxTimer m_advancedTimer;
+
     wxNotebook* m_tabs;
     wxPanel* m_planetTab;
     wxPanel* m_featuresTab;
+    wxBoxSizer* m_advancedSizer;
+    wxBoxSizer* m_mainSizer;
     wxCheckBox* m_enableCheckBox;
     wxCheckBox* m_featureTrackingCheckBox;
     wxCheckBox* m_SaveVideoLogCheckBox;
+    wxCheckBox* m_testBlindGuiding;
 
     wxSpinCtrlDouble *m_minDist;
     wxSpinCtrlDouble *m_param1;
@@ -63,8 +68,11 @@ struct PlanetToolWin : public wxDialog
     wxSpinCtrlDouble* m_ExposureCtrl;
     wxSpinCtrlDouble* m_DelayCtrl;
     wxSpinCtrlDouble* m_GainCtrl;
+    wxSpinCtrlDouble* m_driftRaGainCtrl;
+    wxSpinCtrlDouble* m_driftDecGainCtrl;
 
     wxButton   *m_CloseButton;
+    wxButton   *m_AdvancedButton;
     wxCheckBox *m_EclipseModeCheckBox;
     wxCheckBox *m_RoiCheckBox;
     wxCheckBox *m_ShowElements;
@@ -75,8 +83,10 @@ struct PlanetToolWin : public wxDialog
     ~PlanetToolWin();
 
     void OnAppStateNotify(wxCommandEvent& event);
+    void OnAdvancedTimer(wxTimerEvent& event);
     void OnClose(wxCloseEvent& event);
     void OnCloseButton(wxCommandEvent& event);
+    void OnAdvancedButton(wxCommandEvent& event);
     void OnKeyDown(wxKeyEvent& event);
     void OnKeyUp(wxKeyEvent& event);
     void OnMouseEnterCloseBtn(wxMouseEvent& event);
@@ -97,11 +107,16 @@ struct PlanetToolWin : public wxDialog
     void OnShowElementsClick(wxCommandEvent& event);
     void OnNoiseFilterClick(wxCommandEvent& event);
 
+    void OnTestBlindGuiding(wxCommandEvent& event);
+    void OnDriftRaGainChanged(wxSpinDoubleEvent& event);
+    void OnDriftDecGainChanged(wxSpinDoubleEvent& event);
+
     void OnExposureChanged(wxSpinDoubleEvent& event);
     void OnDelayChanged(wxSpinDoubleEvent& event);
     void OnGainChanged(wxSpinDoubleEvent& event);
     void OnSaveVideoLog(wxCommandEvent& event);
 
+    void UpdateBlindGuidingControls();
     void UpdateStatus();
 };
 
@@ -123,9 +138,9 @@ static void AddTableEntryPair(wxWindow* parent, wxFlexGridSizer* pTable, const w
     pTable->Add(pControl, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 }
 
-static wxSpinCtrlDouble* NewSpinner(wxWindow* parent, double val, double minval, double maxval, double inc)
+static wxSpinCtrlDouble* NewSpinner(wxWindow* parent, wxString formatstr, double val, double minval, double maxval, double inc)
 {
-    wxSize sz = pFrame->GetTextExtent(wxString::Format("%d", (int) (maxval + 0.5)));
+    wxSize sz = pFrame->GetTextExtent(wxString::Format(formatstr, maxval));
     wxSpinCtrlDouble* pNewCtrl = pFrame->MakeSpinCtrlDouble(parent, wxID_ANY, wxEmptyString, wxDefaultPosition,
         sz, wxSP_ARROW_KEYS, minval, maxval, val, inc);
     pNewCtrl->SetDigits(0);
@@ -134,7 +149,8 @@ static wxSpinCtrlDouble* NewSpinner(wxWindow* parent, double val, double minval,
 
 PlanetToolWin::PlanetToolWin()
     : wxDialog(pFrame, wxID_ANY, wxGetTranslation(TITLE), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX),
-      pPlanet(&pFrame->pGuider->m_Planet)
+    m_advancedTimer(this), pPlanet(&pFrame->pGuider->m_Planet), m_MouseHoverFlag(false)
+
 {
     SetSizeHints(wxDefaultSize, wxDefaultSize);
 
@@ -207,15 +223,6 @@ PlanetToolWin::PlanetToolWin()
     m_RoiCheckBox = new wxCheckBox(m_planetTab, wxID_ANY, _("Enable ROI"));
     m_RoiCheckBox->SetToolTip(_("Enable ROI for improved processing speed and reduced CPU usage."));
 
-    // Show/hide detected elements
-    m_ShowElements = new wxCheckBox(this, wxID_ANY, _("Display internal edges/features"));
-    m_ShowElements->SetToolTip(_("Toggle the visibility of internally detected edges/features and tune detection parameters "
-        "to maintain a manageable number of these features while keeping them as close as possible to the light disk boundary."));
-
-    // Experimental noise filter
-    m_NoiseFilter = new wxCheckBox(this, wxID_ANY, _("Enable noise suppression filter (experimental)"));
-    m_NoiseFilter->SetToolTip(_("Enable noise filtering only for extremely noisy images. Use this option cautiously, as it's recommended only when absolutely necessary."));
-
     // Add all planetary tab elements
     wxStaticBoxSizer *planetSizer = new wxStaticBoxSizer(new wxStaticBox(m_planetTab, wxID_ANY, _("")), wxVERTICAL);
     planetSizer->AddSpacer(20);
@@ -251,20 +258,16 @@ PlanetToolWin::PlanetToolWin()
     surfaceSizer->Add(maxFeaturesLabel, 0, wxLEFT | wxTOP, 10);
     surfaceSizer->Add(m_maxFeaturesSlider, 0, wxALL, 10);
     surfaceSizer->AddSpacer(10);
-
     m_featuresTab->SetSizer(surfaceSizer);
     m_featuresTab->Layout();
 
     // Camera settings group
     wxStaticBoxSizer* pCamGroup = new wxStaticBoxSizer(wxVERTICAL, this, _("Camera settings"));
     wxFlexGridSizer* pCamTable = new wxFlexGridSizer(2, 4, 10, 10);
-    m_ExposureCtrl = NewSpinner(this, 1000, 1, 9999, 1);
-    m_GainCtrl = NewSpinner(this, 0, 0, 100, 1);
-    m_DelayCtrl = NewSpinner(this, 100, 0, 60000, 100);
-    m_SaveVideoLogCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable video log"));
-    m_SaveVideoLogCheckBox->SetToolTip(_("Enable recording camera frames to video log file during guiding (using SER format)"));
+    m_ExposureCtrl = NewSpinner(this, _T("%4.0f"), 1000, 1, 9999, 1);
+    m_GainCtrl = NewSpinner(this, _T("%3.0f"), 0, 0, 100, 1);
+    m_DelayCtrl = NewSpinner(this, _T("%5.0f"), 100, 0, 60000, 100);
     m_ExposureCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnExposureChanged, this);
-    m_SaveVideoLogCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnSaveVideoLog, this);
     m_GainCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnGainChanged, this);
     m_DelayCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnDelayChanged, this);
     AddTableEntryPair(this, pCamTable, _("Exposure (ms)"), m_ExposureCtrl, _("Camera exposure in milliseconds)"));
@@ -272,37 +275,97 @@ PlanetToolWin::PlanetToolWin()
     AddTableEntryPair(this, pCamTable, _("Time Lapse (ms)"), m_DelayCtrl,
         _("How long should PHD wait between guide frames? Useful when using very short exposures but wanting to send guide commands less frequently"));
     pCamTable->AddSpacer(10);
-    pCamTable->Add(m_SaveVideoLogCheckBox, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     pCamGroup->Add(pCamTable);
 
-    // Close button
-    m_MouseHoverFlag = false;
+    // Show/hide detected elements
+    m_ShowElements = new wxCheckBox(this, wxID_ANY, _("Display internal edges/features"));
+    m_ShowElements->SetToolTip(_("Toggle the visibility of internally detected edges/features and tune detection parameters "
+        "to maintain a manageable number of these features while keeping them as close as possible to the light disk boundary."));
+    m_ShowElements->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnShowElementsClick, this);
+
+    // Experimental noise filter
+    m_NoiseFilter = new wxCheckBox(this, wxID_ANY, _("Noise suppression filter"));
+    m_NoiseFilter->SetToolTip(_("Enable noise filtering only for extremely noisy images. Use this option cautiously, as it's recommended only when absolutely necessary."));
+    m_NoiseFilter->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnNoiseFilterClick, this);
+
+    // Video log control
+    m_SaveVideoLogCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable video log"));
+    m_SaveVideoLogCheckBox->SetToolTip(_("Enable recording camera frames to video log file during guiding (using SER format)"));
+    m_SaveVideoLogCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnSaveVideoLog, this);
+
+    // Blind guiding controls
+    wxStaticBoxSizer* pBlindGuidingGroup = new wxStaticBoxSizer(wxVERTICAL, this, _("Blind Guiding"));
+    wxFlexGridSizer* pBlindGuidingTable = new wxFlexGridSizer(3, 2, 5, 5);
+    wxString blindToolTip = _("Use estimated planet position based only on RA/DEC drift rates for testing. "
+           "This feature becomes enabled after successful mount calibration and after Guiding Assistant finds RA/DEC drift rates. "
+           "Please note that DEC backlash estimation is not required for blind guiding while Guiding Assistant must be repeated after the MERIDIAN FLIP! "
+           "Adjust blind guiding parameters for best performance, stability and accuracy.");
+    m_testBlindGuiding = new wxCheckBox(this, wxID_ANY, _("Force blind guiding"));
+    m_testBlindGuiding->SetToolTip(blindToolTip);
+    m_testBlindGuiding->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnTestBlindGuiding, this);
+    m_driftRaGainCtrl = NewSpinner(this, _T("%.02f"), PT_BLIND_DRIFT_GAIN_DEFAULT, PT_BLIND_DRIFT_GAIN_MIN, PT_BLIND_DRIFT_GAIN_MAX, 0.01);
+    m_driftRaGainCtrl->SetDigits(2);
+    m_driftDecGainCtrl = NewSpinner(this, _T("%.02f"), PT_BLIND_DRIFT_GAIN_DEFAULT, PT_BLIND_DRIFT_GAIN_MIN, PT_BLIND_DRIFT_GAIN_MAX, 0.01);
+    m_driftDecGainCtrl->SetDigits(2);
+    m_driftRaGainCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnDriftRaGainChanged, this);
+    m_driftDecGainCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnDriftDecGainChanged, this);
+    AddTableEntryPair(this, pBlindGuidingTable, _("RA drift Gain"), m_driftRaGainCtrl,
+        _("Adjusting this value correctly can help reduce the effective drift rate. Make adjustments gradually (default = 1.00)"));
+    AddTableEntryPair(this, pBlindGuidingTable, _("DEC drift Gain"), m_driftDecGainCtrl,
+        _("Adjusting this value correctly can help reduce the effective drift rate. Make adjustments gradually (default = 1.00)"));
+    pBlindGuidingGroup->Add(m_testBlindGuiding, 0, wxLEFT | wxALIGN_LEFT, 5);
+    pBlindGuidingGroup->AddSpacer(10);
+    pBlindGuidingGroup->Add(pBlindGuidingTable);
+
+    // Buttons
     wxBoxSizer *ButtonSizer = new wxBoxSizer(wxHORIZONTAL);
     m_CloseButton = new wxButton(this, wxID_ANY, _("Close"));
     ButtonSizer->Add(m_CloseButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_AdvancedButton = new wxButton(this, wxID_ANY, pPlanet->GetShowAdvancedSettings() ? _("Advanced <<<") : _("Advanced >>>"));
+    ButtonSizer->Add(m_AdvancedButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+
+    // Left size panel
+    wxBoxSizer *leftSizer = new wxStaticBoxSizer(wxVERTICAL, this, _T("Basic settings"));
+    leftSizer->AddSpacer(10);
+    leftSizer->Add(m_enableCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
+    leftSizer->AddSpacer(10);
+    leftSizer->Add(m_featureTrackingCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
+    leftSizer->AddSpacer(10);
+    leftSizer->Add(m_tabs, 1, wxEXPAND | wxALL, 10);
+    leftSizer->AddSpacer(10);
+    leftSizer->Add(pCamGroup);
+
+    // Right size panel
+    wxBoxSizer* rightSizer = new wxStaticBoxSizer(wxVERTICAL, this, _T("Advanced settings"));
+    rightSizer->AddSpacer(10);
+    rightSizer->Add(m_ShowElements, 0, wxLEFT | wxALIGN_LEFT, 20);
+    rightSizer->AddSpacer(10);
+    rightSizer->Add(m_NoiseFilter, 0, wxLEFT | wxALIGN_LEFT, 20);
+    rightSizer->AddSpacer(10);
+    rightSizer->Add(m_SaveVideoLogCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
+    rightSizer->AddSpacer(10);
+    rightSizer->Add(pBlindGuidingGroup, 0, wxALL, 5);
+
+    // Hide/show the advanced settings
+    m_advancedSizer = rightSizer;
+    m_advancedSizer->Show(pPlanet->GetShowAdvancedSettings());
+
+    // Both left and right panels
+    wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
+    mainSizer->Add(leftSizer, 1, wxEXPAND | wxALL, 5);
+    mainSizer->Add(rightSizer, 0, wxEXPAND | wxALL, 5);
+    m_mainSizer = mainSizer;
 
     // All top level controls
-    wxBoxSizer *topSizer = new wxBoxSizer(wxVERTICAL);
-    topSizer->AddSpacer(10);
-    topSizer->Add(m_enableCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
-    topSizer->AddSpacer(10);
-    topSizer->Add(m_featureTrackingCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
-    topSizer->AddSpacer(10);
-    topSizer->Add(m_NoiseFilter, 0, wxLEFT | wxALIGN_LEFT, 20);
-    topSizer->AddSpacer(10);
-    topSizer->Add(m_tabs, 1, wxEXPAND | wxALL, 10);
-    topSizer->AddSpacer(10);
-    topSizer->Add(m_ShowElements, 0, wxLEFT | wxALIGN_LEFT, 20);
-    topSizer->AddSpacer(10);
-    topSizer->Add(pCamGroup);
-    topSizer->AddSpacer(10);
-    topSizer->Add(ButtonSizer, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 10);
-
+    wxBoxSizer* topSizer = new wxBoxSizer(wxVERTICAL);
+    topSizer->Add(mainSizer, 1, wxEXPAND | wxALL, 5);
+    topSizer->Add(ButtonSizer, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
     SetSizer(topSizer);
     Layout();
     topSizer->Fit(this);
 
     // Connect Events
+    Bind(wxEVT_TIMER, &PlanetToolWin::OnAdvancedTimer, this, wxID_ANY);
     m_enableCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnEnableToggled, this);
     m_featureTrackingCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnSurfaceTrackingClick, this);
     m_CloseButton->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &PlanetToolWin::OnCloseButton, this);
@@ -310,10 +373,9 @@ PlanetToolWin::PlanetToolWin()
     m_CloseButton->Bind(wxEVT_KEY_UP, &PlanetToolWin::OnKeyUp, this);
     m_CloseButton->Bind(wxEVT_ENTER_WINDOW, &PlanetToolWin::OnMouseEnterCloseBtn, this);
     m_CloseButton->Bind(wxEVT_LEAVE_WINDOW, &PlanetToolWin::OnMouseLeaveCloseBtn, this);
+    m_AdvancedButton->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &PlanetToolWin::OnAdvancedButton, this);
     m_EclipseModeCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnEclipseModeClick, this);
     m_RoiCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnRoiModeClick, this);
-    m_ShowElements->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnShowElementsClick, this);
-    m_NoiseFilter->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnNoiseFilterClick, this);
     Bind(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(PlanetToolWin::OnClose), this);
 
     m_minDist->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_minDist), NULL, this);
@@ -339,6 +401,9 @@ PlanetToolWin::PlanetToolWin()
     m_NoiseFilter->SetValue(pPlanet->GetNoiseFilterState());
     m_enableCheckBox->SetValue(pPlanet->GetPlanetaryEnableState());
     m_SaveVideoLogCheckBox->SetValue(pPlanet->GetVideoLogging());
+    m_testBlindGuiding->SetValue(pPlanet->GetTestBlindGuidingState());
+    m_driftRaGainCtrl->SetValue(pPlanet->GetDriftRaGain());
+    m_driftDecGainCtrl->SetValue(pPlanet->GetDriftDecGain());
 
     SetEnabledState(this, pPlanet->GetPlanetaryEnableState());
 
@@ -378,6 +443,9 @@ PlanetToolWin::PlanetToolWin()
 
 PlanetToolWin::~PlanetToolWin(void)
 {
+    // Stop the timer
+    m_advancedTimer.Stop();
+
     pFrame->eventLock.Lock();
     pFrame->pPlanetTool = nullptr;
     pFrame->eventLock.Unlock();
@@ -526,6 +594,29 @@ void PlanetToolWin::OnNoiseFilterClick(wxCommandEvent& event)
     Debug.Write(wxString::Format("Planetary tracking: %s noise filter\n", enabled ? "enabled" : "disabled"));
 }
 
+void PlanetToolWin::OnTestBlindGuiding(wxCommandEvent& event)
+{
+    bool enabled = m_testBlindGuiding->IsChecked();
+    pPlanet->SetTestBlindGuidingState(enabled);
+    Debug.Write(wxString::Format("Planetary tracking: %s forced blind guiding\n", enabled ? "enabled" : "disabled"));
+}
+
+void PlanetToolWin::OnDriftRaGainChanged(wxSpinDoubleEvent& event)
+{
+    double gain = m_driftRaGainCtrl->GetValue();
+    gain = wxMin(gain, 2.0);
+    gain = wxMax(gain, 0.0);
+    pPlanet->SetDriftRaGain(gain);
+}
+
+void PlanetToolWin::OnDriftDecGainChanged(wxSpinDoubleEvent& event)
+{
+    double gain = m_driftDecGainCtrl->GetValue();
+    gain = wxMin(gain, 2.0);
+    gain = wxMax(gain, 0.0);
+    pPlanet->SetDriftDecGain(gain);
+}
+
 void PlanetToolWin::OnExposureChanged(wxSpinDoubleEvent& event)
 {
     int expMsec = m_ExposureCtrl->GetValue();
@@ -558,6 +649,17 @@ void PlanetToolWin::OnSaveVideoLog(wxCommandEvent& event)
     Debug.Write(wxString::Format("Planetary tracking: %s video log\n", enabled ? "enabled" : "disabled"));
 }
 
+// Update the state of the blind guiding controls depending on the 
+// current state of the mount and estimation of the drift rates.
+void PlanetToolWin::UpdateBlindGuidingControls()
+{
+    bool enabled = pPlanet->GetPlanetaryEnableState();
+    bool blindGuidingAllowed = pPlanet->IsDriftValid() && pMount && pMount->IsCalibrated();
+    m_testBlindGuiding->Enable(enabled && blindGuidingAllowed);
+    m_driftRaGainCtrl->Enable(enabled && blindGuidingAllowed);
+    m_driftDecGainCtrl->Enable(enabled && blindGuidingAllowed);
+}
+
 void PlanetToolWin::UpdateStatus()
 {
     bool enabled = pPlanet->GetPlanetaryEnableState();
@@ -576,6 +678,7 @@ void PlanetToolWin::UpdateStatus()
     m_ShowElements->Enable(enabled);
     m_NoiseFilter->Enable(enabled);
     m_SaveVideoLogCheckBox->Enable(enabled);
+    UpdateBlindGuidingControls();
 
     // Update slider states
     m_ThresholdSlider->Enable(enabled && !surfaceTracking && EclipseMode);
@@ -681,7 +784,10 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         pPlanet->SetPlanetaryParam_highThreshold(PT_HIGH_THRESHOLD_DEFAULT);
         pPlanet->SetPlanetaryParam_minHessian(PT_MIN_HESSIAN_DEFAULT);
         pPlanet->SetPlanetaryParam_maxFeatures(PT_MAX_SURFACE_FEATURES);
+        pPlanet->SetDriftRaGain(PT_BLIND_DRIFT_GAIN_DEFAULT);
+        pPlanet->SetDriftDecGain(PT_BLIND_DRIFT_GAIN_DEFAULT);
         pPlanet->SetNoiseFilterState(false);
+        pPlanet->SetTestBlindGuidingState(false);
 
         m_minDist->SetValue(pPlanet->GetPlanetaryParam_minDist());
         m_param1->SetValue(pPlanet->GetPlanetaryParam_param1());
@@ -692,9 +798,28 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         m_minHessianSlider->SetValue(pPlanet->GetPlanetaryParam_minHessian());
         m_maxFeaturesSlider->SetValue(pPlanet->GetPlanetaryParam_maxFeatures());
         m_NoiseFilter->SetValue(pPlanet->GetNoiseFilterState());
+        m_driftRaGainCtrl->SetValue(pPlanet->GetDriftRaGain());
+        m_driftDecGainCtrl->SetValue(pPlanet->GetDriftDecGain());
+        m_testBlindGuiding->SetValue(pPlanet->GetTestBlindGuidingState());
     }
     else
         this->Close();
+}
+
+void PlanetToolWin::OnAdvancedButton(wxCommandEvent& event)
+{
+    bool show = !m_mainSizer->IsShown(m_advancedSizer);
+    m_AdvancedButton->SetLabel(show ? _("Advanced <<<") : _("Advanced >>>"));
+    m_advancedSizer->Show(show);
+    Layout();
+    GetSizer()->Fit(this);
+    pPlanet->SetShowAdvancedSettings(show);
+
+    // Call timer every few seconds when advanced settings are shown
+    if (show)
+        m_advancedTimer.Start(3000);
+    else
+        m_advancedTimer.Stop();
 }
 
 // Sync local camera settings with the main frame changes
@@ -720,6 +845,12 @@ void PlanetToolWin::OnAppStateNotify(wxCommandEvent& event)
         if (gain != m_GainCtrl->GetValue())
             m_GainCtrl->SetValue(gain);
     }
+}
+
+// Called once in a while to update the UI controls
+void PlanetToolWin::OnAdvancedTimer(wxTimerEvent& event)
+{
+    UpdateBlindGuidingControls();
 }
 
 wxWindow *PlanetTool::CreatePlanetToolWindow()

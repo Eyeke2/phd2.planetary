@@ -54,6 +54,7 @@ private:
     bool m_EclipseMode;
     bool m_RoiEnabled;
     int  m_starProfileSize;
+    bool m_showAdvancedSettings;
     double m_Planetary_minDist;
     double m_Planetary_param1;
     double m_Planetary_param2;
@@ -71,6 +72,27 @@ private:
     double m_focusSharpness;
     float  m_PlanetEccentricity;
     float  m_PlanetAngle;
+
+    // Blind guiding state
+    bool   m_blindGuiding;
+    bool   m_forceBlindGuiding;
+    bool   m_blindGuidingActive;
+    double m_blindGuidingPosX;
+    double m_blindGuidingPosY;
+    int    m_blindSearchRegion;
+    int    m_blindRadius;
+    double m_blindMountRA;
+    double m_blindMountDEC;
+    double m_blindMountST;
+    double m_blindDriftRaGain;
+    double m_blindDriftDecGain;
+    wxStopWatch m_blindGuidingWatchdog;
+
+    // Measured drift rates as reported by Guiding Assistant
+    bool   m_measuredDriftValid;
+    double m_raDriftPixelsPerSecond;
+    double m_decDriftPixelsPerSecond;
+    double m_cosdec;
 
     int  m_Planetary_maxFeatures;
     bool m_surfaceDetectionParamsChanging;
@@ -159,6 +181,8 @@ public:
     bool FindPlanet(const usImage* pImage, bool autoSelect = false);
     void CameraConnectNotify() { m_roiClicked = false; };
 
+    PHD_Point GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale);
+
     PlanetDetectMode GetPlanetDetectMode() const
     {
         if (m_Planetary_SurfaceTracking)
@@ -225,6 +249,7 @@ public:
         }
     }
 
+    void SaveMeasuredDrift(double raDriftPixelsPerSecond, double decDriftPixelsPerSecond, double cosdec);
     int  GetPlanetaryParam_minHessian() { return m_Planetary_minHessian; }
     int  GetPlanetaryParam_maxFeatures() { return m_Planetary_maxFeatures; }
     int  GetPlanetaryParam_minHessianPhysical();
@@ -233,13 +258,25 @@ public:
     bool GetPlanetaryElementsVisual() { return m_Planetary_ShowElementsVisual; }
     void SetPlanetaryElementsButtonState(bool state) { m_Planetary_ShowElementsButtonState = state; }
     bool GetPlanetaryElementsButtonState() { return m_Planetary_ShowElementsButtonState; }
+
+    void SetShowAdvancedSettings(bool enable) { m_showAdvancedSettings = enable; }
+    bool GetShowAdvancedSettings() { return m_showAdvancedSettings; }
+
     void SetNoiseFilterState(bool enable) { m_Planetary_NoiseFilterState = enable; }
     bool GetNoiseFilterState() { return m_Planetary_NoiseFilterState; }
 
     void SetVideoLogging(bool enable) { m_videoLogEnabled = enable; }
     bool GetVideoLogging() { return m_videoLogEnabled; }
 
-    PHD_Point GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale);
+    bool GetBlindGuidingState() { return m_blindGuidingActive; }
+    void SetTestBlindGuidingState(bool enable) { m_forceBlindGuiding = enable; }
+    bool GetTestBlindGuidingState() { return m_forceBlindGuiding; }
+
+    bool   IsDriftValid() { return m_measuredDriftValid; }
+    void   SetDriftRaGain(double gain) { m_blindDriftRaGain = gain; }
+    double GetDriftRaGain() { return m_blindDriftRaGain; }
+    void   SetDriftDecGain(double gain) { m_blindDriftDecGain = gain; }
+    double GetDriftDecGain() { return m_blindDriftDecGain; }
 
 public:
     // Displaying visual aid for planetary parameter tuning
@@ -277,6 +314,7 @@ private:
     void    FindCenters(cv::Mat image, CvSeq* contours, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, cv::Moments& mu, int minRadius, int maxRadius);
     bool    FindPlanetCircle(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
     bool    FindPlanetEclipse(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
+    void    BlindGuidingLogic();
 
     cv::Point2f calculateCentroid(const std::vector<cv::KeyPoint>& keypoints, cv::Point2f& clickedPoint);
     bool areCollinear(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::KeyPoint& kp3);

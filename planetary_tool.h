@@ -56,6 +56,10 @@
 #define PT_MIN_SURFACE_FEATURES   5
 #define PT_MAX_SURFACE_FEATURES   500
 
+#define PT_BLIND_DRIFT_GAIN_DEFAULT 1.0
+#define PT_BLIND_DRIFT_GAIN_MIN  0.0
+#define PT_BLIND_DRIFT_GAIN_MAX  2.0
+
 class PlanetTool
 {
     PlanetTool();

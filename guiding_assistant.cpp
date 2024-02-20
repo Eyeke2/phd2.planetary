@@ -241,6 +241,11 @@ struct GuidingAsstWin : public wxDialog
     double decDriftPerMin;          // px per minute
     double decCorrectedRMS;         // RMS of drift-corrected Dec dataset
     double alignmentError;          // arc-minutes
+
+    double m_raDriftPixelsPerSecond;
+    double m_decDriftPixelsPerSecond;
+    double m_cosdec;
+
     double m_backlashPx;
     int m_backlashMs;
     double m_backlashSigmaMs;
@@ -1717,6 +1722,9 @@ void GuidingAsstWin::OnStop(wxCommandEvent& event)
     else
         longEnough = true;
 
+    // Save measured drift rates for use in planetary guiding
+    pFrame->pGuider->m_Planet.SaveMeasuredDrift(m_raDriftPixelsPerSecond, m_decDriftPixelsPerSecond, m_cosdec);
+
     m_gaStatus->SetLabel(wxEmptyString);
     if (longEnough && performBLT)
     {
@@ -1940,8 +1948,12 @@ void GuidingAsstWin::UpdateInfo(const GuideStepInfo& info)
             wxString::Format("%6.1f %s ", 1.3 * rarms / maxRateRA, SEC));              // Will get revised when min-move is computed
         FillResultCell(m_othergrid, m_dec_drift_loc, decDriftPerMin, decDriftPerMin * pxscale, PXPERMIN, ARCSECPERMIN);
         m_othergrid->SetCellValue(m_pae_loc, wxString::Format("%s %.1f %s", declination == UNKNOWN_DECLINATION ? "> " : "", alignmentError, ARCMIN));
-    }
 
+        // Save the results for later use
+        m_raDriftPixelsPerSecond = raDriftRate / 60.0;
+        m_decDriftPixelsPerSecond = decDriftPerMin / 60.0;
+        m_cosdec = cosdec;
+    }
 }
 
 wxWindow *GuidingAssistant::CreateDialogBox()
