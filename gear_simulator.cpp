@@ -146,8 +146,8 @@ wxString SimCamParams::SimFileTemplate = _("C:\\Temp\\phd2\\sim_image.png");
 #define DEC_BACKLASH_MAX 100.0
 #define DEC_DRIFT_DEFAULT 5.0                     // arc-sec per minute
 #define RA_DRIFT_DEFAULT  5.0                     // arc-sec per minute
-#define DEC_DRIFT_MAX 30.0
-#define RA_DRIFT_MAX 30.0
+#define DEC_DRIFT_MAX 60.0
+#define RA_DRIFT_MAX 60.0
 #define SEEING_DEFAULT 2.0                        // arc-sec FWHM
 #define SEEING_MAX 5.0
 #define CAM_ANGLE_DEFAULT 15.0
