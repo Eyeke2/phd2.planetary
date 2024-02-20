@@ -140,6 +140,7 @@ public:
     float m_center_y;
     int m_radius;
     int m_searchRegion;
+    float m_prevSearchRegion;
 
     bool m_roiActive;
     cv::Rect m_roiRect;

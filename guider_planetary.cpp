@@ -57,6 +57,7 @@ GuiderPlanet::GuiderPlanet()
     m_detected = false;
     m_radius = 0;
     m_searchRegion = 0;
+    m_prevSearchRegion = 0;
     m_referenceKeypoints.clear();
     m_inlierPoints.clear();
     m_surfaceDetectionParamsChanging = false;
@@ -1592,6 +1593,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
         m_clicked_x = 0;
         m_clicked_y = 0;
         m_roiClicked = false;
+        m_detectionCounter = 0;
     }
     Point2f clickedPoint = Point2f(m_clicked_x, m_clicked_y);
 
@@ -1689,7 +1691,14 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
         {
             m_detected = true;
             if (m_detectionCounter++ > 3)
+            {
+                // Smooth search region to avoid sudden jumps in star find stats
+                m_searchRegion = cvRound(m_searchRegion * 0.3 + m_prevSearchRegion * 0.7);
+
+                // Forget about the clicked point after a few successful detections
                 m_roiClicked = false;
+            }
+            m_prevSearchRegion = m_searchRegion;
         }
         if (m_measuringSharpnessMode || detectionResult)
             m_unknownHFD = false;
