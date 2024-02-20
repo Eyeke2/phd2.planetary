@@ -205,6 +205,7 @@ void Mount::MountConfigDialogPane::LayoutControls(wxPanel *pParent, BrainCtrlIdM
 
         static GUIDE_ALGORITHM const RA_ALGORITHMS[] =
         {
+            GUIDE_ALGORITHM_IDENTITY,
             GUIDE_ALGORITHM_HYSTERESIS,
             GUIDE_ALGORITHM_LOWPASS,
             GUIDE_ALGORITHM_LOWPASS2,
@@ -214,6 +215,7 @@ void Mount::MountConfigDialogPane::LayoutControls(wxPanel *pParent, BrainCtrlIdM
         };
         static GUIDE_ALGORITHM const DEC_ALGORITHMS[] =
         {
+            GUIDE_ALGORITHM_IDENTITY,
             GUIDE_ALGORITHM_HYSTERESIS,
             GUIDE_ALGORITHM_LOWPASS,
             GUIDE_ALGORITHM_LOWPASS2,
@@ -398,6 +400,20 @@ void Mount::MountConfigDialogPane::EnableDecControls(bool enable)
 void Mount::MountConfigDialogPane::OnResetDecParams(wxCommandEvent& evt)
 {
     ResetDecGuidingParams();
+}
+
+void Mount::MountConfigDialogPane::SelectXAlgorithmChoice(GUIDE_ALGORITHM choice)
+{
+    m_pXGuideAlgorithmChoice->SetStringSelection(GuideAlgorithmNameTr(choice));
+    wxCommandEvent dummy;
+    OnXAlgorithmSelected(dummy);
+}
+
+void Mount::MountConfigDialogPane::SelectYAlgorithmChoice(GUIDE_ALGORITHM choice)
+{
+    m_pYGuideAlgorithmChoice->SetStringSelection(GuideAlgorithmNameTr(choice));
+    wxCommandEvent dummy;
+    OnYAlgorithmSelected(dummy);
 }
 
 void Mount::MountConfigDialogPane::OnXAlgorithmSelected(wxCommandEvent& evt)

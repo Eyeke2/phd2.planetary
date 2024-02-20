@@ -217,6 +217,8 @@ public:
 
         virtual void Undo();
 
+        void SelectXAlgorithmChoice(GUIDE_ALGORITHM choice);
+        void SelectYAlgorithmChoice(GUIDE_ALGORITHM choice);
         void OnXAlgorithmSelected(wxCommandEvent& evt);
         void OnYAlgorithmSelected(wxCommandEvent& evt);
         void ChangeYAlgorithm(const wxString& algoName);
