@@ -481,6 +481,8 @@ MyFrame::~MyFrame()
         pStarCrossDlg->Destroy();
     if (pierFlipToolWin)
         pierFlipToolWin->Destroy();
+    if (pPlanetTool)
+        pPlanetTool->Destroy();
 
     m_mgr.UnInit();
 

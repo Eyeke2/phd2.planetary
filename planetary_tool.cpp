@@ -174,10 +174,10 @@ PlanetToolWin::PlanetToolWin()
     param2_Label->SetToolTip(_("The accumulator threshold for circle centers. Smaller values will mean more circle candidates, "
         "and larger values will suppress weaker circles. You might want to increase this value if you're getting false circles"));
 
-    m_minRadius = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 1024, PT_MIN_RADIUS_DEFAULT);
+    m_minRadius = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, PT_RADIUS_MIN, PT_RADIUS_MAX, PT_MIN_RADIUS_DEFAULT);
     minRadius_Label->SetToolTip(_("Minimum planet radius in pixels. If set to 0, the minimal size is not limited."));
 
-    m_maxRadius = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 1024, PT_MAX_RADIUS_DEFAULT);
+    m_maxRadius = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, PT_RADIUS_MIN, PT_RADIUS_MAX, PT_MAX_RADIUS_DEFAULT);
     maxRadius_Label->SetToolTip(_("Maximum planet radius in pixels. If set to 0, the maximal size is not limited. "
         "If neither minRadius nor maxRadius is set, they are estimated from the image size."));
 
@@ -206,7 +206,7 @@ PlanetToolWin::PlanetToolWin()
     m_EclipseModeCheckBox = new wxCheckBox(m_planetTab, wxID_ANY, _("Enable Eclipse mode"));
     m_EclipseModeCheckBox->SetToolTip(_("Enable Eclipse mode for enhanced tracking of partial solar / lunar discs"));
     wxStaticText* ThresholdLabel = new wxStaticText(m_planetTab, wxID_ANY, wxT("Edge Detection Threshold:"), wxDefaultPosition, wxDefaultSize, 0);
-    m_ThresholdSlider = new wxSlider(m_planetTab, wxID_ANY, PT_HIGH_THRESHOLD_DEFAULT, PT_HIGH_THRESHOLD_MIN, PT_HIGH_THRESHOLD_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
+    m_ThresholdSlider = new wxSlider(m_planetTab, wxID_ANY, PT_HIGH_THRESHOLD_DEFAULT, PT_THRESHOLD_MIN, PT_HIGH_THRESHOLD_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
     ThresholdLabel->SetToolTip(_("Higher values reduce sensitivity to weaker edges, providing cleaner edge maps. Detected edges are shown in red."));
     m_ThresholdSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnThresholdChanged, this);
     m_RoiCheckBox = new wxCheckBox(m_planetTab, wxID_ANY, _("Enable ROI"));
@@ -327,20 +327,6 @@ PlanetToolWin::PlanetToolWin()
     m_minRadius->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_minRadius), NULL, this);
     m_maxRadius->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_maxRadius), NULL, this);
 
-    // Set initial values of the planetary tracking state and parameters
-    pPlanet->SetSurfaceTrackingState(pConfig->Profile.GetInt("/PlanetTool/surface_tracking", 0));
-    pPlanet->SetEclipseMode(pConfig->Profile.GetInt("/PlanetTool/eclipse_mode", 1));
-    pPlanet->SetNoiseFilterState(pConfig->Profile.GetInt("/PlanetTool/noise_filter", 0));
-    pPlanet->SetPlanetaryParam_minDist(pConfig->Profile.GetInt("/PlanetTool/min_dist", PT_MIN_DIST_DEFAULT));
-    pPlanet->SetPlanetaryParam_param1(pConfig->Profile.GetInt("/PlanetTool/param1", PT_PARAM1_DEFAULT));
-    pPlanet->SetPlanetaryParam_param2(pConfig->Profile.GetInt("/PlanetTool/param2", PT_PARAM2_DEFAULT));
-    pPlanet->SetPlanetaryParam_minRadius(pConfig->Profile.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT));
-    pPlanet->SetPlanetaryParam_maxRadius(pConfig->Profile.GetInt("/PlanetTool/max_radius", PT_MAX_RADIUS_DEFAULT));
-    pPlanet->SetPlanetaryParam_lowThreshold(pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT) / 2);
-    pPlanet->SetPlanetaryParam_highThreshold(pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT));
-    pPlanet->SetPlanetaryParam_minHessian(pConfig->Profile.GetInt("/PlanetTool/min_hessian", PT_MIN_HESSIAN_DEFAULT));
-    pPlanet->SetPlanetaryParam_maxFeatures(pConfig->Profile.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES));
-
     pPlanet->SetPlanetaryElementsButtonState(false);
     pPlanet->SetPlanetaryElementsVisual(false);
 
@@ -357,6 +343,7 @@ PlanetToolWin::PlanetToolWin()
     m_RoiCheckBox->SetValue(pPlanet->GetRoiEnableState());
     m_NoiseFilter->SetValue(pPlanet->GetNoiseFilterState());
     m_enableCheckBox->SetValue(pPlanet->GetPlanetaryEnableState());
+    m_SaveVideoLogCheckBox->SetValue(pPlanet->GetVideoLogging());
 
     SetEnabledState(this, pPlanet->GetPlanetaryEnableState());
 
@@ -389,7 +376,6 @@ PlanetToolWin::PlanetToolWin()
         xpos = -1;
         ypos = -1;
     }
-
     MyFrame::PlaceWindowOnScreen(this, xpos, ypos);
 
     UpdateStatus();
@@ -594,6 +580,7 @@ void PlanetToolWin::UpdateStatus()
     m_RoiCheckBox->Enable(enabled && !surfaceTracking);
     m_ShowElements->Enable(enabled);
     m_NoiseFilter->Enable(enabled);
+    m_SaveVideoLogCheckBox->Enable(enabled);
 
     // Update slider states
     m_ThresholdSlider->Enable(enabled && !surfaceTracking && EclipseMode);
@@ -644,11 +631,12 @@ void PlanetToolWin::OnMouseLeaveCloseBtn(wxMouseEvent& event)
 
 void PlanetToolWin::OnThresholdChanged(wxCommandEvent& event)
 {
-    int value = event.GetInt();
-    value = wxMin(value, PT_HIGH_THRESHOLD_MAX);
-    value = wxMax(value, PT_HIGH_THRESHOLD_MIN);
-    pPlanet->SetPlanetaryParam_lowThreshold(value/2);
-    pPlanet->SetPlanetaryParam_highThreshold(value);
+    int highThreshold = event.GetInt();
+    highThreshold = wxMin(highThreshold, PT_HIGH_THRESHOLD_MAX);
+    highThreshold = wxMax(highThreshold, PT_THRESHOLD_MIN);
+    int lowThreshold = wxMax(highThreshold / 2, PT_THRESHOLD_MIN);
+    pPlanet->SetPlanetaryParam_lowThreshold(lowThreshold);
+    pPlanet->SetPlanetaryParam_highThreshold(highThreshold);
 }
 
 void PlanetToolWin::OnMinHessianChanged(wxCommandEvent& event)
@@ -671,19 +659,6 @@ void PlanetToolWin::OnClose(wxCloseEvent& evt)
     pPlanet->SetPlanetaryElementsVisual(false);
     pFrame->pGuider->Refresh();
     pFrame->pGuider->Update();
-
-    // save detection parameters
-    pConfig->Profile.SetInt("/PlanetTool/surface_tracking", pPlanet->GetSurfaceTrackingState());
-    pConfig->Profile.SetInt("/PlanetTool/eclipse_mode", pPlanet->GetEclipseMode());
-    pConfig->Profile.SetInt("/PlanetTool/noise_filter", pPlanet->GetNoiseFilterState());
-    pConfig->Profile.SetInt("/PlanetTool/min_dist", pPlanet->GetPlanetaryParam_minDist());
-    pConfig->Profile.SetInt("/PlanetTool/param1", pPlanet->GetPlanetaryParam_param1());
-    pConfig->Profile.SetInt("/PlanetTool/param2", pPlanet->GetPlanetaryParam_param2());
-    pConfig->Profile.SetInt("/PlanetTool/min_radius", pPlanet->GetPlanetaryParam_minRadius());
-    pConfig->Profile.SetInt("/PlanetTool/max_radius", pPlanet->GetPlanetaryParam_maxRadius());
-    pConfig->Profile.SetInt("/PlanetTool/high_threshold", pPlanet->GetPlanetaryParam_highThreshold());
-    pConfig->Profile.SetInt("/PlanetTool/min_hessian", pPlanet->GetPlanetaryParam_minHessian());
-    pConfig->Profile.SetInt("/PlanetTool/max_features", pPlanet->GetPlanetaryParam_maxFeatures());
 
     // save the window position
     int x, y;

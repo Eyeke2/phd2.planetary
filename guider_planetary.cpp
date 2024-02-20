@@ -141,6 +141,28 @@ GuiderPlanet::GuiderPlanet()
     m_lockTargetWidthBad = (ihdrChunk2[0] << 24) | (ihdrChunk2[1] << 16) | (ihdrChunk2[2] << 8) | ihdrChunk2[3];
     m_lockTargetHeightBad = (ihdrChunk2[4] << 24) | (ihdrChunk2[5] << 16) | (ihdrChunk2[6] << 8) | ihdrChunk2[7];
 
+    // Get initial values of the planetary tracking state and parameters from configuration
+    SetSurfaceTrackingState(pConfig->Profile.GetBoolean("/PlanetTool/surface_tracking", false));
+    SetEclipseMode(pConfig->Profile.GetBoolean("/PlanetTool/eclipse_mode", true));
+    SetNoiseFilterState(pConfig->Profile.GetBoolean("/PlanetTool/noise_filter", false));
+    SetPlanetaryParam_minDist(pConfig->Profile.GetInt("/PlanetTool/min_dist", PT_MIN_DIST_DEFAULT));
+    SetPlanetaryParam_param1(pConfig->Profile.GetInt("/PlanetTool/param1", PT_PARAM1_DEFAULT));
+    SetPlanetaryParam_param2(pConfig->Profile.GetInt("/PlanetTool/param2", PT_PARAM2_DEFAULT));
+
+    // Enforce valid range limits on planetary detection parameters while restoring from configuration
+    m_Planetary_minRadius = pConfig->Profile.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT);
+    m_Planetary_minRadius = wxMax(PT_RADIUS_MIN, wxMin(PT_RADIUS_MAX, m_Planetary_minRadius));
+    m_Planetary_maxRadius = pConfig->Profile.GetInt("/PlanetTool/max_radius", PT_MAX_RADIUS_DEFAULT);
+    m_Planetary_maxRadius = wxMax(PT_RADIUS_MIN, wxMin(PT_RADIUS_MAX, m_Planetary_maxRadius));
+    m_Planetary_lowThreshold = pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT) / 2;
+    m_Planetary_lowThreshold = wxMax(PT_THRESHOLD_MIN, wxMin(PT_LOW_THRESHOLD_MAX, m_Planetary_lowThreshold));
+    m_Planetary_highThreshold = pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT);
+    m_Planetary_highThreshold = wxMax(PT_THRESHOLD_MIN, wxMin(PT_HIGH_THRESHOLD_MAX, m_Planetary_highThreshold));
+    m_Planetary_minHessian = pConfig->Profile.GetInt("/PlanetTool/min_hessian", PT_MIN_HESSIAN_DEFAULT);
+    m_Planetary_minHessian = wxMax(PT_MIN_HESSIAN_MIN, wxMin(PT_MIN_HESSIAN_MAX, m_Planetary_minHessian));
+    m_Planetary_maxFeatures = pConfig->Profile.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES);
+    m_Planetary_maxFeatures = wxMax(PT_MIN_SURFACE_FEATURES, wxMin(PT_MAX_SURFACE_FEATURES, m_Planetary_maxFeatures));
+
     // Initialize non-free OpenCV components
     // Note: this may cause a small and limited memory leak.
     bool nonfreeInit = initModule_nonfree();
@@ -151,6 +173,20 @@ GuiderPlanet::GuiderPlanet()
 GuiderPlanet::~GuiderPlanet()
 {
     delete m_SER;
+
+    // Save all detection parameters
+    pConfig->Profile.SetBoolean("/PlanetTool/surface_tracking", GetSurfaceTrackingState());
+    pConfig->Profile.SetBoolean("/PlanetTool/eclipse_mode", GetEclipseMode());
+    pConfig->Profile.SetBoolean("/PlanetTool/noise_filter", GetNoiseFilterState());
+    pConfig->Profile.SetInt("/PlanetTool/min_dist", GetPlanetaryParam_minDist());
+    pConfig->Profile.SetInt("/PlanetTool/param1", GetPlanetaryParam_param1());
+    pConfig->Profile.SetInt("/PlanetTool/param2", GetPlanetaryParam_param2());
+    pConfig->Profile.SetInt("/PlanetTool/min_radius", GetPlanetaryParam_minRadius());
+    pConfig->Profile.SetInt("/PlanetTool/max_radius", GetPlanetaryParam_maxRadius());
+    pConfig->Profile.SetInt("/PlanetTool/high_threshold", GetPlanetaryParam_highThreshold());
+    pConfig->Profile.SetInt("/PlanetTool/min_hessian", GetPlanetaryParam_minHessian());
+    pConfig->Profile.SetInt("/PlanetTool/max_features", GetPlanetaryParam_maxFeatures());
+    pConfig->Flush();
 }
 
 // Planet/feature size depending on planetary detection mode
@@ -1548,7 +1584,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
     // Default error status message
     m_statusMsg = _("Object not found");
 
-    // Point clicked by user in the main window
+    // Auto select star was requested
     if (autoSelect)
     {
         m_cameraSimulationRefPointValid = false;
@@ -1571,25 +1607,21 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
     Rect roiRect(0, 0, pImage->Size.GetWidth(), pImage->Size.GetHeight());
     if (!autoSelect && GetRoiEnableState() && m_detected &&
         !GetSurfaceTrackingState() &&
-        (m_center_x < m_frameWidth) &&
-        (m_center_y < m_frameHeight) &&
-        (m_frameWidth == pImage->Size.GetWidth()) &&
-        (m_frameHeight == pImage->Size.GetHeight()))
+        (m_center_x < m_frameWidth) && (m_center_y < m_frameHeight) &&
+        (m_frameWidth == pImage->Size.GetWidth()) && (m_frameHeight == pImage->Size.GetHeight()))
     {
-        roiOffsetX = m_center_x - roiRadius;
-        roiOffsetX = max(0, roiOffsetX);
-        roiOffsetY = m_center_y - roiRadius;
-        roiOffsetY = max(0, roiOffsetY);
-        int w = roiRadius * 2;
-        w = min(w, pImage->Size.GetWidth() - roiOffsetX);
-        int h = roiRadius * 2;
-        h = min(h, pImage->Size.GetHeight() - roiOffsetY);
+        roiOffsetX = wxMax(0, m_center_x - roiRadius);
+        roiOffsetY = wxMax(0, m_center_y - roiRadius);
+        int w = wxMin(roiRadius * 2, pImage->Size.GetWidth() - roiOffsetX);
+        int h = wxMin(roiRadius * 2, pImage->Size.GetHeight() - roiOffsetY);
         roiRect = Rect(roiOffsetX, roiOffsetY, w, h);
         RoiFrame = FullFrame(roiRect);
         roiActive = true;
     }
     else
+    {
         RoiFrame = FullFrame;
+    }
 
     // Make sure to use 8-bit gray image for feature detection
     // pImage always has 16-bit pixels, but depending on camera bpp
