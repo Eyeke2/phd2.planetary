@@ -1730,7 +1730,11 @@ void GuiderPlanet::BlindGuidingLogic()
                 m_searchRegion = m_blindSearchRegion;
                 m_radius = m_blindRadius;
                 m_detected = true;
-                pFrame->StatusMsg("Blind guiding");
+                // Show elapsed time in hh:mm:ss format
+                int hours = timeInterval / 3600.0;
+                int minutes = ((long) timeInterval / 60) % 60;
+                int seconds = (long) timeInterval % 60;
+                pFrame->StatusMsg(wxString::Format("Blind guiding (%02u:%02u:%02u)", hours, minutes, seconds));
                 Debug.Write(wxString::Format("Blind guiding: current estimate at %.1f/%.1f RA/DEC %.2f/%.2f\n", m_center_x, m_center_y, currRA, currDEC));
             }
         }
