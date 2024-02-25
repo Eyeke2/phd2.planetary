@@ -86,6 +86,7 @@ private:
     double m_blindMountST;
     double m_blindDriftRaGain;
     double m_blindDriftDecGain;
+    PHD_Point m_blindMountOfs;
     wxStopWatch m_blindGuidingWatchdog;
 
     // Measured drift rates as reported by Guiding Assistant
@@ -269,8 +270,10 @@ public:
     bool GetVideoLogging() { return m_videoLogEnabled; }
 
     bool GetBlindGuidingState() { return m_blindGuidingActive; }
+    bool IsMountGuidingOffsetValid() { return m_blindGuidingActive && m_blindMountOfs.IsValid(); }
     void SetTestBlindGuidingState(bool enable) { m_forceBlindGuiding = enable; }
     bool GetTestBlindGuidingState() { return m_forceBlindGuiding; }
+    PHD_Point GetBlindGuidingMountOffset() { return m_blindMountOfs; }
 
     bool   IsDriftValid() { return m_measuredDriftValid; }
     void   SetDriftRaGain(double gain) { m_blindDriftRaGain = gain; }

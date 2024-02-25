@@ -73,6 +73,7 @@ GuiderPlanet::GuiderPlanet()
     m_blindGuiding = false;
     m_forceBlindGuiding = false;
     m_blindGuidingActive = false;
+    m_blindMountOfs.Invalidate();
 
     m_guidingFixationPointValid = false;
     m_surfaceFixationPoint = Point2f(0, 0);
@@ -1638,6 +1639,7 @@ void GuiderPlanet::BlindGuidingLogic()
 {
     bool bErr;
 
+    m_blindMountOfs.Invalidate();
     try
     {
         // In blind guiding mode, we can only estimate object position based on ra and dec drift rates
@@ -1710,6 +1712,7 @@ void GuiderPlanet::BlindGuidingLogic()
                 double decOffset = m_decDriftPixelsPerSecond * timeInterval;
                 raOffset = raOffset * m_blindDriftRaGain + diffRA;
                 decOffset = decOffset * m_blindDriftDecGain + diffDEC;
+                m_blindMountOfs.SetXY(raOffset, decOffset);
 
                 // Convert from mount coordinates to camera coordinates
                 GuiderOffset ofs;

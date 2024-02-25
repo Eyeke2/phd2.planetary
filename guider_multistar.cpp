@@ -1068,8 +1068,17 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
             else
                 m_starsUsed = 1;
 
-            if (pMount && pMount->IsCalibrated())
-                pMount->TransformCameraCoordinatesToMountCoordinates(ofs->cameraOfs, ofs->mountOfs, true);
+            // in the planetary blind guiding mode - if mount offset relative to the lock position
+            // is known, there is no need to perform coordinate transformation.
+            if ((pFrame->GetStarFindMode() == Star::FIND_PLANET) && m_Planet.IsMountGuidingOffsetValid())
+            {
+                ofs->mountOfs = m_Planet.GetBlindGuidingMountOffset();
+            }
+            else
+            {
+                if (pMount && pMount->IsCalibrated())
+                    pMount->TransformCameraCoordinatesToMountCoordinates(ofs->cameraOfs, ofs->mountOfs, true);
+            }
             double distanceRA = ofs->mountOfs.IsValid() ? fabs(ofs->mountOfs.X) : 0.;
             UpdateCurrentDistance(distance, distanceRA);
         }
