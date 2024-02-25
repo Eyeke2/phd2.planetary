@@ -309,9 +309,9 @@ PlanetToolWin::PlanetToolWin()
     m_driftDecGainCtrl->SetDigits(2);
     m_driftRaGainCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnDriftRaGainChanged, this);
     m_driftDecGainCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnDriftDecGainChanged, this);
-    AddTableEntryPair(this, pBlindGuidingTable, _("RA drift Gain"), m_driftRaGainCtrl,
+    AddTableEntryPair(this, pBlindGuidingTable, _("RA drift gain"), m_driftRaGainCtrl,
         _("Adjusting this value correctly can help reduce the effective drift rate. Make adjustments gradually (default = 1.00)"));
-    AddTableEntryPair(this, pBlindGuidingTable, _("DEC drift Gain"), m_driftDecGainCtrl,
+    AddTableEntryPair(this, pBlindGuidingTable, _("DEC drift gain"), m_driftDecGainCtrl,
         _("Adjusting this value correctly can help reduce the effective drift rate. Make adjustments gradually (default = 1.00)"));
     pBlindGuidingGroup->Add(m_testBlindGuiding, 0, wxLEFT | wxALIGN_LEFT, 5);
     pBlindGuidingGroup->AddSpacer(10);

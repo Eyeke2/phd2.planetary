@@ -74,26 +74,29 @@ private:
     float  m_PlanetAngle;
 
     // Blind guiding state
-    bool   m_blindGuiding;
-    bool   m_forceBlindGuiding;
-    bool   m_blindGuidingActive;
-    double m_blindGuidingPosX;
-    double m_blindGuidingPosY;
-    int    m_blindSearchRegion;
-    int    m_blindRadius;
-    double m_blindMountRA;
-    double m_blindMountDEC;
-    double m_blindMountST;
-    double m_blindDriftRaGain;
-    double m_blindDriftDecGain;
-    PHD_Point m_blindMountOfs;
-    wxStopWatch m_blindGuidingWatchdog;
+    struct blindGuidingState
+    {
+        bool   ActivateBlindMode;       // Flag indicating requesting blind guiding
+        bool   ForcedBlindMode;         // Flag forcing blind guiding by user
+        bool   Active;                  // Flag indicating blind guiding is active
+        double PosX;      // X coordinate of the blind guiding target
+        double PosY;      // Y coordinate of the blind guiding target
+        int    SearchRegion;     // Search region for star metrics - shows last known search region, ignored in code
+        int    Radius;           // Radius of the blind guiding target - shows last known radius, ignored in code
+        double MountRA;          //
+        double MountDEC;
+        double MountST;
+        double DriftRaGain;
+        double DriftDecGain;
+        PHD_Point MountOfs;
+        wxStopWatch Watchdog;
 
-    // Measured drift rates as reported by Guiding Assistant
-    bool   m_measuredDriftValid;
-    double m_raDriftPixelsPerSecond;
-    double m_decDriftPixelsPerSecond;
-    double m_cosdec;
+        // Measured drift rates as reported by Guiding Assistant
+        bool   MeasuredDriftValid;
+        double DriftRaPixelsPerSecond;
+        double DriftDecPixelsPerSecond;
+        double Cosdec;
+    } m_blind;
 
     int  m_Planetary_maxFeatures;
     bool m_surfaceDetectionParamsChanging;
@@ -269,17 +272,17 @@ public:
     void SetVideoLogging(bool enable) { m_videoLogEnabled = enable; }
     bool GetVideoLogging() { return m_videoLogEnabled; }
 
-    bool GetBlindGuidingState() { return m_blindGuidingActive; }
-    bool IsMountGuidingOffsetValid() { return m_blindGuidingActive && m_blindMountOfs.IsValid(); }
-    void SetTestBlindGuidingState(bool enable) { m_forceBlindGuiding = enable; }
-    bool GetTestBlindGuidingState() { return m_forceBlindGuiding; }
-    PHD_Point GetBlindGuidingMountOffset() { return m_blindMountOfs; }
+    bool GetBlindGuidingState() { return m_blind.Active; }
+    bool IsMountGuidingOffsetValid() { return m_blind.Active && m_blind.MountOfs.IsValid(); }
+    void SetTestBlindGuidingState(bool enable) { m_blind.ForcedBlindMode = enable; }
+    bool GetTestBlindGuidingState() { return m_blind.ForcedBlindMode; }
+    PHD_Point GetBlindGuidingMountOffset() { return m_blind.MountOfs; }
 
-    bool   IsDriftValid() { return m_measuredDriftValid; }
-    void   SetDriftRaGain(double gain) { m_blindDriftRaGain = gain; }
-    double GetDriftRaGain() { return m_blindDriftRaGain; }
-    void   SetDriftDecGain(double gain) { m_blindDriftDecGain = gain; }
-    double GetDriftDecGain() { return m_blindDriftDecGain; }
+    bool   IsDriftValid() { return m_blind.MeasuredDriftValid; }
+    void   SetDriftRaGain(double gain) { m_blind.DriftRaGain = gain; }
+    double GetDriftRaGain() { return m_blind.DriftRaGain; }
+    void   SetDriftDecGain(double gain) { m_blind.DriftDecGain = gain; }
+    double GetDriftDecGain() { return m_blind.DriftDecGain; }
 
 public:
     // Displaying visual aid for planetary parameter tuning
