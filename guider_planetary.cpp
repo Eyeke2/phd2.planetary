@@ -55,6 +55,7 @@ GuiderPlanet::GuiderPlanet()
     m_Planetary_enabled = false;
     m_showAdvancedSettings = false;
     m_Planetary_SurfaceTracking = false;
+    m_prevCaptureActive = false;
     m_detected = false;
     m_radius = 0;
     m_searchRegion = 0;
@@ -74,6 +75,7 @@ GuiderPlanet::GuiderPlanet()
     m_blind.ForcedBlindMode = false;
     m_blind.Active = false;
     m_blind.MountOfs.Invalidate();
+    m_blind.CalibrationEnabled = false;
 
     m_guidingFixationPointValid = false;
     m_surfaceFixationPoint = Point2f(0, 0);
@@ -149,14 +151,14 @@ GuiderPlanet::GuiderPlanet()
     m_lockTargetWidthBad = (ihdrChunk2[0] << 24) | (ihdrChunk2[1] << 16) | (ihdrChunk2[2] << 8) | ihdrChunk2[3];
     m_lockTargetHeightBad = (ihdrChunk2[4] << 24) | (ihdrChunk2[5] << 16) | (ihdrChunk2[6] << 8) | ihdrChunk2[7];
 
-    // Load previously measured drift but only if the time difference is not too large
+    // Load previously measured drift but only if the time difference is not too large (6 hours)
     wxString dateTimeStr = pConfig->Profile.GetString("/PlanetTool/Drift/timestamp", wxEmptyString);
     wxDateTime measuredDateTime;
     if (measuredDateTime.ParseDateTime(dateTimeStr))
     {
         wxDateTime now = wxDateTime::Now();
         wxTimeSpan timeDiff = now.Subtract(measuredDateTime);
-        if (timeDiff.GetSeconds() < 3600 * 3)
+        if (timeDiff.GetSeconds() < 3600 * 6)
         {
             m_blind.DriftRaPixelsPerSecond = pConfig->Profile.GetDouble("/PlanetTool/Drift/ra_drift_pixels_per_second", 0);
             m_blind.DriftDecPixelsPerSecond = pConfig->Profile.GetDouble("/PlanetTool/Drift/dec_drift_pixels_per_second", 0);
@@ -193,9 +195,9 @@ GuiderPlanet::GuiderPlanet()
     m_Planetary_maxFeatures = wxMax(PT_MIN_SURFACE_FEATURES, wxMin(PT_MAX_SURFACE_FEATURES, m_Planetary_maxFeatures));
 
     // Get blind guiding parameters from configuration
-    m_blind.DriftRaGain = pConfig->Profile.GetDouble("/PlanetTool/blind_ra_drift_gain", PT_BLIND_DRIFT_GAIN_DEFAULT);
+    m_blind.DriftRaGain = pConfig->Profile.GetDouble("/PlanetTool/Drift/blind_ra_drift_gain", PT_BLIND_DRIFT_GAIN_DEFAULT);
     m_blind.DriftRaGain = wxMax(PT_BLIND_DRIFT_GAIN_MIN, wxMin(PT_BLIND_DRIFT_GAIN_MAX, m_blind.DriftRaGain));
-    m_blind.DriftDecGain = pConfig->Profile.GetDouble("/PlanetTool/blind_dec_drift_gain", PT_BLIND_DRIFT_GAIN_DEFAULT);
+    m_blind.DriftDecGain = pConfig->Profile.GetDouble("/PlanetTool/Drift/blind_dec_drift_gain", PT_BLIND_DRIFT_GAIN_DEFAULT);
     m_blind.DriftDecGain = wxMax(PT_BLIND_DRIFT_GAIN_MIN, wxMin(PT_BLIND_DRIFT_GAIN_MAX, m_blind.DriftDecGain));
 
     // Initialize non-free OpenCV components
@@ -221,8 +223,9 @@ GuiderPlanet::~GuiderPlanet()
     pConfig->Profile.SetInt("/PlanetTool/high_threshold", GetPlanetaryParam_highThreshold());
     pConfig->Profile.SetInt("/PlanetTool/min_hessian", GetPlanetaryParam_minHessian());
     pConfig->Profile.SetInt("/PlanetTool/max_features", GetPlanetaryParam_maxFeatures());
-    pConfig->Profile.SetDouble("/PlanetTool/blind_ra_drift_gain", GetDriftRaGain());
-    pConfig->Profile.SetDouble("/PlanetTool/blind_dec_drift_gain", GetDriftDecGain());
+    pConfig->Profile.SetDouble("/PlanetTool/Drift/blind_ra_drift_gain", GetDriftRaGain());
+    pConfig->Profile.SetDouble("/PlanetTool/Drift/blind_dec_drift_gain", GetDriftDecGain());
+
     pConfig->Flush();
 }
 
@@ -356,15 +359,22 @@ void GuiderPlanet::SetPlanetaryElementsVisual(bool state)
 // Save drift measurement for blind guiding
 void GuiderPlanet::SaveMeasuredDrift(double raDriftPixelsPerSecond, double decDriftPixelsPerSecond, double cosdec)
 {
+    // Save measured drift alongside current timestamp for later use if session gets restarted.
     m_blind.DriftRaPixelsPerSecond = raDriftPixelsPerSecond;
     m_blind.DriftDecPixelsPerSecond = decDriftPixelsPerSecond;
     m_blind.Cosdec = cosdec;
+
+    // Set drift gains to default values
+    SetDriftRaGain(1.0);
+    SetDriftDecGain(1.0);
 
     // Save measured drift alongside current timestamp for later use if session gets restarted.
     // We won't allow using saved drift measurements if the time difference is too large.
     pConfig->Profile.SetDouble("/PlanetTool/Drift/ra_drift_pixels_per_second", m_blind.DriftRaPixelsPerSecond);
     pConfig->Profile.SetDouble("/PlanetTool/Drift/dec_drift_pixels_per_second", m_blind.DriftDecPixelsPerSecond);
     pConfig->Profile.SetDouble("/PlanetTool/Drift/cosdec", m_blind.Cosdec);
+    pConfig->Profile.SetDouble("/PlanetTool/Drift/blind_ra_drift_gain", GetDriftRaGain());
+    pConfig->Profile.SetDouble("/PlanetTool/Drift/blind_dec_drift_gain", GetDriftDecGain());
 
     // Save current time in ISO 8601 format "YYYY-MM-DD HH:MM:SS"
     wxString dateTimeStr = wxDateTime::Now().Format("%Y-%m-%d %H:%M:%S");
@@ -373,35 +383,39 @@ void GuiderPlanet::SaveMeasuredDrift(double raDriftPixelsPerSecond, double decDr
     m_blind.MeasuredDriftValid = true;
 }
 
-// Notification callback about start of capturing
-void GuiderPlanet::NotifyStartCapturing()
+// Notification callback when PHD2 may change CaptureActive state
+bool GuiderPlanet::UpdateCaptureState(bool CaptureActive)
 {
-    // In planetary tracking mode update the state used to
-    // control drawing of the internal detection elements.
-    if (GetPlanetaryEnableState() && GetPlanetaryElementsButtonState())
-        SetPlanetaryElementsVisual(true);
+    bool need_update = false;
+    if (m_prevCaptureActive != CaptureActive)
+    {
+        if (!CaptureActive)
+        {
+            // Clear selection symbols (green circle/target lock) and visual elements
+            if (GetPlanetaryEnableState())
+            {
+                SetPlanetaryElementsVisual(false);
+                pFrame->pGuider->Reset(false);
+            }
+            m_guidingFixationPointValid = false;
+            m_blind.ForcedBlindMode = false;
+            EndBlindGuiding();
+            need_update = true;
+        }
+        else
+        {
+            // In planetary tracking mode update the state used to
+            // control drawing of the internal detection elements.
+            if (GetPlanetaryEnableState() && GetPlanetaryElementsButtonState())
+                SetPlanetaryElementsVisual(true);
 
-    // Start with zero offset for sync with simulated camera position
-    m_cameraSimulationRefPointValid = false;
-    m_simulationZeroOffset = true;
-}
-
-// Notification callback about stop of capturing
-void GuiderPlanet::NotifyStopCapturing()
-{
-    // In planetary tracking mode we need to redraw the screen
-    // without internal detection elements
-    if (GetPlanetaryEnableState() && GetPlanetaryElementsVisual())
-        SetPlanetaryElementsVisual(false);
-}
-
-// Notification callback when stop is finished
-void GuiderPlanet::NotifyFinishStop()
-{
-    // This appears to be required to clear selection (green circle/target lock symbol)
-    if (GetPlanetaryEnableState())
-        pFrame->pGuider->Reset(false);
-    m_guidingFixationPointValid = false;
+            // Start with zero offset for sync with simulated camera position
+            m_cameraSimulationRefPointValid = false;
+            m_simulationZeroOffset = true;
+        }
+    }
+    m_prevCaptureActive = CaptureActive;
+    return need_update;
 }
 
 // Notification callback when camera is connected
@@ -1633,6 +1647,77 @@ void GuiderPlanet::SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool roiAct
     }
 }
 
+// Initialize the slope calculation for linear fit used in blind guiding
+void GuiderPlanet::InitSlope()
+{
+    m_blind.linfitSumT = 0;
+    m_blind.linfitSumTxT = 0;
+    m_blind.linfitSumRa = 0;
+    m_blind.linfitSumTxRa = 0;
+    m_blind.linfitSumDec = 0;
+    m_blind.linfitSumTxDec = 0;
+    m_blind.linfitN = 0;
+}
+
+// Calculate the slope for linear fit used in blind guiding
+void GuiderPlanet::CalculateSlope(double timeStamp, double errorRa, double errorDec, double& slopeRa, double& slopeDec)
+{
+/*
+ *  double sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+ *  int N = times.size();
+ *  for (int i = 0; i < N; ++i) {
+ *      sumX += times[i];
+ *      sumY += errors[i];
+ *      sumXY += times[i] * errors[i];
+ *      sumXX += times[i] * times[i];
+ *  }
+ *  double slope = (N * sumXY - sumX * sumY) / (N * sumXX - sumX * sumX);
+ */
+    m_blind.linfitN++;
+
+    double sumT = m_blind.linfitSumT + timeStamp;
+    double sumTxT = m_blind.linfitSumTxT + timeStamp * timeStamp;
+    double sumRa = m_blind.linfitSumRa + errorRa;
+    double sumTxRa = m_blind.linfitSumTxRa + timeStamp * errorRa;
+    double sumDec = m_blind.linfitSumDec + errorDec;
+    double sumTxDec = m_blind.linfitSumTxDec + timeStamp * errorDec;
+    int N = m_blind.linfitN;
+
+    m_blind.linfitSumT = sumT;
+    m_blind.linfitSumTxT = sumTxT;
+    m_blind.linfitSumRa = sumRa;
+    m_blind.linfitSumDec = sumDec;
+    m_blind.linfitSumTxRa = sumTxRa;
+    m_blind.linfitSumTxDec = sumTxDec;
+
+    slopeRa = (N * sumTxRa - sumT * sumRa) / (N * sumTxT - sumT * sumT);
+    slopeDec = (N * sumTxDec - sumT * sumDec) / (N * sumTxT - sumT * sumT);
+}
+
+// End blind guiding mode when conditions are met
+void GuiderPlanet::EndBlindGuiding()
+{
+    if (m_blind.Active && !(m_blind.ActivateBlindMode || m_blind.ForcedBlindMode))
+    {
+        // Restore guiding algorithms and reset blind guiding state
+        m_blind.Active = false;
+        AdvancedDialog* pAdvancedDlg = pFrame->pAdvancedDialog;
+        if (pAdvancedDlg && pAdvancedDlg->GetCurrentMountPane())
+        {
+            PauseType prev = pFrame->pGuider->SetPaused(PAUSE_GUIDING);
+            Mount::MountConfigDialogPane* mountPane = pAdvancedDlg->GetCurrentMountPane();
+            mountPane->SelectXAlgorithmChoice((GUIDE_ALGORITHM)pConfig->Profile.GetInt("/scope/XGuideAlgorithm", GUIDE_ALGORITHM_HYSTERESIS));
+            mountPane->SelectYAlgorithmChoice((GUIDE_ALGORITHM)pConfig->Profile.GetInt("/scope/YGuideAlgorithm", GUIDE_ALGORITHM_RESIST_SWITCH));
+            if (pFrame->pGraphLog)
+                pFrame->pGraphLog->UpdateControls();
+            pFrame->pGuider->SetPaused(prev);
+        }
+        if (pFrame->pGuider->IsGuiding())
+            pFrame->StatusMsg("Guiding");
+        Debug.Write(_("Blind guiding: guiding algorithms restored\n"));
+    }
+}
+
 // Estimate the position of the object based on RA/DEC drift rates.
 // Use direct guiding algorithm to drive blind guiding without additional filtering.
 void GuiderPlanet::BlindGuidingLogic()
@@ -1675,6 +1760,9 @@ void GuiderPlanet::BlindGuidingLogic()
                     throw (wxString("Failed to get mount coordinates"));
                 }
 
+                // Prepare for linear fit
+                InitSlope();
+
                 // Save initial mount coordinates and detection results for blind guiding
                 m_blind.Watchdog.Start();
                 m_blind.SearchRegion = m_searchRegion;
@@ -1682,7 +1770,8 @@ void GuiderPlanet::BlindGuidingLogic()
                 m_blind.PosX = m_center_x;
                 m_blind.PosY = m_center_y;
                 m_blind.Active = true;
-                Debug.Write(_T("Blind guiding: starting now!\n"));
+
+                Debug.Write(wxString::Format("Blind guiding: starting now, driftRa=%.3f, driftDec=%.3f\n", m_blind.DriftRaPixelsPerSecond, m_blind.DriftDecPixelsPerSecond));
             }
 
             // Start blind guiding when initial position is set
@@ -1723,41 +1812,54 @@ void GuiderPlanet::BlindGuidingLogic()
                     throw (wxString("Failed to transform mount coordinates"));
                 }
 
+                // Update position and radius for blind guiding
+                GuiderOffset err;
                 double blindGuidingPosX = m_blind.PosX + ofs.cameraOfs.X;
                 double blindGuidingPosY = m_blind.PosY + ofs.cameraOfs.Y;
+                err.cameraOfs.SetXY(blindGuidingPosX - m_center_x, blindGuidingPosY - m_center_y);
                 m_center_x = blindGuidingPosX;
                 m_center_y = blindGuidingPosY;
                 m_searchRegion = m_blind.SearchRegion;
                 m_radius = m_blind.Radius;
                 m_detected = true;
+
                 // Show elapsed time in hh:mm:ss format
                 int hours = timeInterval / 3600.0;
-                int minutes = ((long) timeInterval / 60) % 60;
-                int seconds = (long) timeInterval % 60;
+                int minutes = ((long)timeInterval / 60) % 60;
+                int seconds = (long)timeInterval % 60;
                 pFrame->StatusMsg(wxString::Format("Blind guiding (%02u:%02u:%02u)", hours, minutes, seconds));
-                Debug.Write(wxString::Format("Blind guiding: current estimate at %.1f/%.1f RA/DEC %.2f/%.2f\n", m_center_x, m_center_y, currRA, currDEC));
+                Debug.Write(wxString::Format("Blind guiding: current estimate at %.2f/%.2f RA/DEC %.2f/%.2f\n", m_center_x, m_center_y, currRA, currDEC));
+
+                // Perform blind drift calibration
+                if (m_detected && m_blind.CalibrationEnabled)
+                {
+                    // Calculate the slope for linear fit
+                    bErr = pMount->TransformCameraCoordinatesToMountCoordinates(err.cameraOfs, err.mountOfs, false);
+                    if (bErr)
+                    {
+                        throw (wxString("Failed to transform camera coordinates"));
+                    }
+
+                    double errorRa = err.mountOfs.X;
+                    double errorDec = err.mountOfs.Y;
+                    double slopeRa, slopeDec;
+                    CalculateSlope(timeInterval, errorRa, errorDec, slopeRa, slopeDec);
+                    if (m_blind.linfitN > 10)
+                    {
+                        const double scaleFactor = 0.5;
+                        m_blind.DriftRaGain += slopeRa * scaleFactor;
+                        m_blind.DriftRaGain = wxMax(PT_BLIND_DRIFT_GAIN_MIN, wxMin(PT_BLIND_DRIFT_GAIN_MAX, m_blind.DriftRaGain));
+                        m_blind.DriftDecGain += slopeDec * scaleFactor;
+                        m_blind.DriftDecGain = wxMax(PT_BLIND_DRIFT_GAIN_MIN, wxMin(PT_BLIND_DRIFT_GAIN_MAX, m_blind.DriftDecGain));
+                    }
+                    Debug.Write(wxString::Format("Blind drift calibration: time=%.0f, N=%d, errRa=%.3f, errDec=%.3f, slopeRa=%.5f, slopeDec=%.5f, gainRa=%.3f, gainDec=%.3f\n",
+                        timeInterval, m_blind.linfitN, errorRa, errorDec, slopeRa, slopeDec, m_blind.DriftRaPixelsPerSecond, m_blind.DriftDecPixelsPerSecond, m_blind.DriftRaGain, m_blind.DriftDecGain));
+                }
             }
         }
         // Revert to normal guiding mode
-        else if (m_blind.Active && !(m_blind.ActivateBlindMode || m_blind.ForcedBlindMode))
-        {
-            // Restore guiding algorithms and reset blind guiding state
-            m_blind.Active = false;
-            AdvancedDialog* pAdvancedDlg = pFrame->pAdvancedDialog;
-            if (pAdvancedDlg && pAdvancedDlg->GetCurrentMountPane())
-            {
-                PauseType prev = pFrame->pGuider->SetPaused(PAUSE_GUIDING);
-                Mount::MountConfigDialogPane* mountPane = pAdvancedDlg->GetCurrentMountPane();
-                mountPane->SelectXAlgorithmChoice((GUIDE_ALGORITHM)pConfig->Profile.GetInt("/scope/XGuideAlgorithm", GUIDE_ALGORITHM_HYSTERESIS));
-                mountPane->SelectYAlgorithmChoice((GUIDE_ALGORITHM)pConfig->Profile.GetInt("/scope/YGuideAlgorithm", GUIDE_ALGORITHM_RESIST_SWITCH));
-                if (pFrame->pGraphLog)
-                    pFrame->pGraphLog->UpdateControls();
-                pFrame->pGuider->SetPaused(prev);
-            }
-            if (pFrame->pGuider->IsGuiding())
-                pFrame->StatusMsg("Guiding");
-            Debug.Write(_("Blind guiding: guiding algorithms restored\n"));
-        }
+        else
+            EndBlindGuiding();
     }
     catch (const wxString& msg)
     {

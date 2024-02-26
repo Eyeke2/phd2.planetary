@@ -53,8 +53,9 @@ private:
     bool m_Planetary_SurfaceTracking;
     bool m_EclipseMode;
     bool m_RoiEnabled;
-    int  m_starProfileSize;
     bool m_showAdvancedSettings;
+    bool m_prevCaptureActive;
+
     double m_Planetary_minDist;
     double m_Planetary_param1;
     double m_Planetary_param2;
@@ -70,6 +71,8 @@ private:
     bool   m_measuringSharpnessMode;
     bool   m_unknownHFD;
     double m_focusSharpness;
+    int    m_starProfileSize;
+
     float  m_PlanetEccentricity;
     float  m_PlanetAngle;
 
@@ -79,11 +82,11 @@ private:
         bool   ActivateBlindMode;       // Flag indicating requesting blind guiding
         bool   ForcedBlindMode;         // Flag forcing blind guiding by user
         bool   Active;                  // Flag indicating blind guiding is active
-        double PosX;      // X coordinate of the blind guiding target
-        double PosY;      // Y coordinate of the blind guiding target
-        int    SearchRegion;     // Search region for star metrics - shows last known search region, ignored in code
-        int    Radius;           // Radius of the blind guiding target - shows last known radius, ignored in code
-        double MountRA;          //
+        double PosX;                    // X coordinate of the blind guiding target
+        double PosY;                    // Y coordinate of the blind guiding target
+        int    SearchRegion;            // Search region for star metrics - shows last known search region, ignored in code
+        int    Radius;                  // Radius of the blind guiding target - shows last known radius, ignored in code
+        double MountRA;
         double MountDEC;
         double MountST;
         double DriftRaGain;
@@ -96,6 +99,13 @@ private:
         double DriftRaPixelsPerSecond;
         double DriftDecPixelsPerSecond;
         double Cosdec;
+
+        // Linear fit parameters for automatic tuning of the drift
+        bool   CalibrationEnabled;
+        int    linfitN;
+        double linfitSumT, linfitSumTxT;
+        double linfitSumRa, linfitSumTxRa;
+        double linfitSumDec, linfitSumTxDec;
     } m_blind;
 
     int  m_Planetary_maxFeatures;
@@ -204,9 +214,7 @@ public:
     void ToggleSharpness();
     void GetDetectionStatus(wxString& statusMsg);
     void NotifyCameraConnect(bool connected);
-    void NotifyStartCapturing();
-    void NotifyStopCapturing();
-    void NotifyFinishStop();
+    bool UpdateCaptureState(bool CaptureActive);
     void SaveCameraSimulationMove(double rx, double ry);
 
     bool GetPlanetaryEnableState() { return m_Planetary_enabled; }
@@ -274,8 +282,11 @@ public:
 
     bool GetBlindGuidingState() { return m_blind.Active; }
     bool IsMountGuidingOffsetValid() { return m_blind.Active && m_blind.MountOfs.IsValid(); }
-    void SetTestBlindGuidingState(bool enable) { m_blind.ForcedBlindMode = enable; }
-    bool GetTestBlindGuidingState() { return m_blind.ForcedBlindMode; }
+    bool GetBlindGuidingForcedMode() { return m_blind.ForcedBlindMode; }
+    void SetBlindGuidingForcedMode(bool enable) { m_blind.ForcedBlindMode = enable; }
+    bool GetBlindCalibrationState() { return m_blind.CalibrationEnabled; }
+    void SetBlindCalibrationState(bool enable) { m_blind.CalibrationEnabled = enable; }
+
     PHD_Point GetBlindGuidingMountOffset() { return m_blind.MountOfs; }
 
     bool   IsDriftValid() { return m_blind.MeasuredDriftValid; }
@@ -320,7 +331,11 @@ private:
     void    FindCenters(cv::Mat image, CvSeq* contours, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, cv::Moments& mu, int minRadius, int maxRadius);
     bool    FindPlanetCircle(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
     bool    FindPlanetEclipse(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
+
+    void    InitSlope();
+    void    CalculateSlope(double timeStamp, double errorRa, double errorDec, double& slopeRa, double& slopeDec);
     void    BlindGuidingLogic();
+    void    EndBlindGuiding();
 
     cv::Point2f calculateCentroid(const std::vector<cv::KeyPoint>& keypoints, cv::Point2f& clickedPoint);
     bool areCollinear(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::KeyPoint& kp3);

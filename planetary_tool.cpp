@@ -50,8 +50,9 @@ struct PlanetToolWin : public wxDialog
     wxBoxSizer* m_mainSizer;
     wxCheckBox* m_enableCheckBox;
     wxCheckBox* m_featureTrackingCheckBox;
-    wxCheckBox* m_SaveVideoLogCheckBox;
-    wxCheckBox* m_testBlindGuiding;
+    wxCheckBox* m_saveVideoLogCheckBox;
+    wxCheckBox* m_enableBlindGuiding;
+    wxCheckBox* m_enableBlindCalibrationCheckBox;
 
     wxSpinCtrlDouble *m_minDist;
     wxSpinCtrlDouble *m_param1;
@@ -107,7 +108,8 @@ struct PlanetToolWin : public wxDialog
     void OnShowElementsClick(wxCommandEvent& event);
     void OnNoiseFilterClick(wxCommandEvent& event);
 
-    void OnTestBlindGuiding(wxCommandEvent& event);
+    void OnToggleBlindGuiding(wxCommandEvent& event);
+    void OnToggleBlindCalibration(wxCommandEvent& event);
     void OnDriftRaGainChanged(wxSpinDoubleEvent& event);
     void OnDriftDecGainChanged(wxSpinDoubleEvent& event);
 
@@ -289,31 +291,37 @@ PlanetToolWin::PlanetToolWin()
     m_NoiseFilter->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnNoiseFilterClick, this);
 
     // Video log control
-    m_SaveVideoLogCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable video log"));
-    m_SaveVideoLogCheckBox->SetToolTip(_("Enable recording camera frames to video log file during guiding (using SER format)"));
-    m_SaveVideoLogCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnSaveVideoLog, this);
+    m_saveVideoLogCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable video log"));
+    m_saveVideoLogCheckBox->SetToolTip(_("Enable recording camera frames to video log file during guiding (using SER format)"));
+    m_saveVideoLogCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnSaveVideoLog, this);
 
     // Blind guiding controls
-    wxStaticBoxSizer* pBlindGuidingGroup = new wxStaticBoxSizer(wxVERTICAL, this, _("Blind Guiding"));
+    wxStaticBoxSizer* pBlindGuidingGroup = new wxStaticBoxSizer(wxVERTICAL, this, _("Blind guiding"));
     wxFlexGridSizer* pBlindGuidingTable = new wxFlexGridSizer(3, 2, 5, 5);
-    wxString blindToolTip = _("Use estimated planet position based only on RA/DEC drift rates for testing. "
-           "This feature becomes enabled after successful mount calibration and after Guiding Assistant finds RA/DEC drift rates. "
-           "Please note that DEC backlash estimation is not required for blind guiding while Guiding Assistant must be repeated after the MERIDIAN FLIP! "
-           "Adjust blind guiding parameters for best performance, stability and accuracy.");
-    m_testBlindGuiding = new wxCheckBox(this, wxID_ANY, _("Force blind guiding"));
-    m_testBlindGuiding->SetToolTip(blindToolTip);
-    m_testBlindGuiding->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnTestBlindGuiding, this);
-    m_driftRaGainCtrl = NewSpinner(this, _T("%.02f"), PT_BLIND_DRIFT_GAIN_DEFAULT, PT_BLIND_DRIFT_GAIN_MIN, PT_BLIND_DRIFT_GAIN_MAX, 0.01);
-    m_driftRaGainCtrl->SetDigits(2);
-    m_driftDecGainCtrl = NewSpinner(this, _T("%.02f"), PT_BLIND_DRIFT_GAIN_DEFAULT, PT_BLIND_DRIFT_GAIN_MIN, PT_BLIND_DRIFT_GAIN_MAX, 0.01);
-    m_driftDecGainCtrl->SetDigits(2);
+    wxString blindToolTip = _("Use estimated planet position based only on RA/DEC drift rates. "
+        "This feature becomes available after successful mount calibration and after Guiding Assistant calculates RA/DEC drift rates. "
+        "DEC backlash estimation is not required for blind guiding. Guiding Assistant must be repeated after the MERIDIAN FLIP!");
+    m_enableBlindGuiding = new wxCheckBox(this, wxID_ANY, _("Force blind guiding"));
+    m_enableBlindGuiding->SetToolTip(blindToolTip);
+    m_enableBlindGuiding->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnToggleBlindGuiding, this);
+    m_enableBlindCalibrationCheckBox = new wxCheckBox(this, wxID_ANY, _("Automatic drift gain calibration"));
+    m_enableBlindCalibrationCheckBox->SetToolTip(_("Enable automatic RA/DEC drift gain calibration. "
+        "Can be performed only after adjusting detection parameters and carried out during clear weather windows. "
+        "The method works by comparing the estimated and actual positions of the object in the camera view."));
+    m_enableBlindCalibrationCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnToggleBlindCalibration, this);
+    m_driftRaGainCtrl = NewSpinner(this, _T("%.03f"), PT_BLIND_DRIFT_GAIN_DEFAULT, PT_BLIND_DRIFT_GAIN_MIN, PT_BLIND_DRIFT_GAIN_MAX, 0.001);
+    m_driftRaGainCtrl->SetDigits(3);
+    m_driftDecGainCtrl = NewSpinner(this, _T("%.03f"), PT_BLIND_DRIFT_GAIN_DEFAULT, PT_BLIND_DRIFT_GAIN_MIN, PT_BLIND_DRIFT_GAIN_MAX, 0.001);
+    m_driftDecGainCtrl->SetDigits(3);
     m_driftRaGainCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnDriftRaGainChanged, this);
     m_driftDecGainCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnDriftDecGainChanged, this);
     AddTableEntryPair(this, pBlindGuidingTable, _("RA drift gain"), m_driftRaGainCtrl,
         _("Adjusting this value correctly can help reduce the effective drift rate. Make adjustments gradually (default = 1.00)"));
     AddTableEntryPair(this, pBlindGuidingTable, _("DEC drift gain"), m_driftDecGainCtrl,
         _("Adjusting this value correctly can help reduce the effective drift rate. Make adjustments gradually (default = 1.00)"));
-    pBlindGuidingGroup->Add(m_testBlindGuiding, 0, wxLEFT | wxALIGN_LEFT, 5);
+    pBlindGuidingGroup->Add(m_enableBlindGuiding, 0, wxLEFT | wxALIGN_LEFT, 5);
+    pBlindGuidingGroup->AddSpacer(10);
+    pBlindGuidingGroup->Add(m_enableBlindCalibrationCheckBox, 0, wxLEFT | wxALIGN_LEFT, 5);
     pBlindGuidingGroup->AddSpacer(10);
     pBlindGuidingGroup->Add(pBlindGuidingTable);
 
@@ -342,13 +350,18 @@ PlanetToolWin::PlanetToolWin()
     rightSizer->AddSpacer(10);
     rightSizer->Add(m_NoiseFilter, 0, wxLEFT | wxALIGN_LEFT, 20);
     rightSizer->AddSpacer(10);
-    rightSizer->Add(m_SaveVideoLogCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
+    rightSizer->Add(m_saveVideoLogCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
     rightSizer->AddSpacer(10);
     rightSizer->Add(pBlindGuidingGroup, 0, wxALL, 5);
 
     // Hide/show the advanced settings
+    bool showAdvanced = pPlanet->GetShowAdvancedSettings();
     m_advancedSizer = rightSizer;
-    m_advancedSizer->Show(pPlanet->GetShowAdvancedSettings());
+    m_advancedSizer->Show(showAdvanced);
+    if (showAdvanced)
+        m_advancedTimer.Start(3000);
+    else
+        m_advancedTimer.Stop();
 
     // Both left and right panels
     wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -400,8 +413,9 @@ PlanetToolWin::PlanetToolWin()
     m_RoiCheckBox->SetValue(pPlanet->GetRoiEnableState());
     m_NoiseFilter->SetValue(pPlanet->GetNoiseFilterState());
     m_enableCheckBox->SetValue(pPlanet->GetPlanetaryEnableState());
-    m_SaveVideoLogCheckBox->SetValue(pPlanet->GetVideoLogging());
-    m_testBlindGuiding->SetValue(pPlanet->GetTestBlindGuidingState());
+    m_saveVideoLogCheckBox->SetValue(pPlanet->GetVideoLogging());
+    m_enableBlindGuiding->SetValue(pPlanet->GetBlindGuidingForcedMode());
+    m_enableBlindCalibrationCheckBox->SetValue(pPlanet->GetBlindCalibrationState());
     m_driftRaGainCtrl->SetValue(pPlanet->GetDriftRaGain());
     m_driftDecGainCtrl->SetValue(pPlanet->GetDriftDecGain());
 
@@ -594,11 +608,20 @@ void PlanetToolWin::OnNoiseFilterClick(wxCommandEvent& event)
     Debug.Write(wxString::Format("Planetary tracking: %s noise filter\n", enabled ? "enabled" : "disabled"));
 }
 
-void PlanetToolWin::OnTestBlindGuiding(wxCommandEvent& event)
+void PlanetToolWin::OnToggleBlindGuiding(wxCommandEvent& event)
 {
-    bool enabled = m_testBlindGuiding->IsChecked();
-    pPlanet->SetTestBlindGuidingState(enabled);
+    bool enabled = m_enableBlindGuiding->IsChecked();
+    pPlanet->SetBlindGuidingForcedMode(enabled);
     Debug.Write(wxString::Format("Planetary tracking: %s forced blind guiding\n", enabled ? "enabled" : "disabled"));
+}
+
+void PlanetToolWin::OnToggleBlindCalibration(wxCommandEvent& event)
+{
+    bool enabled = m_enableBlindCalibrationCheckBox->IsChecked();
+    pPlanet->SetBlindCalibrationState(enabled);
+    Debug.Write(wxString::Format("Planetary tracking: %s blind guiding auto calibration\n", enabled ? "enabled" : "disabled"));
+    m_driftRaGainCtrl->Enable(!enabled);
+    m_driftDecGainCtrl->Enable(!enabled);
 }
 
 void PlanetToolWin::OnDriftRaGainChanged(wxSpinDoubleEvent& event)
@@ -644,7 +667,7 @@ void PlanetToolWin::OnGainChanged(wxSpinDoubleEvent& event)
 
 void PlanetToolWin::OnSaveVideoLog(wxCommandEvent& event)
 {
-    bool enabled = m_SaveVideoLogCheckBox->IsChecked();
+    bool enabled = m_saveVideoLogCheckBox->IsChecked();
     pPlanet->SetVideoLogging(enabled);
     Debug.Write(wxString::Format("Planetary tracking: %s video log\n", enabled ? "enabled" : "disabled"));
 }
@@ -655,9 +678,21 @@ void PlanetToolWin::UpdateBlindGuidingControls()
 {
     bool enabled = pPlanet->GetPlanetaryEnableState();
     bool blindGuidingAllowed = pPlanet->IsDriftValid() && pMount && pMount->IsCalibrated();
-    m_testBlindGuiding->Enable(enabled && blindGuidingAllowed);
-    m_driftRaGainCtrl->Enable(enabled && blindGuidingAllowed);
-    m_driftDecGainCtrl->Enable(enabled && blindGuidingAllowed);
+    m_enableBlindGuiding->Enable(enabled && blindGuidingAllowed);
+    m_enableBlindCalibrationCheckBox->Enable(enabled && blindGuidingAllowed);
+
+    bool autodrift = pPlanet->GetBlindCalibrationState();
+    m_driftRaGainCtrl->Enable(enabled && blindGuidingAllowed && !autodrift);
+    m_driftDecGainCtrl->Enable(enabled && blindGuidingAllowed && !autodrift);
+
+    // Forced blind guiding can become disabled when guiding stops
+    m_enableBlindGuiding->SetValue(pPlanet->GetBlindGuidingForcedMode());
+    if (pPlanet->GetBlindCalibrationState())
+    {
+        // Update the blind guiding controls
+        m_driftRaGainCtrl->SetValue(pPlanet->GetDriftRaGain());
+        m_driftDecGainCtrl->SetValue(pPlanet->GetDriftDecGain());
+    }
 }
 
 void PlanetToolWin::UpdateStatus()
@@ -677,7 +712,7 @@ void PlanetToolWin::UpdateStatus()
     m_RoiCheckBox->Enable(enabled && !surfaceTracking);
     m_ShowElements->Enable(enabled);
     m_NoiseFilter->Enable(enabled);
-    m_SaveVideoLogCheckBox->Enable(enabled);
+    m_saveVideoLogCheckBox->Enable(enabled);
     UpdateBlindGuidingControls();
 
     // Update slider states
@@ -787,7 +822,8 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         pPlanet->SetDriftRaGain(PT_BLIND_DRIFT_GAIN_DEFAULT);
         pPlanet->SetDriftDecGain(PT_BLIND_DRIFT_GAIN_DEFAULT);
         pPlanet->SetNoiseFilterState(false);
-        pPlanet->SetTestBlindGuidingState(false);
+        pPlanet->SetBlindGuidingForcedMode(false);
+        pPlanet->SetBlindCalibrationState(false);
 
         m_minDist->SetValue(pPlanet->GetPlanetaryParam_minDist());
         m_param1->SetValue(pPlanet->GetPlanetaryParam_param1());
@@ -800,7 +836,8 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         m_NoiseFilter->SetValue(pPlanet->GetNoiseFilterState());
         m_driftRaGainCtrl->SetValue(pPlanet->GetDriftRaGain());
         m_driftDecGainCtrl->SetValue(pPlanet->GetDriftDecGain());
-        m_testBlindGuiding->SetValue(pPlanet->GetTestBlindGuidingState());
+        m_enableBlindGuiding->SetValue(pPlanet->GetBlindGuidingForcedMode());
+        m_enableBlindCalibrationCheckBox->SetValue(pPlanet->GetBlindCalibrationState());
     }
     else
         this->Close();

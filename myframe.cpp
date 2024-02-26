@@ -1241,6 +1241,9 @@ void MyFrame::UpdateButtonsStatus()
     if (pierFlipToolWin)
         PierFlipTool::UpdateUIControls();
 
+    if (pGuider->m_Planet.UpdateCaptureState(CaptureActive))
+        need_update = true;
+
     if (need_update)
     {
         if (pGuider->GetState() < STATE_SELECTED)
@@ -1897,9 +1900,6 @@ void MyFrame::StartCapturing()
             ScheduleExposure();
         }
     }
-
-    // Notify planetary guider about the start of a new capture
-    pGuider->m_Planet.NotifyStartCapturing();
 }
 
 bool MyFrame::StopCapturing()
@@ -1940,9 +1940,6 @@ bool MyFrame::StopCapturing()
         }
     }
 
-    // Notify planetary guider about the end of a capture
-    pGuider->m_Planet.NotifyStopCapturing();
-
     return finished;
 }
 
@@ -1957,8 +1954,6 @@ void MyFrame::SetPaused(PauseType pause)
         pGuider->SetPaused(pause);
         StatusMsgNoTimeout(_("Paused") + (pause == PAUSE_FULL ? _("/full") : _("/looping")));
         GuideLog.ServerCommand(pGuider, "PAUSE");
-        if (pause == PAUSE_FULL)
-            pGuider->m_Planet.NotifyStopCapturing();
         EvtServer.NotifyPaused();
     }
     else if (pause == PAUSE_NONE && isPaused)
@@ -1973,7 +1968,6 @@ void MyFrame::SetPaused(PauseType pause)
             ScheduleExposure();
         StatusMsg(_("Resumed"));
         GuideLog.ServerCommand(pGuider, "RESUME");
-        pGuider->m_Planet.NotifyStartCapturing();
         EvtServer.NotifyResumed();
     }
 }
