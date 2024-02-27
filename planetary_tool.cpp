@@ -58,9 +58,6 @@ struct PlanetToolWin : public wxDialog
     wxStaticText* m_BlindGuidingStatus;
     wxButton*   m_calibrateButton;
 
-    wxSpinCtrlDouble *m_minDist;
-    wxSpinCtrlDouble *m_param1;
-    wxSpinCtrlDouble *m_param2;
     wxSpinCtrlDouble *m_minRadius;
     wxSpinCtrlDouble *m_maxRadius;
 
@@ -78,7 +75,6 @@ struct PlanetToolWin : public wxDialog
 
     wxButton   *m_CloseButton;
     wxButton   *m_AdvancedButton;
-    wxCheckBox *m_EclipseModeCheckBox;
     wxCheckBox *m_RoiCheckBox;
     wxCheckBox *m_ShowElements;
     wxCheckBox* m_NoiseFilter;
@@ -102,12 +98,8 @@ struct PlanetToolWin : public wxDialog
     void OnSurfaceTrackingClick(wxCommandEvent& event);
 
     void OnEnableToggled(wxCommandEvent& event);
-    void OnSpinCtrl_minDist(wxSpinDoubleEvent& event);
-    void OnSpinCtrl_param1(wxSpinDoubleEvent& event);
-    void OnSpinCtrl_param2(wxSpinDoubleEvent& event);
     void OnSpinCtrl_minRadius(wxSpinDoubleEvent& event);
     void OnSpinCtrl_maxRadius(wxSpinDoubleEvent& event);
-    void OnEclipseModeClick(wxCommandEvent& event);
     void OnRoiModeClick(wxCommandEvent& event);
     void OnShowElementsClick(wxCommandEvent& event);
     void OnNoiseFilterClick(wxCommandEvent& event);
@@ -175,40 +167,14 @@ PlanetToolWin::PlanetToolWin()
     m_featureTrackingCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable surface features detection/tracking"));
     m_featureTrackingCheckBox->SetToolTip(_("Enable surface feature detection/tracking mode for imaging at high magnification"));
 
-    wxStaticText* minDist_Label = new wxStaticText(m_planetTab, wxID_ANY, _("min dist:"));
-    wxStaticText* param1_Label = new wxStaticText(m_planetTab, wxID_ANY, _("p1:"));
-    wxStaticText* param2_Label = new wxStaticText(m_planetTab, wxID_ANY, _("p2:"));
     wxStaticText* minRadius_Label = new wxStaticText(m_planetTab, wxID_ANY, _("min radius:"));
-    wxStaticText* maxRadius_Label = new wxStaticText(m_planetTab, wxID_ANY, _("max radius:"));
-
-    m_minDist = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 1024, PT_MIN_DIST_DEFAULT);
-    minDist_Label->SetToolTip(_("minimum distance between the centers of the detected circles"));
-
-    m_param1 = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 255, PT_PARAM1_DEFAULT);
-    param1_Label->SetToolTip(_("The higher threshold for the Canny edge detector. Increase this value to avoid false circles"));
-
-    m_param2 = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 512, PT_PARAM2_DEFAULT);
-    param2_Label->SetToolTip(_("The accumulator threshold for circle centers. Smaller values will mean more circle candidates, "
-        "and larger values will suppress weaker circles. You might want to increase this value if you're getting false circles"));
-
     m_minRadius = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, PT_RADIUS_MIN, PT_RADIUS_MAX, PT_MIN_RADIUS_DEFAULT);
     minRadius_Label->SetToolTip(_("Minimum planet radius in pixels. If set to 0, the minimal size is not limited."));
 
+    wxStaticText* maxRadius_Label = new wxStaticText(m_planetTab, wxID_ANY, _("max radius:"));
     m_maxRadius = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, PT_RADIUS_MIN, PT_RADIUS_MAX, PT_MAX_RADIUS_DEFAULT);
     maxRadius_Label->SetToolTip(_("Maximum planet radius in pixels. If set to 0, the maximal size is not limited. "
         "If neither minRadius nor maxRadius is set, they are estimated from the image size."));
-
-    wxBoxSizer *x_circleParams = new wxBoxSizer(wxHORIZONTAL);
-    x_circleParams->Add(0, 0, 1, wxEXPAND, 5);
-    x_circleParams->Add(minDist_Label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
-    x_circleParams->Add(m_minDist, 0, wxALIGN_CENTER_VERTICAL, 5);
-    x_circleParams->Add(0, 0, 1, wxEXPAND, 5);
-    x_circleParams->Add(param1_Label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
-    x_circleParams->Add(m_param1, 0, wxALIGN_CENTER_VERTICAL, 5);
-    x_circleParams->Add(0, 0, 1, wxEXPAND, 5);
-    x_circleParams->Add(param2_Label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
-    x_circleParams->Add(m_param2, 0, wxALIGN_CENTER_VERTICAL, 5);
-    x_circleParams->Add(0, 0, 1, wxEXPAND, 5);
 
     wxBoxSizer *x_radii = new wxBoxSizer(wxHORIZONTAL);
     x_radii->Add(0, 0, 1, wxEXPAND, 5);
@@ -220,23 +186,17 @@ PlanetToolWin::PlanetToolWin()
     x_radii->Add(0, 0, 1, wxEXPAND, 5);
 
     // Eclipse mode stuff
-    m_EclipseModeCheckBox = new wxCheckBox(m_planetTab, wxID_ANY, _("Enable Eclipse mode"));
-    m_EclipseModeCheckBox->SetToolTip(_("Enable Eclipse mode for enhanced tracking of partial solar / lunar discs"));
     wxStaticText* ThresholdLabel = new wxStaticText(m_planetTab, wxID_ANY, wxT("Edge Detection Threshold:"), wxDefaultPosition, wxDefaultSize, 0);
     m_ThresholdSlider = new wxSlider(m_planetTab, wxID_ANY, PT_HIGH_THRESHOLD_DEFAULT, PT_THRESHOLD_MIN, PT_HIGH_THRESHOLD_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
     ThresholdLabel->SetToolTip(_("Higher values reduce sensitivity to weaker edges, providing cleaner edge maps. Detected edges are shown in red."));
     m_ThresholdSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnThresholdChanged, this);
     m_RoiCheckBox = new wxCheckBox(m_planetTab, wxID_ANY, _("Enable ROI"));
-    m_RoiCheckBox->SetToolTip(_("Enable ROI for improved processing speed and reduced CPU usage."));
+    m_RoiCheckBox->SetToolTip(_("Enable automatically selected Region Of Interest (ROI) for improved processing speed and reduced CPU usage."));
 
     // Add all planetary tab elements
     wxStaticBoxSizer *planetSizer = new wxStaticBoxSizer(new wxStaticBox(m_planetTab, wxID_ANY, _("")), wxVERTICAL);
     planetSizer->AddSpacer(20);
-    planetSizer->Add(m_EclipseModeCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
-    planetSizer->AddSpacer(10);
     planetSizer->Add(m_RoiCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
-    planetSizer->AddSpacer(20);
-    planetSizer->Add(x_circleParams, 0, wxEXPAND, 5);
     planetSizer->AddSpacer(20);
     planetSizer->Add(x_radii, 0, wxEXPAND, 5);
     planetSizer->AddSpacer(10);
@@ -416,29 +376,21 @@ PlanetToolWin::PlanetToolWin()
     m_CloseButton->Bind(wxEVT_ENTER_WINDOW, &PlanetToolWin::OnMouseEnterCloseBtn, this);
     m_CloseButton->Bind(wxEVT_LEAVE_WINDOW, &PlanetToolWin::OnMouseLeaveCloseBtn, this);
     m_AdvancedButton->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &PlanetToolWin::OnAdvancedButton, this);
-    m_EclipseModeCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnEclipseModeClick, this);
     m_RoiCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnRoiModeClick, this);
     Bind(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(PlanetToolWin::OnClose), this);
 
-    m_minDist->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_minDist), NULL, this);
-    m_param1->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_param1), NULL, this);
-    m_param2->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_param2), NULL, this);
     m_minRadius->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_minRadius), NULL, this);
     m_maxRadius->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_maxRadius), NULL, this);
 
     pPlanet->SetPlanetaryElementsButtonState(false);
     pPlanet->SetPlanetaryElementsVisual(false);
 
-    m_minDist->SetValue(pPlanet->GetPlanetaryParam_minDist());
-    m_param1->SetValue(pPlanet->GetPlanetaryParam_param1());
-    m_param2->SetValue(pPlanet->GetPlanetaryParam_param2());
     m_minRadius->SetValue(pPlanet->GetPlanetaryParam_minRadius());
     m_maxRadius->SetValue(pPlanet->GetPlanetaryParam_maxRadius());
     m_ThresholdSlider->SetValue(pPlanet->GetPlanetaryParam_highThreshold());
     m_minHessianSlider->SetValue(pPlanet->GetPlanetaryParam_minHessian());
     m_maxFeaturesSlider->SetValue(pPlanet->GetPlanetaryParam_maxFeatures());
     m_featureTrackingCheckBox->SetValue(pPlanet->GetSurfaceTrackingState());
-    m_EclipseModeCheckBox->SetValue(pPlanet->GetEclipseMode());
     m_RoiCheckBox->SetValue(pPlanet->GetRoiEnableState());
     m_NoiseFilter->SetValue(pPlanet->GetNoiseFilterState());
     m_enableCheckBox->SetValue(pPlanet->GetPlanetaryEnableState());
@@ -576,24 +528,6 @@ void PlanetToolWin::OnSurfaceTrackingClick(wxCommandEvent& event)
     Debug.Write(wxString::Format("Planetary tracking: %s surface features mode\n", featureTracking ? "enabled" : "disabled"));
 }
 
-void PlanetToolWin::OnSpinCtrl_minDist(wxSpinDoubleEvent& event)
-{
-    int v = m_minDist->GetValue();
-    pPlanet->SetPlanetaryParam_minDist(v < 1 ? 1 : v);
-}
-
-void PlanetToolWin::OnSpinCtrl_param1(wxSpinDoubleEvent& event)
-{
-    int v = m_param1->GetValue();
-    pPlanet->SetPlanetaryParam_param1(v < 1 ? 1 : v);
-}
-
-void PlanetToolWin::OnSpinCtrl_param2(wxSpinDoubleEvent& event)
-{
-    int v = m_param2->GetValue();
-    pPlanet->SetPlanetaryParam_param2(v < 1 ? 1 : v);
-}
-
 void PlanetToolWin::OnSpinCtrl_minRadius(wxSpinDoubleEvent& event)
 {
     int v = m_minRadius->GetValue();
@@ -606,14 +540,6 @@ void PlanetToolWin::OnSpinCtrl_maxRadius(wxSpinDoubleEvent& event)
     int v = m_maxRadius->GetValue();
     pPlanet->SetPlanetaryParam_maxRadius(v < 1 ? 1 : v);
     pPlanet->PlanetVisualRefresh();
-}
-
-void PlanetToolWin::OnEclipseModeClick(wxCommandEvent& event)
-{
-    bool EclipseMode = m_EclipseModeCheckBox->IsChecked();
-    pPlanet->SetEclipseMode(EclipseMode);
-    UpdateStatus();
-    Debug.Write(wxString::Format("Planetary tracking: %s eclipse mode\n", EclipseMode ? "enabled" : "disabled"));
 }
 
 void PlanetToolWin::OnRoiModeClick(wxCommandEvent& event)
@@ -815,14 +741,9 @@ void PlanetToolWin::UpdateStatus()
     bool surfaceTracking = pPlanet->GetSurfaceTrackingState();
 
     // Update planetary tracking controls
-    bool EclipseMode = pPlanet->GetEclipseMode();
     m_featureTrackingCheckBox->Enable(enabled);
-    m_minDist->Enable(enabled && !surfaceTracking && !EclipseMode);
-    m_param1->Enable(enabled && !surfaceTracking && !EclipseMode);
-    m_param2->Enable(enabled && !surfaceTracking && !EclipseMode);
     m_minRadius->Enable(enabled && !surfaceTracking);
     m_maxRadius->Enable(enabled && !surfaceTracking);
-    m_EclipseModeCheckBox->Enable(enabled && !surfaceTracking);
     m_RoiCheckBox->Enable(enabled && !surfaceTracking);
     m_ShowElements->Enable(enabled);
     m_NoiseFilter->Enable(enabled);
@@ -830,7 +751,7 @@ void PlanetToolWin::UpdateStatus()
     UpdateBlindGuidingControls();
 
     // Update slider states
-    m_ThresholdSlider->Enable(enabled && !surfaceTracking && EclipseMode);
+    m_ThresholdSlider->Enable(enabled && !surfaceTracking);
     m_minHessianSlider->Enable(enabled && surfaceTracking);
     m_maxFeaturesSlider->Enable(enabled && surfaceTracking);
 
@@ -901,7 +822,6 @@ void PlanetToolWin::OnMaxFeaturesChanged(wxCommandEvent& event)
 void PlanetToolWin::OnClose(wxCloseEvent& evt)
 {
     pFrame->m_PlanetaryMenuItem->Check(pPlanet->GetPlanetaryEnableState());
-    pPlanet->SetEclipseMode(m_EclipseModeCheckBox->IsChecked());
     pPlanet->SetPlanetaryElementsButtonState(false);
     pPlanet->SetPlanetaryElementsVisual(false);
     pFrame->pGuider->Refresh();
@@ -924,9 +844,6 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
     // Reset all to defaults
     if (wxGetKeyState(WXK_ALT))
     {
-        pPlanet->SetPlanetaryParam_minDist(PT_MIN_DIST_DEFAULT);
-        pPlanet->SetPlanetaryParam_param1(PT_PARAM1_DEFAULT);
-        pPlanet->SetPlanetaryParam_param2(PT_PARAM2_DEFAULT);
         pPlanet->SetPlanetaryParam_minRadius(PT_MIN_RADIUS_DEFAULT);
         pPlanet->SetPlanetaryParam_maxRadius(PT_MAX_RADIUS_DEFAULT);
         pPlanet->SetPlanetaryParam_lowThreshold(PT_HIGH_THRESHOLD_DEFAULT/2);
@@ -939,9 +856,6 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         pPlanet->SetBlindGuidingCalMode(GuiderPlanet::BLIND_CAL_MANUAL);
         pPlanet->SetAutoBlindGuiding(false);
 
-        m_minDist->SetValue(pPlanet->GetPlanetaryParam_minDist());
-        m_param1->SetValue(pPlanet->GetPlanetaryParam_param1());
-        m_param2->SetValue(pPlanet->GetPlanetaryParam_param2());
         m_minRadius->SetValue(pPlanet->GetPlanetaryParam_minRadius());
         m_maxRadius->SetValue(pPlanet->GetPlanetaryParam_maxRadius());
         m_ThresholdSlider->SetValue(pPlanet->GetPlanetaryParam_highThreshold());

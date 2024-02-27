@@ -58,14 +58,10 @@ private:
     // Planetary guiding parameters
     bool m_Planetary_enabled;
     bool m_Planetary_SurfaceTracking;
-    bool m_EclipseMode;
     bool m_RoiEnabled;
     bool m_showAdvancedSettings;
     bool m_prevCaptureActive;
 
-    double m_Planetary_minDist;
-    double m_Planetary_param1;
-    double m_Planetary_param2;
     double m_Planetary_minRadius;
     double m_Planetary_maxRadius;
     int    m_Planetary_lowThreshold;
@@ -142,8 +138,6 @@ private:
     cv::Point2f m_prevClickedPoint;
 
     std::vector<cv::Point2f> m_eclipseContour;
-    bool m_circlesValid;
-    std::vector<cv::Vec3f> m_circles;
     int m_centoid_x;
     int m_centoid_y;
     int m_sm_circle_x;
@@ -178,7 +172,6 @@ public:
     // Planet detection modes
     enum PlanetDetectMode
     {
-        PLANET_DETECT_MODE_CIRCLES = 0,
         PLANET_DETECT_MODE_ECLIPSE = 1,
         PLANET_DETECT_MODE_SURFACE = 2
     };
@@ -214,10 +207,8 @@ public:
     {
         if (m_Planetary_SurfaceTracking)
             return PLANET_DETECT_MODE_SURFACE;
-        else if (m_EclipseMode)
-            return PLANET_DETECT_MODE_ECLIPSE;
         else
-            return PLANET_DETECT_MODE_CIRCLES;
+            return PLANET_DETECT_MODE_ECLIPSE;
     }
 
     double GetHFD();
@@ -239,18 +230,10 @@ public:
         m_measuringSharpnessMode = enabled;
         m_unknownHFD = true;
     }
-    void   SetPlanetaryParam_minDist(double val) { m_Planetary_minDist = val; }
-    double GetPlanetaryParam_minDist() { return m_Planetary_minDist; }
-    void   SetPlanetaryParam_param1(double val) { m_Planetary_param1 = val; }
-    double GetPlanetaryParam_param1() { return m_Planetary_param1; }
-    void   SetPlanetaryParam_param2(double val) { m_Planetary_param2 = val; }
-    double GetPlanetaryParam_param2() { return m_Planetary_param2; }
     void   SetPlanetaryParam_minRadius(double val) { m_Planetary_minRadius = val; }
     double GetPlanetaryParam_minRadius() { return m_Planetary_minRadius; }
     void   SetPlanetaryParam_maxRadius(double val) { m_Planetary_maxRadius = val; }
     double GetPlanetaryParam_maxRadius() { return m_Planetary_maxRadius; }
-    bool GetEclipseMode() { return m_EclipseMode; }
-    void SetEclipseMode(bool mode) { m_EclipseMode = mode; }
     bool GetRoiEnableState() { return m_RoiEnabled; }
     void SetRoiEnableState(bool enabled) { m_RoiEnabled = enabled; }
     void SetPlanetaryParam_lowThreshold(int value) { m_Planetary_lowThreshold = value; }
@@ -351,7 +334,6 @@ private:
     int     RefineEclipseCenter(float& bestScore, CircleDescriptor& eclipseCenter, std::vector<cv::Point2f>& eclipseContour, int minRadius, int maxRadius, float searchRadius, float resolution = 1.0);
     float   FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, cv::Moments& mu, int minRadius, int maxRadius);
     void    FindCenters(cv::Mat image, CvSeq* contours, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, cv::Moments& mu, int minRadius, int maxRadius);
-    bool    FindPlanetCircle(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
     bool    FindPlanetEclipse(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
 
     void    InitSlope();
