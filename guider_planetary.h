@@ -47,6 +47,13 @@
 // Planetary guiding/tracking state and control class
 class GuiderPlanet
 {
+public:
+    enum BlindCalMode
+    {
+        BLIND_CAL_MANUAL = 0,
+        BLIND_CAL_AUTO = 1,
+    };
+
 private:
     // Planetary guiding parameters
     bool m_Planetary_enabled;
@@ -79,13 +86,19 @@ private:
     // Blind guiding state
     struct blindGuidingState
     {
-        bool   ActivateBlindMode;       // Flag indicating requesting blind guiding
-        bool   ForcedBlindMode;         // Flag forcing blind guiding by user
-        bool   Active;                  // Flag indicating blind guiding is active
+        enum   BlindCalMode blindGuidingCalMode;    // Manual or automatic calibration mode
+        wxString CalibrationStatus;     // Status message for blind guiding calibration
+        bool   CalibrationRequest;      // Flag requesting calibration in current calibration mode
+        bool   CalibrationInProgress;   // Flag indicating that calibration is enabled and is in progress
+        bool   AutoBlindGuiding;        // Flag indicating that automatic blind guiding is enabled
+        bool   GuidingRequest;          // Flag requesting blind guiding to be enabled or disabled when signal is lost or regained
+        bool   GuidingActive;           // Blind guiding is active - either with manual/auto calibration or with automatic use on signal loss
+        bool   CalibrationComplete;     // Flag indicating that calibration is complete and guiding can be enabled
+
         double PosX;                    // X coordinate of the blind guiding target
         double PosY;                    // Y coordinate of the blind guiding target
-        int    SearchRegion;            // Search region for star metrics - shows last known search region, ignored in code
-        int    Radius;                  // Radius of the blind guiding target - shows last known radius, ignored in code
+        int    SearchRegion;            // Search region for star metrics - shows last known search region, ignored in metric calculation
+        int    Radius;                  // Radius of the blind guiding target - shows last known radius, ignored in metric calculation
         double MountRA;
         double MountDEC;
         double MountST;
@@ -94,14 +107,14 @@ private:
         PHD_Point MountOfs;
         wxStopWatch Watchdog;
 
-        // Measured drift rates as reported by Guiding Assistant
+        // Measured drift rates as reported by Guiding Assistant.
+        // Used as a starting point for manual/automatic drift gain tuning.
         bool   MeasuredDriftValid;
         double DriftRaPixelsPerSecond;
         double DriftDecPixelsPerSecond;
         double Cosdec;
 
-        // Linear fit parameters for automatic tuning of the drift
-        bool   CalibrationEnabled;
+        // Linear fit model data for automatic drift gain calibration
         int    linfitN;
         double linfitSumT, linfitSumTxT;
         double linfitSumRa, linfitSumTxRa;
@@ -280,20 +293,29 @@ public:
     void SetVideoLogging(bool enable) { m_videoLogEnabled = enable; }
     bool GetVideoLogging() { return m_videoLogEnabled; }
 
-    bool GetBlindGuidingState() { return m_blind.Active; }
-    bool IsMountGuidingOffsetValid() { return m_blind.Active && m_blind.MountOfs.IsValid(); }
-    bool GetBlindGuidingForcedMode() { return m_blind.ForcedBlindMode; }
-    void SetBlindGuidingForcedMode(bool enable) { m_blind.ForcedBlindMode = enable; }
-    bool GetBlindCalibrationState() { return m_blind.CalibrationEnabled; }
-    void SetBlindCalibrationState(bool enable) { m_blind.CalibrationEnabled = enable; }
+    void   StartBlindGuidingCalibration() { m_blind.CalibrationRequest = true; }
+    void   StopBlindGuidingCalibration() { m_blind.CalibrationRequest = false; }
+    void   StartBlindGuiding() { m_blind.GuidingRequest = true; }
+    void   StopBlindGuiding() { m_blind.GuidingRequest = false; }
+    bool   GetBlindGuidingState() { return m_blind.GuidingActive; }
+    bool   BlindGuidingRequested() { return m_blind.GuidingRequest || m_blind.CalibrationRequest; }
+    void   SetBlindGuidingCalMode(int mode) { m_blind.blindGuidingCalMode = (enum BlindCalMode) mode; }
+    void   SetAutoBlindGuiding(bool enable) { m_blind.AutoBlindGuiding = enable; }
+    bool   GetAutoBlindGuiding() { return m_blind.AutoBlindGuiding; }
 
-    PHD_Point GetBlindGuidingMountOffset() { return m_blind.MountOfs; }
+    void     SetBlindCalibrationStatus(const wxString& status) { m_blind.CalibrationStatus = status; }
+    wxString GetBlindCalibrationStatus() { return m_blind.CalibrationStatus; }
+    void     DetermineBlindCalibrationStatus();
+    enum     BlindCalMode GetBlindGuidingCalMode() { return m_blind.blindGuidingCalMode; }
 
     bool   IsDriftValid() { return m_blind.MeasuredDriftValid; }
     void   SetDriftRaGain(double gain) { m_blind.DriftRaGain = gain; }
     double GetDriftRaGain() { return m_blind.DriftRaGain; }
     void   SetDriftDecGain(double gain) { m_blind.DriftDecGain = gain; }
     double GetDriftDecGain() { return m_blind.DriftDecGain; }
+
+    bool   IsMountGuidingOffsetValid() { return m_blind.GuidingActive && m_blind.MountOfs.IsValid(); }
+    PHD_Point GetBlindGuidingMountOffset() { return m_blind.MountOfs; }
 
 public:
     // Displaying visual aid for planetary parameter tuning

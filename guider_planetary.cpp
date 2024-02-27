@@ -71,11 +71,14 @@ GuiderPlanet::GuiderPlanet()
     m_Planetary_NoiseFilterState = false;
 
     m_blind.MeasuredDriftValid = false;
-    m_blind.ActivateBlindMode = false;
-    m_blind.ForcedBlindMode = false;
-    m_blind.Active = false;
     m_blind.MountOfs.Invalidate();
-    m_blind.CalibrationEnabled = false;
+    m_blind.blindGuidingCalMode = BLIND_CAL_MANUAL;
+    m_blind.CalibrationRequest = false;
+    m_blind.CalibrationInProgress = false;
+    m_blind.CalibrationComplete = false;
+    m_blind.AutoBlindGuiding = false;
+    m_blind.GuidingRequest = false;
+    m_blind.GuidingActive = false;
 
     m_guidingFixationPointValid = false;
     m_surfaceFixationPoint = Point2f(0, 0);
@@ -171,6 +174,7 @@ GuiderPlanet::GuiderPlanet()
         // Delete drift measurements from profile
         pConfig->Profile.DeleteGroup("/PlanetTool/Drift");
     }
+    DetermineBlindCalibrationStatus();
 
     // Get initial values of the planetary tracking state and parameters from configuration
     SetSurfaceTrackingState(pConfig->Profile.GetBoolean("/PlanetTool/surface_tracking", false));
@@ -195,6 +199,7 @@ GuiderPlanet::GuiderPlanet()
     m_Planetary_maxFeatures = wxMax(PT_MIN_SURFACE_FEATURES, wxMin(PT_MAX_SURFACE_FEATURES, m_Planetary_maxFeatures));
 
     // Get blind guiding parameters from configuration
+    m_blind.AutoBlindGuiding = pConfig->Profile.GetBoolean("/PlanetTool/Drift/auto_blind_guiding", false);
     m_blind.DriftRaGain = pConfig->Profile.GetDouble("/PlanetTool/Drift/blind_ra_drift_gain", PT_BLIND_DRIFT_GAIN_DEFAULT);
     m_blind.DriftRaGain = wxMax(PT_BLIND_DRIFT_GAIN_MIN, wxMin(PT_BLIND_DRIFT_GAIN_MAX, m_blind.DriftRaGain));
     m_blind.DriftDecGain = pConfig->Profile.GetDouble("/PlanetTool/Drift/blind_dec_drift_gain", PT_BLIND_DRIFT_GAIN_DEFAULT);
@@ -227,6 +232,56 @@ GuiderPlanet::~GuiderPlanet()
     pConfig->Profile.SetDouble("/PlanetTool/Drift/blind_dec_drift_gain", GetDriftDecGain());
 
     pConfig->Flush();
+}
+
+void GuiderPlanet::DetermineBlindCalibrationStatus()
+{
+    wxString status = _T("");
+    do {
+        if (!pMount || !pMount->IsConnected())
+        {
+            status = _T("Mount is not connected : connect gear");
+            break;
+        }
+        if (!pMount->IsCalibrated())
+        {
+            status = _T("Mount is not calibrated : run PHD2 calibration");
+            break;
+        }
+        if (!m_blind.MeasuredDriftValid)
+        {
+            status = _T("No drift data is available : run Guiding Assistant");
+            break;
+        }
+        if (!GetPlanetaryEnableState())
+        {
+            status = _T("Planetary tracking is not enabled");
+            break;
+        }
+        if (!pFrame->pGuider->IsGuiding())
+        {
+            status = _T("Guiding is not active");
+            break;
+        }
+        if (m_blind.CalibrationInProgress)
+        {
+            status = _T("Calibration in progress");
+            break;
+        }
+        if (m_blind.GuidingActive)
+        {
+            status = _T("Active");
+            break;
+        }
+        if (m_blind.CalibrationComplete)
+        {
+            status = _T("Calibration complete");
+            break;
+        }
+        status = _T("Ready to start");
+    } while (false);
+
+    SetBlindCalibrationStatus(status);
 }
 
 // Planet/feature size depending on planetary detection mode
@@ -367,6 +422,7 @@ void GuiderPlanet::SaveMeasuredDrift(double raDriftPixelsPerSecond, double decDr
     // Set drift gains to default values
     SetDriftRaGain(1.0);
     SetDriftDecGain(1.0);
+    SetAutoBlindGuiding(false);
 
     // Save measured drift alongside current timestamp for later use if session gets restarted.
     // We won't allow using saved drift measurements if the time difference is too large.
@@ -375,6 +431,7 @@ void GuiderPlanet::SaveMeasuredDrift(double raDriftPixelsPerSecond, double decDr
     pConfig->Profile.SetDouble("/PlanetTool/Drift/cosdec", m_blind.Cosdec);
     pConfig->Profile.SetDouble("/PlanetTool/Drift/blind_ra_drift_gain", GetDriftRaGain());
     pConfig->Profile.SetDouble("/PlanetTool/Drift/blind_dec_drift_gain", GetDriftDecGain());
+    pConfig->Profile.SetBoolean("/PlanetTool/Drift/auto_blind_guiding", GetAutoBlindGuiding());
 
     // Save current time in ISO 8601 format "YYYY-MM-DD HH:MM:SS"
     wxString dateTimeStr = wxDateTime::Now().Format("%Y-%m-%d %H:%M:%S");
@@ -398,7 +455,8 @@ bool GuiderPlanet::UpdateCaptureState(bool CaptureActive)
                 pFrame->pGuider->Reset(false);
             }
             m_guidingFixationPointValid = false;
-            m_blind.ForcedBlindMode = false;
+            m_blind.CalibrationRequest = false;
+            m_blind.GuidingRequest = false;
             EndBlindGuiding();
             need_update = true;
         }
@@ -1697,10 +1755,11 @@ void GuiderPlanet::CalculateSlope(double timeStamp, double errorRa, double error
 // End blind guiding mode when conditions are met
 void GuiderPlanet::EndBlindGuiding()
 {
-    if (m_blind.Active && !(m_blind.ActivateBlindMode || m_blind.ForcedBlindMode))
+    if (GetBlindGuidingState() && !BlindGuidingRequested())
     {
         // Restore guiding algorithms and reset blind guiding state
-        m_blind.Active = false;
+        m_blind.GuidingActive = false;
+        m_blind.CalibrationInProgress = false;
         AdvancedDialog* pAdvancedDlg = pFrame->pAdvancedDialog;
         if (pAdvancedDlg && pAdvancedDlg->GetCurrentMountPane())
         {
@@ -1714,6 +1773,7 @@ void GuiderPlanet::EndBlindGuiding()
         }
         if (pFrame->pGuider->IsGuiding())
             pFrame->StatusMsg("Guiding");
+
         Debug.Write(_("Blind guiding: guiding algorithms restored\n"));
     }
 }
@@ -1730,11 +1790,11 @@ void GuiderPlanet::BlindGuidingLogic()
         // In blind guiding mode, we can only estimate object position based on ra and dec drift rates
         // and changes in mount coordinates.
         // After meridian flip must redo guiding assistant to find new drift rates.
-        if (m_blind.MeasuredDriftValid && (m_blind.ActivateBlindMode || m_blind.ForcedBlindMode) &&
+        if (m_blind.MeasuredDriftValid && BlindGuidingRequested() &&
             pPointingSource && !pPointingSource->Slewing() && pFrame->pGuider->IsGuiding())
         {
             // In the test mode we require valid object detection to start blind guiding.
-            if (!m_blind.Active && m_detected)
+            if (!GetBlindGuidingState() && m_detected)
             {
                 // Save current guiding algorithms and set identity guiding algorithms in both axes.
                 AdvancedDialog* pAdvancedDlg = pFrame->pAdvancedDialog;
@@ -1769,13 +1829,13 @@ void GuiderPlanet::BlindGuidingLogic()
                 m_blind.Radius = m_radius;
                 m_blind.PosX = m_center_x;
                 m_blind.PosY = m_center_y;
-                m_blind.Active = true;
+                m_blind.GuidingActive = true;
 
                 Debug.Write(wxString::Format("Blind guiding: starting now, driftRa=%.3f, driftDec=%.3f\n", m_blind.DriftRaPixelsPerSecond, m_blind.DriftDecPixelsPerSecond));
             }
 
             // Start blind guiding when initial position is set
-            if (m_blind.Active)
+            if (m_blind.GuidingActive)
             {
                 // Get current mount coordinates and convert RA (hms) and DEC (dms) to arcseconds
                 double currRA, currDEC, currST;
@@ -1830,8 +1890,13 @@ void GuiderPlanet::BlindGuidingLogic()
                 pFrame->StatusMsg(wxString::Format("Blind guiding (%02u:%02u:%02u)", hours, minutes, seconds));
                 Debug.Write(wxString::Format("Blind guiding: current estimate at %.2f/%.2f RA/DEC %.2f/%.2f\n", m_center_x, m_center_y, currRA, currDEC));
 
-                // Perform blind drift calibration
-                if (m_detected && m_blind.CalibrationEnabled)
+                if (m_blind.CalibrationRequest && !m_detected)
+                {
+                    throw (wxString("warning: signal lost: calibration success depends on stable detection!"));
+                }
+
+                // Perform automatic drift gain calibration when requested
+                if (m_blind.CalibrationRequest)
                 {
                     // Calculate the slope for linear fit
                     bErr = pMount->TransformCameraCoordinatesToMountCoordinates(err.cameraOfs, err.mountOfs, false);
@@ -1852,6 +1917,8 @@ void GuiderPlanet::BlindGuidingLogic()
                         m_blind.DriftDecGain += slopeDec * scaleFactor;
                         m_blind.DriftDecGain = wxMax(PT_BLIND_DRIFT_GAIN_MIN, wxMin(PT_BLIND_DRIFT_GAIN_MAX, m_blind.DriftDecGain));
                     }
+
+                    m_blind.CalibrationInProgress = true;
                     Debug.Write(wxString::Format("Blind drift calibration: time=%.0f, N=%d, errRa=%.3f, errDec=%.3f, slopeRa=%.5f, slopeDec=%.5f, gainRa=%.3f, gainDec=%.3f\n",
                         timeInterval, m_blind.linfitN, errorRa, errorDec, slopeRa, slopeDec, m_blind.DriftRaPixelsPerSecond, m_blind.DriftDecPixelsPerSecond, m_blind.DriftRaGain, m_blind.DriftDecGain));
                 }
