@@ -54,6 +54,17 @@ public:
         BLIND_CAL_AUTO = 1,
     };
 
+    enum BlindGuidingState
+    {
+        BLIND_GUIDING_STATE_IDLE,
+        BLIND_GUIDING_STATE_REQUESTED_STOP,
+        BLIND_GUIDING_STATE_REQUESTED_CALIBRATION,
+        BLIND_GUIDING_STATE_CALIBRATION_IN_PROGRESS,
+        BLIND_GUIDING_STATE_REQUESTED_GUIDING,
+        BLIND_GUIDING_STATE_GUIDING_IN_PROGRESS,
+        BLIND_GUIDING_STATE_AUTO_ACTIVATED
+    };
+
 private:
     // Planetary guiding parameters
     bool m_Planetary_enabled;
@@ -80,17 +91,21 @@ private:
     float  m_PlanetAngle;
 
     // Blind guiding state
-    struct blindGuidingState
+    struct blindGuiding
     {
-        enum   BlindCalMode blindGuidingCalMode;    // Manual or automatic calibration mode
+        enum   BlindCalMode blindGuidingCalMode;        // Manual or automatic calibration mode
+        enum   BlindGuidingState blindGuidingState;     // Current state of blind guiding
         wxString CalibrationStatus;     // Status message for blind guiding calibration
         bool   CalibrationRequest;      // Flag requesting calibration in current calibration mode
         bool   CalibrationInProgress;   // Flag indicating that calibration is enabled and is in progress
-        bool   AutoBlindGuiding;        // Flag indicating that automatic blind guiding is enabled
+        bool   AutoBlindGuidingMode;    // Automatic blind guiding mode (true when enabled)
         bool   GuidingRequest;          // Flag requesting blind guiding to be enabled or disabled when signal is lost or regained
         bool   GuidingActive;           // Blind guiding is active - either with manual/auto calibration or with automatic use on signal loss
         bool   CalibrationComplete;     // Flag indicating that calibration is complete and guiding can be enabled
+        bool   GuideAlgorithmSetToIdentity;  // Flag indicating that guiding algorithm was switched from default to unity
 
+        PHD_Point LockPos;              // Last known locked position (target lock for PHD2 guiding)
+        PHD_Point LastPos;              // Last known position of the blind guiding target
         double PosX;                    // X coordinate of the blind guiding target
         double PosY;                    // Y coordinate of the blind guiding target
         int    SearchRegion;            // Search region for star metrics - shows last known search region, ignored in metric calculation
@@ -100,8 +115,13 @@ private:
         double MountST;
         double DriftRaGain;
         double DriftDecGain;
+        bool   StartPointValid;
         PHD_Point MountOfs;
         wxStopWatch Watchdog;
+
+        bool        SettleStart;
+        wxStopWatch SettleWatchdog;
+        wxStopWatch SettleMaxWatchdog;
 
         // Measured drift rates as reported by Guiding Assistant.
         // Used as a starting point for manual/automatic drift gain tuning.
@@ -276,19 +296,36 @@ public:
     void SetVideoLogging(bool enable) { m_videoLogEnabled = enable; }
     bool GetVideoLogging() { return m_videoLogEnabled; }
 
-    void   StartBlindGuidingCalibration() { m_blind.CalibrationRequest = true; }
-    void   StopBlindGuidingCalibration() { m_blind.CalibrationRequest = false; }
-    void   StartBlindGuiding() { m_blind.GuidingRequest = true; }
-    void   StopBlindGuiding() { m_blind.GuidingRequest = false; }
-    bool   GetBlindGuidingState() { return m_blind.GuidingActive; }
-    bool   BlindGuidingRequested() { return m_blind.GuidingRequest || m_blind.CalibrationRequest; }
-    void   SetBlindGuidingCalMode(int mode) { m_blind.blindGuidingCalMode = (enum BlindCalMode) mode; }
-    void   SetAutoBlindGuiding(bool enable) { m_blind.AutoBlindGuiding = enable; }
-    bool   GetAutoBlindGuiding() { return m_blind.AutoBlindGuiding; }
+    void StartBlindGuidingCalibration()
+    {
+        m_blind.SettleStart = false;
+        m_blind.SettleMaxWatchdog.Start();
+        m_blind.CalibrationRequest = true;
+    }
+    void StopBlindGuidingCalibration() { m_blind.CalibrationRequest = false; }
 
+    void StartBlindGuiding()
+    {
+        m_blind.SettleStart = false;
+        m_blind.SettleMaxWatchdog.Start();
+        m_blind.GuidingRequest = true;
+    }
+    void StopBlindGuiding() { m_blind.GuidingRequest = false; }
+    bool IsBlindGuidingActive() { return m_blind.GuidingActive; }
+    bool BlindCalibrationRequested() { return m_blind.CalibrationRequest; }
+    bool BlindGuidingManualRequested() { return m_blind.GuidingRequest; }
+    bool BlindGuidingRequested() { return m_blind.GuidingRequest || m_blind.CalibrationRequest; }
+    void SetBlindGuidingCalMode(int mode) { m_blind.blindGuidingCalMode = (enum BlindCalMode) mode; }
+    bool IsAutoBlindGuidingEnabled() { return m_blind.AutoBlindGuidingMode; }
+    void SetAutoBlindGuidingMode(bool enable) { m_blind.AutoBlindGuidingMode = enable; }
+
+    enum BlindGuidingState GetBlindGuidingState() { return m_blind.blindGuidingState; }
+    void     SetBlindGuidingState(bool active);
+    void     SetBlindGuidingState(enum BlindGuidingState state) { m_blind.blindGuidingState = state; }
     void     SetBlindCalibrationStatus(const wxString& status) { m_blind.CalibrationStatus = status; }
     wxString GetBlindCalibrationStatus() { return m_blind.CalibrationStatus; }
     void     DetermineBlindCalibrationStatus();
+    bool     IsBlindCalibrationSettleDone();
     enum     BlindCalMode GetBlindGuidingCalMode() { return m_blind.blindGuidingCalMode; }
 
     bool   IsDriftValid() { return m_blind.MeasuredDriftValid; }
@@ -336,9 +373,9 @@ private:
     void    FindCenters(cv::Mat image, CvSeq* contours, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, cv::Moments& mu, int minRadius, int maxRadius);
     bool    FindPlanetEclipse(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
 
-    void    InitSlope();
-    void    CalculateSlope(double timeStamp, double errorRa, double errorDec, double& slopeRa, double& slopeDec);
-    void    BlindGuidingLogic();
+    void    InitBlindGuidingSlope();
+    void    CalculateBlindGuidingSlope(double timeStamp, double errorRa, double errorDec, double& slopeRa, double& slopeDec);
+    bool    BlindGuidingLogic(bool detected);
     void    EndBlindGuiding();
 
     cv::Point2f calculateCentroid(const std::vector<cv::KeyPoint>& keypoints, cv::Point2f& clickedPoint);

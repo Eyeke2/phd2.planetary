@@ -55,7 +55,7 @@ struct PlanetToolWin : public wxDialog
     wxRadioButton* m_manualCalibration;
     wxRadioButton* m_autoCalibration;
     wxCheckBox* m_autoBlindGuidingCheckBox;
-    wxStaticText* m_BlindGuidingStatus;
+    wxTextCtrl* m_BlindGuidingStatus;
     wxButton*   m_calibrateButton;
 
     wxSpinCtrlDouble *m_minRadius;
@@ -120,6 +120,13 @@ struct PlanetToolWin : public wxDialog
 
 static wxString TITLE = wxTRANSLATE("Planetary tracking | disabled");
 static wxString TITLE_ACTIVE = wxTRANSLATE("Planetary tracking | enabled");
+
+static void MakeBold(wxControl* ctrl)
+{
+    wxFont font = ctrl->GetFont();
+    font.SetWeight(wxFONTWEIGHT_BOLD);
+    ctrl->SetFont(font);
+}
 
 static void SetEnabledState(PlanetToolWin* win, bool active)
 {
@@ -293,22 +300,23 @@ PlanetToolWin::PlanetToolWin()
     AddTableEntryPair(this, pBlindGuidingTable, _("DEC drift gain"), m_driftDecGainCtrl,
         _("Adjusting this value correctly can help reduce the effective drift rate. Make adjustments gradually (default = 1.00)"));
 
-    wxStaticBox* statusBox = new wxStaticBox(this, wxID_ANY, wxT("Blind guiding status"), wxDefaultPosition, wxDefaultSize);
+    wxStaticBox* statusBox = new wxStaticBox(this, wxID_ANY, wxT("Blind guiding status"), wxDefaultPosition, wxSize(370, 100));
     wxStaticBoxSizer* statusboxSizer = new wxStaticBoxSizer(statusBox, wxVERTICAL);
-    m_BlindGuidingStatus = new wxStaticText(this, wxID_ANY, pPlanet->GetBlindCalibrationStatus());
-    statusboxSizer->Add(m_BlindGuidingStatus, 1, wxALL, 5);
+    m_BlindGuidingStatus = new wxTextCtrl(this, wxID_ANY, pPlanet->GetBlindCalibrationStatus());
+    m_BlindGuidingStatus->SetEditable(false);
+    statusboxSizer->Add(m_BlindGuidingStatus, 1, wxEXPAND | wxALL, 5);
     statusboxSizer->AddSpacer(10);
     m_calibrateButton = new wxButton(this, wxID_ANY, _("Start Blind Guiding"));
     m_calibrateButton->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &PlanetToolWin::OnBlindGuidingButton, this);
-    m_calibrateButton->SetToolTip(_("Blind guiding/calibration: this feature becomes available after successful mount calibration and after "
+    m_calibrateButton->SetToolTip(_("Blind guiding: this feature becomes available after successful mount calibration and after "
         "Guiding Assistant run. DEC backlash estimation is not required for blind guiding. Guiding Assistant must be repeated after the MERIDIAN FLIP!"));
 
     pBlindGuidingGroup->AddSpacer(10);
     pBlindGuidingGroup->Add(pBlindCalibrationRadioGroup);
     pBlindGuidingGroup->Add(m_autoBlindGuidingCheckBox, 0, wxLEFT | wxALIGN_LEFT, 5);
-    pBlindGuidingGroup->AddSpacer(10);
+    pBlindGuidingGroup->AddSpacer(15);
     pBlindGuidingGroup->Add(pBlindGuidingTable);
-    pBlindGuidingGroup->AddSpacer(10);
+    pBlindGuidingGroup->AddSpacer(15);
     pBlindGuidingGroup->Add(m_calibrateButton, 1, wxALIGN_CENTER_HORIZONTAL, 5);
     pBlindGuidingGroup->AddSpacer(10);
     pBlindGuidingGroup->Add(statusboxSizer);
@@ -348,7 +356,7 @@ PlanetToolWin::PlanetToolWin()
     m_advancedSizer = rightSizer;
     m_advancedSizer->Show(showAdvanced);
     if (showAdvanced)
-        m_advancedTimer.Start(3000);
+        m_advancedTimer.Start(2000);
     else
         m_advancedTimer.Stop();
 
@@ -397,13 +405,14 @@ PlanetToolWin::PlanetToolWin()
     m_saveVideoLogCheckBox->SetValue(pPlanet->GetVideoLogging());
     m_manualCalibration->SetValue(pPlanet->GetBlindGuidingCalMode() == GuiderPlanet::BLIND_CAL_MANUAL);
     m_autoCalibration->SetValue(pPlanet->GetBlindGuidingCalMode() == GuiderPlanet::BLIND_CAL_AUTO);
-    m_autoBlindGuidingCheckBox->SetValue(pPlanet->GetAutoBlindGuiding());
+    m_autoBlindGuidingCheckBox->SetValue(pPlanet->IsAutoBlindGuidingEnabled());
     m_driftRaGainCtrl->SetValue(pPlanet->GetDriftRaGain());
     m_driftDecGainCtrl->SetValue(pPlanet->GetDriftDecGain());
 
     // Update blind guiding status
     pPlanet->DetermineBlindCalibrationStatus();
     m_BlindGuidingStatus->SetLabel(pPlanet->GetBlindCalibrationStatus());
+    MakeBold(m_BlindGuidingStatus);
 
     SetEnabledState(this, pPlanet->GetPlanetaryEnableState());
 
@@ -470,6 +479,9 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
             pMultiGuider->SetMassChangeThresholdEnabled(false);
             pConfig->Profile.SetBoolean("/guider/onestar/MassChangeThresholdEnabled", prev);
         }
+
+        // Make sure lock position shift is disabled
+        pFrame->pGuider->EnableLockPosShift(false);
 
         // Disable subframes
         if (pCamera)
@@ -631,26 +643,38 @@ void PlanetToolWin::UpdateBlindGuidingControls()
     // Update blind guiding status and control button
     pPlanet->DetermineBlindCalibrationStatus();
     m_BlindGuidingStatus->SetLabel(pPlanet->GetBlindCalibrationStatus());
-    m_calibrateButton->Enable(enabled && blindGuidingAllowed);
-    switch (pPlanet->GetBlindGuidingCalMode())
+    MakeBold(m_BlindGuidingStatus);
+
+    bool autoPilotMode = pPlanet->IsAutoBlindGuidingEnabled();
+    bool enableButton = enabled && blindGuidingAllowed;
+    enum GuiderPlanet::BlindCalMode calMode = pPlanet->GetBlindGuidingCalMode();
+    enum GuiderPlanet::BlindGuidingState state = pPlanet->GetBlindGuidingState();
+    switch (state)
     {
-    case GuiderPlanet::BLIND_CAL_AUTO:
-    {
-        if (pPlanet->GetBlindGuidingState())
-            m_calibrateButton->SetLabel(_("Stop Calibration"));
-        else
+    case GuiderPlanet::BLIND_GUIDING_STATE_IDLE:
+        if (calMode == GuiderPlanet::BLIND_CAL_AUTO)
             m_calibrateButton->SetLabel(_("Start Automatic Calibration"));
-        break;
-    }
-    case GuiderPlanet::BLIND_CAL_MANUAL:
-    {
-        if (pPlanet->GetBlindGuidingState())
-            m_calibrateButton->SetLabel(_("Stop Blind Guiding"));
         else
             m_calibrateButton->SetLabel(_("Start Blind Guiding"));
         break;
+    case GuiderPlanet::BLIND_GUIDING_STATE_REQUESTED_STOP:
+        m_calibrateButton->SetLabel(_("Stopping"));
+        enableButton = false;
+        break;
+    case GuiderPlanet::BLIND_GUIDING_STATE_REQUESTED_CALIBRATION:
+    case GuiderPlanet::BLIND_GUIDING_STATE_CALIBRATION_IN_PROGRESS:
+        m_calibrateButton->SetLabel(_("Stop Automatic Calibration"));
+        break;
+    case GuiderPlanet::BLIND_GUIDING_STATE_REQUESTED_GUIDING:
+    case GuiderPlanet::BLIND_GUIDING_STATE_GUIDING_IN_PROGRESS:
+        m_calibrateButton->SetLabel(_("Stop Blind Guiding"));
+        break;
+    case GuiderPlanet::BLIND_GUIDING_STATE_AUTO_ACTIVATED:
+        m_calibrateButton->SetLabel(_("Auto-activated"));
+        enableButton = false;
+        break;
     }
-    }
+    m_calibrateButton->Enable(enableButton);
 
     // Update calibration button size to match the label
     m_calibrateButton->GetParent()->Layout();
@@ -662,36 +686,45 @@ void PlanetToolWin::OnBlindGuidingButton(wxCommandEvent& event)
     bool blindGuidingAllowed = pPlanet->IsDriftValid() &&
         (pMount && pMount->IsCalibrated() && pMount->IsConnected()) && pFrame->pGuider->IsGuiding();
 
+    enum GuiderPlanet::BlindGuidingState state = pPlanet->GetBlindGuidingState();
     if (pPlanet->GetBlindGuidingCalMode() == GuiderPlanet::BLIND_CAL_AUTO)
     {
-        if (!pPlanet->GetBlindGuidingState())
+        switch (state)
         {
-            if (blindGuidingAllowed && enabled && !pPlanet->BlindGuidingRequested())
+        case GuiderPlanet::BLIND_GUIDING_STATE_IDLE:
+            if (blindGuidingAllowed && enabled)
             {
                 pPlanet->StartBlindGuidingCalibration();
+                pPlanet->SetBlindGuidingState(GuiderPlanet::BLIND_GUIDING_STATE_REQUESTED_CALIBRATION);
                 Debug.Write(_("Blind guiding: user request to start automatic drift gain calibration\n"));
             }
-        }
-        else
-        {
+            break;
+        case GuiderPlanet::BLIND_GUIDING_STATE_REQUESTED_CALIBRATION:
+        case GuiderPlanet::BLIND_GUIDING_STATE_CALIBRATION_IN_PROGRESS:
             pPlanet->StopBlindGuidingCalibration();
+            pPlanet->SetBlindGuidingState(GuiderPlanet::BLIND_GUIDING_STATE_REQUESTED_STOP);
             Debug.Write(_("Blind guiding: user request to stop automatic drift gain calibration\n"));
+            break;
         }
     }
     else
     {
-        if (!pPlanet->GetBlindGuidingState())
+        switch (state)
         {
-            if (blindGuidingAllowed && enabled && !pPlanet->BlindGuidingRequested())
+        case GuiderPlanet::BLIND_GUIDING_STATE_IDLE:
+            if (blindGuidingAllowed && enabled)
             {
                 pPlanet->StartBlindGuiding();
+                pPlanet->SetBlindGuidingState(GuiderPlanet::BLIND_GUIDING_STATE_REQUESTED_GUIDING);
                 Debug.Write(_("Blind guiding: user request to start manual blind guiding\n"));
             }
-        }
-        else
-        {
+            break;
+        case GuiderPlanet::BLIND_GUIDING_STATE_REQUESTED_GUIDING:
+        case GuiderPlanet::BLIND_GUIDING_STATE_GUIDING_IN_PROGRESS:
             pPlanet->StopBlindGuiding();
+            pPlanet->SetBlindGuidingState(GuiderPlanet::BLIND_GUIDING_STATE_REQUESTED_STOP);
             Debug.Write(_("Blind guiding: user request to stop manual blind guiding\n"));
+            break;
         }
     }
     UpdateBlindGuidingControls();
@@ -715,7 +748,7 @@ void PlanetToolWin::OnBlindGuidingRadioButton(wxCommandEvent& event)
 void PlanetToolWin::OnAutoBlindGuidingCheckBox(wxCommandEvent& event)
 {
     bool enabled = m_autoBlindGuidingCheckBox->IsChecked();
-    pPlanet->SetAutoBlindGuiding(enabled);
+    pPlanet->SetAutoBlindGuidingMode(enabled);
     Debug.Write(wxString::Format("Blind guiding: %s auto-activate on signal loss\n", enabled ? "enabled" : "disabled"));
 }
 
@@ -854,7 +887,7 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         pPlanet->SetDriftDecGain(PT_BLIND_DRIFT_GAIN_DEFAULT);
         pPlanet->SetNoiseFilterState(false);
         pPlanet->SetBlindGuidingCalMode(GuiderPlanet::BLIND_CAL_MANUAL);
-        pPlanet->SetAutoBlindGuiding(false);
+        pPlanet->SetAutoBlindGuidingMode(false);
 
         m_minRadius->SetValue(pPlanet->GetPlanetaryParam_minRadius());
         m_maxRadius->SetValue(pPlanet->GetPlanetaryParam_maxRadius());
@@ -866,7 +899,7 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         m_driftDecGainCtrl->SetValue(pPlanet->GetDriftDecGain());
         m_manualCalibration->SetValue(pPlanet->GetBlindGuidingCalMode() == GuiderPlanet::BLIND_CAL_MANUAL);
         m_autoCalibration->SetValue(pPlanet->GetBlindGuidingCalMode() == GuiderPlanet::BLIND_CAL_AUTO);
-        m_autoBlindGuidingCheckBox->SetValue(pPlanet->GetAutoBlindGuiding());
+        m_autoBlindGuidingCheckBox->SetValue(pPlanet->IsAutoBlindGuidingEnabled());
     }
     else
         this->Close();
@@ -883,7 +916,7 @@ void PlanetToolWin::OnAdvancedButton(wxCommandEvent& event)
 
     // Call timer every few seconds when advanced settings are shown
     if (show)
-        m_advancedTimer.Start(3000);
+        m_advancedTimer.Start(2000);
     else
         m_advancedTimer.Stop();
 }
