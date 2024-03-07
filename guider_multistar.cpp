@@ -1296,7 +1296,17 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
                 int x = int(star.X * scale + 0.5);
                 int y = int(star.Y * scale + 0.5);
                 int r = int(pGuider->m_Planet.m_radius * scale + 0.5);
-                dc.DrawCircle(x, y, r);
+                if (pGuider->m_Planet.IsBlindGuidingActive())
+                {
+                    wxPen savedPen = dc.GetPen();
+                    dc.SetPen(wxPen(dc.GetPen().GetColour(), 4, wxPENSTYLE_SHORT_DASH));
+                    dc.DrawCircle(x, y, r);
+                    dc.SetPen(savedPen);
+                }
+                else
+                {
+                    dc.DrawCircle(x, y, r);
+                }
                 dc.SetPen(wxPen(dc.GetPen().GetColour(), 1, dc.GetPen().GetStyle()));
                 dc.DrawRectangle(xpos, ypos, w, w);
             }
