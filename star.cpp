@@ -274,6 +274,8 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
         double sigma_bg = 0.;
         double bg_max = wxMin(pImg->MinADU * 10, pImg->MaxADU / 2);
         bg_max = wxMax(bg_max, pImg->MinADU * 2);
+        bool surfaceDetection = (mode == FIND_PLANET) && (pFrame->pGuider->m_Planet.GetPlanetDetectMode() == GuiderPlanet::PLANET_DETECT_MODE_SURFACE);
+        bool eclipseDetection = (mode == FIND_PLANET) && (pFrame->pGuider->m_Planet.GetPlanetDetectMode() == GuiderPlanet::PLANET_DETECT_MODE_ECLIPSE);
 
         for (int iter = 0; iter < 9; iter++)
         {
@@ -298,11 +300,13 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
 
                     double const val = (double) row[x];
 
-                    if (iter > 0 && (val < mean_bg - 2.0 * sigma_bg || val > mean_bg + 2.0 * sigma_bg))
+                    // In surface detection mode there is no differentiation between background and the object
+                    // so that we include all the points in the annulus.
+                    if (iter > 0 && !surfaceDetection && (val < mean_bg - 2.0 * sigma_bg || val > mean_bg + 2.0 * sigma_bg))
                         continue;
 
-                    // exclude points high above the background
-                    if ((mode == FIND_PLANET) && (val > bg_max))
+                    // In Eclipse mode only - exclude points high above the background
+                    if (eclipseDetection && (val > bg_max))
                         continue;
 
                     sum += val;
@@ -404,7 +408,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
         // SNR estimate from: Measuring the Signal-to-Noise Ratio S/N of the CCD Image of a Star or Nebula, J.H.Simonetti, 2004 January 8
         //     http://www.phys.vt.edu/~jhs/phys3154/snr20040108.pdf
         double const gain = .5; // electrons per ADU, nominal
-        SNR = n > 0 ? mass / sqrt(mass / gain + sigma2_bg * (double) n * (1.0 + 1.0 / (double) nbg)) : 0.0;
+        SNR = (n > 0 && nbg > 0) ? mass / sqrt(mass / gain + sigma2_bg * (double) n * (1.0 + 1.0 / (double) nbg)) : 0.0;
 
         double const LOW_SNR = 3.0;
 
