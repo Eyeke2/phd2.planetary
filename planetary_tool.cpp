@@ -355,6 +355,9 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
             pConfig->Profile.SetBoolean("/guider/onestar/MassChangeThresholdEnabled", prev);
         }
 
+        // Make sure lock position shift is disabled
+        pFrame->pGuider->EnableLockPosShift(false);
+
         // Disable subframes
         if (pCamera)
         {
