@@ -88,13 +88,8 @@ GuiderPlanet::GuiderPlanet()
     m_clicked_x = 0;
     m_clicked_y = 0;
     m_prevClickedPoint = Point2f(0, 0);
-    m_circlesValid = false;
     m_eclipseContour.clear();
-    m_EclipseMode = false;
     m_RoiEnabled = false;
-    m_Planetary_minDist = PT_MIN_DIST_DEFAULT;
-    m_Planetary_param1 = PT_PARAM1_DEFAULT;
-    m_Planetary_param2 = PT_PARAM2_DEFAULT;
     m_Planetary_minRadius = PT_MIN_RADIUS_DEFAULT;
     m_Planetary_maxRadius = PT_MAX_RADIUS_DEFAULT;
     m_Planetary_lowThreshold = PT_HIGH_THRESHOLD_DEFAULT / 2;
@@ -144,11 +139,7 @@ GuiderPlanet::GuiderPlanet()
 
     // Get initial values of the planetary tracking state and parameters from configuration
     SetSurfaceTrackingState(pConfig->Profile.GetBoolean("/PlanetTool/surface_tracking", false));
-    SetEclipseMode(pConfig->Profile.GetBoolean("/PlanetTool/eclipse_mode", true));
     SetNoiseFilterState(pConfig->Profile.GetBoolean("/PlanetTool/noise_filter", false));
-    SetPlanetaryParam_minDist(pConfig->Profile.GetInt("/PlanetTool/min_dist", PT_MIN_DIST_DEFAULT));
-    SetPlanetaryParam_param1(pConfig->Profile.GetInt("/PlanetTool/param1", PT_PARAM1_DEFAULT));
-    SetPlanetaryParam_param2(pConfig->Profile.GetInt("/PlanetTool/param2", PT_PARAM2_DEFAULT));
 
     // Enforce valid range limits on planetary detection parameters while restoring from configuration
     m_Planetary_minRadius = pConfig->Profile.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT);
@@ -177,11 +168,7 @@ GuiderPlanet::~GuiderPlanet()
 
     // Save all detection parameters
     pConfig->Profile.SetBoolean("/PlanetTool/surface_tracking", GetSurfaceTrackingState());
-    pConfig->Profile.SetBoolean("/PlanetTool/eclipse_mode", GetEclipseMode());
     pConfig->Profile.SetBoolean("/PlanetTool/noise_filter", GetNoiseFilterState());
-    pConfig->Profile.SetInt("/PlanetTool/min_dist", GetPlanetaryParam_minDist());
-    pConfig->Profile.SetInt("/PlanetTool/param1", GetPlanetaryParam_param1());
-    pConfig->Profile.SetInt("/PlanetTool/param2", GetPlanetaryParam_param2());
     pConfig->Profile.SetInt("/PlanetTool/min_radius", GetPlanetaryParam_minRadius());
     pConfig->Profile.SetInt("/PlanetTool/max_radius", GetPlanetaryParam_maxRadius());
     pConfig->Profile.SetInt("/PlanetTool/high_threshold", GetPlanetaryParam_highThreshold());
@@ -310,7 +297,6 @@ void GuiderPlanet::GetDetectionStatus(wxString& statusMsg)
 void GuiderPlanet::SetPlanetaryElementsVisual(bool state)
 {
     m_syncLock.Lock();
-    m_circlesValid = false;
     m_eclipseContour.clear();
     m_inlierPoints.clear();
     m_Planetary_ShowElementsVisual = state;
@@ -438,15 +424,6 @@ void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFa
             for (const auto& feature : m_inlierPoints)
             {
                 dc.DrawCircle(feature.x * scaleFactor, feature.y * scaleFactor, 5);
-            }
-            break;
-        case PLANET_DETECT_MODE_CIRCLES:
-            // Draw all circles detected by HoughCircles
-            if (m_circlesValid)
-            {
-                dc.SetPen(wxPen(wxColour(230, 0, 0), 2, wxPENSTYLE_SOLID));
-                for (const auto& c : m_circles)
-                    dc.DrawCircle((m_roiRect.x + c[0]) * scaleFactor, (m_roiRect.y + c[1]) * scaleFactor, c[2] * scaleFactor);
             }
             break;
         case PLANET_DETECT_MODE_ECLIPSE:
@@ -895,42 +872,6 @@ void GuiderPlanet::FindCenters(Mat image, CvSeq* contour, CircleDescriptor& cent
         }
 }
 
-class AsyncFindCirclesThread : public wxThread
-{
-public:
-    Mat image;
-    vector<Vec3f> circles;
-    double minDist;
-    double param1;
-    double param2;
-    int minRadius;
-    int maxRadius;
-    bool active;
-    bool finished;
-
-public:
-    AsyncFindCirclesThread(Mat img, double min_dist, double param_1, double param_2, int min_radius, int max_radius)
-        : wxThread(wxTHREAD_DETACHED), minDist(min_dist), param1(param_1), param2(param_2),
-          minRadius(min_radius), maxRadius(max_radius)
-        {
-            circles.clear();
-            image = img.clone();
-            active = true;
-            finished = false;
-        }
-    ExitCode Entry() override;
-};
-
-// A thread function to run HoughCircles method
-wxThread::ExitCode AsyncFindCirclesThread::Entry()
-{
-    HoughCircles(image, circles, CV_HOUGH_GRADIENT, 1.0, minDist, param1, param2, minRadius, maxRadius);
-    finished = true;
-    while (active)
-        wxMilliSleep(20);
-    return this;
-}
-
 // Calculate position of fixation point
 Point2f GuiderPlanet::calculateCentroid(const std::vector<KeyPoint>& keypoints, Point2f& clickedPoint)
 {
@@ -1328,90 +1269,6 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
     return true;
 }
 
-// Find planet center and its radius using HoughCircles method
-bool GuiderPlanet::FindPlanetCircle(Mat img8, int minRadius, int maxRadius, bool roiActive, Point2f& clickedPoint, Rect& roiRect, bool activeRoiLimits, float distanceRoiMax)
-{
-    double minDist = GetPlanetaryParam_minDist();
-    double param1 = GetPlanetaryParam_param1();
-    double param2 = GetPlanetaryParam_param2();
-
-    // Find circles matching given criteria
-    Debug.Write(wxString::Format("Start detection of planetary disk (roi:%d mind=%.1f,p1=%.1f,p2=%.1f,minr=%d,maxr=%d)\n", roiActive, minDist, param1, param2, minRadius, maxRadius));
-
-    // We are calling HoughCircles HoughCircles in a separate thread to deal with
-    // cases when it takes too long to compure. Under such circumstances,
-    // usually caused by small values of minDist / param1 / param2 we stop exposures
-    // and report the problem telling the user to increase their values.
-    // The hanging thread will eventually terminate and no resource leak
-    // or memory corruption should happen as a result.
-    vector<Vec3f> circles;
-    AsyncFindCirclesThread* thread = new AsyncFindCirclesThread(img8, minDist, param1, param2, minRadius, maxRadius);
-    if ((thread->Create() == wxTHREAD_NO_ERROR) && (thread->Run() == wxTHREAD_NO_ERROR))
-    {
-        const int timeout = 3000;
-        while ((m_PlanetWatchdog.Time() < timeout) && !thread->finished)
-            wxMilliSleep(20);
-        if (!thread->finished)
-        {
-            thread->active = false;
-            if (pFrame->CaptureActive)
-                pFrame->StopCapturing();
-            m_statusMsg = _("Timeout -- exposures stopped! Please increase minDist/param1/param2 before resuming exposures/guiding.");
-            pFrame->m_StopReason = pFrame->m_StopReason;
-            pFrame->Alert(m_statusMsg, wxICON_ERROR);
-            Debug.Write(m_statusMsg);
-            wxBell();
-            return false;
-        }
-        circles = thread->circles;
-        MemoryBarrier();
-        thread->active = false;
-    }
-    else
-    {
-        delete thread;
-        m_statusMsg = _("Internal error: cannot create/run thread.");
-        pFrame->Alert(m_statusMsg, wxICON_ERROR);
-        wxBell();
-        return false;
-    }
-
-    // Find and use largest circle from the detected set of circles
-    Vec3f center = { 0, 0, 0 };
-    for (const auto& c : circles)
-    {
-        Point2f circlePoint = { roiRect.x + c[0], roiRect.y + c[1] };
-        if ((c[2] > center[2]) && (!activeRoiLimits || norm(clickedPoint - circlePoint) <= distanceRoiMax))
-            center = c;
-    }
-
-    // Save elements to be presented as a visual aid for tunning of the edge threshold parameters.
-    if (GetPlanetaryElementsVisual())
-    {
-        m_syncLock.Lock();
-        m_roiRect = roiRect;
-        m_circles = circles;
-        m_circlesValid = true;
-        m_syncLock.Unlock();
-    }
-
-    // Log results and update stats window
-    Debug.Write(wxString::Format("End detection of planetary disk (t=%d): %d circles detected, r=%d x=%.1f y=%.1f\n", m_PlanetWatchdog.Time(), circles.size(), cvRound(center[2]), center[0], center[1]));
-    pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Circles"), circles.size());
-    pFrame->pStatsWin->UpdatePlanetScore(wxEmptyString);
-
-    if (center[2])
-    {
-        m_center_x = roiRect.x + center[0];
-        m_center_y = roiRect.y + center[1];
-        m_radius = cvRound(center[2]);
-        m_searchRegion = m_radius;
-        return true;
-    }
-
-    return false;
-}
-
 // Find planet center using circle matching with contours
 bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, bool roiActive, Point2f& clickedPoint, Rect& roiRect, bool activeRoiLimits, float distanceRoiMax)
 {
@@ -1672,9 +1529,6 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
             detectionResult = DetectSurfaceFeatures(imgFiltered, clickedPoint, autoSelect);
             pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_detectedFeatures : 0);
             break;
-        case PLANET_DETECT_MODE_CIRCLES:
-            detectionResult = FindPlanetCircle(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
-            break;
         case PLANET_DETECT_MODE_ECLIPSE:
             detectionResult = FindPlanetEclipse(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
             break;
@@ -1750,7 +1604,6 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
         m_detectionCounter = 0;
         m_eclipseContour.clear();
         m_inlierPoints.clear();
-        m_circlesValid = false;
     }
     m_roiActive = roiActive;
     m_prevClickedPoint = clickedPoint;

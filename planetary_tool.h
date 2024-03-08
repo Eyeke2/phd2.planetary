@@ -35,10 +35,6 @@
 #pragma once
 
 // Default planetary detection parameters values
-#define PT_MIN_DIST_DEFAULT    10
-#define PT_PARAM1_DEFAULT      100
-#define PT_PARAM2_DEFAULT      50
-
 #define PT_MIN_RADIUS_DEFAULT  100
 #define PT_MAX_RADIUS_DEFAULT  200
 #define PT_RADIUS_MIN          1
