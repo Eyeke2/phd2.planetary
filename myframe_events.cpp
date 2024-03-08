@@ -412,7 +412,6 @@ void MyFrame::FinishStop(void)
     // controlling PHD to auto-select a new star if the star is lost while looping was stopped.
     pGuider->ForceFullFrame();
     ResetAutoExposure();
-    pGuider->m_Planet.NotifyFinishStop();
     UpdateButtonsStatus();
     if (m_StopReason.IsEmpty())
         StatusMsg(_("Stopped."));

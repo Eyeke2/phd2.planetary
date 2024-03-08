@@ -54,6 +54,7 @@ GuiderPlanet::GuiderPlanet()
 {
     m_Planetary_enabled = false;
     m_Planetary_SurfaceTracking = false;
+    m_prevCaptureActive = false;
     m_detected = false;
     m_radius = 0;
     m_searchRegion = 0;
@@ -303,35 +304,38 @@ void GuiderPlanet::SetPlanetaryElementsVisual(bool state)
     m_syncLock.Unlock();
 }
 
-// Notification callback about start of capturing
-void GuiderPlanet::NotifyStartCapturing()
-{
-    // In planetary tracking mode update the state used to
-    // control drawing of the internal detection elements.
-    if (GetPlanetaryEnableState() && GetPlanetaryElementsButtonState())
-        SetPlanetaryElementsVisual(true);
 
-    // Start with zero offset for sync with simulated camera position
-    m_cameraSimulationRefPointValid = false;
-    m_simulationZeroOffset = true;
-}
-
-// Notification callback about stop of capturing
-void GuiderPlanet::NotifyStopCapturing()
+// Notification callback when PHD2 may change CaptureActive state
+bool GuiderPlanet::UpdateCaptureState(bool CaptureActive)
 {
-    // In planetary tracking mode we need to redraw the screen
-    // without internal detection elements
-    if (GetPlanetaryEnableState() && GetPlanetaryElementsVisual())
-        SetPlanetaryElementsVisual(false);
-}
+    bool need_update = false;
+    if (m_prevCaptureActive != CaptureActive)
+    {
+        if (!CaptureActive)
+        {
+            // Clear selection symbols (green circle/target lock) and visual elements
+            if (GetPlanetaryEnableState())
+            {
+                SetPlanetaryElementsVisual(false);
+                pFrame->pGuider->Reset(false);
+            }
+            m_guidingFixationPointValid = false;
+            need_update = true;
+        }
+        else
+        {
+            // In planetary tracking mode update the state used to
+            // control drawing of the internal detection elements.
+            if (GetPlanetaryEnableState() && GetPlanetaryElementsButtonState())
+                SetPlanetaryElementsVisual(true);
 
-// Notification callback when stop is finished
-void GuiderPlanet::NotifyFinishStop()
-{
-    // This appears to be required to clear selection (green circle/target lock symbol)
-    if (GetPlanetaryEnableState())
-        pFrame->pGuider->Reset(false);
-    m_guidingFixationPointValid = false;
+            // Start with zero offset for sync with simulated camera position
+            m_cameraSimulationRefPointValid = false;
+            m_simulationZeroOffset = true;
+        }
+    }
+    m_prevCaptureActive = CaptureActive;
+    return need_update;
 }
 
 // Notification callback when camera is connected

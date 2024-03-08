@@ -52,6 +52,7 @@ private:
     bool m_Planetary_enabled;
     bool m_Planetary_SurfaceTracking;
     bool m_RoiEnabled;
+    bool m_prevCaptureActive;
 
     double m_Planetary_minRadius;
     double m_Planetary_maxRadius;
@@ -171,9 +172,7 @@ public:
     void ToggleSharpness();
     void GetDetectionStatus(wxString& statusMsg);
     void NotifyCameraConnect(bool connected);
-    void NotifyStartCapturing();
-    void NotifyStopCapturing();
-    void NotifyFinishStop();
+    bool UpdateCaptureState(bool CaptureActive);
     void SaveCameraSimulationMove(double rx, double ry);
 
     bool GetPlanetaryEnableState() { return m_Planetary_enabled; }
