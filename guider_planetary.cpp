@@ -1184,9 +1184,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
                 // We must recalculate descriptors for the filtered keypoints
                 extractor.compute(equalized, filteredKeypoints, descriptors);
 
-                // Set new reference frame -- this is temporary until we have a better way to handle this.
-                // The new position won't be rather accurate, but it's better than nothing
-                // and it will be updated as soon as we have a better estimate.
+                // Set new reference frame. The new position may not be rather accurate
                 m_referencePoint = m_surfaceFixationPoint;
                 m_referenceKeypoints = filteredKeypoints;
                 m_referenceDescriptors = descriptors;
