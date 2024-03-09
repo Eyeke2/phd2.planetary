@@ -1564,6 +1564,18 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
         POSSIBLY_UNUSED(msg);
         Debug.Write(wxString::Format("Find planet: exception %s\n", msg));
     }
+    catch (const cv::Exception& ex)
+    {
+        // Handle OpenCV exceptions
+        Debug.Write(wxString::Format("Find planet: OpenCV exception %s\n", ex.what()));
+        pFrame->Alert(_("ERROR: exception occurred during image processing: change detection parameters"), wxICON_ERROR);
+    }
+    catch (...)
+    {
+        // Handle any other exceptions
+        Debug.Write("Find planet: unknown exception\n");
+        pFrame->Alert(_("ERROR: unknown exception occurred in planetary detection"), wxICON_ERROR);
+    }
 
     // For simulated camera, calculate detection error by comparing with the simulated position
     if (pCamera && pCamera->Name == "Simulator")
