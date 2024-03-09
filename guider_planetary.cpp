@@ -95,7 +95,7 @@ GuiderPlanet::GuiderPlanet()
     m_Planetary_maxRadius = PT_MAX_RADIUS_DEFAULT;
     m_Planetary_lowThreshold = PT_HIGH_THRESHOLD_DEFAULT / 2;
     m_Planetary_highThreshold = PT_HIGH_THRESHOLD_DEFAULT;
-    m_Planetary_minHessian = PT_MIN_HESSIAN_DEFAULT;
+    m_Planetary_minHessian = PT_MIN_HESSIAN_UI_DEFAULT;
     m_Planetary_maxFeatures = PT_MAX_SURFACE_FEATURES;
     m_Planetary_ShowElementsButtonState = false;
     m_Planetary_ShowElementsVisual = false;
@@ -151,7 +151,7 @@ GuiderPlanet::GuiderPlanet()
     m_Planetary_lowThreshold = wxMax(PT_THRESHOLD_MIN, wxMin(PT_LOW_THRESHOLD_MAX, m_Planetary_lowThreshold));
     m_Planetary_highThreshold = pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT);
     m_Planetary_highThreshold = wxMax(PT_THRESHOLD_MIN, wxMin(PT_HIGH_THRESHOLD_MAX, m_Planetary_highThreshold));
-    m_Planetary_minHessian = pConfig->Profile.GetInt("/PlanetTool/min_hessian", PT_MIN_HESSIAN_DEFAULT);
+    m_Planetary_minHessian = pConfig->Profile.GetInt("/PlanetTool/min_hessian", PT_MIN_HESSIAN_UI_DEFAULT);
     m_Planetary_minHessian = wxMax(PT_MIN_HESSIAN_MIN, wxMin(PT_MIN_HESSIAN_MAX, m_Planetary_minHessian));
     m_Planetary_maxFeatures = pConfig->Profile.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES);
     m_Planetary_maxFeatures = wxMax(PT_MIN_SURFACE_FEATURES, wxMin(PT_MAX_SURFACE_FEATURES, m_Planetary_maxFeatures));
@@ -968,13 +968,36 @@ bool GuiderPlanet::validateAndFilterKeypoints(std::vector<KeyPoint>& keypoints, 
     return true; // Indicate successful filtering
 }
 
-// Reverse the slider value to get the actual parameter value
+void GuiderPlanet::SetPlanetaryParam_minHessian(int value)
+{
+    if (m_Planetary_minHessian != value)
+    {
+        m_Planetary_minHessian = value;
+        m_surfaceDetectionParamsChanging = true;
+    }
+}
+int GuiderPlanet::GetPlanetaryParam_minHessian()
+{
+    return wxMax(PT_MIN_HESSIAN_UI_MIN, wxMin(m_Planetary_minHessian, PT_MIN_HESSIAN_UI_MAX));
+}
+
+// Map the slider value to physical minHessian parameter value using inverse logarithmic scale
 int GuiderPlanet::GetPlanetaryParam_minHessianPhysical()
 {
-    int value = PT_MIN_HESSIAN_MAX - GetPlanetaryParam_minHessian();
-    if (value < PT_MIN_HESSIAN_MIN)
-        value = PT_MIN_HESSIAN_MIN;
-    return value;
+    // Ensure the sensitivity value is within the expected range
+    int uiSensitivityValue = GetPlanetaryParam_minHessian();
+    uiSensitivityValue = wxMax(PT_MIN_HESSIAN_UI_MIN, wxMin(uiSensitivityValue, PT_MIN_HESSIAN_UI_MAX));
+
+    // Calculate the inverse ratio of the current position to the maximum UI value
+    double ratio = (static_cast<double>(uiSensitivityValue) / static_cast<double>(PT_MIN_HESSIAN_UI_MAX));
+
+    // Apply an inverse logarithmic scale to the ratio
+    double logRatio = log2(1 + (ratio * 1023));
+
+    // Map the logarithmic ratio to the minHessian range inversely
+    int mappedValue = static_cast<int>(PT_MIN_HESSIAN_MAX - ((logRatio / 10.0) * (PT_MIN_HESSIAN_MAX - PT_MIN_HESSIAN_MIN)));
+
+    return mappedValue;
 }
 
 // Detect/track surface features

@@ -194,14 +194,10 @@ public:
     int  GetPlanetaryParam_lowThreshold() { return m_Planetary_lowThreshold; }
     void SetPlanetaryParam_highThreshold(int value) { m_Planetary_highThreshold = value; }
     int  GetPlanetaryParam_highThreshold() { return m_Planetary_highThreshold; }
-    void SetPlanetaryParam_minHessian(int value)
-    {
-        if (m_Planetary_minHessian != value)
-        {
-            m_Planetary_minHessian = value;
-            m_surfaceDetectionParamsChanging = true;
-        }
-    }
+
+    void SetPlanetaryParam_minHessian(int value);
+    int  GetPlanetaryParam_minHessian();
+    int  GetPlanetaryParam_minHessianPhysical();
     void SetPlanetaryParam_maxFeatures(int value)
     {
         if (m_Planetary_maxFeatures != value)
@@ -210,10 +206,7 @@ public:
             m_surfaceDetectionParamsChanging = true;
         }
     }
-
-    int  GetPlanetaryParam_minHessian() { return m_Planetary_minHessian; }
     int  GetPlanetaryParam_maxFeatures() { return m_Planetary_maxFeatures; }
-    int  GetPlanetaryParam_minHessianPhysical();
 
     void SetPlanetaryElementsVisual(bool state);
     bool GetPlanetaryElementsVisual() { return m_Planetary_ShowElementsVisual; }

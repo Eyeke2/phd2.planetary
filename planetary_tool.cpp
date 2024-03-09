@@ -195,7 +195,7 @@ PlanetToolWin::PlanetToolWin()
 
     // Surface tracking elements
     wxStaticText* minHessianLabel = new wxStaticText(m_featuresTab, wxID_ANY, wxT("Detection Sensitivity:"), wxDefaultPosition, wxDefaultSize, 0);
-    m_minHessianSlider = new wxSlider(m_featuresTab, wxID_ANY, PT_MIN_HESSIAN_MAX - PT_MIN_HESSIAN_DEFAULT, 0, PT_MIN_HESSIAN_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
+    m_minHessianSlider = new wxSlider(m_featuresTab, wxID_ANY, PT_MIN_HESSIAN_UI_DEFAULT, PT_MIN_HESSIAN_UI_MIN, PT_MIN_HESSIAN_UI_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
     minHessianLabel->SetToolTip(_("Adjusts the sensitivity of feature detection. A lower value detects fewer but more robust features. "
                                   "Higher values increase the number of detected features but may include more noise. "
                                   "Ideal value depends on image content and quality"));
@@ -599,7 +599,7 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         pPlanet->SetPlanetaryParam_maxRadius(PT_MAX_RADIUS_DEFAULT);
         pPlanet->SetPlanetaryParam_lowThreshold(PT_HIGH_THRESHOLD_DEFAULT/2);
         pPlanet->SetPlanetaryParam_highThreshold(PT_HIGH_THRESHOLD_DEFAULT);
-        pPlanet->SetPlanetaryParam_minHessian(PT_MIN_HESSIAN_DEFAULT);
+        pPlanet->SetPlanetaryParam_minHessian(PT_MIN_HESSIAN_UI_DEFAULT);
         pPlanet->SetPlanetaryParam_maxFeatures(PT_MAX_SURFACE_FEATURES);
         pPlanet->SetNoiseFilterState(false);
 
