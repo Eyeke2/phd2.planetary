@@ -1341,6 +1341,7 @@ void MyFrame::DoAlert(const alert_params& params)
         m_infoBar->AddButton(BUTTON_ALERT_HELP, _("Help"));
         buttonSpace += 80;
     }
+    m_infoBar->Layout();
     m_infoBar->ShowMessage(pFrame && pFrame->pGuider ? WrapText(m_infoBar, params.msg, wxMax(pFrame->pGuider->GetSize().GetWidth() - buttonSpace, 100)) : params.msg, params.flags);
     m_statusbar->UpdateStates();        // might have disconnected a device
     EvtServer.NotifyAlert(params.msg, params.flags);

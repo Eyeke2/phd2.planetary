@@ -50,6 +50,7 @@ class GuiderPlanet
 private:
     // Planetary guiding parameters
     bool m_Planetary_enabled;
+    bool m_PlanetaryDetectionPaused;
     bool m_Planetary_SurfaceTracking;
     bool m_RoiEnabled;
     bool m_prevCaptureActive;
@@ -177,6 +178,8 @@ public:
 
     bool GetPlanetaryEnableState() { return m_Planetary_enabled; }
     void SetPlanetaryEnableState(bool enabled) { m_Planetary_enabled = enabled; }
+    bool GetDetectionPausedState() { return m_PlanetaryDetectionPaused; }
+    void SetDetectionPausedState(bool paused) { m_PlanetaryDetectionPaused = paused; }
     bool GetSurfaceTrackingState() { return m_Planetary_SurfaceTracking; }
     void SetSurfaceTrackingState(bool enabled)
     {

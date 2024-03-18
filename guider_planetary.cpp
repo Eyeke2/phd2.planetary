@@ -53,6 +53,7 @@ static float gaussianWeight[2000];
 GuiderPlanet::GuiderPlanet()
 {
     m_Planetary_enabled = false;
+    m_PlanetaryDetectionPaused = false;
     m_Planetary_SurfaceTracking = false;
     m_prevCaptureActive = false;
     m_detected = false;
@@ -155,6 +156,9 @@ GuiderPlanet::GuiderPlanet()
     m_Planetary_minHessian = wxMax(PT_MIN_HESSIAN_MIN, wxMin(PT_MIN_HESSIAN_MAX, m_Planetary_minHessian));
     m_Planetary_maxFeatures = pConfig->Profile.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES);
     m_Planetary_maxFeatures = wxMax(PT_MIN_SURFACE_FEATURES, wxMin(PT_MAX_SURFACE_FEATURES, m_Planetary_maxFeatures));
+
+    // Remove the alert dialog setting for pausing planetary detection
+    pConfig->Global.DeleteEntry(PausePlanetDetectionAlertEnabledKey());
 
     // Initialize non-free OpenCV components
     // Note: this may cause a small and limited memory leak.
@@ -304,7 +308,6 @@ void GuiderPlanet::SetPlanetaryElementsVisual(bool state)
     m_syncLock.Unlock();
 }
 
-
 // Notification callback when PHD2 may change CaptureActive state
 bool GuiderPlanet::UpdateCaptureState(bool CaptureActive)
 {
@@ -334,6 +337,13 @@ bool GuiderPlanet::UpdateCaptureState(bool CaptureActive)
             m_simulationZeroOffset = true;
         }
     }
+
+    // Reset the detection paused state if guiding has been cancelled
+    if (!pFrame->pGuider->IsGuiding())
+    {
+        SetDetectionPausedState(false);
+    }
+
     m_prevCaptureActive = CaptureActive;
     return need_update;
 }
@@ -1466,6 +1476,18 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
 
     // Default error status message
     m_statusMsg = _("Object not found");
+
+    // Skip detection when paused
+    if (m_PlanetaryDetectionPaused)
+    {
+        m_syncLock.Lock();
+        m_detected = false;
+        m_detectionCounter = 0;
+        m_eclipseContour.clear();
+        m_inlierPoints.clear();
+        m_syncLock.Unlock();
+        return false;
+    }
 
     // Auto select star was requested
     if (autoSelect)

@@ -54,6 +54,12 @@
 #define PT_MIN_SURFACE_FEATURES   5
 #define PT_MAX_SURFACE_FEATURES   500
 
+static inline wxString PausePlanetDetectionAlertEnabledKey()
+{
+    // we want the key to be under "/Confirm" so ConfirmDialog::ResetAllDontAskAgain() resets it, but we also want the setting to be per-profile
+    return wxString::Format("/Confirm/%d/PausePlanetDetectionAlertEnabled", pConfig->GetCurrentProfileId());
+}
+
 class PlanetTool
 {
     PlanetTool();

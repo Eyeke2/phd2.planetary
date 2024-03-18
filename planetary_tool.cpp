@@ -37,6 +37,8 @@
 
 #include <wx/valnum.h>
 
+static bool pauseAlert = false;
+
 struct PlanetToolWin : public wxDialog
 {
     GuiderPlanet* pPlanet;
@@ -71,6 +73,7 @@ struct PlanetToolWin : public wxDialog
     bool m_prevMountConnected;
 
     wxButton   *m_CloseButton;
+    wxButton   *m_PauseButton;
     wxCheckBox *m_RoiCheckBox;
     wxCheckBox *m_ShowElements;
     wxCheckBox* m_NoiseFilter;
@@ -81,6 +84,7 @@ struct PlanetToolWin : public wxDialog
 
     void OnAppStateNotify(wxCommandEvent& event);
     void OnPlanetaryTimer(wxTimerEvent& event);
+    void OnPauseButton(wxCommandEvent& event);
     void OnClose(wxCloseEvent& event);
     void OnCloseButton(wxCommandEvent& event);
     void OnKeyDown(wxKeyEvent& event);
@@ -112,10 +116,12 @@ struct PlanetToolWin : public wxDialog
 
 static wxString TITLE = wxTRANSLATE("Planetary tracking | disabled");
 static wxString TITLE_ACTIVE = wxTRANSLATE("Planetary tracking | enabled");
+static wxString TITLE_PAUSED = wxTRANSLATE("Planetary tracking | paused");
 
 static void SetEnabledState(PlanetToolWin* win, bool active)
 {
-    win->SetTitle(wxGetTranslation(active ? TITLE_ACTIVE : TITLE));
+    bool paused = win->pPlanet->GetDetectionPausedState();
+    win->SetTitle(wxGetTranslation(active ? (paused ? TITLE_PAUSED : TITLE_ACTIVE) : TITLE));
     win->UpdateStatus();
 }
 
@@ -263,9 +269,13 @@ PlanetToolWin::PlanetToolWin()
     pCamTable->Add(m_saveVideoLogCheckBox, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     pCamGroup->Add(pCamTable);
 
-    // Close button
+    // Buttons
     wxBoxSizer *ButtonSizer = new wxBoxSizer(wxHORIZONTAL);
     m_CloseButton = new wxButton(this, wxID_ANY, _("Close"));
+    m_PauseButton = new wxButton(this, wxID_ANY, _("Pause"));
+    m_PauseButton->SetToolTip(_("Use this button to pause/resume detection during clouds or totality instead of stopping guiding. "
+        "It preserves object lock position, allowing PHD2 to realign the object without losing its original position"));
+    ButtonSizer->Add(m_PauseButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     ButtonSizer->Add(m_CloseButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
     // All top level controls
@@ -298,6 +308,7 @@ PlanetToolWin::PlanetToolWin()
     m_CloseButton->Bind(wxEVT_KEY_UP, &PlanetToolWin::OnKeyUp, this);
     m_CloseButton->Bind(wxEVT_ENTER_WINDOW, &PlanetToolWin::OnMouseEnterCloseBtn, this);
     m_CloseButton->Bind(wxEVT_LEAVE_WINDOW, &PlanetToolWin::OnMouseLeaveCloseBtn, this);
+    m_PauseButton->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &PlanetToolWin::OnPauseButton, this);
     m_RoiCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnRoiModeClick, this);
     m_ShowElements->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnShowElementsClick, this);
     m_NoiseFilter->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnNoiseFilterClick, this);
@@ -322,6 +333,10 @@ PlanetToolWin::PlanetToolWin()
     SetEnabledState(this, pPlanet->GetPlanetaryEnableState());
 
     m_tabs->SetSelection(pPlanet->GetSurfaceTrackingState() ? 1 : 0);
+
+    // Set the initial state of the pause button
+    m_PauseButton->SetLabel(pPlanet->GetDetectionPausedState() ? _("Resume") : _("Pause"));
+
     // Update mount states
     m_driveRate = (enum DriveRates) -1;
     m_prevPointingSource = nullptr;
@@ -526,6 +541,17 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
     bool tracking = false;
     bool need_update = false;
 
+    // Update pause button state to sync with guiding state
+    bool paused = pPlanet->GetDetectionPausedState() && pFrame->pGuider->IsGuiding();
+    pPlanet->SetDetectionPausedState(paused);
+    m_PauseButton->SetLabel(paused ? _("Resume") : _("Pause"));
+    SetEnabledState(this, pPlanet->GetPlanetaryEnableState());
+    if (!paused && pauseAlert)
+    {
+        pauseAlert = false;
+        pFrame->ClearAlert();
+    }
+
     if (pPointingSource && pPointingSource->IsConnected())
     {
         // Currently not supporting INDI mounts
@@ -601,8 +627,11 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
             break;
         }
     }
+
     if (((m_driveRate != driveRate) || need_update) && new_selection != -1)
+    {
         m_mountGuidingRate->SetSelection(new_selection);
+    }
     m_driveRate = driveRate;
 }
 
@@ -688,6 +717,9 @@ void PlanetToolWin::UpdateStatus()
     // For use with simulator only
     pPlanet->m_cameraSimulationRefPointValid = false;
     pPlanet->m_simulationZeroOffset = true;
+
+    // Pause planetary guiding can be enabled only when guiding is still active
+    m_PauseButton->Enable(enabled && pFrame->pGuider->IsGuiding());
 }
 
 void PlanetToolWin::OnKeyDown(wxKeyEvent& event)
@@ -741,6 +773,33 @@ void PlanetToolWin::OnMaxFeaturesChanged(wxCommandEvent& event)
 {
     int value = event.GetInt();
     pPlanet->SetPlanetaryParam_maxFeatures(value);
+}
+
+static void SuppressPausePlanetDetection(long)
+{
+    pConfig->Global.SetBoolean(PausePlanetDetectionAlertEnabledKey(), false);
+}
+
+void PlanetToolWin::OnPauseButton(wxCommandEvent& event)
+{
+    // Toggle planetary detection pause state depending if guiding is actually active
+    bool paused = !pPlanet->GetDetectionPausedState() && pFrame->pGuider->IsGuiding();
+    pPlanet->SetDetectionPausedState(paused);
+    m_PauseButton->SetLabel(paused ? _("Resume") : _("Pause"));
+    SetEnabledState(this, pPlanet->GetPlanetaryEnableState());
+
+    // Display special message if detection is paused
+    if (paused)
+    {
+        pauseAlert = true;
+        pFrame->SuppressableAlert(PausePlanetDetectionAlertEnabledKey(), _("Planetary detection paused : do not stop guiding to keep the original lock position!"),
+            SuppressPausePlanetDetection, 0);
+    }
+    else if (pauseAlert)
+    {
+        pauseAlert = false;
+        pFrame->ClearAlert();
+    }
 }
 
 void PlanetToolWin::OnClose(wxCloseEvent& evt)

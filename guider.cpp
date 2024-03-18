@@ -1346,13 +1346,16 @@ void Guider::UpdateGuideState(usImage *pImage, bool bStopping)
                     static GuiderOffset ZERO_OFS;
                     pFrame->SchedulePrimaryMove(pMount, ZERO_OFS, MOVEOPTS_DEDUCED_MOVE);
 
-                    wxColor prevColor = GetBackgroundColour();
-                    SetBackgroundColour(wxColour(64,0,0));
-                    ClearBackground();
-                    if (pFrame->GetBeepForLostStar())
-                        wxBell();
-                    wxMilliSleep(100);
-                    SetBackgroundColour(prevColor);
+                    if (!m_Planet.GetDetectionPausedState())
+                    {
+                        wxColor prevColor = GetBackgroundColour();
+                        SetBackgroundColour(wxColour(64, 0, 0));
+                        ClearBackground();
+                        if (pFrame->GetBeepForLostStar())
+                            wxBell();
+                        wxMilliSleep(100);
+                        SetBackgroundColour(prevColor);
+                    }
                     break;
                 }
 
