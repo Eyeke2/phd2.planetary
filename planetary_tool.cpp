@@ -41,6 +41,8 @@ struct PlanetToolWin : public wxDialog
 {
     GuiderPlanet* pPlanet;
 
+    wxTimer m_planetaryTimer;
+
     wxNotebook* m_tabs;
     wxPanel* m_planetTab;
     wxPanel* m_featuresTab;
@@ -61,6 +63,13 @@ struct PlanetToolWin : public wxDialog
     wxSpinCtrlDouble* m_DelayCtrl;
     wxSpinCtrlDouble* m_GainCtrl;
 
+    // Mount controls
+    enum DriveRates m_driveRate;
+    wxChoice* m_mountGuidingRate;
+    wxCheckBox* m_mountTrackigCheckBox;
+    Scope* m_prevPointingSource;
+    bool m_prevMountConnected;
+
     wxButton   *m_CloseButton;
     wxCheckBox *m_RoiCheckBox;
     wxCheckBox *m_ShowElements;
@@ -71,6 +80,7 @@ struct PlanetToolWin : public wxDialog
     ~PlanetToolWin();
 
     void OnAppStateNotify(wxCommandEvent& event);
+    void OnPlanetaryTimer(wxTimerEvent& event);
     void OnClose(wxCloseEvent& event);
     void OnCloseButton(wxCommandEvent& event);
     void OnKeyDown(wxKeyEvent& event);
@@ -88,6 +98,9 @@ struct PlanetToolWin : public wxDialog
     void OnRoiModeClick(wxCommandEvent& event);
     void OnShowElementsClick(wxCommandEvent& event);
     void OnNoiseFilterClick(wxCommandEvent& event);
+    void OnMountTrackingClick(wxCommandEvent& event);
+    void OnMountTrackingRateClick(wxCommandEvent& event);
+    void OnTrackingRateMouseWheel(wxMouseEvent& event);
 
     void OnExposureChanged(wxSpinDoubleEvent& event);
     void OnDelayChanged(wxSpinDoubleEvent& event);
@@ -126,7 +139,7 @@ static wxSpinCtrlDouble* NewSpinner(wxWindow* parent, wxString formatstr, double
 
 PlanetToolWin::PlanetToolWin()
     : wxDialog(pFrame, wxID_ANY, wxGetTranslation(TITLE), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX),
-    pPlanet(&pFrame->pGuider->m_Planet), m_MouseHoverFlag(false)
+    m_planetaryTimer(this), pPlanet(&pFrame->pGuider->m_Planet), m_MouseHoverFlag(false)
 
 {
     SetSizeHints(wxDefaultSize, wxDefaultSize);
@@ -183,9 +196,9 @@ PlanetToolWin::PlanetToolWin()
 
     // Add all planetary tab elements
     wxStaticBoxSizer *planetSizer = new wxStaticBoxSizer(new wxStaticBox(m_planetTab, wxID_ANY, _("")), wxVERTICAL);
-    planetSizer->AddSpacer(20);
-    planetSizer->Add(m_RoiCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
-    planetSizer->AddSpacer(20);
+    planetSizer->AddSpacer(10);
+    planetSizer->Add(m_RoiCheckBox, 0, wxLEFT | wxALIGN_LEFT, 10);
+    planetSizer->AddSpacer(10);
     planetSizer->Add(x_radii, 0, wxEXPAND, 5);
     planetSizer->AddSpacer(10);
     planetSizer->Add(ThresholdLabel, 0, wxLEFT | wxTOP, 10);
@@ -205,16 +218,30 @@ PlanetToolWin::PlanetToolWin()
     m_minHessianSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnMinHessianChanged, this);
     m_maxFeaturesSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnMaxFeaturesChanged, this);
     wxStaticBoxSizer* surfaceSizer = new wxStaticBoxSizer(new wxStaticBox(m_featuresTab, wxID_ANY, _("")), wxVERTICAL);
-    surfaceSizer->AddSpacer(10);
     surfaceSizer->Add(minHessianLabel, 0, wxLEFT | wxTOP, 10);
     surfaceSizer->Add(m_minHessianSlider, 0, wxALL, 10);
-    surfaceSizer->AddSpacer(10);
     surfaceSizer->Add(maxFeaturesLabel, 0, wxLEFT | wxTOP, 10);
     surfaceSizer->Add(m_maxFeaturesSlider, 0, wxALL, 10);
-    surfaceSizer->AddSpacer(10);
 
     m_featuresTab->SetSizer(surfaceSizer);
     m_featuresTab->Layout();
+
+    // Mount settings group
+    wxStaticBoxSizer* pMountGroup = new wxStaticBoxSizer(wxHORIZONTAL, this, _("Mount settings"));
+    wxFlexGridSizer* pMountTable = new wxFlexGridSizer(1, 6, 10, 10);
+    m_mountTrackigCheckBox = new wxCheckBox(this, wxID_ANY, _("Tracking"));
+    m_mountTrackigCheckBox->SetToolTip(_("Press and hold CTRL key to toggle mount tracking state"));
+    wxArrayString rates;
+    rates.Add(_("Sidereal"));
+    m_mountGuidingRate = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, rates);
+    m_mountGuidingRate->SetSelection(0);
+    m_mountTrackigCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnMountTrackingClick, this);
+    m_mountGuidingRate->Bind(wxEVT_CHOICE, &PlanetToolWin::OnMountTrackingRateClick, this);
+    m_mountGuidingRate->Bind(wxEVT_MOUSEWHEEL, &PlanetToolWin::OnTrackingRateMouseWheel, this);
+
+    pMountTable->Add(m_mountTrackigCheckBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 10);
+    AddTableEntryPair(this, pMountTable, _("Guiding rate"), m_mountGuidingRate, _("Select the desired tracking rate for the mount"));
+    pMountGroup->Add(pMountTable);
 
     // Camera settings group
     wxStaticBoxSizer* pCamGroup = new wxStaticBoxSizer(wxVERTICAL, this, _("Camera settings"));
@@ -245,24 +272,25 @@ PlanetToolWin::PlanetToolWin()
     wxBoxSizer *topSizer = new wxBoxSizer(wxVERTICAL);
     topSizer->AddSpacer(10);
     topSizer->Add(m_enableCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
-    topSizer->AddSpacer(10);
+    topSizer->AddSpacer(5);
     topSizer->Add(m_featureTrackingCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
-    topSizer->AddSpacer(10);
+    topSizer->AddSpacer(5);
     topSizer->Add(m_NoiseFilter, 0, wxLEFT | wxALIGN_LEFT, 20);
-    topSizer->AddSpacer(10);
-    topSizer->Add(m_tabs, 1, wxEXPAND | wxALL, 10);
-    topSizer->AddSpacer(10);
+    topSizer->AddSpacer(5);
+    topSizer->Add(m_tabs, 0, wxEXPAND | wxALL, 5);
+    topSizer->AddSpacer(5);
     topSizer->Add(m_ShowElements, 0, wxLEFT | wxALIGN_LEFT, 20);
-    topSizer->AddSpacer(10);
-    topSizer->Add(pCamGroup);
-    topSizer->AddSpacer(10);
-    topSizer->Add(ButtonSizer, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 10);
+    topSizer->AddSpacer(5);
+    topSizer->Add(pMountGroup, 0, wxEXPAND | wxALL, 5);
+    topSizer->Add(pCamGroup, 0, wxEXPAND | wxALL, 5);
+    topSizer->Add(ButtonSizer, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
 
     SetSizer(topSizer);
     Layout();
     topSizer->Fit(this);
 
     // Connect Events
+    Bind(wxEVT_TIMER, &PlanetToolWin::OnPlanetaryTimer, this, wxID_ANY);
     m_enableCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnEnableToggled, this);
     m_featureTrackingCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnSurfaceTrackingClick, this);
     m_CloseButton->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &PlanetToolWin::OnCloseButton, this);
@@ -291,10 +319,15 @@ PlanetToolWin::PlanetToolWin()
     m_NoiseFilter->SetValue(pPlanet->GetNoiseFilterState());
     m_enableCheckBox->SetValue(pPlanet->GetPlanetaryEnableState());
     m_saveVideoLogCheckBox->SetValue(pPlanet->GetVideoLogging());
-
     SetEnabledState(this, pPlanet->GetPlanetaryEnableState());
 
     m_tabs->SetSelection(pPlanet->GetSurfaceTrackingState() ? 1 : 0);
+    // Update mount states
+    m_driveRate = (enum DriveRates) -1;
+    m_prevPointingSource = nullptr;
+    m_prevMountConnected = false;
+    wxTimerEvent dummyEvent;
+    OnPlanetaryTimer(dummyEvent);
 
     // Get the current camera settings
     int exposureMsec;
@@ -326,10 +359,14 @@ PlanetToolWin::PlanetToolWin()
     MyFrame::PlaceWindowOnScreen(this, xpos, ypos);
 
     UpdateStatus();
+    m_planetaryTimer.Start(1000);
 }
 
 PlanetToolWin::~PlanetToolWin(void)
 {
+    // Stop the timer
+    m_planetaryTimer.Stop();
+
     pFrame->eventLock.Lock();
     pFrame->pPlanetTool = nullptr;
     pFrame->eventLock.Unlock();
@@ -462,6 +499,141 @@ void PlanetToolWin::OnSaveVideoLog(wxCommandEvent& event)
     Debug.Write(wxString::Format("Planetary tracking: %s video log\n", enabled ? "enabled" : "disabled"));
 }
 
+// Allow changing tracking state only when CTRL key is pressed
+void PlanetToolWin::OnMountTrackingClick(wxCommandEvent& event)
+{
+    bool tracking = m_mountTrackigCheckBox->IsChecked();
+
+    if (pPointingSource && pPointingSource->IsConnected())
+    {
+        if (wxGetKeyState(WXK_CONTROL))
+        {
+            pPointingSource->SetTracking(tracking);
+        }
+        pPointingSource->GetTracking(&tracking);
+    }
+    else
+    {
+        tracking = false;
+    }
+    m_mountTrackigCheckBox->SetValue(tracking);
+}
+
+// Called once in a while to update the UI controls
+void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
+{
+    enum DriveRates driveRate = driveSidereal;
+    bool tracking = false;
+    bool need_update = false;
+
+    if (pPointingSource && pPointingSource->IsConnected())
+    {
+        // Currently not supporting INDI mounts
+        if (pPointingSource->Name().StartsWith(_("INDI Mount")))
+        {
+            m_mountTrackigCheckBox->Enable(false);
+            m_mountGuidingRate->Enable(false);
+            return;
+        }
+        pPointingSource->GetTracking(&tracking);
+        pPointingSource->GetTrackingRate(&driveRate);
+        m_mountTrackigCheckBox->Enable(true);
+        m_mountGuidingRate->Enable(tracking);
+    }
+    else
+    {
+        m_mountTrackigCheckBox->Enable(false);
+        m_mountGuidingRate->Enable(false);
+    }
+    m_mountTrackigCheckBox->SetValue(tracking);
+
+    // Look for changes in the mount connection state
+    if (m_prevPointingSource != pPointingSource || (m_prevMountConnected != (pPointingSource && pPointingSource->IsConnected())))
+    {
+        wxArrayString rates;
+        rates.Add(_("Sidereal"));
+        if (pPointingSource && pPointingSource->IsConnected())
+        {
+            for (int i = 0; i < pPointingSource->m_mountRates.size(); i++)
+            {
+                enum DriveRates driveRate = pPointingSource->m_mountRates[i];
+                if (driveRate == driveLunar)
+                    rates.Add(_("Lunar"));
+                else if (driveRate == driveSolar)
+                    rates.Add(_("Solar"));
+                else if (driveRate == driveKing)
+                    rates.Add(_("King"));
+            }
+        }
+        m_mountGuidingRate->Clear();
+        for (unsigned int i = 0; i < rates.GetCount(); i++)
+        {
+            m_mountGuidingRate->Append(rates[i]);
+        }
+        need_update = true;
+    }
+    m_prevPointingSource = pPointingSource;
+    m_prevMountConnected = pPointingSource && pPointingSource->IsConnected();
+
+    // Iterate through the available rates in the m_mountGuidingRate combo box and select the current rate
+    int new_selection = -1;
+    for (int i = 0; i < m_mountGuidingRate->GetCount(); i++)
+    {
+        wxString rateStr = m_mountGuidingRate->GetString(i);
+        if (rateStr == _("Sidereal") && driveRate == driveSidereal)
+        {
+            new_selection = i;
+            break;
+        }
+        else if (rateStr == _("Lunar") && driveRate == driveLunar)
+        {
+            new_selection = i;
+            break;
+        }
+        else if (rateStr == _("Solar") && driveRate == driveSolar)
+        {
+            new_selection = i;
+            break;
+        }
+        else if (rateStr == _("King") && driveRate == driveKing)
+        {
+            new_selection = i;
+            break;
+        }
+    }
+    if (((m_driveRate != driveRate) || need_update) && new_selection != -1)
+        m_mountGuidingRate->SetSelection(new_selection);
+    m_driveRate = driveRate;
+}
+
+void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
+{
+    enum DriveRates driveRate = driveSidereal;
+    if (pPointingSource && pPointingSource->IsConnected())
+    {
+        int sel = m_mountGuidingRate->GetSelection();
+        if (sel != wxNOT_FOUND)
+        {
+            wxString rateStr = m_mountGuidingRate->GetString(sel);
+            if (rateStr == _("Sidereal"))
+                driveRate = driveSidereal;
+            else if (rateStr == _("Lunar"))
+                driveRate = driveLunar;
+            else if (rateStr == _("Solar"))
+                driveRate = driveSolar;
+            else if (rateStr == _("King"))
+                driveRate = driveKing;
+        }
+    }
+    pPointingSource->SetTrackingRate(driveRate);
+    m_driveRate = driveRate;
+}
+
+void PlanetToolWin::OnTrackingRateMouseWheel(wxMouseEvent& event)
+{
+    // Do nothing here - we don't want to change the tracking rate with the mouse wheel
+}
+
 void PlanetToolWin::OnExposureChanged(wxSpinDoubleEvent& event)
 {
     int expMsec = m_ExposureCtrl->GetValue();
@@ -535,7 +707,8 @@ void PlanetToolWin::OnKeyUp(wxKeyEvent& event)
 void PlanetToolWin::OnMouseEnterCloseBtn(wxMouseEvent& event)
 {
     m_MouseHoverFlag = true;
-    if (wxGetKeyState(WXK_ALT)) {
+    if (wxGetKeyState(WXK_ALT))
+    {
         m_CloseButton->SetLabel(wxT("Reset"));
     }
     event.Skip();
