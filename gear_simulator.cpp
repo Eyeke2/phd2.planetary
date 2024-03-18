@@ -1160,12 +1160,6 @@ void SimCamState::FillImage(usImage& img, const wxRect& subframe, int exptime, i
     double total_shift_y;
     double const now = SimulateDisplacement(total_shift_x, total_shift_y);
 
-    for (unsigned int i = 0; i < nr_stars; i++)
-    {
-        pos[i].x += total_shift_x;
-        pos[i].y += total_shift_y;
-    }
-
 #ifdef SIMDEBUG
 #ifdef SIM_FILE_DISPLACEMENTS
     DebugFile.Write(wxString::Format("%.3f, %.3f, %.3f, %.3f\n", total_shift_x, total_shift_y,
@@ -1179,9 +1173,15 @@ void SimCamState::FillImage(usImage& img, const wxRect& subframe, int exptime, i
 
     // convert to camera coordinates
     wxVector<wxRealPoint> cc(nr_stars);
-    for (unsigned int i = 0; i < nr_stars; i++) {
-        cc[i].x = pos[i].x + width / 2.0;
-        cc[i].y = pos[i].y + height / 2.0;
+    double angle = radians(SimCamParams::cam_angle);
+    if (SimCamParams::pier_side == PIER_SIDE_WEST)
+        angle += M_PI;
+    double const cos_t = cos(angle);
+    double const sin_t = sin(angle);
+    for (unsigned int i = 0; i < nr_stars; i++)
+    {
+        cc[i].x = pos[i].x * cos_t - pos[i].y * sin_t + total_shift_x + width / 2.0;
+        cc[i].y = pos[i].x * sin_t + pos[i].y * cos_t + total_shift_y + height / 2.0;
     }
 
 #ifdef STEPGUIDER_SIMULATOR
@@ -1217,12 +1217,6 @@ void SimCamState::FillImage(usImage& img, const wxRect& subframe, int exptime, i
 #ifndef SIM_FILE_DISPLACEMENTS
         if (SimCamParams::show_comet)
         {
-            double angle = radians(SimCamParams::cam_angle);
-            if (SimCamParams::pier_side == PIER_SIDE_WEST)
-                angle += M_PI;
-            double const cos_t = cos(angle);
-            double const sin_t = sin(angle);
-
             double x = total_shift_x + now * SimCamParams::comet_rate_x / 3600.;
             double y = total_shift_y + now * SimCamParams::comet_rate_y / 3600.;
             double cx = x * cos_t - y * sin_t + width / 2.0;
@@ -1505,7 +1499,7 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
             // Save actual simulator displacement for tracking accuracy error analysis
             pFrame->pGuider->m_Planet.SaveCameraSimulationMove(rx, ry);
 
-            // Translate the image by shifting it few pixels in random direction
+            // Translate the image by shifting it few pixels
             double borderValue = calculateBorderAverage(*disk_image);
             cv::Mat translatedImage;
             cv::Mat transMat = cv::Mat::zeros(2, 3, CV_64FC1);
