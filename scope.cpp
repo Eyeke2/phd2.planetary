@@ -79,6 +79,8 @@ Scope::Scope()
     m_limitReachedDeferralTime = wxDateTime::GetTimeNow();
     m_graphControlPane = nullptr;
     m_CalDetailsValidated = false;
+    m_canSetTracking = false;
+    m_mountRates.clear();
 
     wxString prefix = "/" + GetMountClassName();
     int calibrationDuration = pConfig->Profile.GetInt(prefix + "/CalibrationDuration", DefaultCalibrationDuration);
@@ -1710,6 +1712,36 @@ bool Scope::UpdateCalibrationState(const PHD_Point& currentLocation)
 double Scope::GetDeclinationRadians()
 {
     return UNKNOWN_DECLINATION;
+}
+
+void Scope::EnumerateTrackingRates()
+{
+}
+
+bool Scope::GetTracking(bool* tracking, bool verbose)
+{
+    return true; // error
+}
+
+bool Scope::SetTracking(bool tracking)
+{
+    return true; // error
+}
+
+bool Scope::CanSetTracking()
+{
+    return false;
+}
+
+bool Scope::GetTrackingRate(enum DriveRates* rate, bool verbose)
+{
+    *rate = driveSidereal;
+    return false;
+}
+
+bool Scope::SetTrackingRate(enum DriveRates rate)
+{
+    return true; // error
 }
 
 // Baseline implementations for non-ASCOM subclasses.  Methods will
