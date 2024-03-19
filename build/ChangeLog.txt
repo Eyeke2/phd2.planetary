@@ -6,6 +6,15 @@ installation path, so you can keep two versions at the same time.
 
 Change log
 
+v2.6.13-planet.dev7.rc1
+* Planetary Tool: add pause/resume planetary detection button to enable handling brief periods of cloud cover and totality during eclipse.
+* Planetary Tool: integrated UI controls for for reviewing and adjusting the mount's tracking state and selecting tracking modes.
+* ASCOM Mount: introduced methods to modify and retrieve the mount tracking state and tracking rates.
+* Planetary Tool: implement logarithmic scaling for the Detection Sensitivity parameter in the Surface Features Detection algorithm.
+This modification provides a more intuitive and practical control over the algorithm's sensitivity.
+* Planetary Tool: fixed exception handling mechanisms to manage errors arising from invalid parameters during planetary detection.
+* Camera Simulator: reverted recent changes to bring back some aspects of the original pseudo-random star field generation logic.
+
 v2.6.13-planet.dev6
 * Ensure lock position shift (typically used with comets) is disabled in planetary mode.
 * Removed the algorithm for detecting circles and its related option from the UI. The algorithm
