@@ -130,8 +130,8 @@ static void AddTableEntryPair(wxWindow* parent, wxFlexGridSizer* pTable, const w
 {
     wxStaticText* pLabel = new wxStaticText(parent, wxID_ANY, label + _(": "), wxPoint(-1, -1), wxSize(-1, -1));
     pLabel->SetToolTip(tooltip);
-    pTable->Add(pLabel, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    pTable->Add(pControl, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    pTable->Add(pLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    pTable->Add(pControl, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 }
 
 static wxSpinCtrlDouble* NewSpinner(wxWindow* parent, wxString formatstr, double val, double minval, double maxval, double inc)
@@ -165,14 +165,27 @@ PlanetToolWin::PlanetToolWin()
     m_featureTrackingCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable surface features detection/tracking"));
     m_featureTrackingCheckBox->SetToolTip(_("Enable surface feature detection/tracking mode for imaging at high magnification"));
 
+    wxString radiusTooltip = _("For initial guess of possible radius range connect the gear and set correct focal length.");
+    if (pCamera)
+    {
+        // arcsec/pixel
+        double pixelScale = pFrame->GetPixelScale(pCamera->GetCameraPixelSize(), pFrame->GetFocalLength(), pCamera->Binning);
+        if ((pFrame->GetFocalLength() > 1) && pixelScale > 0)
+        {
+            double radiusGuessMax = 990.0 / pixelScale;
+            double raduisGuessMin = 870.0 / pixelScale;
+            radiusTooltip = wxString::Format(_("Hint: for solar/lunar detection (pixel size=%.2f, binning=x%d, FL=%d mm) set the radius to approximately %.0f-%.0f."),
+                pCamera->GetCameraPixelSize(), pCamera->Binning, pFrame->GetFocalLength(), raduisGuessMin-10, radiusGuessMax+10);
+        }
+    }
+
     wxStaticText* minRadius_Label = new wxStaticText(m_planetTab, wxID_ANY, _("min radius:"));
     m_minRadius = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, PT_RADIUS_MIN, PT_RADIUS_MAX, PT_MIN_RADIUS_DEFAULT);
-    minRadius_Label->SetToolTip(_("Minimum planet radius in pixels. If set to 0, the minimal size is not limited."));
+    minRadius_Label->SetToolTip(_("Minimum planet radius (in pixels). Set this a few pixels lower than the actual planet radius. ") + radiusTooltip);
 
     wxStaticText* maxRadius_Label = new wxStaticText(m_planetTab, wxID_ANY, _("max radius:"));
     m_maxRadius = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, PT_RADIUS_MIN, PT_RADIUS_MAX, PT_MAX_RADIUS_DEFAULT);
-    maxRadius_Label->SetToolTip(_("Maximum planet radius in pixels. If set to 0, the maximal size is not limited. "
-        "If neither minRadius nor maxRadius is set, they are estimated from the image size."));
+    maxRadius_Label->SetToolTip(_("Maximum planet radius (in pixels). Set this a few pixels higher than the actual planet radius. ") + radiusTooltip);
 
     wxBoxSizer *x_radii = new wxBoxSizer(wxHORIZONTAL);
     x_radii->Add(0, 0, 1, wxEXPAND, 5);
@@ -186,7 +199,7 @@ PlanetToolWin::PlanetToolWin()
     // Eclipse mode stuff
     wxStaticText* ThresholdLabel = new wxStaticText(m_planetTab, wxID_ANY, wxT("Edge Detection Threshold:"), wxDefaultPosition, wxDefaultSize, 0);
     m_thresholdSlider = new wxSlider(m_planetTab, wxID_ANY, PT_HIGH_THRESHOLD_DEFAULT, PT_THRESHOLD_MIN, PT_HIGH_THRESHOLD_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
-    ThresholdLabel->SetToolTip(_("Higher values reduce sensitivity to weaker edges, providing cleaner edge maps. Detected edges are shown in red."));
+    ThresholdLabel->SetToolTip(_("Higher values reduce sensitivity to weaker edges, providing cleaner edge maps. Detected edges are shown in red (when display of internal edges is enabled)."));
     m_thresholdSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnThresholdChanged, this);
     m_RoiCheckBox = new wxCheckBox(m_planetTab, wxID_ANY, _("Enable ROI"));
     m_RoiCheckBox->SetToolTip(_("Enable automatically selected Region Of Interest (ROI) for improved processing speed and reduced CPU usage."));
@@ -194,7 +207,7 @@ PlanetToolWin::PlanetToolWin()
     // Show/hide detected elements
     m_ShowElements = new wxCheckBox(this, wxID_ANY, _("Display internal edges/features"));
     m_ShowElements->SetToolTip(_("Toggle the visibility of internally detected edges/features and tune detection parameters "
-        "to maintain a manageable number of these features while keeping them as close as possible to the light disk boundary."));
+        "to maintain a manageable number of these features while keeping them as close as possible to the light disk boundary in the planetary tracking mode."));
 
     // Experimental noise filter
     m_NoiseFilter = new wxCheckBox(this, wxID_ANY, _("Enable noise suppression filter (experimental)"));
