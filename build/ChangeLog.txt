@@ -6,6 +6,13 @@ installation path, so you can keep two versions at the same time.
 
 Change log
 
+v2.6.13-planet.dev7.rc2
+* Planetary tool: add camera binning control to planetary tracking tool settings to enable inspection and adjustment of current binning value.
+* Planetary tool: update tooltips for Min/Max radii in planetary tool; add hint for approximating solar/lunar detection radius based on pixel
+scale and solarr radius in arcsec.
+* Planetary tool: refactor code and fix logic for restarting error evaluation in planet position estimation with simulator use.
+* Planetary tool: code refactoring of tracking rate logic.
+
 v2.6.13-planet.dev7.rc1
 * Planetary Tool: add pause/resume planetary detection button to enable handling brief periods of cloud cover and totality during eclipse.
 * Planetary Tool: integrated UI controls for for reviewing and adjusting the mount's tracking state and selecting tracking modes.
