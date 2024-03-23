@@ -64,6 +64,7 @@ struct PlanetToolWin : public wxDialog
     wxSpinCtrlDouble* m_ExposureCtrl;
     wxSpinCtrlDouble* m_DelayCtrl;
     wxSpinCtrlDouble* m_GainCtrl;
+    wxChoice* m_BinningCtrl;
 
     // Mount controls
     enum DriveRates m_driveRate;
@@ -109,6 +110,7 @@ struct PlanetToolWin : public wxDialog
     void OnExposureChanged(wxSpinDoubleEvent& event);
     void OnDelayChanged(wxSpinDoubleEvent& event);
     void OnGainChanged(wxSpinDoubleEvent& event);
+    void OnBinningSelected(wxCommandEvent& event);
     void OnSaveVideoLog(wxCommandEvent& event);
 
     void UpdateStatus();
@@ -132,6 +134,17 @@ static void AddTableEntryPair(wxWindow* parent, wxFlexGridSizer* pTable, const w
     pLabel->SetToolTip(tooltip);
     pTable->Add(pLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     pTable->Add(pControl, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+}
+
+// Utility function to add the <label, input> pairs to a boxsizer
+static void AddTableEntryPair(wxWindow* parent, wxBoxSizer* pSizer, const wxString& label, int spacer1, wxWindow* pControl, int spacer2, const wxString& tooltip)
+{
+    wxStaticText* pLabel = new wxStaticText(parent, wxID_ANY, label + _(": "), wxPoint(-1, -1), wxSize(-1, -1));
+    pLabel->SetToolTip(tooltip);
+    pSizer->Add(pLabel, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 10);
+    pSizer->AddSpacer(spacer1);
+    pSizer->Add(pControl, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 10);
+    pSizer->AddSpacer(spacer2);
 }
 
 static wxSpinCtrlDouble* NewSpinner(wxWindow* parent, wxString formatstr, double val, double minval, double maxval, double inc)
@@ -264,23 +277,34 @@ PlanetToolWin::PlanetToolWin()
 
     // Camera settings group
     wxStaticBoxSizer* pCamGroup = new wxStaticBoxSizer(wxVERTICAL, this, _("Camera settings"));
-    wxFlexGridSizer* pCamTable = new wxFlexGridSizer(2, 4, 10, 10);
+    wxBoxSizer* pCamSizer1 = new wxBoxSizer(wxHORIZONTAL);
+    wxBoxSizer* pCamSizer2 = new wxBoxSizer(wxHORIZONTAL);
     m_ExposureCtrl = NewSpinner(this, _T("%4.0f"), 1000, 1, 9999, 1);
     m_GainCtrl = NewSpinner(this, _T("%3.0f"), 0, 0, 100, 1);
     m_DelayCtrl = NewSpinner(this, _T("%5.0f"), 100, 0, 60000, 100);
+    int maxBinning = pCamera ? (pCamera->Name == "Simulator" ? 1 : pCamera->MaxBinning) : 1;
+    wxArrayString binningOpts;
+    GuideCamera::GetBinningOpts(maxBinning, &binningOpts);
+    m_BinningCtrl = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, binningOpts);
     m_saveVideoLogCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable video log"));
     m_saveVideoLogCheckBox->SetToolTip(_("Enable recording camera frames to video log file during guiding (using SER format)"));
     m_ExposureCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnExposureChanged, this);
     m_saveVideoLogCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnSaveVideoLog, this);
     m_GainCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnGainChanged, this);
     m_DelayCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnDelayChanged, this);
-    AddTableEntryPair(this, pCamTable, _("Exposure (ms)"), m_ExposureCtrl, _("Camera exposure in milliseconds)"));
-    AddTableEntryPair(this, pCamTable, _("Gain"), m_GainCtrl, _("Camera gain (0-100)"));
-    AddTableEntryPair(this, pCamTable, _("Time Lapse (ms)"), m_DelayCtrl,
+    m_BinningCtrl->Bind(wxEVT_CHOICE, &PlanetToolWin::OnBinningSelected, this);
+    pCamSizer1->AddSpacer(5);
+    AddTableEntryPair(this, pCamSizer1, _("Exposure (ms)"), 20, m_ExposureCtrl, 30, _("Camera exposure in milliseconds)"));
+    AddTableEntryPair(this, pCamSizer1, _("Gain"), 35, m_GainCtrl, 0, _("Camera gain (0-100)"));
+    pCamSizer2->AddSpacer(5);
+    AddTableEntryPair(this, pCamSizer2, _("Time Lapse (ms)"), 5, m_DelayCtrl, 20,
         _("How long should PHD wait between guide frames? Useful when using very short exposures but wanting to send guide commands less frequently"));
-    pCamTable->AddSpacer(10);
-    pCamTable->Add(m_saveVideoLogCheckBox, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    pCamGroup->Add(pCamTable);
+    AddTableEntryPair(this, pCamSizer2, _("Binning"), 10, m_BinningCtrl, 0, _("Camera binning. For planetary detection 1x1 is recommended."));
+    pCamGroup->Add(pCamSizer1);
+    pCamGroup->AddSpacer(10);
+    pCamGroup->Add(pCamSizer2);
+    pCamGroup->AddSpacer(10);
+    pCamGroup->Add(m_saveVideoLogCheckBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
     // Buttons
     wxBoxSizer *ButtonSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -342,6 +366,7 @@ PlanetToolWin::PlanetToolWin()
     m_RoiCheckBox->SetValue(pPlanet->GetRoiEnableState());
     m_NoiseFilter->SetValue(pPlanet->GetNoiseFilterState());
     m_enableCheckBox->SetValue(pPlanet->GetPlanetaryEnableState());
+    m_BinningCtrl->Select(pCamera ? pCamera->Binning - 1 : 0);
     m_saveVideoLogCheckBox->SetValue(pPlanet->GetVideoLogging());
     SetEnabledState(this, pPlanet->GetPlanetaryEnableState());
 
@@ -633,6 +658,13 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
         m_mountGuidingRate->SetSelection(new_selection);
     }
     m_driveRate = driveRate;
+
+    // Update camera binning
+    int localBinning = m_BinningCtrl->GetSelection();
+    if (pCamera->Binning != localBinning + 1)
+    {
+        m_BinningCtrl->Select(pCamera->Binning - 1);
+    }
 }
 
 void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
@@ -686,6 +718,22 @@ void PlanetToolWin::OnGainChanged(wxSpinDoubleEvent& event)
     gain = wxMax(gain, 0.0);
     if (pCamera)
         pCamera->SetCameraGain(gain);
+}
+
+void PlanetToolWin::OnBinningSelected(wxCommandEvent& event)
+{
+    int sel = m_BinningCtrl->GetSelection();
+    AdvancedDialog* pAdvancedDlg = pFrame->pAdvancedDialog;
+    if (pAdvancedDlg)
+    {
+        pAdvancedDlg->SetBinning(sel + 1);
+        if (pCamera && pCamera->Connected && (pCamera->Binning != sel + 1))
+            pAdvancedDlg->MakeImageScaleAdjustments();
+    }
+    if (pCamera)
+    {
+        pCamera->SetBinning(sel + 1);
+    }
 }
 
 void PlanetToolWin::UpdateStatus()
