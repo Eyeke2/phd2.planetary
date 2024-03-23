@@ -576,7 +576,7 @@ void ScopeASCOM::EnumerateTrackingRates()
 
                     if (!bErr && (currRate == testRate))
                     {
-                        Debug.Write(wxString::Format("ASCOM scope: can get/set tracking rate: %d\n", testRate));
+                        Debug.Write(wxString::Format("ASCOM scope: can get/set tracking rate: %d [t=%d msec]\n", testRate, (int) sWatch.Time()));
                         if (std::find(m_mountRates.begin(), m_mountRates.end(), testRate) == m_mountRates.end())
                             m_mountRates.push_back(testRate);
                     }
@@ -1097,7 +1097,6 @@ bool ScopeASCOM::CanSetTracking()
 {
     return m_canSetTracking;
 }
-
 
 // Return RA and Dec guide rates in native ASCOM units, degrees/sec.
 // Convention is to return true on an error
