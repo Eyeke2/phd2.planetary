@@ -464,6 +464,7 @@ void PlanetToolWin::OnSurfaceTrackingClick(wxCommandEvent& event)
     pPlanet->SetSurfaceTrackingState(featureTracking);
     m_tabs->SetSelection(featureTracking ? 1 : 0);
     UpdateStatus();
+    pPlanet->RestartSimulatorErrorDetection();
     Debug.Write(wxString::Format("Planetary tracking: %s surface features mode\n", featureTracking ? "enabled" : "disabled"));
 }
 
@@ -714,10 +715,6 @@ void PlanetToolWin::UpdateStatus()
     // Toggle the visibility of planetary stats grid
     pFrame->pStatsWin->ShowPlanetStats(enabled);
 
-    // For use with simulator only
-    pPlanet->m_cameraSimulationRefPointValid = false;
-    pPlanet->m_simulationZeroOffset = true;
-
     // Pause planetary guiding can be enabled only when guiding is still active
     m_PauseButton->Enable(enabled && pFrame->pGuider->IsGuiding());
 }
@@ -761,18 +758,21 @@ void PlanetToolWin::OnThresholdChanged(wxCommandEvent& event)
     int lowThreshold = wxMax(highThreshold / 2, PT_THRESHOLD_MIN);
     pPlanet->SetPlanetaryParam_lowThreshold(lowThreshold);
     pPlanet->SetPlanetaryParam_highThreshold(highThreshold);
+    pPlanet->RestartSimulatorErrorDetection();
 }
 
 void PlanetToolWin::OnMinHessianChanged(wxCommandEvent& event)
 {
     int value = event.GetInt();
     pPlanet->SetPlanetaryParam_minHessian(value);
+    pPlanet->RestartSimulatorErrorDetection();
 }
 
 void PlanetToolWin::OnMaxFeaturesChanged(wxCommandEvent& event)
 {
     int value = event.GetInt();
     pPlanet->SetPlanetaryParam_maxFeatures(value);
+    pPlanet->RestartSimulatorErrorDetection();
 }
 
 static void SuppressPausePlanetDetection(long)

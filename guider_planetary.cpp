@@ -331,10 +331,7 @@ bool GuiderPlanet::UpdateCaptureState(bool CaptureActive)
             // control drawing of the internal detection elements.
             if (GetPlanetaryEnableState() && GetPlanetaryElementsButtonState())
                 SetPlanetaryElementsVisual(true);
-
-            // Start with zero offset for sync with simulated camera position
-            m_cameraSimulationRefPointValid = false;
-            m_simulationZeroOffset = true;
+            RestartSimulatorErrorDetection();
         }
     }
 
@@ -364,6 +361,12 @@ void GuiderPlanet::SaveCameraSimulationMove(double rx, double ry)
         m_cameraSimulationRefPoint = m_cameraSimulationMove;
         m_cameraSimulationRefPointValid = true;
     }
+}
+
+void GuiderPlanet::RestartSimulatorErrorDetection()
+{
+    m_cameraSimulationRefPointValid = false;
+    m_simulationZeroOffset = true;
 }
 
 // Return scaled tracking image with lock target symbol
@@ -1469,6 +1472,39 @@ void GuiderPlanet::SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool roiAct
     }
 }
 
+void GuiderPlanet::UpdateDetectionErrorInSimulator(Point2f& clickedPoint)
+{
+    if (pCamera && pCamera->Name == "Simulator")
+    {
+        bool errUnknown = true;
+        bool clicked = (m_prevClickedPoint != clickedPoint);
+
+        if (m_detected)
+        {
+            if (m_cameraSimulationRefPointValid)
+            {
+                m_simulationZeroOffset = false;
+                m_cameraSimulationRefPointValid = false;
+                m_origPoint = Point2f(m_center_x, m_center_y);
+            }
+            else if (!m_simulationZeroOffset && !clicked)
+            {
+                Point2f delta = Point2f(m_center_x, m_center_y) - m_origPoint;
+                pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"), norm(delta - (m_cameraSimulationMove - m_cameraSimulationRefPoint)));
+                errUnknown = false;
+            }
+        }
+
+        if (errUnknown)
+            pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"), -1);
+
+        if (clicked)
+        {
+            RestartSimulatorErrorDetection();
+        }
+    }
+}
+
 // Find planet center of round/crescent shape in the given image
 bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
 {
@@ -1492,12 +1528,11 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
     // Auto select star was requested
     if (autoSelect)
     {
-        m_cameraSimulationRefPointValid = false;
-        m_simulationZeroOffset = true;
         m_clicked_x = 0;
         m_clicked_y = 0;
         m_roiClicked = false;
         m_detectionCounter = 0;
+        RestartSimulatorErrorDetection();
     }
     Point2f clickedPoint = Point2f(m_clicked_x, m_clicked_y);
 
@@ -1623,36 +1658,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
     }
 
     // For simulated camera, calculate detection error by comparing with the simulated position
-    if (pCamera && pCamera->Name == "Simulator")
-    {
-        bool errUnknown = true;
-        bool clicked = (m_prevClickedPoint != clickedPoint);
-
-        if (m_detected)
-        {
-            if (m_cameraSimulationRefPointValid)
-            {
-                m_simulationZeroOffset = false;
-                m_cameraSimulationRefPointValid = false;
-                m_origPoint = Point2f(m_center_x, m_center_y);
-            }
-            else if (!m_simulationZeroOffset && !clicked)
-            {
-                Point2f delta = Point2f(m_center_x, m_center_y) - m_origPoint;
-                pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"), norm(delta - (m_cameraSimulationMove - m_cameraSimulationRefPoint)));
-                errUnknown = false;
-            }
-        }
-
-        if (errUnknown)
-            pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"), -1);
-
-        if (clicked)
-        {
-            m_cameraSimulationRefPointValid = false;
-            m_simulationZeroOffset = true;
-        }
-    }
+    UpdateDetectionErrorInSimulator(clickedPoint);
 
     // Update data shared with other thread
     m_syncLock.Lock();

@@ -155,6 +155,7 @@ public:
 
     bool FindPlanet(const usImage* pImage, bool autoSelect = false);
     void CameraConnectNotify() { m_roiClicked = false; };
+    void RestartSimulatorErrorDetection();
 
     PHD_Point GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale);
 
@@ -261,4 +262,5 @@ private:
     bool areCollinear(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::KeyPoint& kp3);
     bool validateAndFilterKeypoints(std::vector<cv::KeyPoint>& keypoints, std::vector<cv::KeyPoint>& filteredKeypoints);
     bool DetectSurfaceFeatures(cv::Mat image, cv::Point2f& clickedPoint, bool autoSelect);
+    void UpdateDetectionErrorInSimulator(cv::Point2f& clickedPoint);
 };
