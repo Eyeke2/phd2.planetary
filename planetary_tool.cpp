@@ -577,25 +577,23 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
     // Look for changes in the mount connection state
     if (m_prevPointingSource != pPointingSource || (m_prevMountConnected != (pPointingSource && pPointingSource->IsConnected())))
     {
-        wxArrayString rates;
-        rates.Add(_("Sidereal"));
+        m_mountGuidingRate->Clear();
         if (pPointingSource && pPointingSource->IsConnected())
         {
             for (int i = 0; i < pPointingSource->m_mountRates.size(); i++)
             {
                 enum DriveRates driveRate = pPointingSource->m_mountRates[i];
-                if (driveRate == driveLunar)
-                    rates.Add(_("Lunar"));
+                wxString rate = wxEmptyString;
+                if (driveRate == driveSidereal)
+                    rate = _("Sidereal");
+                else if (driveRate == driveLunar)
+                    rate = _("Lunar");
                 else if (driveRate == driveSolar)
-                    rates.Add(_("Solar"));
+                    rate = _("Solar");
                 else if (driveRate == driveKing)
-                    rates.Add(_("King"));
+                    rate = _("King");
+                m_mountGuidingRate->Append(rate);
             }
-        }
-        m_mountGuidingRate->Clear();
-        for (unsigned int i = 0; i < rates.GetCount(); i++)
-        {
-            m_mountGuidingRate->Append(rates[i]);
         }
         need_update = true;
     }
@@ -607,22 +605,10 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
     for (int i = 0; i < m_mountGuidingRate->GetCount(); i++)
     {
         wxString rateStr = m_mountGuidingRate->GetString(i);
-        if (rateStr == _("Sidereal") && driveRate == driveSidereal)
-        {
-            new_selection = i;
-            break;
-        }
-        else if (rateStr == _("Lunar") && driveRate == driveLunar)
-        {
-            new_selection = i;
-            break;
-        }
-        else if (rateStr == _("Solar") && driveRate == driveSolar)
-        {
-            new_selection = i;
-            break;
-        }
-        else if (rateStr == _("King") && driveRate == driveKing)
+        if ((rateStr == _("Sidereal") && driveRate == driveSidereal) ||
+            (rateStr == _("Lunar") && driveRate == driveLunar) ||
+            (rateStr == _("Solar") && driveRate == driveSolar) ||
+            (rateStr == _("King") && driveRate == driveKing))
         {
             new_selection = i;
             break;
