@@ -178,6 +178,10 @@ PlanetToolWin::PlanetToolWin()
     m_featureTrackingCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable surface features detection/tracking"));
     m_featureTrackingCheckBox->SetToolTip(_("Enable surface feature detection/tracking mode for imaging at high magnification"));
 
+    // Experimental noise filter
+    m_NoiseFilter = new wxCheckBox(this, wxID_ANY, _("Enable noise suppression filter (experimental)"));
+    m_NoiseFilter->SetToolTip(_("Enable noise filtering only for extremely noisy images. Use this option cautiously, as it's recommended only when absolutely necessary."));
+
     wxString radiusTooltip = _("For initial guess of possible radius range connect the gear and set correct focal length.");
     if (pCamera)
     {
@@ -217,15 +221,6 @@ PlanetToolWin::PlanetToolWin()
     m_RoiCheckBox = new wxCheckBox(m_planetTab, wxID_ANY, _("Enable ROI"));
     m_RoiCheckBox->SetToolTip(_("Enable automatically selected Region Of Interest (ROI) for improved processing speed and reduced CPU usage."));
 
-    // Show/hide detected elements
-    m_ShowElements = new wxCheckBox(this, wxID_ANY, _("Display internal edges/features"));
-    m_ShowElements->SetToolTip(_("Toggle the visibility of internally detected edges/features and tune detection parameters "
-        "to maintain a manageable number of these features while keeping them as close as possible to the light disk boundary in the planetary tracking mode."));
-
-    // Experimental noise filter
-    m_NoiseFilter = new wxCheckBox(this, wxID_ANY, _("Enable noise suppression filter (experimental)"));
-    m_NoiseFilter->SetToolTip(_("Enable noise filtering only for extremely noisy images. Use this option cautiously, as it's recommended only when absolutely necessary."));
-
     // Add all planetary tab elements
     wxStaticBoxSizer *planetSizer = new wxStaticBoxSizer(new wxStaticBox(m_planetTab, wxID_ANY, _("")), wxVERTICAL);
     planetSizer->AddSpacer(10);
@@ -258,6 +253,11 @@ PlanetToolWin::PlanetToolWin()
     m_featuresTab->SetSizer(surfaceSizer);
     m_featuresTab->Layout();
 
+    // Show/hide detected elements
+    m_ShowElements = new wxCheckBox(this, wxID_ANY, _("Display internal edges/features"));
+    m_ShowElements->SetToolTip(_("Toggle the visibility of internally detected edges/features and tune detection parameters "
+        "to maintain a manageable number of these features while keeping them as close as possible to the light disk boundary in the planetary tracking mode."));
+
     // Mount settings group
     wxStaticBoxSizer* pMountGroup = new wxStaticBoxSizer(wxHORIZONTAL, this, _("Mount settings"));
     wxFlexGridSizer* pMountTable = new wxFlexGridSizer(1, 6, 10, 10);
@@ -272,7 +272,7 @@ PlanetToolWin::PlanetToolWin()
     m_mountGuidingRate->Bind(wxEVT_MOUSEWHEEL, &PlanetToolWin::OnTrackingRateMouseWheel, this);
 
     pMountTable->Add(m_mountTrackigCheckBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 10);
-    AddTableEntryPair(this, pMountTable, _("Guiding rate"), m_mountGuidingRate, _("Select the desired tracking rate for the mount"));
+    AddTableEntryPair(this, pMountTable, _("Tracking rate"), m_mountGuidingRate, _("Select the desired tracking rate for the mount"));
     pMountGroup->Add(pMountTable);
 
     // Camera settings group
