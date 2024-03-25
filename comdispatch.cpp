@@ -313,6 +313,14 @@ bool DispatchObj::PutProp(OLECHAR *name, bool val)
     return PutProp(dispid, val);
 }
 
+bool DispatchObj::PutProp(OLECHAR* name, double val)
+{
+    DISPID dispid;
+    if (!GetDispatchId(&dispid, name))
+        return false;
+    return PutProp(dispid, val);
+}
+
 bool DispatchObj::InvokeMethod(Variant *res, OLECHAR *name, OLECHAR *arg)
 {
     DISPID dispid;

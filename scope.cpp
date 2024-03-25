@@ -1758,6 +1758,11 @@ bool Scope::SetTrackingRate(enum DriveRates rate)
     return true; // error
 }
 
+bool Scope::SetTrackingRateOffsets(double raRateOffset, double decRateOffset)
+{
+    return true; // error
+}
+
 // Baseline implementations for non-ASCOM subclasses.  Methods will
 // return a sensible default or an error (true)
 bool Scope::GetGuideRates(double *pRAGuideRate, double *pDecGuideRate)

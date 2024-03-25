@@ -686,6 +686,7 @@ void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
     enum DriveRates driveRate = driveSidereal;
     if (pPointingSource && pPointingSource->IsConnected())
     {
+        double ra_offset = 0.0;
         int sel = m_mountGuidingRate->GetSelection();
         if (sel != wxNOT_FOUND)
         {
@@ -693,21 +694,30 @@ void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
             if (rateStr == _("Sidereal"))
                 driveRate = driveSidereal;
             else if (rateStr == _("Lunar"))
+            {
                 driveRate = driveLunar;
+                ra_offset = RA_LUNAR_RATE_OFFSET;
+            } 
             else if (rateStr == _("Solar"))
+            {
                 driveRate = driveSolar;
+                ra_offset = RA_SOLAR_RATE_OFFSET;
+            }
             else if (rateStr == _("King") || rateStr == _("Custom"))
                 driveRate = driveKing;
         }
-    }
-    if (pPointingSource->m_mountRates[driveRate].canSet)
-    {
-        pPointingSource->SetTrackingRate(driveRate);
-        m_driveRate = driveRate;
-    }
-    else
-    {
-        m_mountGuidingRate->SetSelection((int) m_driveRate);
+        if (pPointingSource->m_mountRates[driveRate].canSet)
+        {
+            pPointingSource->SetTrackingRate(driveRate);
+            m_driveRate = driveRate;
+        }
+        else
+        {
+            m_mountGuidingRate->SetSelection((int) m_driveRate);
+        }
+        // Set custom rate offsets for EQMOD mounts
+        if (pPointingSource->Name().StartsWith(_("EQMOD ASCOM")))
+            pPointingSource->SetTrackingRateOffsets(ra_offset, 0);
     }
 }
 

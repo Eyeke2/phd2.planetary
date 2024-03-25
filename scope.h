@@ -293,6 +293,7 @@ public:
     virtual bool GetTrackingRate(enum DriveRates* rate, bool verbose = false);
     virtual bool GetTrackingRate(enum DriveRates* rate, double *ra_rate, double* dec_rate, bool verbose);
     virtual bool SetTrackingRate(enum DriveRates rate);
+    virtual bool SetTrackingRateOffsets(double raRateOffset, double decRateOffset);
     virtual bool CanSetTracking();
 
     void StartDecDrift() override;

@@ -1079,6 +1079,39 @@ bool ScopeASCOM::SetTrackingRate(enum DriveRates rate)
     return bError;
 }
 
+bool ScopeASCOM::SetTrackingRateOffsets(double raRateOffset, double decRateOffset)
+{
+    bool bError = false;
+
+    try
+    {
+        if (!IsConnected())
+        {
+            throw ERROR_INFO("ASCOM Scope: cannot set tracking rate when not connected");
+        }
+
+        GITObjRef scope(m_gitEntry);
+
+        if (!scope.PutProp(L"RightAscensionRate", raRateOffset))
+        {
+            throw ERROR_INFO("ASCOM Scope: SetTrackingRateOffsets(RightAscensionRate) failed: " + ExcepMsg(scope.Excep()));
+        }
+        if (!scope.PutProp(L"DeclinationRate", decRateOffset))
+        {
+            throw ERROR_INFO("ASCOM Scope: SetTrackingRateOffsets(DeclinationRate) failed: " + ExcepMsg(scope.Excep()));
+        }
+    }
+    catch (const wxString& Msg)
+    {
+        bError = true;
+        POSSIBLY_UNUSED(Msg);
+    }
+
+    Debug.Write(wxString::Format("ScopeASCOM::SetTrackingRateOffsets() returns %s\n", bError ? "error" : "success"));
+
+    return bError;
+}
+
 bool ScopeASCOM::GetTracking(bool* tracking, bool verbose)
 {
     bool bError = false;
