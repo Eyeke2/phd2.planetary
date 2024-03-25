@@ -209,7 +209,11 @@ bool ScopeASCOM::Connect()
 {
     bool bError = false;
     m_canSetTracking = false;
-    m_mountRates.clear();
+    for (int i = 0; i < driveMaxRate; i++)
+    {
+        m_mountRates[i].name = wxEmptyString;
+        m_mountRates[i].canSet = false;
+    }
 
     try
     {
@@ -498,8 +502,6 @@ bool ScopeASCOM::Disconnect()
 // Enumerate all supported tracking rates
 void ScopeASCOM::EnumerateTrackingRates()
 {
-    m_mountRates.clear();
-
     // Get all supported tracking rates
     try
     {
@@ -528,7 +530,25 @@ void ScopeASCOM::EnumerateTrackingRates()
                     if (iList.GetProp(&vRate, L"Item", i))
                     {
                         enum DriveRates driveRate = (enum DriveRates)vRate.intVal;
-                        m_mountRates.push_back(driveRate);
+                        switch (driveRate)
+                        {
+                        case driveSidereal:
+                            m_mountRates[driveRate].name = _("Sidereal");
+                            m_mountRates[driveRate].canSet = true;
+                            break;
+                        case driveLunar:
+                            m_mountRates[driveRate].name = _("Lunar");
+                            m_mountRates[driveRate].canSet = true;
+                            break;
+                        case driveSolar:
+                            m_mountRates[driveRate].name = _("Solar");
+                            m_mountRates[driveRate].canSet = true;
+                            break;
+                        case driveKing:
+                            m_mountRates[driveRate].name = _("King");
+                            m_mountRates[driveRate].canSet = true;
+                            break;
+                        }
                         Debug.Write(wxString::Format("ASCOM scope: supports tracking rate: %d\n", driveRate));
                     }
                 }
@@ -542,54 +562,66 @@ void ScopeASCOM::EnumerateTrackingRates()
         {
             Debug.Write("ASCOM scope: cannot get list of TrackingRates\n");
         }
-        if (m_mountRates.size() < 4)
+
+        enum DriveRates savedRate = driveSidereal;
+        Debug.Write("ASCOM scope: testing if mount supports setting Sidereal/Lunar/Solar tracking rates\n");
+        if (GetTrackingRate(&savedRate, true))
         {
-            // If mount doesn't enumerate supported rates, try setting them one by one
-            enum DriveRates testRates[] = { driveSidereal, driveLunar, driveSolar };
-            enum DriveRates currRate, testRate;
-            enum DriveRates savedRate = driveSidereal;
-
-            Debug.Write("ASCOM scope: testing if mount supports setting Sidereal/Lunar/Solar tracking rates\n");
-            if (GetTrackingRate(&savedRate, true))
-            {
-                throw ("ASCOM scope: could not get current tracking rate");
-            }
-
-            // Try setting each rate and see if it takes
-            for (int i = 0; i < ARRAYSIZE(testRates); i++)
-            {
-                bool bErr;
-                const int timeout = 3000;
-                wxStopWatch sWatch;
-
-                testRate = testRates[i];
-                Debug.Write(wxString::Format("ASCOM scope: testing tracking rate %d\n", testRate));
-                if (!SetTrackingRate(testRate))
-                {
-                    // Wait up to 3 seconds for mount to change tracking rate
-                    sWatch.Start();
-                    do
-                    {
-                        wxMilliSleep(100);
-                        bErr = GetTrackingRate(&currRate, true);
-                    } while ((bErr || (currRate != testRate)) && (sWatch.Time() <= timeout));
-
-                    if (!bErr && (currRate == testRate))
-                    {
-                        Debug.Write(wxString::Format("ASCOM scope: can get/set tracking rate: %d [t=%d msec]\n", testRate, (int) sWatch.Time()));
-                        if (std::find(m_mountRates.begin(), m_mountRates.end(), testRate) == m_mountRates.end())
-                            m_mountRates.push_back(testRate);
-                    }
-                }
-            }
-
-            // Restore original rate
-            Debug.Write(wxString::Format("ASCOM mount: restore saved tracking rate %d\n", savedRate));
-            SetTrackingRate(savedRate);
+            throw ("ASCOM scope: could not get current tracking rate");
         }
 
-        // Make sure the rates are in ascending order
-        std::sort(m_mountRates.begin(), m_mountRates.end());
+        // If mount doesn't enumerate supported rates, try setting them one by one
+        for (int i = driveSidereal; i < driveMaxRate; i++)
+        {
+            enum DriveRates currRate, testRate;
+            bool bErr;
+            const int timeout = 3000;
+            wxStopWatch sWatch;
+
+            testRate = (enum DriveRates) i;
+            Debug.Write(wxString::Format("ASCOM scope: testing tracking rate %d\n", testRate));
+            if (!SetTrackingRate(testRate))
+            {
+                // Wait up to 3 seconds for mount to change tracking rate
+                sWatch.Start();
+                do
+                {
+                    wxMilliSleep(100);
+                    bErr = GetTrackingRate(&currRate, true);
+                } while ((bErr || (currRate != testRate)) && (sWatch.Time() <= timeout));
+
+                if (!bErr && (currRate == testRate))
+                {
+                    Debug.Write(wxString::Format("ASCOM scope: can get/set tracking rate: %d [t=%d msec]\n", testRate, (int) sWatch.Time()));
+                    m_mountRates[i].canSet = true;
+                }
+            }
+            else
+            {
+                m_mountRates[i].canSet = false;
+            }
+
+            switch (testRate)
+            {
+            case driveSidereal:
+                m_mountRates[testRate].name = _("Sidereal");
+                break;
+            case driveLunar:
+                m_mountRates[testRate].name = _("Lunar");
+                break;
+            case driveSolar:
+                m_mountRates[testRate].name = _("Solar");
+                break;
+            case driveKing:
+                if (m_mountRates[testRate].name == wxEmptyString)
+                    m_mountRates[testRate].name = _("Custom");
+                break;
+            }
+        }
+
+        // Restore original rate
+        Debug.Write(wxString::Format("ASCOM mount: restore saved tracking rate %d\n", savedRate));
+        SetTrackingRate(savedRate);
     }
     catch (const wxString& Msg)
     {
@@ -964,6 +996,11 @@ double ScopeASCOM::GetDeclinationRadians()
 
 bool ScopeASCOM::GetTrackingRate(enum DriveRates* rate, bool verbose)
 {
+    return GetTrackingRate(rate, nullptr, nullptr, verbose);
+}
+
+bool ScopeASCOM::GetTrackingRate(enum DriveRates* rate, double *ra_rate, double *dec_rate, bool verbose)
+{
     bool bError = false;
 
     try
@@ -983,6 +1020,23 @@ bool ScopeASCOM::GetTrackingRate(enum DriveRates* rate, bool verbose)
         }
 
         *rate = (enum DriveRates) vRes.iVal;
+
+        // EQMOD is known to return bogus rates, so we use offsets to correct them
+        if (*rate == driveSidereal)
+        {
+            if (ra_rate && scope.GetProp(&vRes, L"RightAscensionRate"))
+            {
+                *ra_rate = vRes.dblVal;
+                if (verbose)
+                    Debug.Write(wxString::Format("ScopeASCOM::GetTrackingRate() RightAscensionRate=%.9f\n", *ra_rate));
+            }
+            if (dec_rate && scope.GetProp(&vRes, L"DeclinationRate"))
+            {
+                *dec_rate = vRes.dblVal;
+                if (verbose)
+                    Debug.Write(wxString::Format("ScopeASCOM::GetTrackingRate() DeclinationRate=%.9f\n", *dec_rate));
+            }
+        }
     }
     catch (const wxString& Msg)
     {

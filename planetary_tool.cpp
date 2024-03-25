@@ -577,6 +577,7 @@ void PlanetToolWin::OnMountTrackingClick(wxCommandEvent& event)
 void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
 {
     enum DriveRates driveRate = driveSidereal;
+    double raRate = 0, decRate = 0;
     bool tracking = false;
     bool need_update = false;
 
@@ -601,7 +602,7 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
             return;
         }
         pPointingSource->GetTracking(&tracking);
-        pPointingSource->GetTrackingRate(&driveRate);
+        pPointingSource->GetTrackingRate(&driveRate, &raRate, &decRate, false);
         m_mountTrackigCheckBox->Enable(true);
         m_mountGuidingRate->Enable(tracking);
     }
@@ -618,19 +619,10 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
         m_mountGuidingRate->Clear();
         if (pPointingSource && pPointingSource->IsConnected())
         {
-            for (int i = 0; i < pPointingSource->m_mountRates.size(); i++)
+            for (int i = 0; i < driveMaxRate; i++)
             {
-                enum DriveRates driveRate = pPointingSource->m_mountRates[i];
-                wxString rate = wxEmptyString;
-                if (driveRate == driveSidereal)
-                    rate = _("Sidereal");
-                else if (driveRate == driveLunar)
-                    rate = _("Lunar");
-                else if (driveRate == driveSolar)
-                    rate = _("Solar");
-                else if (driveRate == driveKing)
-                    rate = _("King");
-                m_mountGuidingRate->Append(rate);
+                enum DriveRates driveRate = (enum DriveRates) i;
+                m_mountGuidingRate->Append(pPointingSource->m_mountRates[i].name);
             }
         }
         need_update = true;
@@ -646,12 +638,34 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
         if ((rateStr == _("Sidereal") && driveRate == driveSidereal) ||
             (rateStr == _("Lunar") && driveRate == driveLunar) ||
             (rateStr == _("Solar") && driveRate == driveSolar) ||
-            (rateStr == _("King") && driveRate == driveKing))
+            ((rateStr == _("King") || rateStr == _("Custom")) && driveRate == driveKing))
         {
+            // Special handling of EQMOD using RA/DEC offsets from SideReal rate
+            if (driveRate == driveSidereal)
+            {
+                // Check for lunar rate offset
+                if ((fabs(raRate - RA_LUNAR_RATE_OFFSET ) < 0.00001) && (fabs(decRate) < 0.00001))
+                {
+                    new_selection = driveRate = driveLunar;
+                    break;
+                }
+                // Check for solar rate offset
+                else if ((fabs(raRate - RA_SOLAR_RATE_OFFSET) < 0.00001) && (fabs(decRate) < 0.00001))
+                {
+                    new_selection = driveRate = driveSolar;
+                    break;
+                }
+                else if ((fabs(raRate) > 0.00001) || (fabs(decRate) > 0.00001))
+                {
+                    new_selection = driveRate = driveKing; // custom rate
+                    break;
+                }
+            }
             new_selection = i;
             break;
         }
     }
+    need_update |= (new_selection != m_driveRate);
 
     if (((m_driveRate != driveRate) || need_update) && new_selection != -1)
     {
@@ -682,12 +696,19 @@ void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
                 driveRate = driveLunar;
             else if (rateStr == _("Solar"))
                 driveRate = driveSolar;
-            else if (rateStr == _("King"))
+            else if (rateStr == _("King") || rateStr == _("Custom"))
                 driveRate = driveKing;
         }
     }
-    pPointingSource->SetTrackingRate(driveRate);
-    m_driveRate = driveRate;
+    if (pPointingSource->m_mountRates[driveRate].canSet)
+    {
+        pPointingSource->SetTrackingRate(driveRate);
+        m_driveRate = driveRate;
+    }
+    else
+    {
+        m_mountGuidingRate->SetSelection((int) m_driveRate);
+    }
 }
 
 void PlanetToolWin::OnTrackingRateMouseWheel(wxMouseEvent& event)

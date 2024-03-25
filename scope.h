@@ -55,7 +55,12 @@ enum DriveRates
     driveLunar = 1,      // Lunar tracking rate(14.685 arcseconds per second).
     driveSolar = 2,      // Solar tracking rate(15.0 arcseconds per second).
     driveKing = 3,       // King tracking rate(15.0369 arcseconds per second).
+    driveMaxRate = 4     // Maximum tracking rate
 };
+
+// RA offsets relataive to sidereal rate for lunar and solar tracking
+#define RA_LUNAR_RATE_OFFSET (-0.52965200)
+#define RA_SOLAR_RATE_OFFSET (-0.04106700)
 
 class ScopeConfigDialogCtrlSet : public MountConfigDialogCtrlSet
 {
@@ -161,7 +166,11 @@ public:
     bool m_bogusGuideRatesFlagged;
 
     bool m_canSetTracking;
-    std::vector<enum DriveRates> m_mountRates;
+    struct GuideRateInfo
+    {
+        wxString name;
+        bool canSet;
+    } m_mountRates [4];
 
     // Things related to the Advanced Config Dialog
 protected:
@@ -282,6 +291,7 @@ public:
     virtual bool GetTracking(bool* tracking, bool verbose = false);
     virtual bool SetTracking(bool tracking);
     virtual bool GetTrackingRate(enum DriveRates* rate, bool verbose = false);
+    virtual bool GetTrackingRate(enum DriveRates* rate, double *ra_rate, double* dec_rate, bool verbose);
     virtual bool SetTrackingRate(enum DriveRates rate);
     virtual bool CanSetTracking();
 
