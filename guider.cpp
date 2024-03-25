@@ -448,7 +448,7 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
             // encountered in dark frames. By slightly increasing the maximum value
             // when the difference between min and max values is minimal, we improve the visibility
             // of image details while avoiding the all-white display issue.
-            if (wlevel < 4096 && (wlevel - blevel) < 16)
+            if ((m_pCurrentImage->BitsPerPixel > 8) && (wlevel < 4096 && (wlevel - blevel) < 16))
                 wlevel += 16;
 
             m_pCurrentImage->CopyToImage(&m_displayedImage, blevel, wlevel, pFrame->Stretch_gamma);
