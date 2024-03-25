@@ -6,6 +6,15 @@ installation path, so you can keep two versions at the same time.
 
 Change log
 
+v2.6.13-planet.dev7.rc4
+* Planetary tool: extended camera exposure range: now supports from 1 msec up to 30 seconds. Added debug logging for monitoring mount tracking
+changes. Implemented warning alerts for total exposure and time lapse durations under 0.5 seconds. Added warning when mount tracking
+stops during guiding.
+* Planetary Tool: Added support for setting tracking rates on EQMOD ASCOM mounts.
+* Planetary Tool: refactored code related to enumerating tracking rates. Introduced read-only support for tracking rates on EQMOD ASCOM mounts.
+Notably, EQMOD exclusively utilizes the Sidereal tracking rate, adjusting for solar and lunar rates through RA/DEC offsets.
+* Image Display: fixed screen brightness issue, applicable exclusively in 16 bpp camera mode.
+
 v2.6.13-planet.dev7.rc3
 * Planetary Tool: change incorrect label from 'Guiding Rate' to 'Tracking Rate' in the Planetary Tracking dialog box.
 * Add Philipp and Kirill to about window (#1182)
@@ -16,7 +25,7 @@ v2.6.13-planet.dev7.rc3
 v2.6.13-planet.dev7.rc2
 * Planetary tool: add camera binning control to planetary tracking tool settings to enable inspection and adjustment of current binning value.
 * Planetary tool: update tooltips for Min/Max radii in planetary tool; add hint for approximating solar/lunar detection radius based on pixel
-scale and solarr radius in arcsec.
+scale and solar radius in arcsec.
 * Planetary tool: refactor code and fix logic for restarting error evaluation in planet position estimation with simulator use.
 * Planetary tool: code refactoring of tracking rate logic.
 
