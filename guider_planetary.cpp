@@ -1674,5 +1674,16 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
     m_prevClickedPoint = clickedPoint;
     m_syncLock.Unlock();
 
+    // Check tracking state while guiding
+    if (pFrame->pGuider->IsGuiding() && pPointingSource)
+    {
+        bool tracking = false;
+        if (!pPointingSource->GetTracking(&tracking) && !tracking)
+        {
+            pFrame->Alert("WARNING: mount tracking is disabled!", wxICON_WARNING);
+            Debug.Write("Find planet: tracking is disabled during guiding!");
+        }
+    }
+
     return detectionResult;
 }

@@ -694,18 +694,21 @@ bool MyFrame::SetCustomExposureDuration(int ms)
     return false;
 }
 
-void MyFrame::GetExposureInfo(int *currExpMs, bool *autoExp) const
+bool MyFrame::GetExposureInfo(int *currExpMs, bool *autoExp) const
 {
+    bool bEerr = false;
     if (!pCamera || !pCamera->Connected)
     {
         *currExpMs = 0;
         *autoExp = false;
+        bEerr = true;
     }
     else
     {
         *currExpMs = m_exposureDuration;
         *autoExp = m_autoExp.enabled;
     }
+    return bEerr;
 }
 
 static int dur_index(int duration)

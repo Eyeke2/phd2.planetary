@@ -113,6 +113,8 @@ struct PlanetToolWin : public wxDialog
     void OnBinningSelected(wxCommandEvent& event);
     void OnSaveVideoLog(wxCommandEvent& event);
 
+    void SyncCameraExposure(bool init = false);
+    void CheckMinExposureDuration();
     void UpdateStatus();
 };
 
@@ -279,7 +281,7 @@ PlanetToolWin::PlanetToolWin()
     wxStaticBoxSizer* pCamGroup = new wxStaticBoxSizer(wxVERTICAL, this, _("Camera settings"));
     wxBoxSizer* pCamSizer1 = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer* pCamSizer2 = new wxBoxSizer(wxHORIZONTAL);
-    m_ExposureCtrl = NewSpinner(this, _T("%4.0f"), 1000, 1, 9999, 1);
+    m_ExposureCtrl = NewSpinner(this, _T("%5.0f"), 1000, PT_CAMERA_EXPOSURE_MIN, PT_CAMERA_EXPOSURE_MAX, 1);
     m_GainCtrl = NewSpinner(this, _T("%3.0f"), 0, 0, 100, 1);
     m_DelayCtrl = NewSpinner(this, _T("%5.0f"), 100, 0, 60000, 100);
     int maxBinning = pCamera ? (pCamera->Name == "Simulator" ? 1 : pCamera->MaxBinning) : 1;
@@ -294,7 +296,7 @@ PlanetToolWin::PlanetToolWin()
     m_DelayCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnDelayChanged, this);
     m_BinningCtrl->Bind(wxEVT_CHOICE, &PlanetToolWin::OnBinningSelected, this);
     pCamSizer1->AddSpacer(5);
-    AddTableEntryPair(this, pCamSizer1, _("Exposure (ms)"), 20, m_ExposureCtrl, 30, _("Camera exposure in milliseconds)"));
+    AddTableEntryPair(this, pCamSizer1, _("Exposure (ms)"), 20, m_ExposureCtrl, 20, _("Camera exposure in milliseconds)"));
     AddTableEntryPair(this, pCamSizer1, _("Gain"), 35, m_GainCtrl, 0, _("Camera gain (0-100)"));
     pCamSizer2->AddSpacer(5);
     AddTableEntryPair(this, pCamSizer2, _("Time Lapse (ms)"), 5, m_DelayCtrl, 20,
@@ -382,23 +384,11 @@ PlanetToolWin::PlanetToolWin()
     wxTimerEvent dummyEvent;
     OnPlanetaryTimer(dummyEvent);
 
-    // Get the current camera settings
-    int exposureMsec;
-    bool auto_exp;
-    pFrame->GetExposureInfo(&exposureMsec, &auto_exp);
-    if (exposureMsec)
-    {
-        exposureMsec = wxMin(exposureMsec, 9999);
-        m_ExposureCtrl->SetValue(exposureMsec);
-        pFrame->SetExposureDuration(exposureMsec, true);
-    }
-    else
-    {
-        exposureMsec = pConfig->Profile.GetInt("/ExposureDurationMs", 1000);
-    }
+    // Update camera settings
     m_DelayCtrl->SetValue(pFrame->GetTimeLapse());
     if (pCamera)
         m_GainCtrl->SetValue(pCamera->GetCameraGain());
+    SyncCameraExposure(true);
 
     Connect(APPSTATE_NOTIFY_EVENT, wxCommandEventHandler(PlanetToolWin::OnAppStateNotify));
 
@@ -632,9 +622,11 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
 
     // Iterate through the available rates in the m_mountGuidingRate combo box and select the current rate
     int new_selection = -1;
+    wxString rateStr = wxEmptyString;
     for (int i = 0; i < m_mountGuidingRate->GetCount(); i++)
     {
-        wxString rateStr = m_mountGuidingRate->GetString(i);
+        rateStr = m_mountGuidingRate->GetString(i);
+        const double tolerance = 0.00001;
         if ((rateStr == _("Sidereal") && driveRate == driveSidereal) ||
             (rateStr == _("Lunar") && driveRate == driveLunar) ||
             (rateStr == _("Solar") && driveRate == driveSolar) ||
@@ -644,19 +636,22 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
             if (driveRate == driveSidereal)
             {
                 // Check for lunar rate offset
-                if ((fabs(raRate - RA_LUNAR_RATE_OFFSET ) < 0.00001) && (fabs(decRate) < 0.00001))
+                if ((fabs(raRate - RA_LUNAR_RATE_OFFSET ) < tolerance) && (fabs(decRate) < tolerance))
                 {
+                    rateStr = _("Lunar");
                     new_selection = driveRate = driveLunar;
                     break;
                 }
                 // Check for solar rate offset
-                else if ((fabs(raRate - RA_SOLAR_RATE_OFFSET) < 0.00001) && (fabs(decRate) < 0.00001))
+                else if ((fabs(raRate - RA_SOLAR_RATE_OFFSET) < tolerance) && (fabs(decRate) < tolerance))
                 {
+                    rateStr = _("Solar");
                     new_selection = driveRate = driveSolar;
                     break;
                 }
-                else if ((fabs(raRate) > 0.00001) || (fabs(decRate) > 0.00001))
+                else if ((fabs(raRate) > tolerance) || (fabs(decRate) > tolerance))
                 {
+                    rateStr = _("Custom");
                     new_selection = driveRate = driveKing; // custom rate
                     break;
                 }
@@ -669,6 +664,7 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
 
     if (((m_driveRate != driveRate) || need_update) && new_selection != -1)
     {
+        Debug.Write(wxString::Format("Planetary tracking: mount tracking rate: %s\n", rateStr));
         m_mountGuidingRate->SetSelection(new_selection);
     }
     m_driveRate = driveRate;
@@ -686,11 +682,12 @@ void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
     enum DriveRates driveRate = driveSidereal;
     if (pPointingSource && pPointingSource->IsConnected())
     {
+        wxString rateStr = "Sidereal";
         double ra_offset = 0.0;
         int sel = m_mountGuidingRate->GetSelection();
         if (sel != wxNOT_FOUND)
         {
-            wxString rateStr = m_mountGuidingRate->GetString(sel);
+            rateStr = m_mountGuidingRate->GetString(sel);
             if (rateStr == _("Sidereal"))
                 driveRate = driveSidereal;
             else if (rateStr == _("Lunar"))
@@ -706,6 +703,8 @@ void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
             else if (rateStr == _("King") || rateStr == _("Custom"))
                 driveRate = driveKing;
         }
+
+        Debug.Write(wxString::Format("Planetary tracking: setting mount tracking rate to %s\n", rateStr));
         if (pPointingSource->m_mountRates[driveRate].canSet)
         {
             pPointingSource->SetTrackingRate(driveRate);
@@ -713,11 +712,15 @@ void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
         }
         else
         {
-            m_mountGuidingRate->SetSelection((int) m_driveRate);
+            m_mountGuidingRate->SetSelection((int) driveRate);
         }
+
         // Set custom rate offsets for EQMOD mounts
         if (pPointingSource->Name().StartsWith(_("EQMOD ASCOM")))
+        {
+            Debug.Write(wxString::Format("Planetary tracking: setting RA tracking offset %.6f for EQMOD ASCOM\n", ra_offset));
             pPointingSource->SetTrackingRateOffsets(ra_offset, 0);
+        }
     }
 }
 
@@ -729,9 +732,10 @@ void PlanetToolWin::OnTrackingRateMouseWheel(wxMouseEvent& event)
 void PlanetToolWin::OnExposureChanged(wxSpinDoubleEvent& event)
 {
     int expMsec = m_ExposureCtrl->GetValue();
-    expMsec = wxMin(expMsec, 9999);
-    expMsec = wxMax(expMsec, 1);
+    expMsec = wxMin(expMsec, PT_CAMERA_EXPOSURE_MAX);
+    expMsec = wxMax(expMsec, PT_CAMERA_EXPOSURE_MIN);
     pFrame->SetExposureDuration(expMsec, true);
+    CheckMinExposureDuration();
 }
 
 void PlanetToolWin::OnDelayChanged(wxSpinDoubleEvent& event)
@@ -740,6 +744,7 @@ void PlanetToolWin::OnDelayChanged(wxSpinDoubleEvent& event)
     delayMsec = wxMin(delayMsec, 60000);
     delayMsec = wxMax(delayMsec, 0);
     pFrame->SetTimeLapse(delayMsec);
+    CheckMinExposureDuration();
 }
 
 void PlanetToolWin::OnGainChanged(wxSpinDoubleEvent& event)
@@ -924,18 +929,46 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         this->Close();
 }
 
-// Sync local camera settings with the main frame changes
-void PlanetToolWin::OnAppStateNotify(wxCommandEvent& event)
+void PlanetToolWin::CheckMinExposureDuration()
+{
+    int delayMsec = m_DelayCtrl->GetValue();
+    int exposureMsec = m_ExposureCtrl->GetValue();
+    if (delayMsec + exposureMsec < 500)
+    {
+        pFrame->Alert(_("Warning: the sum of camera exposure and time lapse duration must be at least 500 msec (recommended 500-5000 msec)!"));
+    }
+}
+
+void PlanetToolWin::SyncCameraExposure(bool init)
 {
     int exposureMsec;
     bool auto_exp;
-    pFrame->GetExposureInfo(&exposureMsec, &auto_exp);
-    if (exposureMsec)
+    if (!pFrame->GetExposureInfo(&exposureMsec, &auto_exp))
     {
-        exposureMsec = wxMin(exposureMsec, 9999);
-        if (exposureMsec != m_ExposureCtrl->GetValue())
-            m_ExposureCtrl->SetValue(exposureMsec);
+        exposureMsec = wxMax(exposureMsec, PT_CAMERA_EXPOSURE_MIN);
+        exposureMsec = wxMin(exposureMsec, PT_CAMERA_EXPOSURE_MAX);
+        pFrame->SetExposureDuration(exposureMsec, true);
     }
+    else
+    {
+        exposureMsec = pConfig->Profile.GetInt("/ExposureDurationMs", 1000);
+    }
+    if (init || exposureMsec != m_ExposureCtrl->GetValue())
+    {
+        m_ExposureCtrl->SetValue(exposureMsec);
+        if (exposureMsec != m_ExposureCtrl->GetValue())
+        {
+            exposureMsec = m_ExposureCtrl->GetValue();
+            pFrame->SetExposureDuration(exposureMsec, true);
+        }
+    }
+    CheckMinExposureDuration();
+}
+
+// Sync local camera settings with the main frame changes
+void PlanetToolWin::OnAppStateNotify(wxCommandEvent& event)
+{
+    SyncCameraExposure();
 
     int const delayMsec = pFrame->GetTimeLapse();
     if (delayMsec != m_DelayCtrl->GetValue())
