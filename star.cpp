@@ -123,8 +123,110 @@ static double hfr(std::vector<R2M>& vec, double cx, double cy, double mass)
     return hfr;
 }
 
+double Star::CalcPlanetMetrics(const usImage* pImg, int center_x, int center_y, int r, int annulusWidth)
+{
+    const double sigma_factor = 1.0;
+    int scopeOuter = r + annulusWidth * 3;
+    int scopeInner = r + annulusWidth;
+    int scopeOuter2 = scopeOuter * scopeOuter;
+    int scopeInner2 = scopeInner * scopeInner;
+    int start_x = wxMax(0, center_x - scopeOuter);
+    int end_x = wxMin(center_x + scopeOuter, pImg->Size.GetWidth() - 1);
+    int start_y = wxMax(0, center_y - scopeOuter);
+    int end_y = wxMin(center_y + scopeOuter, pImg->Size.GetHeight() - 1);
+
+    const unsigned short* imgdata = pImg->ImageData;
+    const int rowsize = pImg->Size.GetWidth();
+
+    // Calculate the statistics within the larger annulus
+    double snr = 0.0;
+    double mass = 0;
+    double sum = 0.0;
+    double sq_sum = 0.0;
+    int count = 0;
+    const unsigned short* row = imgdata + rowsize * start_y;
+    for (int y = start_y; y <= end_y; y++, row += rowsize)
+    {
+        for (int x = start_x; x <= end_x; x++)
+        {
+            int r2 = (x - center_x) * (x - center_x) + (y - center_y) * (y - center_y);
+            if ((r2 < scopeOuter2) && (r2 > scopeInner2))
+            {
+                double pixel = (double) row[x];
+                sum += pixel;
+                sq_sum += pixel * pixel;
+                count++;
+            }
+        }
+    }
+
+    // Calculate mean, variance and standard deviation in the annulus
+    double mean = (count > 0) ? sum / count : 0.0;
+    double variance = (count > 0) ? (sq_sum / count) - (mean * mean) : 0.0;
+    double stdDev = sqrt(variance);
+
+    // Calculate signal and noise within the circle
+    unsigned short peak_val = 0;
+    double meanSignal = 0.0;
+    int signalCount = 0;
+    double meanNoise = 0.0;
+    int noiseCount = 0;
+    double noiseVariance = 0.0;
+    row = imgdata + rowsize * start_y;
+    for (int y = start_y; y <= end_y; y++, row += rowsize)
+    {
+        for (int x = start_x; x <= end_x; x++)
+        {
+            int r2 = (x - center_x) * (x - center_x) + (y - center_y) * (y - center_y);
+            if (r2 < scopeInner2)
+            {
+                double pixel = (double) row[x];
+                if (pixel > peak_val)
+                    peak_val = pixel;
+                if (pixel > mean + stdDev * sigma_factor)
+                {
+                    meanSignal += pixel;
+                    signalCount++;
+                }
+            }
+            else if (r2 < scopeOuter2)
+            {
+                double pixel = (double) row[x];
+                if (pixel < mean + stdDev * sigma_factor)
+                {
+                    meanNoise += pixel;
+                    noiseVariance += pixel * pixel;
+                    noiseCount++;
+                }
+            }
+        }
+    }
+
+    mass = meanSignal;
+    if (signalCount > 0)
+    {
+        meanSignal /= signalCount;
+    }
+
+    if (noiseCount > 0)
+    {
+        meanNoise /= noiseCount;
+        noiseVariance = noiseVariance / noiseCount - meanNoise * meanNoise;
+        double sqrtNoiseVariance = sqrt(noiseVariance);
+        snr = (sqrtNoiseVariance > 1) ? (meanSignal - meanNoise) / sqrtNoiseVariance : 0.0;
+    }
+
+    PeakVal = peak_val;
+    Mass = mass;
+    return snr;
+}
+
 bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double base_y, FindMode mode, double minHFD, double maxHFD, unsigned short maxADU, StarFindLogType loggingControl)
 {
+    double const LOW_SNR = 3.0;
+
+    bool surfaceDetection = false;
+    bool eclipseDetection = false;
     FindResult Result = STAR_OK;
     double newX = (mode == FIND_PLANET) ? base_x : (int) base_x;
     double newY = (mode == FIND_PLANET) ? base_y : (int) base_y;
@@ -232,208 +334,215 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
         }
         else // FIND_PLANET
         {
-            peak_x = base_x;
-            peak_y = base_y;
-            inner_radius = searchRegion;       // inner radius
-            outer_radius = searchRegion + 15;  // outer radius
-
-            for (int y = start_y + 1; y <= end_y - 1; y++)
+            surfaceDetection = (pFrame->pGuider->m_Planet.GetPlanetDetectMode() == GuiderPlanet::PLANET_DETECT_MODE_SURFACE);
+            if (surfaceDetection)
             {
-                for (int x = start_x + 1; x <= end_x - 1; x++)
+                peak_x = base_x;
+                peak_y = base_y;
+                inner_radius = searchRegion;       // inner radius
+                outer_radius = searchRegion + 15;  // outer radius
+                for (int y = start_y; y <= end_y; y++)
                 {
-                    unsigned short p = imgdata[y * rowsize + x];
-                    if (p > max3[0])
-                        std::swap(p, max3[0]);
-                    if (p > max3[1])
-                        std::swap(p, max3[1]);
-                    if (p > max3[2])
-                        std::swap(p, max3[2]);
+                    for (int x = start_x; x <= end_x; x++)
+                    {
+                        unsigned short val = imgdata[y * rowsize + x];
+                        if (val > peak_val)
+                        {
+                            peak_val = val;
+                        }
+                    }
                 }
+                PeakVal = peak_val;
             }
-            peak_val = max3[0];
-            PeakVal = peak_val;
+            else
+            {
+                eclipseDetection = true;
+            }
         }
 
-        // measure noise in the annulus with inner radius A and outer radius B
-        int const A = inner_radius;
-        int const B = outer_radius;
-        int const A2 = A * A;
-        int const B2 = B * B;
-
-        // center window around peak value
-        start_x = wxMax(peak_x - B, minx);
-        end_x = wxMin(peak_x + B, maxx);
-        start_y = wxMax(peak_y - B, miny);
-        end_y = wxMin(peak_y + B, maxy);
-
-        // find the mean and stdev of the background
-
-        unsigned int nbg;
-        double mean_bg = 0., prev_mean_bg;
-        double sigma2_bg = 0.;
-        double sigma_bg = 0.;
-        double bg_max = wxMin(pImg->MinADU * 10, pImg->MaxADU / 2);
-        bg_max = wxMax(bg_max, pImg->MinADU * 2);
-        bool surfaceDetection = (mode == FIND_PLANET) && (pFrame->pGuider->m_Planet.GetPlanetDetectMode() == GuiderPlanet::PLANET_DETECT_MODE_SURFACE);
-        bool eclipseDetection = (mode == FIND_PLANET) && (pFrame->pGuider->m_Planet.GetPlanetDetectMode() == GuiderPlanet::PLANET_DETECT_MODE_ECLIPSE);
-
-        for (int iter = 0; iter < 9; iter++)
+        if (eclipseDetection)
         {
-            double sum = 0.0;
-            double a = 0.0;
-            double q = 0.0;
-            nbg = 0;
+            SNR = CalcPlanetMetrics(pImg, base_x, base_y, searchRegion, 15);
+            HFD = pFrame->pGuider->m_Planet.GetHFD();
 
-            const unsigned short *row = imgdata + rowsize * start_y;
-            for (int y = start_y; y <= end_y; y++, row += rowsize)
+            if (SNR < LOW_SNR)
             {
-                int dy = y - peak_y;
-                int dy2 = dy * dy;
-                for (int x = start_x; x <= end_x; x++)
-                {
-                    int dx = x - peak_x;
-                    int r2 = dx * dx + dy2;
-
-                    // exclude points not in annulus
-                    if (r2 <= A2 || r2 > B2)
-                        continue;
-
-                    double const val = (double) row[x];
-
-                    // In surface detection mode there is no differentiation between background and the object
-                    // so that we include all the points in the annulus.
-                    if (iter > 0 && !surfaceDetection && (val < mean_bg - 2.0 * sigma_bg || val > mean_bg + 2.0 * sigma_bg))
-                        continue;
-
-                    // In Eclipse mode only - exclude points high above the background
-                    if (eclipseDetection && (val > bg_max))
-                        continue;
-
-                    sum += val;
-                    ++nbg;
-                    double const k = (double) nbg;
-                    double const a0 = a;
-                    a += (val - a) / k;
-                    q += (val - a0) * (val - a);
-                }
+                HFD = 0.;
+                Result = STAR_LOWSNR;
+                goto done;
             }
-
-            if (nbg < 10) // only possible after the first iteration
-            {
-                Debug.Write(wxString::Format("Star::Find: too few background points! nbg=%u mean=%.1f sigma=%.1f\n",
-                    nbg, mean_bg, sigma_bg));
-                break;
-            }
-
-            prev_mean_bg = mean_bg;
-            mean_bg = sum / (double) nbg;
-            sigma2_bg = q / (double) (nbg - 1);
-            sigma_bg = sqrt(sigma2_bg);
-
-            if (iter > 0 && fabs(mean_bg - prev_mean_bg) < 0.5)
-                break;
-        }
-
-        unsigned short thresh;
-
-        double cx = 0.0;
-        double cy = 0.0;
-        double mass = 0.0;
-        unsigned int n;
-
-        std::vector<R2M> hfrvec;
-
-        if (mode == FIND_PEAK)
-        {
-            mass = peak_val;
-            n = 1;
-            thresh = 0;
         }
         else
         {
-            // In planetary detection mode we set the threshold of mass detection to 0
-            float sigma_factor = (mode == FIND_PLANET) ? 1.0 : 3.0;
-            if (mode == FIND_PLANET)
+            // measure noise in the annulus with inner radius A and outer radius B
+            int const A = inner_radius;
+            int const B = outer_radius;
+            int const A2 = A * A;
+            int const B2 = B * B;
+
+            // center window around peak value
+            start_x = wxMax(peak_x - B, minx);
+            end_x = wxMin(peak_x + B, maxx);
+            start_y = wxMax(peak_y - B, miny);
+            end_y = wxMin(peak_y + B, maxy);
+
+            // find the mean and stdev of the background
+
+            unsigned int nbg;
+            double mean_bg = 0., prev_mean_bg;
+            double sigma2_bg = 0.;
+            double sigma_bg = 0.;
+
+            for (int iter = 0; iter < 9; iter++)
             {
-                mean_bg = 0;
+                double sum = 0.0;
+                double a = 0.0;
+                double q = 0.0;
+                nbg = 0;
+
+                const unsigned short* row = imgdata + rowsize * start_y;
+                for (int y = start_y; y <= end_y; y++, row += rowsize)
+                {
+                    int dy = y - peak_y;
+                    int dy2 = dy * dy;
+                    for (int x = start_x; x <= end_x; x++)
+                    {
+                        int dx = x - peak_x;
+                        int r2 = dx * dx + dy2;
+
+                        // exclude points not in annulus
+                        if (r2 <= A2 || r2 > B2)
+                            continue;
+
+                        double const val = (double)row[x];
+
+                        // In surface detection mode there is no differentiation between background and the object
+                        // so that we include all the points in the annulus.
+                        if (iter > 0 && !surfaceDetection && (val < mean_bg - 2.0 * sigma_bg || val > mean_bg + 2.0 * sigma_bg))
+                            continue;
+
+                        sum += val;
+                        ++nbg;
+                        double const k = (double)nbg;
+                        double const a0 = a;
+                        a += (val - a) / k;
+                        q += (val - a0) * (val - a);
+                    }
+                }
+
+                if (nbg < 10) // only possible after the first iteration
+                {
+                    Debug.Write(wxString::Format("Star::Find: too few background points! nbg=%u mean=%.1f sigma=%.1f\n",
+                        nbg, mean_bg, sigma_bg));
+                    break;
+                }
+
+                prev_mean_bg = mean_bg;
+                mean_bg = sum / (double)nbg;
+                sigma2_bg = q / (double)(nbg - 1);
+                sigma_bg = sqrt(sigma2_bg);
+
+                if (iter > 0 && fabs(mean_bg - prev_mean_bg) < 0.5)
+                    break;
+            }
+
+            unsigned short thresh;
+
+            double cx = 0.0;
+            double cy = 0.0;
+            double mass = 0.0;
+            unsigned int n;
+
+            std::vector<R2M> hfrvec;
+
+            if (mode == FIND_PEAK)
+            {
+                mass = peak_val;
+                n = 1;
                 thresh = 0;
             }
             else
-                thresh = (unsigned short)(mean_bg + sigma_factor * sigma_bg + 0.5);
-
-            // find pixels over threshold within aperture; compute mass and centroid
-
-            start_x = wxMax(peak_x - A, minx);
-            end_x = wxMin(peak_x + A, maxx);
-            start_y = wxMax(peak_y - A, miny);
-            end_y = wxMin(peak_y + A, maxy);
-
-            n = 0;
-
-            const unsigned short *row = imgdata + rowsize * start_y;
-            for (int y = start_y; y <= end_y; y++, row += rowsize)
             {
-                int dy = y - peak_y;
-                int dy2 = dy * dy;
-                if (dy2 > A2)
-                    continue;
+                thresh = (unsigned short)(mean_bg + 3 * sigma_bg + 0.5);
 
-                for (int x = start_x; x <= end_x; x++)
+                // In planetary detection mode we set the threshold of mass detection to 0
+                if (mode == FIND_PLANET)
                 {
-                    int dx = x - peak_x;
+                    thresh = 0;
+                    mean_bg = 0;
+                }
 
-                    // exclude points outside aperture
-                    if (dx * dx + dy2 > A2)
+                // find pixels over threshold within aperture; compute mass and centroid
+
+                start_x = wxMax(peak_x - A, minx);
+                end_x = wxMin(peak_x + A, maxx);
+                start_y = wxMax(peak_y - A, miny);
+                end_y = wxMin(peak_y + A, maxy);
+
+                n = 0;
+
+                const unsigned short* row = imgdata + rowsize * start_y;
+                for (int y = start_y; y <= end_y; y++, row += rowsize)
+                {
+                    int dy = y - peak_y;
+                    int dy2 = dy * dy;
+                    if (dy2 > A2)
                         continue;
 
-                    // exclude points below threshold
-                    unsigned short val = row[x];
-                    if (val < thresh)
-                        continue;
+                    for (int x = start_x; x <= end_x; x++)
+                    {
+                        int dx = x - peak_x;
 
-                    double const d = (double) val - mean_bg;
+                        // exclude points outside aperture
+                        if (dx * dx + dy2 > A2)
+                            continue;
 
-                    cx += dx * d;
-                    cy += dy * d;
-                    mass += d;
-                    ++n;
+                        // exclude points below threshold
+                        unsigned short val = row[x];
+                        if (val < thresh)
+                            continue;
 
-                    hfrvec.push_back(R2M(x, y, d));
+                        double const d = (double)val - mean_bg;
+
+                        cx += dx * d;
+                        cy += dy * d;
+                        mass += d;
+                        ++n;
+
+                        hfrvec.push_back(R2M(x, y, d));
+                    }
                 }
             }
-        }
 
-        Mass = mass;
+            Mass = mass;
 
-        // SNR estimate from: Measuring the Signal-to-Noise Ratio S/N of the CCD Image of a Star or Nebula, J.H.Simonetti, 2004 January 8
-        //     http://www.phys.vt.edu/~jhs/phys3154/snr20040108.pdf
-        double const gain = .5; // electrons per ADU, nominal
-        SNR = (n > 0 && nbg > 0) ? mass / sqrt(mass / gain + sigma2_bg * (double) n * (1.0 + 1.0 / (double) nbg)) : 0.0;
+            // SNR estimate from: Measuring the Signal-to-Noise Ratio S/N of the CCD Image of a Star or Nebula, J.H.Simonetti, 2004 January 8
+            //     http://www.phys.vt.edu/~jhs/phys3154/snr20040108.pdf
+            double const gain = .5; // electrons per ADU, nominal
+            SNR = (n > 0 && nbg > 0) ? mass / sqrt(mass / gain + sigma2_bg * (double)n * (1.0 + 1.0 / (double)nbg)) : 0.0;
 
-        double const LOW_SNR = 3.0;
+            // a few scattered pixels over threshold can give a false positive
+            // avoid this by requiring the smoothed peak value to be above the threshold
+            if (peak_val <= thresh && SNR >= LOW_SNR)
+            {
+                Debug.Write(wxString::Format("Star::Find false star n=%u nbg=%u bg=%.1f sigma=%.1f thresh=%u peak=%u\n", n, nbg, mean_bg, sigma_bg, thresh, peak_val));
+                SNR = LOW_SNR - 0.1;
+            }
 
-        // a few scattered pixels over threshold can give a false positive
-        // avoid this by requiring the smoothed peak value to be above the threshold
-        if (peak_val <= thresh && SNR >= LOW_SNR)
-        {
-            Debug.Write(wxString::Format("Star::Find false star n=%u nbg=%u bg=%.1f sigma=%.1f thresh=%u peak=%u\n", n, nbg, mean_bg, sigma_bg, thresh, peak_val));
-            SNR = LOW_SNR - 0.1;
-        }
+            if (mass < 10.0)
+            {
+                HFD = 0.;
+                Result = STAR_LOWMASS;
+                goto done;
+            }
 
-        if (mass < 10.0)
-        {
-            HFD = 0.;
-            Result = STAR_LOWMASS;
-            goto done;
-        }
+            // In planetary mode HFD's original meaning is replaced by feature radius
+            if (mode == FIND_PLANET)
+            {
+                HFD = pFrame->pGuider->m_Planet.GetHFD();
+                goto done;
+            }
 
-        // In planetary mode HFD's original meaning is replaced by feature radius
-        if (mode == FIND_PLANET)
-        {
-            HFD = pFrame->pGuider->m_Planet.GetHFD();
-        }
-        else 
-        {
             newX = peak_x + cx / mass;
             newY = peak_y + cy / mass;
 
