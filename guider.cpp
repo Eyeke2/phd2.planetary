@@ -1081,13 +1081,13 @@ void Guider::UpdateCurrentDistance(double distance, double distanceRA)
         {
             // initialize smoothed running avg with mean of first 10 pts
             m_avgDistanceLong += (distance - m_avgDistanceLong) / m_avgDistanceCnt;
-            m_avgDistanceLongRA += (distance - m_avgDistanceLongRA) / m_avgDistanceCnt;
+            m_avgDistanceLongRA += (distanceRA - m_avgDistanceLongRA) / m_avgDistanceCnt;
         }
         else
         {
             static double const alpha_long = .045; // heavy smoothing, low weighting for latest sample .045 => 15 frame half-life
             m_avgDistanceLong += alpha_long * (distance - m_avgDistanceLong);
-            m_avgDistanceLongRA += alpha_long * (distance - m_avgDistanceLongRA);
+            m_avgDistanceLongRA += alpha_long * (distanceRA - m_avgDistanceLongRA);
         }
     }
     else
