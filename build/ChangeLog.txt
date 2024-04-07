@@ -6,6 +6,19 @@ installation path, so you can keep two versions at the same time.
 
 Change log
 
+v2.6.13-planet.dev7.rc5
+* Planetary tool: add debug log messages to trace events of interest during surface feature detection and tracking.
+* Planetary tool: normalize image by a scale factor derived from its mean value to calculate sharpness independently
+of total brightness variations.
+* Planetary tool: add a new method to estimate SNR in feature detection mode by using the difference between the signal
+and its smoothed version, applied after a Gaussian filter.
+* Histogram builder: fix incorrect delete operator.
+* Planetary tool: introduce a new function to calculate SNR in planetary detection mode by estimating signal and noise statistics inside the
+detected circle and its surrounding area.
+* Gear simulator: implement appropriate pixel scaling when loading images from 8-bit FIT files.
+* UpdateCurrentDistance: use distanceRA for calculating RA averages.
+* Add event server interfaces to get/set variable delay parameters. Fix… (#1183).
+
 v2.6.13-planet.dev7.rc4
 * Planetary tool: extended camera exposure range: now supports from 1 msec up to 30 seconds. Added debug logging for monitoring mount tracking
 changes. Implemented warning alerts for total exposure and time lapse durations under 0.5 seconds. Added warning when mount tracking
