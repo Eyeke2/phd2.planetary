@@ -728,6 +728,16 @@ bool SimCamState::ReadFitImage(usImage& img, wxString& filename, const wxRect& s
         return true;
     }
 
+    int bitpix;
+    long naxes[10] = { 0 };
+    if (fits_get_img_param(fptr, 10, &bitpix, &naxis, naxes, &status))
+    {
+        pFrame->Alert(_("Error reading image parameters"));
+        PHD_fits_close_file(fptr);
+        return true;
+    }
+    int scale_shift = (bitpix == 8) ? 8 : 0;
+
     long fits_size[2];
     fits_get_img_size(fptr, 2, fits_size, &status);
 
@@ -770,13 +780,13 @@ bool SimCamState::ReadFitImage(usImage& img, wxString& filename, const wxRect& s
         {
             unsigned short *dst = img.ImageData + (y + subframe.y) * xsize + subframe.x;
             for (int x = 0; x < subframe.width; x++, i++)
-                *dst++ = (unsigned short) buf[i];
+                *dst++ = (unsigned short) buf[i] << scale_shift;
         }
     }
     else
     {
         for (unsigned int i = 0; i < img.NPixels; i++)
-            img.ImageData[i] = (unsigned short) buf[i];
+            img.ImageData[i] = (unsigned short) buf[i] << scale_shift;
     }
 
     delete[] buf;
