@@ -1097,6 +1097,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
     {
         // Indicate insufficient keypoints
         m_statusMsg = _("No detectable features");
+        Debug.Write("Surface feature tracking: " + m_statusMsg + "\n");
         return false;
     }
 
@@ -1128,6 +1129,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
         if (matches.size() < 4)
         {
             m_statusMsg = _("Too few matched features");
+            Debug.Write("Surface feature tracking: " + m_statusMsg + "\n");
             return false;
         }
 
@@ -1162,11 +1164,10 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
                 inlierMatches.push_back(match);
                 inlierPoints.push_back(filteredKeypoints[match.trainIdx].pt);
 
-                // Compute average displacement Point2f vector between matched keypoints
+                // Compute average displacement vector between matched keypoints
                 displacement += filteredKeypoints[match.trainIdx].pt - m_referenceKeypoints[match.queryIdx].pt;
 
                 // Calculate distances between matched descriptors
-                // double dist = norm(m_referenceDescriptors.row(match.queryIdx), descriptors.row(match.trainIdx));
                 double dist = norm(m_referenceKeypoints[match.queryIdx].pt - filteredKeypoints[match.trainIdx].pt);
                 distances.push_back(dist);
             }
@@ -1176,6 +1177,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
         if (inlierMatches.size() < 4)
         {
             m_statusMsg = _("Too few detectable features");
+            Debug.Write("Surface feature tracking: " + m_statusMsg + "\n");
             return false;
         }
 
@@ -1224,6 +1226,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
                 if (filteredKeypoints.size() < 4)
                 {
                     m_statusMsg = _("Too few detectable features");
+                    Debug.Write("Surface feature tracking: " + m_statusMsg + "\n");
                     return false;
                 }
 
@@ -1234,6 +1237,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
                 m_referencePoint = m_surfaceFixationPoint;
                 m_referenceKeypoints = filteredKeypoints;
                 m_referenceDescriptors = descriptors;
+                Debug.Write("Surface feature tracking: update reference point\n");
             }
 
             // Warn user about unstable image
@@ -1277,6 +1281,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
         m_detectedFeatures = inlierPoints.size();
 
         // Update stats
+        Debug.Write(wxString::Format("Surface feature tracking: mean=%.1f, variance=%.1f, distance=%.1f, quality=%d, features=%d\n", mean, variance, distance, m_trackingQuality, m_detectedFeatures));
         pFrame->pStatsWin->UpdatePlanetScore(_T("Uncertainty"), variance);
     }
     // Set reference frame keypoints and descriptors
@@ -1308,6 +1313,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
 
         // Assume no more changes to minHessian until further notice
         m_surfaceDetectionParamsChanging = false;
+        Debug.Write(wxString::Format("Surface feature tracking: set new reference point, features=%d\n", m_detectedFeatures));
     }
 
     // Set new object position based on updated centroid
