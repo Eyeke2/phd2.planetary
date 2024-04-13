@@ -244,8 +244,8 @@ void GuiderPlanet::ToggleSharpness()
 double GuiderPlanet::ComputeSobelSharpness(const Mat& img)
 {
     Mat grad_x, grad_y;
-    Sobel(img, grad_x, CV_64F, 1, 0);
-    Sobel(img, grad_y, CV_64F, 0, 1);
+    Sobel(img, grad_x, CV_32F, 1, 0);
+    Sobel(img, grad_y, CV_32F, 0, 1);
 
     Mat grad;
     magnitude(grad_x, grad_y, grad);
@@ -255,9 +255,11 @@ double GuiderPlanet::ComputeSobelSharpness(const Mat& img)
 }
 
 // Calculate focus metrics around the updated tracked position
-double GuiderPlanet::CalcSharpness(Mat& FullFrame, int bppFactor, Point2f& clickedPoint, bool detectionResult)
+double GuiderPlanet::CalcSharpness(Mat& FullFrame, Point2f& clickedPoint, bool detectionResult)
 {
-    Mat focusRoi8;
+    double scaleFactor;
+    cv::Scalar meanSignal;
+    Mat focusRoi;
     int focusX;
     int focusY;
 
@@ -273,20 +275,28 @@ double GuiderPlanet::CalcSharpness(Mat& FullFrame, int bppFactor, Point2f& click
     }
     else
     {
+        // Compute scaling factor to normalize the signal
+        meanSignal = cv::mean(focusRoi);
+        scaleFactor = meanSignal[0] ? (65536.0 / 256) / meanSignal[0] : 1.0;
+
         // For failed auto selected star use entire frame for sharpness calculation
-        FullFrame.convertTo(focusRoi8, CV_8U, 1.0 / bppFactor);
-        return ComputeSobelSharpness(focusRoi8);
+        FullFrame.convertTo(focusRoi, CV_32F, scaleFactor);
+        return ComputeSobelSharpness(focusRoi);
     }
 
     const int focusSize = (GetPlanetDetectMode() == PLANET_DETECT_MODE_SURFACE) ? 200 : m_Planetary_maxRadius * 3 / 2.0;
     focusX = wxMax(0, focusX - focusSize / 2);
+    focusX = wxMax(0, wxMin(focusX, m_frameWidth - focusSize));
     focusY = wxMax(0, focusY - focusSize / 2);
-    focusX = wxMin(focusX, m_frameWidth - focusSize);
-    focusY = wxMin(focusY, m_frameHeight - focusSize);
+    focusY = wxMax(0, wxMin(focusY, m_frameHeight - focusSize));
     Rect focusSubFrame = Rect(focusX, focusY, focusSize, focusSize);
-    Mat focusRoi = FullFrame(focusSubFrame);
-    focusRoi.convertTo(focusRoi8, CV_8U, 1.0 / bppFactor);
-    return ComputeSobelSharpness(focusRoi8);
+    focusRoi = FullFrame(focusSubFrame);
+
+    meanSignal = cv::mean(focusRoi);
+    scaleFactor = meanSignal[0] ? (65536.0 / 256) / meanSignal[0] : 1.0;
+
+    focusRoi.convertTo(focusRoi, CV_32F, scaleFactor);
+    return ComputeSobelSharpness(focusRoi);
 }
 
 // Get current detection status
@@ -1618,7 +1628,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
 
         // Calculate sharpness of the image
         if (m_measuringSharpnessMode)
-            m_focusSharpness = CalcSharpness(FullFrame, bppFactor, clickedPoint, detectionResult);
+            m_focusSharpness = CalcSharpness(FullFrame, clickedPoint, detectionResult);
 
         // Update detection time stats
         pFrame->pStatsWin->UpdatePlanetDetectionTime(m_PlanetWatchdog.Time());

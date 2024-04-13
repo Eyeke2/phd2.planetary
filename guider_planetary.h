@@ -251,7 +251,7 @@ private:
 private:
     void    SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool roiActive, int bppFactor);
     double  ComputeSobelSharpness(const cv::Mat& img);
-    double  CalcSharpness(cv::Mat& FullFrame, int bppFactor, cv::Point2f& clickedPoint, bool detectionResult);
+    double  CalcSharpness(cv::Mat& FullFrame, cv::Point2f& clickedPoint, bool detectionResult);
     void    CalcLineParams(CircleDescriptor p1, CircleDescriptor p2);
     int     RefineEclipseCenter(float& bestScore, CircleDescriptor& eclipseCenter, std::vector<cv::Point2f>& eclipseContour, int minRadius, int maxRadius, float searchRadius, float resolution = 1.0);
     float   FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, cv::Moments& mu, int minRadius, int maxRadius);
