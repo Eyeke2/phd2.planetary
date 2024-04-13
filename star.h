@@ -76,6 +76,7 @@ public:
 
     // Calcular SNR and mass of a planetary disk
     double CalcPlanetMetrics(const usImage* pImg, int center_x, int center_y, int radius, int annulusWidth);
+    double CalcSurfaceMetrics(const usImage* pImg, int start_x, int end_x, int start_y, int end_y);
 
     Star();
 

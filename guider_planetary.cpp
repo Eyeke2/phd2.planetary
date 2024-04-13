@@ -1020,7 +1020,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
     m_detectedFeatures = 0;
 
     // Search region for star find is fixed value for surface features tracking
-    m_searchRegion = 50;
+    m_searchRegion = 128;
 
     // Create SURF detector
     int nOctaves = 4;
