@@ -151,6 +151,7 @@ private:
     void InvalidateCurrentPosition(bool fullReset = false) final;
     bool UpdateCurrentPosition(const usImage *pImage, GuiderOffset *ofs, FrameDroppedInfo *errorInfo) final;
     bool SetCurrentPosition(const usImage *pImage, const PHD_Point& position) final;
+
     void OnLClick(wxMouseEvent& evt);
 
     void SaveStarFITS();

@@ -71,7 +71,7 @@ ScopeASCOM::ScopeASCOM(const wxString& choice)
     dispid_sideofpier = DISPID_UNKNOWN;
     dispid_abortslew = DISPID_UNKNOWN;
     dispid_tracking = DISPID_UNKNOWN;
-    dispid_trackingrate = DISPID_UNKNOWN;    
+    dispid_trackingrate = DISPID_UNKNOWN;
 }
 
 ScopeASCOM::~ScopeASCOM()

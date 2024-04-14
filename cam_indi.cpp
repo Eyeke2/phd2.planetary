@@ -639,7 +639,7 @@ bool CameraINDI::Connect(const wxString& camId)
     watchDevice(INDICameraName.mb_str(wxConvUTF8));
 
     Debug.Write(wxString::Format("Waiting for 30s for [%s] to connect...\n", INDICameraName));
-    
+
     /* Wait in background for driver to establish a device connection */
     struct ConnectInBg : public ConnectCameraInBg
     {
@@ -648,19 +648,17 @@ bool CameraINDI::Connect(const wxString& camId)
         bool Entry()
         {
 
-            //Wait for driver to establish a device connection
+            // Wait for driver to establish a device connection
             if (cam->connectServer())
             {
-                
                 int i = 0;
-                while (!cam->Connected && i++ < 300) 
+                while (!cam->Connected && i++ < 300)
                 {
                     if (IsCanceled())
                         break;
-                    
+
                     wxMilliSleep(100);
                 }
-                
             }
 
             // We need to return FALSE if we are successful

@@ -311,15 +311,14 @@ bool ScopeINDI::Connect()
             //Wait for driver to establish a device connection
             if (scope->connectServer())
             {
-                
                 int i = 0;
-                while (!scope->Connected && i++ < 300) 
+                while (!scope->Connected && i++ < 300)
                 {
                     if (IsCanceled())
                         break;
-                    
+
                     wxMilliSleep(100);
-                }                
+                }
             }
 
             // We need to return FALSE if we are successful
@@ -328,7 +327,7 @@ bool ScopeINDI::Connect()
         }
     };
 
-    return ConnectInBg(this).Run();    
+    return ConnectInBg(this).Run();
 }
 
 bool ScopeINDI::Disconnect()

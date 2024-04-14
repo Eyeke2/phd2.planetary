@@ -694,7 +694,7 @@ void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
             {
                 driveRate = driveLunar;
                 ra_offset = RA_LUNAR_RATE_OFFSET;
-            } 
+            }
             else if (rateStr == _("Solar"))
             {
                 driveRate = driveSolar;
