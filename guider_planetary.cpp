@@ -355,12 +355,13 @@ bool GuiderPlanet::UpdateCaptureState(bool CaptureActive)
     return need_update;
 }
 
-// Notification callback when camera is connected
+// Notification callback when camera is connected/disconnected
 void GuiderPlanet::NotifyCameraConnect(bool connected)
 {
     bool isSimCam = (pCamera && pCamera->Name == "Simulator");
     pFrame->pStatsWin->ShowSimulatorStats(isSimCam && connected);
     pFrame->pStatsWin->ShowPlanetStats(GetPlanetaryEnableState() && connected);
+    m_roiClicked = false;
 }
 
 void GuiderPlanet::SaveCameraSimulationMove(double rx, double ry)

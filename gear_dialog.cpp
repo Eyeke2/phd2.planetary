@@ -1205,7 +1205,6 @@ bool GearDialog::DoConnectCamera(bool autoReconnecting)
         }
 
         pFrame->StatusMsg(_("Camera Connected"));
-        pFrame->pGuider->m_Planet.CameraConnectNotify();
 
         pFrame->UpdateStatusBarStateLabels();
         pFrame->pStatsWin->UpdateCooler();

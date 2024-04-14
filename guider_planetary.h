@@ -154,7 +154,6 @@ public:
     ~GuiderPlanet();
 
     bool FindPlanet(const usImage* pImage, bool autoSelect = false);
-    void CameraConnectNotify() { m_roiClicked = false; };
     void RestartSimulatorErrorDetection();
 
     PHD_Point GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale);
