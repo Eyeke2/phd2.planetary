@@ -44,6 +44,7 @@
 #include "Refine_DefMap.h"
 #include "starcross_test.h"
 #include "calibration_assistant.h"
+#include "planetary_tool.h"
 
 #include <algorithm>
 #include <memory>
@@ -132,6 +133,7 @@ void MyFrame::NotifyExposureChanged()
 {
     NotifyGuidingParam("Exposure", ExposureDurationSummary());
     pConfig->Profile.SetInt("/ExposureDurationMs", m_autoExp.enabled ? -1 : m_exposureDuration);
+    UpdateCameraSettings();
 }
 
 int MyFrame::RequestedExposureDuration()
@@ -1310,5 +1312,18 @@ void MyFrame::OnCharHook(wxKeyEvent& evt)
     if (!handled)
     {
         evt.Skip();
+    }
+}
+
+void MyFrame::OnPlanetTool(wxCommandEvent& evt)
+{
+    if (!pPlanetTool)
+    {
+        pPlanetTool = PlanetTool::CreatePlanetToolWindow();
+    }
+
+    if (pPlanetTool)
+    {
+        pPlanetTool->Show();
     }
 }

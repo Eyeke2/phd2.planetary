@@ -279,6 +279,9 @@ public:
     void SetAutoSelDownsample(unsigned int val);
     unsigned int GetAutoSelDownsample() const;
 
+    // Solar system object
+    SolarSystemObject m_SolarSystemObject;
+
     // virtual functions -- these CAN be overridden by a subclass, which should
     // consider whether they need to call the base class functions as part of
     // their operation
