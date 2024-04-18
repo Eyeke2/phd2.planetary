@@ -821,9 +821,9 @@ float GuiderPlanet::FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDes
 }
 
 // Find a minimum enclosing circle of the contour and also its center of mass
-void GuiderPlanet::FindCenters(Mat image, CvSeq* contour, CircleDescriptor& centroid, CircleDescriptor& circle, std::vector<Point2f>& eclipseContour, Moments& mu, int minRadius, int maxRadius)
+void GuiderPlanet::FindCenters(Mat image, const std::vector<Point>& contour, CircleDescriptor& centroid, CircleDescriptor& circle, std::vector<Point2f>& eclipseContour, Moments& mu, int minRadius, int maxRadius)
 {
-    CvPoint2D32f circleCenter;
+    Point2f circleCenter;
     float circle_radius = 0;
 
     // Add extra margins for min/max radii allowing inclusion of contours
@@ -836,50 +836,50 @@ void GuiderPlanet::FindCenters(Mat image, CvSeq* contour, CircleDescriptor& cent
     circle.radius = 0;
     centroid.radius = 0;
     eclipseContour.clear();
-    eclipseContour.reserve(contour->total);
-    if (cvMinEnclosingCircle(contour, &circleCenter, &circle_radius))
-        if ((circle_radius <= maxRadius) && (circle_radius >= minRadius))
+    eclipseContour.reserve(contour.size());
+    minEnclosingCircle(contour, circleCenter, circle_radius);
+    if ((circle_radius <= maxRadius) && (circle_radius >= minRadius))
+    {
+        // Convert contour to vector of floating points
+        for (int i = 0; i < contour.size(); i++)
         {
-            circle.x = circleCenter.x;
-            circle.y = circleCenter.y;
-            circle.radius = circle_radius;
-
-            // Convert contour to vector of points
-            for (int i = 0; i < contour->total; i++)
-            {
-                CvPoint* pt = CV_GET_SEQ_ELEM(CvPoint, contour, i);
-                eclipseContour.push_back(cv::Point(pt->x, pt->y));
-            }
-
-            // Calculate center of mass based on contour points
-            mu = cv::moments(eclipseContour, false);
-#if 0
-            // Calculate center of mass based on original image masked by the circle
-            Mat maskedImage;
-            Mat mask = Mat::zeros(image.size(), CV_8U);
-            Point center(circle.x, circle.y);
-            cv::circle(mask, center, circle_radius, 255, -1);
-            bitwise_and(image, mask, maskedImage);
-            mu = cv::moments(maskedImage, false);
-#endif
-            if (mu.m00 > 0)
-            {
-                centroid.x = mu.m10 / mu.m00;
-                centroid.y = mu.m01 / mu.m00;
-                centroid.radius = circle.radius;
-
-                // Calculate eccentricity
-                double a = mu.mu20 + mu.mu02;
-                double b = sqrt(4 * mu.mu11 * mu.mu11 + (mu.mu20 - mu.mu02) * (mu.mu20 - mu.mu02));
-                double major_axis = sqrt(2 * (a + b));
-                double minor_axis = sqrt(2 * (a - b));
-                m_PlanetEccentricity = sqrt(1 - (minor_axis * minor_axis) / (major_axis * major_axis));
-
-                // Calculate orientation (theta) in radians and convert to degrees
-                float theta = 0.5 * atan2(2 * mu.mu11, (mu.mu20 - mu.mu02));
-                m_PlanetAngle = theta * (180.0 / CV_PI);
-            }
+            Point pt = contour[i];
+            eclipseContour.push_back(Point2f(pt.x, pt.y));
         }
+
+        circle.x = circleCenter.x;
+        circle.y = circleCenter.y;
+        circle.radius = circle_radius;
+
+        // Calculate center of mass based on contour points
+        mu = cv::moments(eclipseContour, false);
+#if 0
+        // Calculate center of mass based on original image masked by the circle
+        Mat maskedImage;
+        Mat mask = Mat::zeros(image.size(), CV_8U);
+        Point center(circle.x, circle.y);
+        cv::circle(mask, center, circle_radius, 255, -1);
+        bitwise_and(image, mask, maskedImage);
+        mu = cv::moments(maskedImage, false);
+#endif
+        if (mu.m00 > 0)
+        {
+            centroid.x = mu.m10 / mu.m00;
+            centroid.y = mu.m01 / mu.m00;
+            centroid.radius = circle.radius;
+
+            // Calculate eccentricity
+            double a = mu.mu20 + mu.mu02;
+            double b = sqrt(4 * mu.mu11 * mu.mu11 + (mu.mu20 - mu.mu02) * (mu.mu20 - mu.mu02));
+            double major_axis = sqrt(2 * (a + b));
+            double minor_axis = sqrt(2 * (a - b));
+            m_PlanetEccentricity = sqrt(1 - (minor_axis * minor_axis) / (major_axis * major_axis));
+
+            // Calculate orientation (theta) in radians and convert to degrees
+            float theta = 0.5 * atan2(2 * mu.mu11, (mu.mu20 - mu.mu02));
+            m_PlanetAngle = theta * (180.0 / CV_PI);
+        }
+    }
 }
 
 // Calculate position of fixation point
@@ -1318,21 +1318,20 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
     Canny(img8, edges, LowThreshold, HighThreshold, 5, true);
     dilate(edges, dilatedEdges, Mat(), Point(-1, -1), 2);
 
-    // Find contours without interpolation between the points.
-    // We need more points for more accurate calculation of the light disk center.
-    IplImage thresholded = IplImage(dilatedEdges);
-    CvMemStorage* storage = cvCreateMemStorage(0);
-    CvSeq* contours = NULL;
-    cvFindContours(&thresholded, storage, &contours, sizeof(CvContour), CV_RETR_LIST, CHAIN_APPROX_NONE);
+    // Find contours
+    std::vector<std::vector<Point>> contours;
+    cv::findContours(dilatedEdges, contours, RETR_LIST, CHAIN_APPROX_NONE);
 
     // Find total number of contours. If the number is too large, it means that
-    // threshold values are too low and we need to increase them.
+    // edge detection threshold value is possibly too low, or we'll need to decimate number of points
+    // before further processing to avoid performance issues.
     int totalPoints = 0;
-    for (CvSeq* contour = contours; contour != NULL; contour = contour->h_next)
-        totalPoints += contour->total;
+    for (const auto& contour : contours)
+    {
+        totalPoints += contour.size();
+    }
     if (totalPoints > 256 * 1024)
     {
-        cvReleaseMemStorage(&storage);
         Debug.Write(wxString::Format("Too many contour points detected (%d)\n", totalPoints));
         m_statusMsg = _("Too many contour points detected: please enable ROI or increase Edge Detection Threshold.");
         pFrame->Alert(m_statusMsg, wxICON_WARNING);
@@ -1350,13 +1349,13 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
     CircleDescriptor bestEclipseCenter = { 0 };
     bestContour.clear();
     int maxThreadsCount = 0;
-    for (CvSeq* contour = contours; contour != NULL; contour = contour->h_next, contourAllCount++)
+    for (const auto& contour : contours)
     {
         // Ignore contours with small number of points
-        if (contour->total < 32)
+        if (contour.size() < 32)
             continue;
 
-        // Find the smallest circle encompassing contour of the eclipsed disk
+        // Find the smallest circle encompassing contour of the light disk
         // and also center of mass within the contour.
         cv::Moments mu;
         std::vector<Point2f> eclipseContour;
@@ -1369,8 +1368,8 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
         if ((circle.radius == 0) || (eclipseContour.size() == 0))
             continue;
 
-        // Look for a point along the line connecting centers of the smallest circle and center of mass
-        // which is most equidistant from the outmost edge of the contour. Consider this point as
+        // Look for a point along the line connecting centers of the smallest circle and center
+        // of mass which is equidistant from the outmost edge of the contour. Consider this point as
         // the best match for eclipse central point.
         CalcLineParams(circle, centroid);
         float score = FindEclipseCenter(eclipseCenter, circle, eclipseContour, mu, minRadius, maxRadius);
@@ -1404,12 +1403,9 @@ bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, boo
         contourMatchingCount++;
     }
 
-    // Free allocated storage
-    cvReleaseMemStorage(&storage);
+    // Update stats window
     Debug.Write(wxString::Format("End detection of eclipsed disk (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%.3f, contours=%d/%d, threads=%d\n",
         m_PlanetWatchdog.Time(), bestEclipseCenter.radius, roiRect.x + bestEclipseCenter.x, roiRect.y + bestEclipseCenter.y, bestScore, contourMatchingCount, contourAllCount, maxThreadsCount));
-
-    // Update stats window
     pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contours/points"), contourMatchingCount, bestContour.size());
     pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), bestScore);
 
@@ -1543,6 +1539,21 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
     int roiOffsetX = 0;
     int roiOffsetY = 0;
     Mat FullFrame(pImage->Size.GetHeight(), pImage->Size.GetWidth(), CV_16UC1, pImage->ImageData);
+
+    // Refuse to process images larger than 3500x3500 and request to use camera binning
+    if (FullFrame.cols > 3500 || FullFrame.rows > 3500)
+    {
+        Debug.Write(wxString::Format("Find planet: image is too large %dx%d\n", FullFrame.cols, FullFrame.rows));
+        pFrame->Alert(_("ERROR: camera frame size exceeds maximum limit. Please apply binning to reduce the frame size."), wxICON_ERROR);
+        m_syncLock.Lock();
+        m_detected = false;
+        m_detectionCounter = 0;
+        m_eclipseContour.clear();
+        m_inlierPoints.clear();
+        m_syncLock.Unlock();
+        return false;
+    }
+
     Mat RoiFrame;
     Rect roiRect(0, 0, pImage->Size.GetWidth(), pImage->Size.GetHeight());
     if (!autoSelect && GetRoiEnableState() && m_detected &&
