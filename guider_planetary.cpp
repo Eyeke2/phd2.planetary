@@ -1307,7 +1307,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
 }
 
 // Find planet center using circle matching with contours
-bool GuiderPlanet::FindPlanetEclipse(Mat img8, int minRadius, int maxRadius, bool roiActive, Point2f& clickedPoint, Rect& roiRect, bool activeRoiLimits, float distanceRoiMax)
+bool GuiderPlanet::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool roiActive, Point2f& clickedPoint, Rect& roiRect, bool activeRoiLimits, float distanceRoiMax)
 {
     int LowThreshold = GetPlanetaryParam_lowThreshold();
     int HighThreshold = GetPlanetaryParam_highThreshold();
@@ -1622,7 +1622,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
             pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_detectedFeatures : 0);
             break;
         case PLANET_DETECT_MODE_ECLIPSE:
-            detectionResult = FindPlanetEclipse(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
+            detectionResult = FindPlanetCenter(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
             break;
         }
 

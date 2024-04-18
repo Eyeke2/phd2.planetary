@@ -536,7 +536,7 @@ void MyFrame::SetupMenuBar()
 
     tools_menu->Append(EEGG_MANUALLOCK, _("Adjust &Lock Position"), _("Adjust the lock position"));
     tools_menu->Append(MENU_COMETTOOL, _("&Comet Tracking"), _("Run the Comet Tracking tool"));
-    m_PlanetaryMenuItem = tools_menu->AppendCheckItem(MENU_PLANETARY, _("&Planetary Tracking\tCtrl-P"), _("Run the Planet Tracking tool"));
+    m_PlanetaryMenuItem = tools_menu->AppendCheckItem(MENU_PLANETARY, _("&Planetary Guiding\tCtrl-P"), _("Run the Planetary Guiding tool"));
     tools_menu->Append(MENU_STARCROSS_TEST, _("Star-Cross Test"), _("Run a star-cross test for mount diagnostics"));
     tools_menu->Append(MENU_PIERFLIP_TOOL, _("Calibrate meridian flip"), _("Automatically determine the correct meridian flip settings"));
     tools_menu->Append(MENU_GUIDING_ASSISTANT, _("&Guiding Assistant"), _("Run the Guiding Assistant"));
@@ -1052,7 +1052,7 @@ void MyFrame::SetupToolBar()
     MainToolbar->AddSeparator();
     MainToolbar->AddTool(BUTTON_ADVANCED, _("Advanced Settings"), brain_bmp, _("Advanced Settings"));
     MainToolbar->AddTool(BUTTON_CAM_PROPERTIES, cam_setup_bmp, cam_setup_bmp_disabled, false, 0, _("Camera settings"));
-    MainToolbar->AddTool(BUTTON_PLANETARY, _("Planetary Tracking"), eclipse_bmp, _("Planetary Tracking"));
+    MainToolbar->AddTool(BUTTON_PLANETARY, _("Planetary Guiding"), eclipse_bmp, _("Planetary Guiding"));
     MainToolbar->EnableTool(BUTTON_CAM_PROPERTIES, false);
     MainToolbar->EnableTool(BUTTON_LOOP, false);
     MainToolbar->EnableTool(BUTTON_AUTOSTAR, false);

@@ -60,7 +60,7 @@ struct PlanetToolWin : public wxDialog
     wxSlider *m_maxFeaturesSlider;
 
     // Controls for camera settings, duplicating the ones from camera setup dialog and exposure time dropdown.
-    // Used for streamlining the planetary tracking user experience.
+    // Used for streamlining the planetary guiding user experience.
     wxSpinCtrlDouble* m_ExposureCtrl;
     wxSpinCtrlDouble* m_DelayCtrl;
     wxSpinCtrlDouble* m_GainCtrl;
@@ -118,9 +118,9 @@ struct PlanetToolWin : public wxDialog
     void UpdateStatus();
 };
 
-static wxString TITLE = wxTRANSLATE("Planetary tracking | disabled");
-static wxString TITLE_ACTIVE = wxTRANSLATE("Planetary tracking | enabled");
-static wxString TITLE_PAUSED = wxTRANSLATE("Planetary tracking | paused");
+static wxString TITLE = wxTRANSLATE("Planetary guiding | disabled");
+static wxString TITLE_ACTIVE = wxTRANSLATE("Planetary guiding | enabled");
+static wxString TITLE_PAUSED = wxTRANSLATE("Planetary guiding | paused");
 
 static void SetEnabledState(PlanetToolWin* win, bool active)
 {
@@ -170,15 +170,15 @@ PlanetToolWin::PlanetToolWin()
 
     m_tabs = new wxNotebook(this, wxID_ANY);
     m_planetTab = new wxPanel(m_tabs, wxID_ANY);
-    m_tabs->AddPage(m_planetTab, "Planetary tracking", true);
+    m_tabs->AddPage(m_planetTab, "Planetary guiding", true);
 
     m_featuresTab = new wxPanel(m_tabs, wxID_ANY);
     m_tabs->AddPage(m_featuresTab, "Surface features tracking", false);
-    m_enableCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable planetary tracking"));
-    m_enableCheckBox->SetToolTip(_("Toggle star/planetary tracking mode"));
+    m_enableCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable planetary guiding"));
+    m_enableCheckBox->SetToolTip(_("Toggle star/planetary guiding mode"));
 
-    m_featureTrackingCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable surface features detection/tracking"));
-    m_featureTrackingCheckBox->SetToolTip(_("Enable surface feature detection/tracking mode for imaging at high magnification"));
+    m_featureTrackingCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable surface features detection/guiding"));
+    m_featureTrackingCheckBox->SetToolTip(_("Enable surface feature detection/guiding mode for imaging at high magnification"));
 
     // Experimental noise filter
     m_NoiseFilter = new wxCheckBox(this, wxID_ANY, _("Enable noise suppression filter (experimental)"));
@@ -218,7 +218,7 @@ PlanetToolWin::PlanetToolWin()
     // Eclipse mode stuff
     wxStaticText* ThresholdLabel = new wxStaticText(m_planetTab, wxID_ANY, wxT("Edge Detection Threshold:"), wxDefaultPosition, wxDefaultSize, 0);
     m_thresholdSlider = new wxSlider(m_planetTab, wxID_ANY, PT_HIGH_THRESHOLD_DEFAULT, PT_THRESHOLD_MIN, PT_HIGH_THRESHOLD_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
-    ThresholdLabel->SetToolTip(_("Higher values reduce sensitivity to weaker edges, providing cleaner edge maps. Detected edges are shown in red (when display of internal edges is enabled)."));
+    ThresholdLabel->SetToolTip(_("Higher values reduce sensitivity to weaker edges, resulting in cleaner contour. This is displayed in red when the display of internal contour edges is enabled."));
     m_thresholdSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnThresholdChanged, this);
     m_RoiCheckBox = new wxCheckBox(m_planetTab, wxID_ANY, _("Enable ROI"));
     m_RoiCheckBox->SetToolTip(_("Enable automatically selected Region Of Interest (ROI) for improved processing speed and reduced CPU usage."));
@@ -301,7 +301,7 @@ PlanetToolWin::PlanetToolWin()
     pCamSizer2->AddSpacer(5);
     AddTableEntryPair(this, pCamSizer2, _("Time Lapse (ms)"), 5, m_DelayCtrl, 20,
         _("How long should PHD wait between guide frames? Useful when using very short exposures but wanting to send guide commands less frequently"));
-    AddTableEntryPair(this, pCamSizer2, _("Binning"), 10, m_BinningCtrl, 0, _("Camera binning. For planetary detection 1x1 is recommended."));
+    AddTableEntryPair(this, pCamSizer2, _("Binning"), 10, m_BinningCtrl, 0, _("Camera binning. For planetary guiding 1x1 is recommended."));
     pCamGroup->Add(pCamSizer1);
     pCamGroup->AddSpacer(10);
     pCamGroup->Add(pCamSizer2);
@@ -450,7 +450,7 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
         pFrame->pGuider->SetMultiStarMode(false);
         pConfig->Profile.SetBoolean("/guider/multistar/enabled", prev);
 
-        Debug.Write(_("Planetary tracking: enabled\n"));
+        Debug.Write(_("Planetary guiding mode: enabled\n"));
     }
     else
     {
@@ -476,7 +476,7 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
         bool prev = pConfig->Profile.GetBoolean("/guider/multistar/enabled", false);
         pFrame->pGuider->SetMultiStarMode(prev);
 
-        Debug.Write(_("Planetary tracking: disabled\n"));
+        Debug.Write(_("Planetary guiding mode: disabled\n"));
     }
 
     // Update elements display state
@@ -514,7 +514,7 @@ void PlanetToolWin::OnRoiModeClick(wxCommandEvent& event)
 {
     bool enabled = m_RoiCheckBox->IsChecked();
     pPlanet->SetRoiEnableState(enabled);
-    Debug.Write(wxString::Format("Planetary tracking: %s ROI\n", enabled ? "enabled" : "disabled"));
+    Debug.Write(wxString::Format("Planetary guiding mode ROI: %s\n", enabled ? "enabled" : "disabled"));
 }
 
 void PlanetToolWin::OnShowElementsClick(wxCommandEvent& event)
