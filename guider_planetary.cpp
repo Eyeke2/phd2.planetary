@@ -563,73 +563,56 @@ void GuiderPlanet::CalcLineParams(CircleDescriptor p1, CircleDescriptor p2)
 // Calculate score for given point
 static float CalcEclipseScore(float& radius, Point2f pointToMeasure, std::vector<Point2f>& eclipseContour, int minRadius, int maxRadius)
 {
-    const int contourSize = eclipseContour.size();
-    float* distances = new float[contourSize];
-    float minIt = 0;
-    float maxIt = 0;
-    int size = 0;
+    std::vector<float> distances;
+    distances.reserve(eclipseContour.size());
+    float minIt = FLT_MAX;
+    float maxIt = FLT_MIN;
 
-    for (const Point2f& contourPoint : eclipseContour)
+    for (const auto& contourPoint : eclipseContour)
     {
         float distance = norm(contourPoint - pointToMeasure);
-        if ((distance < minRadius) || (distance > maxRadius))
-            continue;
-        if (size == 0)
-            minIt = maxIt = distance;
-        minIt = min(minIt, distance);
-        maxIt = max(maxIt, distance);
-        distances[size++] = distance;
+        if (distance >= minRadius && distance <= maxRadius)
+        {
+            minIt = wxMin(minIt, distance);
+            maxIt = wxMax(maxIt, distance);
+            distances.push_back(distance);
+        }
     }
-    for (int x = size; x < contourSize; x++)
-        distances[x] = 0;
 
     // Note: calculating histogram on 0-sized data can crash the application.
-    // Reject small sets of points as they usually aren't related to the
-    // features we are looking for.
-    if (size < 16)
+    // Reject small sets of points as they usually aren't related to the features we are looking for.
+    if (distances.size() < 16)
     {
-        delete[] distances;
         radius = 0;
         return 0;
     }
 
     // Calculate the number of bins
-    IplImage* distData = cvCreateImageHeader(cvSize(size, 1), IPL_DEPTH_32F, 1);
-    cvSetData(distData, distances, size * sizeof(float));
-    int bins = int(std::sqrt(size) + 0.5) | 1;
-    float range[] = { floor(minIt), ceil(maxIt) };
-    float* histRange[] = { range };
+    int bins = int(std::sqrt(distances.size()) + 0.5) | 1;
+    float range[] = { std::floor(minIt), std::ceil(maxIt) };
+    const float* histRange[] = { range };
 
     // Calculate the histogram
-    CvHistogram* hist = cvCreateHist(1, &bins, CV_HIST_ARRAY, histRange, 1);
-    cvCalcHist(&distData, hist, 0, NULL);
+    Mat hist;
+    Mat distData(distances); // Use vector directly to create Mat object
+    cv::calcHist(&distData, 1, nullptr, Mat(), hist, 1, &bins, histRange, true, false);
 
-    /* Find the peak of the histogram */
-    float max_value = 0;
-    int max_idx = 0;
-    for (int x = 0; x < bins; x++)
-    {
-        float bin_val = cvQueryHistValue_1D(hist, x);
-        if (bin_val > max_value)
-        {
-            max_value = bin_val;
-            max_idx = x;
-        }
-    }
+    // Find the peak of the histogram
+    double max_value;
+    Point max_loc;
+    cv::minMaxLoc(hist, nullptr, &max_value, nullptr, &max_loc);
+    int max_idx = max_loc.y;
+
     // Middle of the bin
     float peakDistance = range[0] + (max_idx + 0.5) * ((range[1] - range[0]) / bins);
 
-    cvReleaseHist(&hist);
-    cvReleaseImageHeader(&distData);
-
     float scorePoints = 0;
-    for (int x = 0; x < size; x++)
+    for (float distance : distances)
     {
-        int index = fabs(distances[x] - peakDistance) * 100 + 0.5;
+        int index = fabs(distance - peakDistance) * 100 + 0.5;
         if (index < ARRAYSIZE(gaussianWeight))
             scorePoints += gaussianWeight[index];
     }
-    delete[] distances;
 
     // Normalize score by total number points in the contour
     radius = peakDistance;
@@ -855,8 +838,7 @@ void GuiderPlanet::FindCenters(Mat image, CvSeq* contour, CircleDescriptor& cent
     eclipseContour.clear();
     eclipseContour.reserve(contour->total);
     if (cvMinEnclosingCircle(contour, &circleCenter, &circle_radius))
-        if ((circle_radius <= maxRadius) &&
-            (circle_radius >= minRadius))
+        if ((circle_radius <= maxRadius) && (circle_radius >= minRadius))
         {
             circle.x = circleCenter.x;
             circle.y = circleCenter.y;
