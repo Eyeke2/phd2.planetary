@@ -211,7 +211,7 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
             smallFontText += wxString::Format("  %.2f\"", hfdArcSec);
         }
         int smallFontTextWidth = dc.GetTextExtent(smallFontText).GetWidth();
-        wxString largeDigitsText = wxString::Format(_T("%.2f"), hfd);
+        wxString largeDigitsText = wxString::Format("%.2f", hfd);
         int largeLenWithoutDot = largeDigitsText.Length() - 1;
         float scale = (xsize - 20 - smallFontTextWidth) / (sfw * largeLenWithoutDot + dotw);
         scale = wxMax(1.0, scale);

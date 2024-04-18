@@ -1346,6 +1346,7 @@ void Guider::UpdateGuideState(usImage *pImage, bool bStopping)
                     static GuiderOffset ZERO_OFS;
                     pFrame->SchedulePrimaryMove(pMount, ZERO_OFS, MOVEOPTS_DEDUCED_MOVE);
 
+                    // Don't blink and beep during planetary guiding pause state
                     if (!m_Planet.GetDetectionPausedState())
                     {
                         wxColor prevColor = GetBackgroundColour();

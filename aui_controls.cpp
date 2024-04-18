@@ -428,7 +428,7 @@ void SBStarIndicators::UpdateState(double MassPct, double SNR, bool Saturated)
                 txtSNRValue->SetForegroundColour(*wxRED);
         }
         m_parentPanel->ShowControl(txtSNRLabel, true);
-        txtSNRValue->SetLabelText(wxString::Format("%5.1f", SNR));
+        txtSNRValue->SetLabelText(wxString::Format("%4.1f", SNR));
         m_parentPanel->ShowControl(txtStarInfo, true);
         m_parentPanel->ShowControl(txtSNRValue, true);
 

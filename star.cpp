@@ -203,7 +203,6 @@ double Star::CalcPlanetMetrics(const usImage* pImg, int center_x, int center_y, 
         }
     }
 
-
     // Use sum of all pixels considered as signal as the mass metric
     mass = meanSignal;
     meanSignal = (signalCount > 0) ? meanSignal / signalCount : 0.0;
@@ -278,7 +277,6 @@ double Star::CalcSurfaceMetrics(const usImage* pImg, int start_x, int end_x, int
 
 bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double base_y, FindMode mode, double minHFD, double maxHFD, unsigned short maxADU, StarFindLogType loggingControl)
 {
-    double const LOW_SNR = 3.0;
     FindResult Result = STAR_OK;
     double newX = (int) base_x;
     double newY = (int) base_y;
@@ -554,6 +552,8 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
         //     http://www.phys.vt.edu/~jhs/phys3154/snr20040108.pdf
         double const gain = .5; // electrons per ADU, nominal
         SNR = (n > 0 && nbg > 0) ? mass / sqrt(mass / gain + sigma2_bg * (double)n * (1.0 + 1.0 / (double)nbg)) : 0.0;
+
+        double const LOW_SNR = 3.0;
 
         // a few scattered pixels over threshold can give a false positive
         // avoid this by requiring the smoothed peak value to be above the threshold
