@@ -215,7 +215,7 @@ PlanetToolWin::PlanetToolWin()
     x_radii->Add(m_maxRadius, 0, wxALIGN_CENTER_VERTICAL, 5);
     x_radii->Add(0, 0, 1, wxEXPAND, 5);
 
-    // Eclipse mode stuff
+    // Planetary disk detection stuff
     wxStaticText* ThresholdLabel = new wxStaticText(m_planetTab, wxID_ANY, wxT("Edge Detection Threshold:"), wxDefaultPosition, wxDefaultSize, 0);
     m_thresholdSlider = new wxSlider(m_planetTab, wxID_ANY, PT_HIGH_THRESHOLD_DEFAULT, PT_THRESHOLD_MIN, PT_HIGH_THRESHOLD_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
     ThresholdLabel->SetToolTip(_("Higher values reduce sensitivity to weaker edges, resulting in cleaner contour. This is displayed in red when the display of internal contour edges is enabled."));

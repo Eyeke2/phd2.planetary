@@ -92,7 +92,7 @@ private:
     wxMutex m_syncLock;
     cv::Point2f m_prevClickedPoint;
 
-    std::vector<cv::Point2f> m_eclipseContour;
+    std::vector<cv::Point2f> m_diskContour;
     int m_centoid_x;
     int m_centoid_y;
     int m_sm_circle_x;
@@ -127,7 +127,7 @@ public:
     // Planet detection modes
     enum PlanetDetectMode
     {
-        PLANET_DETECT_MODE_ECLIPSE = 1,
+        PLANET_DETECT_MODE_DISK = 1,
         PLANET_DETECT_MODE_SURFACE = 2
     };
 
@@ -163,7 +163,7 @@ public:
         if (m_Planetary_SurfaceTracking)
             return PLANET_DETECT_MODE_SURFACE;
         else
-            return PLANET_DETECT_MODE_ECLIPSE;
+            return PLANET_DETECT_MODE_DISK;
     }
 
     double GetHFD();
@@ -252,8 +252,8 @@ private:
     double  ComputeSobelSharpness(const cv::Mat& img);
     double  CalcSharpness(cv::Mat& FullFrame, cv::Point2f& clickedPoint, bool detectionResult);
     void    CalcLineParams(CircleDescriptor p1, CircleDescriptor p2);
-    int     RefineEclipseCenter(float& bestScore, CircleDescriptor& eclipseCenter, std::vector<cv::Point2f>& eclipseContour, int minRadius, int maxRadius, float searchRadius, float resolution = 1.0);
-    float   FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, cv::Moments& mu, int minRadius, int maxRadius);
+    int     RefineDiskCenter(float& bestScore, CircleDescriptor& diskCenter, std::vector<cv::Point2f>& diskContour, int minRadius, int maxRadius, float searchRadius, float resolution = 1.0);
+    float   FindContourCenter(CircleDescriptor& diskCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, cv::Moments& mu, int minRadius, int maxRadius);
     void    FindCenters(cv::Mat image, const std::vector<cv::Point>& contour, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, cv::Moments& mu, int minRadius, int maxRadius);
     bool    FindPlanetCenter(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
 

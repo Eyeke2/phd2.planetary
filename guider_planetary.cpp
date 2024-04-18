@@ -90,7 +90,7 @@ GuiderPlanet::GuiderPlanet()
     m_clicked_x = 0;
     m_clicked_y = 0;
     m_prevClickedPoint = Point2f(0, 0);
-    m_eclipseContour.clear();
+    m_diskContour.clear();
     m_RoiEnabled = false;
     m_Planetary_minRadius = PT_MIN_RADIUS_DEFAULT;
     m_Planetary_maxRadius = PT_MAX_RADIUS_DEFAULT;
@@ -312,7 +312,7 @@ void GuiderPlanet::GetDetectionStatus(wxString& statusMsg)
 void GuiderPlanet::SetPlanetaryElementsVisual(bool state)
 {
     m_syncLock.Lock();
-    m_eclipseContour.clear();
+    m_diskContour.clear();
     m_inlierPoints.clear();
     m_Planetary_ShowElementsVisual = state;
     m_syncLock.Unlock();
@@ -454,12 +454,12 @@ void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFa
                 dc.DrawCircle(feature.x * scaleFactor, feature.y * scaleFactor, 5);
             }
             break;
-        case PLANET_DETECT_MODE_ECLIPSE:
-            // Draw all edges detected in eclipse mode
-            if (m_eclipseContour.size())
+        case PLANET_DETECT_MODE_DISK:
+            // Draw contour points in planet disk mode
+            if (m_diskContour.size())
             {
                 dc.SetPen(wxPen(wxColour(230, 0, 0), 2, wxPENSTYLE_SOLID));
-                for (const Point2f& contourPoint : m_eclipseContour)
+                for (const Point2f& contourPoint : m_diskContour)
                     dc.DrawCircle((contourPoint.x + m_roiRect.x) * scaleFactor, (contourPoint.y + m_roiRect.y) * scaleFactor, 2);
 
 #ifdef DEVELOPER_MODE
@@ -561,14 +561,14 @@ void GuiderPlanet::CalcLineParams(CircleDescriptor p1, CircleDescriptor p2)
 }
 
 // Calculate score for given point
-static float CalcEclipseScore(float& radius, Point2f pointToMeasure, std::vector<Point2f>& eclipseContour, int minRadius, int maxRadius)
+static float CalcContourScore(float& radius, Point2f pointToMeasure, std::vector<Point2f>& diskContour, int minRadius, int maxRadius)
 {
     std::vector<float> distances;
-    distances.reserve(eclipseContour.size());
+    distances.reserve(diskContour.size());
     float minIt = FLT_MAX;
     float maxIt = FLT_MIN;
 
-    for (const auto& contourPoint : eclipseContour)
+    for (const auto& contourPoint : diskContour)
     {
         float distance = norm(contourPoint - pointToMeasure);
         if (distance >= minRadius && distance <= maxRadius)
@@ -616,7 +616,7 @@ static float CalcEclipseScore(float& radius, Point2f pointToMeasure, std::vector
 
     // Normalize score by total number points in the contour
     radius = peakDistance;
-    return scorePoints / eclipseContour.size();
+    return scorePoints / diskContour.size();
 }
 
 class AsyncCalcScoreThread : public wxThread
@@ -631,8 +631,8 @@ public:
     int maxRadius;
 
 public:
-    AsyncCalcScoreThread(float bestScore, std::vector<Point2f>& eclipseContour, std::vector<Point2f>& workLoad, int min_radius, int max_radius)
-        : wxThread(wxTHREAD_JOINABLE), threadBestScore(bestScore), contour(eclipseContour), points(workLoad), minRadius(min_radius), maxRadius(max_radius)
+    AsyncCalcScoreThread(float bestScore, std::vector<Point2f>& diskContour, std::vector<Point2f>& workLoad, int min_radius, int max_radius)
+        : wxThread(wxTHREAD_JOINABLE), threadBestScore(bestScore), contour(diskContour), points(workLoad), minRadius(min_radius), maxRadius(max_radius)
     {
         radius = 0;
     }
@@ -641,7 +641,7 @@ public:
     {
         for (const Point2f& point : points)
         {
-            float score = ::CalcEclipseScore(radius, point, contour, minRadius, maxRadius);
+            float score = ::CalcContourScore(radius, point, contour, minRadius, maxRadius);
             if (score > threadBestScore)
             {
                 threadBestScore = score;
@@ -655,10 +655,10 @@ public:
 };
 
 /* Find best circle candidate */
-int GuiderPlanet::RefineEclipseCenter(float& bestScore, CircleDescriptor& eclipseCenter, std::vector<Point2f>& eclipseContour, int minRadius, int maxRadius, float searchRadius, float resolution)
+int GuiderPlanet::RefineDiskCenter(float& bestScore, CircleDescriptor& diskCenter, std::vector<Point2f>& diskContour, int minRadius, int maxRadius, float searchRadius, float resolution)
 {
     const int maxWorkloadSize = 256;
-    const Point2f center = { eclipseCenter.x, eclipseCenter.y };
+    const Point2f center = { diskCenter.x, diskCenter.y };
     std::vector<AsyncCalcScoreThread *> threads;
 
     // Check all points within small circle for search of higher score
@@ -667,8 +667,8 @@ int GuiderPlanet::RefineEclipseCenter(float& bestScore, CircleDescriptor& eclips
     int workloadSize = 0;
     std::vector<Point2f> workload;
     workload.reserve(maxWorkloadSize);
-    for (float x = eclipseCenter.x - searchRadius; x < eclipseCenter.x + searchRadius; x += resolution)
-        for (float y = eclipseCenter.y - searchRadius; y < eclipseCenter.y + searchRadius; y += resolution)
+    for (float x = diskCenter.x - searchRadius; x < diskCenter.x + searchRadius; x += resolution)
+        for (float y = diskCenter.y - searchRadius; y < diskCenter.y + searchRadius; y += resolution)
         {
             Point2f pointToMeasure = { x, y };
             float dist = norm(pointToMeasure - center);
@@ -678,7 +678,7 @@ int GuiderPlanet::RefineEclipseCenter(float& bestScore, CircleDescriptor& eclips
             // When finished creating a workload, create and run new processing thread
             if (useThreads && (workloadSize++ >= maxWorkloadSize))
             {
-                AsyncCalcScoreThread *thread = new AsyncCalcScoreThread(bestScore, eclipseContour, workload, minRadius, maxRadius);
+                AsyncCalcScoreThread *thread = new AsyncCalcScoreThread(bestScore, diskContour, workload, minRadius, maxRadius);
                 if ((thread->Create() == wxTHREAD_NO_ERROR) && (thread->Run() == wxTHREAD_NO_ERROR))
                 {
                     threads.push_back(thread);
@@ -689,7 +689,7 @@ int GuiderPlanet::RefineEclipseCenter(float& bestScore, CircleDescriptor& eclips
                 else
                 {
                     useThreads = false;
-                    Debug.Write(_("RefineEclipseCenter: failed to start a thread\n"));
+                    Debug.Write(_("RefineDiskCenter: failed to start a thread\n"));
                 }
             }
             workload.push_back(pointToMeasure);
@@ -699,13 +699,13 @@ int GuiderPlanet::RefineEclipseCenter(float& bestScore, CircleDescriptor& eclips
     for (const Point2f& point : workload)
     {
         float radius;
-        float score = ::CalcEclipseScore(radius, point, eclipseContour, minRadius, maxRadius);
+        float score = ::CalcContourScore(radius, point, diskContour, minRadius, maxRadius);
         if (score > bestScore)
         {
             bestScore = score;
-            eclipseCenter.radius = radius;
-            eclipseCenter.x = point.x;
-            eclipseCenter.y = point.y;
+            diskCenter.radius = radius;
+            diskCenter.x = point.x;
+            diskCenter.y = point.y;
         }
     }
 
@@ -716,9 +716,9 @@ int GuiderPlanet::RefineEclipseCenter(float& bestScore, CircleDescriptor& eclips
         if (thread->threadBestScore > bestScore)
         {
             bestScore = thread->threadBestScore;
-            eclipseCenter.radius = thread->radius;
-            eclipseCenter.x = thread->center.x;
-            eclipseCenter.y = thread->center.y;
+            diskCenter.radius = thread->radius;
+            diskCenter.x = thread->center.x;
+            diskCenter.y = thread->center.y;
         }
 
         delete thread;
@@ -726,8 +726,8 @@ int GuiderPlanet::RefineEclipseCenter(float& bestScore, CircleDescriptor& eclips
     return threadCount;
 }
 
-// An algorithm to find eclipse center
-float GuiderPlanet::FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDescriptor& circle, std::vector<Point2f>& eclipseContour, Moments& mu, int minRadius, int maxRadius)
+// An algorithm to find contour center
+float GuiderPlanet::FindContourCenter(CircleDescriptor& diskCenter, CircleDescriptor& circle, std::vector<Point2f>& diskContour, Moments& mu, int minRadius, int maxRadius)
 {
     float score;
     float maxScore = 0;
@@ -743,9 +743,9 @@ float GuiderPlanet::FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDes
     {
         pointToMeasure.x = circle.x;
         pointToMeasure.y = circle.y;
-        score = CalcEclipseScore(radius, pointToMeasure, eclipseContour, minRadius, maxRadius);
-        eclipseCenter = circle;
-        eclipseCenter.radius = radius;
+        score = CalcContourScore(radius, pointToMeasure, diskContour, minRadius, maxRadius);
+        diskCenter = circle;
+        diskCenter.radius = radius;
         return score;
     }
 
@@ -755,9 +755,9 @@ float GuiderPlanet::FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDes
         for (pointToMeasure.x = circle.x - searchRadius; pointToMeasure.x <= circle.x + searchRadius; pointToMeasure.x++)
         {
             // Count number of points of the contour which are equidistant from pointToMeasure.
-            // The point with maximum score is identified as eclipse center.
+            // The point with maximum score is identified as contour center.
             pointToMeasure.y = m_DiameterLineParameters.slope * pointToMeasure.x + m_DiameterLineParameters.b;
-            score = CalcEclipseScore(radius, pointToMeasure, eclipseContour, minRadius, maxRadius);
+            score = CalcContourScore(radius, pointToMeasure, diskContour, minRadius, maxRadius);
             maxScore = max(score, maxScore);
             WeightedCircle wcircle = { pointToMeasure.x, pointToMeasure.y, radius, score };
             WeightedCircles.push_back(wcircle);
@@ -769,12 +769,12 @@ float GuiderPlanet::FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDes
         for (pointToMeasure.y = circle.y - searchRadius; pointToMeasure.y <= circle.y + searchRadius; pointToMeasure.y++)
         {
             // Count number of points of the contour which are equidistant from pointToMeasure.
-            // The point with maximum score is identified as eclipse center.
+            // The point with maximum score is identified as contour center.
             if (m_DiameterLineParameters.vertical)
                 pointToMeasure.x = circle.x;
             else
                 pointToMeasure.x = (pointToMeasure.y - m_DiameterLineParameters.b) / m_DiameterLineParameters.slope;
-            score = CalcEclipseScore(radius, pointToMeasure, eclipseContour, minRadius, maxRadius);
+            score = CalcContourScore(radius, pointToMeasure, diskContour, minRadius, maxRadius);
             maxScore = max(score, maxScore);
             WeightedCircle wcircle = { pointToMeasure.x, pointToMeasure.y, radius, score };
             WeightedCircles.push_back(wcircle);
@@ -813,15 +813,15 @@ float GuiderPlanet::FindEclipseCenter(CircleDescriptor& eclipseCenter, CircleDes
     }
 
     bestScore = WeightedCircles[bestIndex].score;
-    eclipseCenter.radius = WeightedCircles[bestIndex].r;
-    eclipseCenter.x = WeightedCircles[bestIndex].x;
-    eclipseCenter.y = WeightedCircles[bestIndex].y;
+    diskCenter.radius = WeightedCircles[bestIndex].r;
+    diskCenter.x = WeightedCircles[bestIndex].x;
+    diskCenter.y = WeightedCircles[bestIndex].y;
 
     return bestScore;
 }
 
 // Find a minimum enclosing circle of the contour and also its center of mass
-void GuiderPlanet::FindCenters(Mat image, const std::vector<Point>& contour, CircleDescriptor& centroid, CircleDescriptor& circle, std::vector<Point2f>& eclipseContour, Moments& mu, int minRadius, int maxRadius)
+void GuiderPlanet::FindCenters(Mat image, const std::vector<Point>& contour, CircleDescriptor& centroid, CircleDescriptor& circle, std::vector<Point2f>& diskContour, Moments& mu, int minRadius, int maxRadius)
 {
     Point2f circleCenter;
     float circle_radius = 0;
@@ -835,8 +835,8 @@ void GuiderPlanet::FindCenters(Mat image, const std::vector<Point>& contour, Cir
     m_PlanetAngle = 0;
     circle.radius = 0;
     centroid.radius = 0;
-    eclipseContour.clear();
-    eclipseContour.reserve(contour.size());
+    diskContour.clear();
+    diskContour.reserve(contour.size());
     minEnclosingCircle(contour, circleCenter, circle_radius);
     if ((circle_radius <= maxRadius) && (circle_radius >= minRadius))
     {
@@ -844,7 +844,7 @@ void GuiderPlanet::FindCenters(Mat image, const std::vector<Point>& contour, Cir
         for (int i = 0; i < contour.size(); i++)
         {
             Point pt = contour[i];
-            eclipseContour.push_back(Point2f(pt.x, pt.y));
+            diskContour.push_back(Point2f(pt.x, pt.y));
         }
 
         circle.x = circleCenter.x;
@@ -852,7 +852,7 @@ void GuiderPlanet::FindCenters(Mat image, const std::vector<Point>& contour, Cir
         circle.radius = circle_radius;
 
         // Calculate center of mass based on contour points
-        mu = cv::moments(eclipseContour, false);
+        mu = cv::moments(diskContour, false);
 #if 0
         // Calculate center of mass based on original image masked by the circle
         Mat maskedImage;
@@ -1313,7 +1313,7 @@ bool GuiderPlanet::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool
     int HighThreshold = GetPlanetaryParam_highThreshold();
 
     // Apply Canny edge detection
-    Debug.Write(wxString::Format("Start detection of eclipsed disk (roi:%d low_tr=%d,high_tr=%d,minr=%d,maxr=%d)\n", roiActive, LowThreshold, HighThreshold, minRadius, maxRadius));
+    Debug.Write(wxString::Format("Start detection of planetary disk (roi:%d low_tr=%d,high_tr=%d,minr=%d,maxr=%d)\n", roiActive, LowThreshold, HighThreshold, minRadius, maxRadius));
     Mat edges, dilatedEdges;
     Canny(img8, edges, LowThreshold, HighThreshold, 5, true);
     dilate(edges, dilatedEdges, Mat(), Point(-1, -1), 2);
@@ -1346,7 +1346,7 @@ bool GuiderPlanet::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool
     std::vector<Point2f> bestContour;
     CircleDescriptor bestCircle = { 0 };
     CircleDescriptor bestCentroid = { 0 };
-    CircleDescriptor bestEclipseCenter = { 0 };
+    CircleDescriptor bestDiskCenter = { 0 };
     bestContour.clear();
     int maxThreadsCount = 0;
     for (const auto& contour : contours)
@@ -1358,25 +1358,25 @@ bool GuiderPlanet::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool
         // Find the smallest circle encompassing contour of the light disk
         // and also center of mass within the contour.
         cv::Moments mu;
-        std::vector<Point2f> eclipseContour;
+        std::vector<Point2f> diskContour;
         CircleDescriptor circle = { 0 };
         CircleDescriptor centroid = { 0 };
-        CircleDescriptor eclipseCenter = { 0 };
-        FindCenters(img8, contour, centroid, circle, eclipseContour, mu, minRadius, maxRadius);
+        CircleDescriptor diskCenter = { 0 };
+        FindCenters(img8, contour, centroid, circle, diskContour, mu, minRadius, maxRadius);
 
         // Skip circles not within radius range
-        if ((circle.radius == 0) || (eclipseContour.size() == 0))
+        if ((circle.radius == 0) || (diskContour.size() == 0))
             continue;
 
         // Look for a point along the line connecting centers of the smallest circle and center
         // of mass which is equidistant from the outmost edge of the contour. Consider this point as
-        // the best match for eclipse central point.
+        // the best match for contour central point.
         CalcLineParams(circle, centroid);
-        float score = FindEclipseCenter(eclipseCenter, circle, eclipseContour, mu, minRadius, maxRadius);
+        float score = FindContourCenter(diskCenter, circle, diskContour, mu, minRadius, maxRadius);
 
         // When user clicks a point in the main window, discard detected features
         // that are far away from it, similar to manual selection of stars in PHD2.
-        Point2f circlePoint = { roiRect.x + eclipseCenter.x, roiRect.y + eclipseCenter.y };
+        Point2f circlePoint = { roiRect.x + diskCenter.x, roiRect.y + diskCenter.y };
         if (activeRoiLimits && (norm(clickedPoint - circlePoint) > distanceRoiMax))
             score = 0;
 
@@ -1384,10 +1384,10 @@ bool GuiderPlanet::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool
         if (score > 0.01)
         {
             float searchRadius = 20 * m_PlanetEccentricity + 3;
-            int threadCount = RefineEclipseCenter(score, eclipseCenter, eclipseContour, minRadius, maxRadius, searchRadius);
+            int threadCount = RefineDiskCenter(score, diskCenter, diskContour, minRadius, maxRadius, searchRadius);
             maxThreadsCount = max(maxThreadsCount, threadCount);
             if (score > bestScore * 0.8)
-                threadCount = RefineEclipseCenter(score, eclipseCenter, eclipseContour, minRadius, maxRadius, 0.5, 0.1);
+                threadCount = RefineDiskCenter(score, diskCenter, diskContour, minRadius, maxRadius, 0.5, 0.1);
             maxThreadsCount = max(maxThreadsCount, threadCount);
         }
 
@@ -1395,17 +1395,17 @@ bool GuiderPlanet::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool
         if (score > bestScore)
         {
             bestScore = score;
-            bestEclipseCenter = eclipseCenter;
+            bestDiskCenter = diskCenter;
             bestCentroid = centroid;
-            bestContour = eclipseContour;
+            bestContour = diskContour;
             bestCircle = circle;
         }
         contourMatchingCount++;
     }
 
     // Update stats window
-    Debug.Write(wxString::Format("End detection of eclipsed disk (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%.3f, contours=%d/%d, threads=%d\n",
-        m_PlanetWatchdog.Time(), bestEclipseCenter.radius, roiRect.x + bestEclipseCenter.x, roiRect.y + bestEclipseCenter.y, bestScore, contourMatchingCount, contourAllCount, maxThreadsCount));
+    Debug.Write(wxString::Format("End detection of planetary disk (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%.3f, contours=%d/%d, threads=%d\n",
+        m_PlanetWatchdog.Time(), bestDiskCenter.radius, roiRect.x + bestDiskCenter.x, roiRect.y + bestDiskCenter.y, bestScore, contourMatchingCount, contourAllCount, maxThreadsCount));
     pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contours/points"), contourMatchingCount, bestContour.size());
     pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), bestScore);
 
@@ -1415,7 +1415,7 @@ bool GuiderPlanet::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool
     {
         m_syncLock.Lock();
         m_roiRect = roiRect;
-        m_eclipseContour = bestContour;
+        m_diskContour = bestContour;
         m_centoid_x = bestCentroid.x;
         m_centoid_y = bestCentroid.y;
         m_sm_circle_x = bestCircle.x;
@@ -1423,11 +1423,11 @@ bool GuiderPlanet::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool
         m_syncLock.Unlock();
     }
 
-    if (bestEclipseCenter.radius > 0)
+    if (bestDiskCenter.radius > 0)
     {
-        m_center_x = roiRect.x + bestEclipseCenter.x;
-        m_center_y = roiRect.y + bestEclipseCenter.y;
-        m_radius = cvRound(bestEclipseCenter.radius);
+        m_center_x = roiRect.x + bestDiskCenter.x;
+        m_center_y = roiRect.y + bestDiskCenter.y;
+        m_radius = cvRound(bestDiskCenter.radius);
         m_searchRegion = m_radius;
         return true;
     }
@@ -1514,7 +1514,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
         m_syncLock.Lock();
         m_detected = false;
         m_detectionCounter = 0;
-        m_eclipseContour.clear();
+        m_diskContour.clear();
         m_inlierPoints.clear();
         m_syncLock.Unlock();
         return false;
@@ -1548,7 +1548,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
         m_syncLock.Lock();
         m_detected = false;
         m_detectionCounter = 0;
-        m_eclipseContour.clear();
+        m_diskContour.clear();
         m_inlierPoints.clear();
         m_syncLock.Unlock();
         return false;
@@ -1621,7 +1621,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
             detectionResult = DetectSurfaceFeatures(imgFiltered, clickedPoint, autoSelect);
             pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_detectedFeatures : 0);
             break;
-        case PLANET_DETECT_MODE_ECLIPSE:
+        case PLANET_DETECT_MODE_DISK:
             detectionResult = FindPlanetCenter(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
             break;
         }
@@ -1677,7 +1677,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
     {
         m_detected = false;
         m_detectionCounter = 0;
-        m_eclipseContour.clear();
+        m_diskContour.clear();
         m_inlierPoints.clear();
     }
     m_roiActive = roiActive;
