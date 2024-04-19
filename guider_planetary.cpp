@@ -823,6 +823,8 @@ float GuiderPlanet::FindContourCenter(CircleDescriptor& diskCenter, CircleDescri
 // Find a minimum enclosing circle of the contour and also its center of mass
 void GuiderPlanet::FindCenters(Mat image, const std::vector<Point>& contour, CircleDescriptor& centroid, CircleDescriptor& circle, std::vector<Point2f>& diskContour, Moments& mu, int minRadius, int maxRadius)
 {
+    const std::vector<Point>* effectiveContour = &contour;
+    std::vector<Point> decimatedContour;
     Point2f circleCenter;
     float circle_radius = 0;
 
@@ -836,14 +838,25 @@ void GuiderPlanet::FindCenters(Mat image, const std::vector<Point>& contour, Cir
     circle.radius = 0;
     centroid.radius = 0;
     diskContour.clear();
-    diskContour.reserve(contour.size());
-    minEnclosingCircle(contour, circleCenter, circle_radius);
+
+    // If input contour is too large, decimate it to avoid performance issues
+    int decimateRatio = contour.size() > 4096 ? contour.size() / 4096 : 1;
+    if (decimateRatio > 1)
+    {
+        decimatedContour.reserve(contour.size() / decimateRatio);
+        for (int i = 0; i < contour.size(); i += decimateRatio)
+            decimatedContour.push_back(contour[i]);
+        effectiveContour = &decimatedContour;
+    }
+    diskContour.reserve(effectiveContour->size());
+    minEnclosingCircle(*effectiveContour, circleCenter, circle_radius);
+
     if ((circle_radius <= maxRadius) && (circle_radius >= minRadius))
     {
         // Convert contour to vector of floating points
-        for (int i = 0; i < contour.size(); i++)
+        for (int i = 0; i < effectiveContour->size(); i++)
         {
-            Point pt = contour[i];
+            Point pt = (*effectiveContour)[i];
             diskContour.push_back(Point2f(pt.x, pt.y));
         }
 
@@ -1330,10 +1343,10 @@ bool GuiderPlanet::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool
     {
         totalPoints += contour.size();
     }
-    if (totalPoints > 256 * 1024)
+    if (totalPoints > 512 * 1024)
     {
         Debug.Write(wxString::Format("Too many contour points detected (%d)\n", totalPoints));
-        m_statusMsg = _("Too many contour points detected: please enable ROI or increase Edge Detection Threshold.");
+        m_statusMsg = _("Too many contour points detected. Please apply pixel binning, enable ROI, or increase the Edge Detection Threshold.");
         pFrame->Alert(m_statusMsg, wxICON_WARNING);
         pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), totalPoints);
         return false;
@@ -1540,8 +1553,8 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
     int roiOffsetY = 0;
     Mat FullFrame(pImage->Size.GetHeight(), pImage->Size.GetWidth(), CV_16UC1, pImage->ImageData);
 
-    // Refuse to process images larger than 3500x3500 and request to use camera binning
-    if (FullFrame.cols > 3500 || FullFrame.rows > 3500)
+    // Refuse to process images larger than 4096x4096 and request to use camera binning
+    if (FullFrame.cols > 4096 || FullFrame.rows > 4096)
     {
         Debug.Write(wxString::Format("Find planet: image is too large %dx%d\n", FullFrame.cols, FullFrame.rows));
         pFrame->Alert(_("ERROR: camera frame size exceeds maximum limit. Please apply binning to reduce the frame size."), wxICON_ERROR);
