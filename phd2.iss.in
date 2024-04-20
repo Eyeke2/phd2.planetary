@@ -45,6 +45,7 @@ Source: Release\opencv_ocl2.dll; DestDir: {app}; Flags: replacesameversion
 Source: Release\opencv_objdetect2.dll; DestDir: {app}; Flags: replacesameversion
 Source: Release\opencv_ml2.dll; DestDir: {app}; Flags: replacesameversion
 Source: Release\opencv_nonfree2.dll; DestDir: {app}; Flags: replacesameversion
+Source: Release\ogmacam.dll; DestDir: {app}; Flags: replacesameversion
 Source: Release\qhyccd.dll; DestDir: {app}; Flags: replacesameversion
 Source: Release\ShoestringGPUSB_DLL.dll; DestDir: {app}; Flags: replacesameversion
 Source: Release\ShoestringLXUSB_DLL.dll; DestDir: {app}; Flags: replacesameversion
