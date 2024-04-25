@@ -1,5 +1,5 @@
 /*
- *  planet_tool.h
+ *  planetary_tool.h
  *  PHD Guiding
  *
  *  Created by Leo Shatz

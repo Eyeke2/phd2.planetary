@@ -4,7 +4,7 @@
  *
  *  Created by Craig Stark.
  *  Reimplemented for PHD2 by Andy Galasso.
- *  Updated by Leo Shatz
+ *  Updated by Leo Shatz.
  *  Copyright (c) 2006-2010 Craig Stark
  *  Copyright (c) 2015-2018 Andy Galasso
  *  All rights reserved.

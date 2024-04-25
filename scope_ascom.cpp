@@ -10,6 +10,8 @@
  *  Copyright (c) 2012-2013 Bret McKee
  *  All rights reserved.
  *
+ *  Modified by Leo Shatz
+ *
  *  This source code is distributed under the following "BSD" license
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:

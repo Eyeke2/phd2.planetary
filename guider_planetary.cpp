@@ -455,7 +455,7 @@ void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFa
             }
             break;
         case PLANET_DETECT_MODE_DISK:
-            // Draw contour points in planet disk mode
+            // Draw contour points in planetary disk mode
             if (m_diskContour.size())
             {
                 dc.SetPen(wxPen(wxColour(230, 0, 0), 2, wxPENSTYLE_SOLID));
@@ -1368,7 +1368,7 @@ bool GuiderPlanet::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool
         if (contour.size() < 32)
             continue;
 
-        // Find the smallest circle encompassing contour of the light disk
+        // Find the smallest circle encompassing contour of the object
         // and also center of mass within the contour.
         cv::Moments mu;
         std::vector<Point2f> diskContour;
@@ -1393,7 +1393,7 @@ bool GuiderPlanet::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool
         if (activeRoiLimits && (norm(clickedPoint - circlePoint) > distanceRoiMax))
             score = 0;
 
-        /* Refine the best fit */
+        // Refine the best fit
         if (score > 0.01)
         {
             float searchRadius = 20 * m_PlanetEccentricity + 3;
@@ -1422,8 +1422,7 @@ bool GuiderPlanet::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool
     pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contours/points"), contourMatchingCount, bestContour.size());
     pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), bestScore);
 
-    // Create wxImage from the OpenCV Mat to be presented as
-    // a visual aid for tuning of the edge threshold parameters.
+    // For use by visual aid for parameter tuning
     if (GetPlanetaryElementsVisual())
     {
         m_syncLock.Lock();

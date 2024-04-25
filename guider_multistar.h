@@ -44,10 +44,6 @@
 #ifndef GUIDER_MULTISTAR_H_INCLUDED
 #define GUIDER_MULTISTAR_H_INCLUDED
 
-#include <opencv/cv.h>
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-
 class MassChecker;
 class GuiderMultiStar;
 class GuiderConfigDialogCtrlSet;
