@@ -47,7 +47,8 @@
 using namespace cv;
 
 // Gaussian weights lookup table
-static float gaussianWeight[2000];
+#define GAUSSIAN_SIZE 2000
+static float gaussianWeight[GAUSSIAN_SIZE];
 
 // Initialize planetary module
 GuiderPlanet::GuiderPlanet()
@@ -116,7 +117,7 @@ GuiderPlanet::GuiderPlanet()
     for (double x = 0; x < 20; x += 0.01)
     {
         int i = x * 100 + 0.5;
-        if (i < ARRAYSIZE(gaussianWeight))
+        if (i < GAUSSIAN_SIZE)
             gaussianWeight[i] += exp(-(pow(x, 2) / (2 * pow(sigma, 2))));
     }
 
@@ -610,7 +611,7 @@ static float CalcContourScore(float& radius, Point2f pointToMeasure, std::vector
     for (float distance : distances)
     {
         int index = fabs(distance - peakDistance) * 100 + 0.5;
-        if (index < ARRAYSIZE(gaussianWeight))
+        if (index < GAUSSIAN_SIZE)
             scorePoints += gaussianWeight[index];
     }
 

@@ -36,6 +36,7 @@
 #include "planetary_tool.h"
 
 #include <wx/valnum.h>
+#include <wx/tooltip.h>
 
 static bool pauseAlert = false;
 
