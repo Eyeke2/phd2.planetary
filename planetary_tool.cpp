@@ -258,7 +258,7 @@ PlanetToolWin::PlanetToolWin()
     // Show/hide detected elements
     m_ShowElements = new wxCheckBox(this, wxID_ANY, _("Display internal edges/features"));
     m_ShowElements->SetToolTip(_("Toggle the visibility of internally detected edges/features and tune detection parameters "
-        "to maintain a manageable number of these features while keeping them as close as possible to the light disk boundary in the planetary tracking mode."));
+        "to maintain a manageable number of these features while keeping them as close as possible to the planetary limb in the planetary guiding mode."));
 
     // Mount settings group
     wxStaticBoxSizer* pMountGroup = new wxStaticBoxSizer(wxHORIZONTAL, this, _("Mount settings"));
