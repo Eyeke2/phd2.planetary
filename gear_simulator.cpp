@@ -1533,8 +1533,6 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
                     subframe = wxRect(0, 0, FullSize.x, FullSize.y);
                 render_clouds(img, subframe, duration, 30, 100);
             }
-
-            QuickLRecon(img);
             break;
         }
         case SIMMODE_FITS:  // Simulate camera image stream from FIT files
