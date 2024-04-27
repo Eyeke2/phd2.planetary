@@ -460,7 +460,6 @@ void ScopeINDI::updateProperty(INDI::Property property)
         }
         break;
 
-
         case INDI_NUMBER:
         {
             auto nvp = property.getNumber();
@@ -508,9 +507,6 @@ void ScopeINDI::updateProperty(INDI::Property property)
         default:
             break;
     }
-
-
-
 }
 
 void ScopeINDI::newMessage(INDI::BaseDevice dp, int messageID)
@@ -519,7 +515,6 @@ void ScopeINDI::newMessage(INDI::BaseDevice dp, int messageID)
     if (INDIConfig::Verbose())
         Debug.Write(wxString::Format("INDI Mount: Receiving message: %s\n", dp.messageQueue(messageID)));
 }
-
 
 void ScopeINDI::newProperty(INDI::Property property)
 {

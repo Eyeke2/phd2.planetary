@@ -2196,7 +2196,7 @@ SimCamDialog::SimCamDialog(wxWindow *parent)
         new wxButton( this, wxID_CANCEL, _("Cancel") ),
         wxSizerFlags(0).Align(0).Border(wxALL, 10));
 
-     //position the buttons centered with no border
+    // position the buttons centered with no border
     pVSizer->Add(
         pButtonSizer,
         wxSizerFlags(0).Center() );

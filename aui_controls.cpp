@@ -880,7 +880,6 @@ void SBStateIndicators::UpdateState()
     }
 }
 
-
 enum {
     SB_HEIGHT = 16
 };

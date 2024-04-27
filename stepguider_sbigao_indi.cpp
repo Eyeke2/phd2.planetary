@@ -307,7 +307,6 @@ bool StepGuiderSbigAoINDI::Connect()
         ConnectInBg(StepGuiderSbigAoINDI *ao_) : ao(ao_) { }
         bool Entry()
         {
-
             // Wait for driver to establish a device connection
             if (ao->connectServer())
             {
