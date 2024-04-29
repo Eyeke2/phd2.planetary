@@ -536,7 +536,7 @@ void MyFrame::SetupMenuBar()
 
     tools_menu->Append(EEGG_MANUALLOCK, _("Adjust &Lock Position"), _("Adjust the lock position"));
     tools_menu->Append(MENU_COMETTOOL, _("&Comet Tracking"), _("Run the Comet Tracking tool"));
-    m_PlanetaryMenuItem = tools_menu->AppendCheckItem(MENU_PLANETARY, _("&Planetary Guiding\tCtrl-P"), _("Run the Planetary Guiding tool"));
+    m_PlanetaryMenuItem = tools_menu->AppendCheckItem(MENU_PLANETARY, _("Solar/&Planetary Guiding\tCtrl-P"), _("Run the Solar/Planetary tool"));
     tools_menu->Append(MENU_STARCROSS_TEST, _("Star-Cross Test"), _("Run a star-cross test for mount diagnostics"));
     tools_menu->Append(MENU_PIERFLIP_TOOL, _("Calibrate meridian flip"), _("Automatically determine the correct meridian flip settings"));
     tools_menu->Append(MENU_GUIDING_ASSISTANT, _("&Guiding Assistant"), _("Run the Guiding Assistant"));
@@ -1244,7 +1244,7 @@ void MyFrame::UpdateButtonsStatus()
     if (pierFlipToolWin)
         PierFlipTool::UpdateUIControls();
 
-    if (pGuider->m_Planet.UpdateCaptureState(CaptureActive))
+    if (pGuider->m_SolarBody.UpdateCaptureState(CaptureActive))
         need_update = true;
 
     if (need_update)

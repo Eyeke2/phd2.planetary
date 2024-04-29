@@ -386,7 +386,7 @@ SBStarIndicators::SBStarIndicators(SBPanel *panel, std::vector<int>& fldWidths)
     txtStarInfo->SetBackgroundColour(*wxBLACK);
     txtStarInfo->SetForegroundColour(*wxWHITE);
     txtStarInfo->SetToolTip(_("In multiple star mode, displays the number of guiding stars out of the total detected. "
-        "In single star mode, shows 'STAR*' (or 'SAT' if the star is saturated), and 'PLANET' in planetary detection mode."));
+        "In single star mode, shows 'STAR*' (or 'SAT' if the star is saturated), and 'PLANET' in solar/planetary detection mode."));
 
     // Label and value fields separated to allow different foreground colors for each
     txtSNRLabel = new wxStaticText(panel, wxID_ANY, _("SNR"), wxDefaultPosition, wxDefaultSize);

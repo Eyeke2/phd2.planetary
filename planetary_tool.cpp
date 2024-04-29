@@ -61,7 +61,7 @@ struct PlanetToolWin : public wxDialog
     wxSlider *m_maxFeaturesSlider;
 
     // Controls for camera settings, duplicating the ones from camera setup dialog and exposure time dropdown.
-    // Used for streamlining the planetary guiding user experience.
+    // Used for streamlining the solar/planetary mode guiding user experience.
     wxSpinCtrlDouble* m_ExposureCtrl;
     wxSpinCtrlDouble* m_DelayCtrl;
     wxSpinCtrlDouble* m_GainCtrl;
@@ -119,9 +119,9 @@ struct PlanetToolWin : public wxDialog
     void UpdateStatus();
 };
 
-static wxString TITLE = wxTRANSLATE("Planetary guiding | disabled");
-static wxString TITLE_ACTIVE = wxTRANSLATE("Planetary guiding | enabled");
-static wxString TITLE_PAUSED = wxTRANSLATE("Planetary guiding | paused");
+static wxString TITLE = wxTRANSLATE("Solar/planetary guiding | disabled");
+static wxString TITLE_ACTIVE = wxTRANSLATE("Solar/planetary guiding | enabled");
+static wxString TITLE_PAUSED = wxTRANSLATE("Solar/planetary guiding | paused");
 
 static void SetEnabledState(PlanetToolWin* win, bool active)
 {
@@ -161,7 +161,7 @@ static wxSpinCtrlDouble* NewSpinner(wxWindow* parent, wxString formatstr, double
 
 PlanetToolWin::PlanetToolWin()
     : wxDialog(pFrame, wxID_ANY, wxGetTranslation(TITLE), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX),
-    m_planetaryTimer(this), pSolarBody(&pFrame->pGuider->m_Planet), m_MouseHoverFlag(false)
+    m_planetaryTimer(this), pSolarBody(&pFrame->pGuider->m_SolarBody), m_MouseHoverFlag(false)
 
 {
     SetSizeHints(wxDefaultSize, wxDefaultSize);
@@ -171,12 +171,12 @@ PlanetToolWin::PlanetToolWin()
 
     m_tabs = new wxNotebook(this, wxID_ANY);
     m_planetTab = new wxPanel(m_tabs, wxID_ANY);
-    m_tabs->AddPage(m_planetTab, "Planetary guiding", true);
+    m_tabs->AddPage(m_planetTab, "Full disk guiding", true);
 
     m_featuresTab = new wxPanel(m_tabs, wxID_ANY);
     m_tabs->AddPage(m_featuresTab, "Surface features tracking", false);
-    m_enableCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable planetary guiding"));
-    m_enableCheckBox->SetToolTip(_("Toggle star/planetary guiding mode"));
+    m_enableCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable solar/planetary guiding"));
+    m_enableCheckBox->SetToolTip(_("Toggle between star and solar/planetary guiding modes"));
 
     m_featureTrackingCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable surface features detection/guiding"));
     m_featureTrackingCheckBox->SetToolTip(_("Enable surface feature detection/guiding mode for imaging at high magnification"));
@@ -224,7 +224,7 @@ PlanetToolWin::PlanetToolWin()
     m_RoiCheckBox = new wxCheckBox(m_planetTab, wxID_ANY, _("Enable ROI"));
     m_RoiCheckBox->SetToolTip(_("Enable automatically selected Region Of Interest (ROI) for improved processing speed and reduced CPU usage."));
 
-    // Add all planetary tab elements
+    // Add all solar body tab elements
     wxStaticBoxSizer *planetSizer = new wxStaticBoxSizer(new wxStaticBox(m_planetTab, wxID_ANY, _("")), wxVERTICAL);
     planetSizer->AddSpacer(10);
     planetSizer->Add(m_RoiCheckBox, 0, wxLEFT | wxALIGN_LEFT, 10);
@@ -259,7 +259,7 @@ PlanetToolWin::PlanetToolWin()
     // Show/hide detected elements
     m_ShowElements = new wxCheckBox(this, wxID_ANY, _("Display internal edges/features"));
     m_ShowElements->SetToolTip(_("Toggle the visibility of internally detected edges/features and tune detection parameters "
-        "to maintain a manageable number of these features while keeping them as close as possible to the planetary limb in the planetary guiding mode."));
+        "to maintain a manageable number of these features while keeping them as close as possible to the solar body limb in the solar body guiding mode."));
 
     // Mount settings group
     wxStaticBoxSizer* pMountGroup = new wxStaticBoxSizer(wxHORIZONTAL, this, _("Mount settings"));
@@ -302,7 +302,7 @@ PlanetToolWin::PlanetToolWin()
     pCamSizer2->AddSpacer(5);
     AddTableEntryPair(this, pCamSizer2, _("Time Lapse (ms)"), 5, m_DelayCtrl, 20,
         _("How long should PHD wait between guide frames? Useful when using very short exposures but wanting to send guide commands less frequently"));
-    AddTableEntryPair(this, pCamSizer2, _("Binning"), 10, m_BinningCtrl, 0, _("Camera binning. For planetary guiding 1x1 is recommended."));
+    AddTableEntryPair(this, pCamSizer2, _("Binning"), 10, m_BinningCtrl, 0, _("Camera binning. For solar/planetary guiding 1x1 is recommended."));
     pCamGroup->Add(pCamSizer1);
     pCamGroup->AddSpacer(10);
     pCamGroup->Add(pCamSizer2);
@@ -451,7 +451,7 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
         pSolarBody->m_phd2_MultistarEnabled = pFrame->pGuider->GetMultiStarMode();
         pFrame->pGuider->SetMultiStarMode(false);
         pConfig->Profile.SetBoolean("/guider/multistar/enabled", pSolarBody->m_phd2_MultistarEnabled);
-        Debug.Write(_("Planetary guiding mode: enabled\n"));
+        Debug.Write(_("Solar/planetary guiding mode: enabled\n"));
     }
     else
     {
@@ -467,7 +467,7 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
             pCamera->UseSubframes = pSolarBody->m_phd2_UseSubframes;
         pFrame->pGuider->SetMultiStarMode(pSolarBody->m_phd2_MultistarEnabled);
 
-        Debug.Write(_("Planetary guiding mode: disabled\n"));
+        Debug.Write(_("Solar/planetary guiding mode: disabled\n"));
     }
 
     // Update elements display state
@@ -484,7 +484,7 @@ void PlanetToolWin::OnSurfaceTrackingClick(wxCommandEvent& event)
     m_tabs->SetSelection(featureTracking ? 1 : 0);
     UpdateStatus();
     pSolarBody->RestartSimulatorErrorDetection();
-    Debug.Write(wxString::Format("Planetary tracking: %s surface features mode\n", featureTracking ? "enabled" : "disabled"));
+    Debug.Write(wxString::Format("Solar/planetary: surface features mode %s\n", featureTracking ? "enabled" : "disabled"));
 }
 
 void PlanetToolWin::OnSpinCtrl_minRadius(wxSpinDoubleEvent& event)
@@ -505,7 +505,7 @@ void PlanetToolWin::OnRoiModeClick(wxCommandEvent& event)
 {
     bool enabled = m_RoiCheckBox->IsChecked();
     pSolarBody->SetRoiEnableState(enabled);
-    Debug.Write(wxString::Format("Planetary guiding mode ROI: %s\n", enabled ? "enabled" : "disabled"));
+    Debug.Write(wxString::Format("Solar/planetary: ROI %s\n", enabled ? "enabled" : "disabled"));
 }
 
 void PlanetToolWin::OnShowElementsClick(wxCommandEvent& event)
@@ -524,14 +524,14 @@ void PlanetToolWin::OnNoiseFilterClick(wxCommandEvent& event)
 {
     bool enabled = m_NoiseFilter->IsChecked();
     pSolarBody->SetNoiseFilterState(enabled);
-    Debug.Write(wxString::Format("Planetary tracking: %s noise filter\n", enabled ? "enabled" : "disabled"));
+    Debug.Write(wxString::Format("Solar/planetary: noise filter %s\n", enabled ? "enabled" : "disabled"));
 }
 
 void PlanetToolWin::OnSaveVideoLog(wxCommandEvent& event)
 {
     bool enabled = m_saveVideoLogCheckBox->IsChecked();
     pSolarBody->SetVideoLogging(enabled);
-    Debug.Write(wxString::Format("Planetary tracking: %s video log\n", enabled ? "enabled" : "disabled"));
+    Debug.Write(wxString::Format("Solar/planetary: video log %s\n", enabled ? "enabled" : "disabled"));
 }
 
 // Allow changing tracking state only when CTRL key is pressed
@@ -655,7 +655,7 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
 
     if (((m_driveRate != driveRate) || need_update) && new_selection != -1)
     {
-        Debug.Write(wxString::Format("Planetary tracking: mount tracking rate: %s\n", rateStr));
+        Debug.Write(wxString::Format("solar/planetary: mount tracking rate = %s\n", rateStr));
         m_mountGuidingRate->SetSelection(new_selection);
     }
     m_driveRate = driveRate;
@@ -695,7 +695,7 @@ void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
                 driveRate = driveKing;
         }
 
-        Debug.Write(wxString::Format("Planetary tracking: setting mount tracking rate to %s\n", rateStr));
+        Debug.Write(wxString::Format("Solar/planetary: setting mount tracking rate to %s\n", rateStr));
         if (pPointingSource->m_mountRates[driveRate].canSet)
         {
             pPointingSource->SetTrackingRate(driveRate);
@@ -709,7 +709,7 @@ void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
         // Set custom rate offsets for EQMOD mounts
         if (pPointingSource->Name().StartsWith(_("EQMOD ASCOM")))
         {
-            Debug.Write(wxString::Format("Planetary tracking: setting RA tracking offset %.6f for EQMOD ASCOM\n", ra_offset));
+            Debug.Write(wxString::Format("Solar/planetary: setting RA tracking offset %.6f for EQMOD ASCOM\n", ra_offset));
             pPointingSource->SetTrackingRateOffsets(ra_offset, 0);
         }
     }
@@ -768,7 +768,7 @@ void PlanetToolWin::UpdateStatus()
     bool enabled = pSolarBody->GetPlanetaryEnableState();
     bool surfaceTracking = pSolarBody->GetSurfaceTrackingState();
 
-    // Update planetary tracking controls
+    // Update solar/planetary mode detection controls
     m_featureTrackingCheckBox->Enable(enabled);
     m_minRadius->Enable(enabled && !surfaceTracking);
     m_maxRadius->Enable(enabled && !surfaceTracking);
@@ -786,10 +786,10 @@ void PlanetToolWin::UpdateStatus()
     m_featuresTab->Enable(surfaceTracking);
     m_planetTab->Enable(!surfaceTracking);
 
-    // Toggle the visibility of planetary stats grid
+    // Toggle the visibility of solar/planetary stats grid
     pFrame->pStatsWin->ShowPlanetStats(enabled);
 
-    // Pause planetary guiding can be enabled only when guiding is still active
+    // Pause solar body guiding can be enabled only when guiding is still active
     m_PauseButton->Enable(enabled && pFrame->pGuider->IsGuiding());
 }
 
@@ -856,7 +856,7 @@ static void SuppressPausePlanetDetection(long)
 
 void PlanetToolWin::OnPauseButton(wxCommandEvent& event)
 {
-    // Toggle planetary detection pause state depending if guiding is actually active
+    // Toggle solar body detection pause state depending if guiding is actually active
     bool paused = !pSolarBody->GetDetectionPausedState() && pFrame->pGuider->IsGuiding();
     pSolarBody->SetDetectionPausedState(paused);
     m_PauseButton->SetLabel(paused ? _("Resume") : _("Pause"));

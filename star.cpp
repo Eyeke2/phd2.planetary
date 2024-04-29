@@ -387,7 +387,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
         }
         else // FIND_PLANET
         {
-            SolarBody* planet = &pFrame->pGuider->m_Planet;
+            SolarBody* planet = &pFrame->pGuider->m_SolarBody;
             if (!autoFound && !planet->FindPlanet(pImg))
             {
                 Result = STAR_ERROR;
@@ -917,7 +917,7 @@ bool GuideStar::AutoFind(const usImage& image, int extraEdgeAllowance, int searc
 
     if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
     {
-        SolarBody* planet = &pFrame->pGuider->m_Planet;
+        SolarBody* planet = &pFrame->pGuider->m_SolarBody;
         if (planet->FindPlanet(&image, true))
         {
             referencePoint.X = planet->m_center_x;

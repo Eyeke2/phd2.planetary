@@ -50,7 +50,7 @@ using namespace cv;
 #define GAUSSIAN_SIZE 2000
 static float gaussianWeight[GAUSSIAN_SIZE];
 
-// Initialize planetary module
+// Initialize solar/planetary detection module
 SolarBody::SolarBody()
 {
     m_Planetary_enabled = false;
@@ -140,11 +140,11 @@ SolarBody::SolarBody()
     m_lockTargetWidthBad = (ihdrChunk2[0] << 24) | (ihdrChunk2[1] << 16) | (ihdrChunk2[2] << 8) | ihdrChunk2[3];
     m_lockTargetHeightBad = (ihdrChunk2[4] << 24) | (ihdrChunk2[5] << 16) | (ihdrChunk2[6] << 8) | ihdrChunk2[7];
 
-    // Get initial values of the planetary tracking state and parameters from configuration
+    // Get initial values of the solar body detection state and parameters from configuration
     SetSurfaceTrackingState(pConfig->Profile.GetBoolean("/PlanetTool/surface_tracking", false));
     SetNoiseFilterState(pConfig->Profile.GetBoolean("/PlanetTool/noise_filter", false));
 
-    // Enforce valid range limits on planetary detection parameters while restoring from configuration
+    // Enforce valid range limits on solar body detection parameters while restoring from configuration
     m_Planetary_minRadius = pConfig->Profile.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT);
     m_Planetary_minRadius = wxMax(PT_RADIUS_MIN, wxMin(PT_RADIUS_MAX, m_Planetary_minRadius));
     m_Planetary_maxRadius = pConfig->Profile.GetInt("/PlanetTool/max_radius", PT_MAX_RADIUS_DEFAULT);
@@ -158,12 +158,12 @@ SolarBody::SolarBody()
     m_Planetary_maxFeatures = pConfig->Profile.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES);
     m_Planetary_maxFeatures = wxMax(PT_MIN_SURFACE_FEATURES, wxMin(PT_MAX_SURFACE_FEATURES, m_Planetary_maxFeatures));
 
-    // Save PHD2 settings we change for planetary guiding
+    // Save PHD2 settings we change for solar body guiding
     m_phd2_MassChangeThresholdEnabled = pConfig->Profile.GetBoolean("/guider/onestar/MassChangeThresholdEnabled", false);
     m_phd2_UseSubframes = pConfig->Profile.GetBoolean("/camera/UseSubframes", false);
     m_phd2_MultistarEnabled = pConfig->Profile.GetBoolean("/guider/multistar/enabled", true);
 
-    // Remove the alert dialog setting for pausing planetary detection
+    // Remove the alert dialog setting for pausing solar/planetary detection
     pConfig->Global.DeleteEntry(PausePlanetDetectionAlertEnabledKey());
 
     // Initialize non-free OpenCV components
@@ -188,7 +188,7 @@ SolarBody::~SolarBody()
     pConfig->Flush();
 }
 
-// Planet/feature size depending on planetary detection mode
+// Feature size depending on detection mode
 double SolarBody::GetHFD()
 {
     if (m_unknownHFD)
@@ -343,7 +343,7 @@ bool SolarBody::UpdateCaptureState(bool CaptureActive)
         }
         else
         {
-            // In planetary tracking mode update the state used to
+            // In solar/planetary mode update the state used to
             // control drawing of the internal detection elements.
             if (GetPlanetaryEnableState() && GetPlanetaryElementsButtonState())
                 SetPlanetaryElementsVisual(true);
@@ -461,7 +461,7 @@ void SolarBody::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFacto
             }
             break;
         case PLANET_DETECT_MODE_DISK:
-            // Draw contour points in planetary disk mode
+            // Draw contour points in solar/planetary mode
             if (m_diskContour.size())
             {
                 dc.SetPen(wxPen(wxColour(230, 0, 0), 2, wxPENSTYLE_SOLID));
@@ -1332,7 +1332,7 @@ bool SolarBody::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool ro
     int HighThreshold = GetPlanetaryParam_highThreshold();
 
     // Apply Canny edge detection
-    Debug.Write(wxString::Format("Start detection of planetary disk (roi:%d low_tr=%d,high_tr=%d,minr=%d,maxr=%d)\n", roiActive, LowThreshold, HighThreshold, minRadius, maxRadius));
+    Debug.Write(wxString::Format("Start detection of solar body (roi:%d low_tr=%d,high_tr=%d,minr=%d,maxr=%d)\n", roiActive, LowThreshold, HighThreshold, minRadius, maxRadius));
     Mat edges, dilatedEdges;
     Canny(img8, edges, LowThreshold, HighThreshold, 5, true);
     dilate(edges, dilatedEdges, Mat(), Point(-1, -1), 2);
@@ -1423,7 +1423,7 @@ bool SolarBody::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool ro
     }
 
     // Update stats window
-    Debug.Write(wxString::Format("End detection of planetary disk (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%.3f, contours=%d/%d, threads=%d\n",
+    Debug.Write(wxString::Format("End detection of solar body (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%.3f, contours=%d/%d, threads=%d\n",
         m_PlanetWatchdog.Time(), bestDiskCenter.radius, roiRect.x + bestDiskCenter.x, roiRect.y + bestDiskCenter.y, bestScore, contourMatchingCount, contourAllCount, maxThreadsCount));
     pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contours/points"), contourMatchingCount, bestContour.size());
     pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), bestScore);
@@ -1686,7 +1686,7 @@ bool SolarBody::FindPlanet(const usImage* pImage, bool autoSelect)
     {
         // Handle any other exceptions
         Debug.Write("Find planet: unknown exception\n");
-        pFrame->Alert(_("ERROR: unknown exception occurred in planetary detection"), wxICON_ERROR);
+        pFrame->Alert(_("ERROR: unknown exception occurred in solar body detection"), wxICON_ERROR);
     }
 
     // For simulated camera, calculate detection error by comparing with the simulated position

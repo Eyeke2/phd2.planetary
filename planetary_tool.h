@@ -34,7 +34,7 @@
 
 #pragma once
 
-// Default planetary detection parameters values
+// Default solar body detection parameters values
 #define PT_MIN_RADIUS_DEFAULT  100
 #define PT_MAX_RADIUS_DEFAULT  200
 #define PT_RADIUS_MIN          1
