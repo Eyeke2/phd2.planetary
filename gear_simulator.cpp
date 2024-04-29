@@ -1529,7 +1529,7 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
             // Finally, render clouds
             if (SimCamParams::clouds_opacity > 0)
             {
-                if (pFrame->pGuider->m_SolarBody.GetPlanetaryEnableState())
+                if (pFrame->pGuider->m_SolarBody.GetSolarBodyEnableState())
                     subframe = wxRect(0, 0, FullSize.x, FullSize.y);
                 render_clouds(img, subframe, duration, 30, 100);
             }

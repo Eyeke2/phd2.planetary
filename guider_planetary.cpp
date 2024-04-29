@@ -180,11 +180,11 @@ SolarBody::~SolarBody()
     // Save all detection parameters
     pConfig->Profile.SetBoolean("/PlanetTool/surface_tracking", GetSurfaceTrackingState());
     pConfig->Profile.SetBoolean("/PlanetTool/noise_filter", GetNoiseFilterState());
-    pConfig->Profile.SetInt("/PlanetTool/min_radius", GetPlanetaryParam_minRadius());
-    pConfig->Profile.SetInt("/PlanetTool/max_radius", GetPlanetaryParam_maxRadius());
-    pConfig->Profile.SetInt("/PlanetTool/high_threshold", GetPlanetaryParam_highThreshold());
-    pConfig->Profile.SetInt("/PlanetTool/min_hessian", GetPlanetaryParam_minHessian());
-    pConfig->Profile.SetInt("/PlanetTool/max_features", GetPlanetaryParam_maxFeatures());
+    pConfig->Profile.SetInt("/PlanetTool/min_radius", GetSolarBodyParam_minRadius());
+    pConfig->Profile.SetInt("/PlanetTool/max_radius", GetSolarBodyParam_maxRadius());
+    pConfig->Profile.SetInt("/PlanetTool/high_threshold", GetSolarBodyParam_highThreshold());
+    pConfig->Profile.SetInt("/PlanetTool/min_hessian", GetSolarBodyParam_minHessian());
+    pConfig->Profile.SetInt("/PlanetTool/max_features", GetSolarBodyParam_maxFeatures());
     pConfig->Flush();
 }
 
@@ -209,7 +209,7 @@ wxString SolarBody::GetHfdLabel()
 
 bool SolarBody::IsPixelMetrics()
 {
-    return GetPlanetaryEnableState() ? !m_measuringSharpnessMode : true;
+    return GetSolarBodyEnableState() ? !m_measuringSharpnessMode : true;
 }
 
 // Handle mouse wheel rotation event from Star Profile windows.
@@ -315,7 +315,7 @@ void SolarBody::GetDetectionStatus(wxString& statusMsg)
 }
 
 // Update state used to visualize internally detected features
-void SolarBody::SetPlanetaryElementsVisual(bool state)
+void SolarBody::SetSolarBodyElementsVisual(bool state)
 {
     m_syncLock.Lock();
     m_diskContour.clear();
@@ -333,9 +333,9 @@ bool SolarBody::UpdateCaptureState(bool CaptureActive)
         if (!CaptureActive)
         {
             // Clear selection symbols (green circle/target lock) and visual elements
-            if (GetPlanetaryEnableState())
+            if (GetSolarBodyEnableState())
             {
-                SetPlanetaryElementsVisual(false);
+                SetSolarBodyElementsVisual(false);
                 pFrame->pGuider->Reset(false);
             }
             m_guidingFixationPointValid = false;
@@ -345,8 +345,8 @@ bool SolarBody::UpdateCaptureState(bool CaptureActive)
         {
             // In solar/planetary mode update the state used to
             // control drawing of the internal detection elements.
-            if (GetPlanetaryEnableState() && GetPlanetaryElementsButtonState())
-                SetPlanetaryElementsVisual(true);
+            if (GetSolarBodyEnableState() && GetSolarBodyElementsButtonState())
+                SetSolarBodyElementsVisual(true);
             RestartSimulatorErrorDetection();
         }
     }
@@ -366,7 +366,7 @@ void SolarBody::NotifyCameraConnect(bool connected)
 {
     bool isSimCam = (pCamera && pCamera->Name == "Simulator");
     pFrame->pStatsWin->ShowSimulatorStats(isSimCam && connected);
-    pFrame->pStatsWin->ShowPlanetStats(GetPlanetaryEnableState() && connected);
+    pFrame->pStatsWin->ShowPlanetStats(GetSolarBodyEnableState() && connected);
     m_userLClick = false;
 }
 
@@ -446,7 +446,7 @@ void SolarBody::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFacto
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
 
     // Display internally detected elements (must be enabled in UI)
-    if (GetPlanetaryElementsVisual())
+    if (GetSolarBodyElementsVisual())
     {
         m_syncLock.Lock();
 
@@ -504,8 +504,8 @@ void SolarBody::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFacto
             int x = int(primaryStar.X * scaleFactor + 0.5);
             int y = int(primaryStar.Y * scaleFactor + 0.5);
             int radius = int(m_radius * scaleFactor + 0.5);
-            float minRadius = GetPlanetaryParam_minRadius() * scaleFactor;
-            float maxRadius = GetPlanetaryParam_maxRadius() * scaleFactor;
+            float minRadius = GetSolarBodyParam_minRadius() * scaleFactor;
+            float maxRadius = GetSolarBodyParam_maxRadius() * scaleFactor;
             int minRadius_x = x + minRadius;
             int maxRadius_x = x + maxRadius;
             int lineMin_x = x;
@@ -993,7 +993,7 @@ bool SolarBody::validateAndFilterKeypoints(std::vector<KeyPoint>& keypoints, std
     return true; // Indicate successful filtering
 }
 
-void SolarBody::SetPlanetaryParam_minHessian(int value)
+void SolarBody::SetSolarBodyParam_minHessian(int value)
 {
     if (m_Planetary_minHessian != value)
     {
@@ -1001,16 +1001,16 @@ void SolarBody::SetPlanetaryParam_minHessian(int value)
         m_surfaceDetectionParamsChanging = true;
     }
 }
-int SolarBody::GetPlanetaryParam_minHessian()
+int SolarBody::GetSolarBodyParam_minHessian()
 {
     return wxMax(PT_MIN_HESSIAN_UI_MIN, wxMin(m_Planetary_minHessian, PT_MIN_HESSIAN_UI_MAX));
 }
 
 // Map the slider value to physical minHessian parameter value using inverse logarithmic scale
-int SolarBody::GetPlanetaryParam_minHessianPhysical()
+int SolarBody::GetSolarBodyParam_minHessianPhysical()
 {
     // Ensure the sensitivity value is within the expected range
-    int uiSensitivityValue = GetPlanetaryParam_minHessian();
+    int uiSensitivityValue = GetSolarBodyParam_minHessian();
     uiSensitivityValue = wxMax(PT_MIN_HESSIAN_UI_MIN, wxMin(uiSensitivityValue, PT_MIN_HESSIAN_UI_MAX));
 
     // Calculate the inverse ratio of the current position to the maximum UI value
@@ -1039,7 +1039,7 @@ bool SolarBody::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool aut
     int nOctaveLayers = 2;
     bool upright = true;
     bool surfExtended = false;
-    SurfFeatureDetector surfDetector(GetPlanetaryParam_minHessianPhysical(), nOctaves, nOctaveLayers, surfExtended, upright);
+    SurfFeatureDetector surfDetector(GetSolarBodyParam_minHessianPhysical(), nOctaves, nOctaveLayers, surfExtended, upright);
 
     // Enhance local contrast before feature detection
     Mat equalized;
@@ -1272,7 +1272,7 @@ bool SolarBody::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool aut
         m_radius = m_starProfileSize;
 
         // Save inlier matches for visualization
-        if (GetPlanetaryElementsVisual())
+        if (GetSolarBodyElementsVisual())
         {
             m_syncLock.Lock();
             m_inlierPoints = inlierPoints;
@@ -1300,7 +1300,7 @@ bool SolarBody::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool aut
         m_surfaceFixationPoint = m_referencePoint;
 
         // Save reference keypoints for visualization
-        if (GetPlanetaryElementsVisual())
+        if (GetSolarBodyElementsVisual())
         {
             m_syncLock.Lock();
             m_inlierPoints.clear();
@@ -1328,8 +1328,8 @@ bool SolarBody::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool aut
 // Find planet center using circle matching with contours
 bool SolarBody::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool roiActive, Point2f& clickedPoint, Rect& roiRect, bool activeRoiLimits, float distanceRoiMax)
 {
-    int LowThreshold = GetPlanetaryParam_lowThreshold();
-    int HighThreshold = GetPlanetaryParam_highThreshold();
+    int LowThreshold = GetSolarBodyParam_lowThreshold();
+    int HighThreshold = GetSolarBodyParam_highThreshold();
 
     // Apply Canny edge detection
     Debug.Write(wxString::Format("Start detection of solar body (roi:%d low_tr=%d,high_tr=%d,minr=%d,maxr=%d)\n", roiActive, LowThreshold, HighThreshold, minRadius, maxRadius));
@@ -1429,7 +1429,7 @@ bool SolarBody::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool ro
     pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), bestScore);
 
     // For use by visual aid for parameter tuning
-    if (GetPlanetaryElementsVisual())
+    if (GetSolarBodyElementsVisual())
     {
         m_syncLock.Lock();
         m_roiRect = roiRect;
@@ -1551,8 +1551,8 @@ bool SolarBody::FindPlanet(const usImage* pImage, bool autoSelect)
 
     // Use ROI for CPU time optimization
     bool roiActive = false;
-    int minRadius = (int)GetPlanetaryParam_minRadius();
-    int maxRadius = (int)GetPlanetaryParam_maxRadius();
+    int minRadius = (int)GetSolarBodyParam_minRadius();
+    int maxRadius = (int)GetSolarBodyParam_maxRadius();
     int roiRadius = (int)(maxRadius * 3 / 2.0 + 0.5);
     int roiOffsetX = 0;
     int roiOffsetY = 0;

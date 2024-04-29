@@ -149,7 +149,7 @@ public:
     bool m_simulationZeroOffset;
     bool m_cameraSimulationRefPointValid;
 
-    // PHD2 parameters saved before enabling planetary guiding and restored after disabling
+    // PHD2 parameters saved before enabling solar body guiding and restored after disabling
     bool m_phd2_MassChangeThresholdEnabled;
     bool m_phd2_UseSubframes;
     bool m_phd2_MultistarEnabled;
@@ -181,8 +181,8 @@ public:
     bool UpdateCaptureState(bool CaptureActive);
     void SaveCameraSimulationMove(double rx, double ry);
 
-    bool GetPlanetaryEnableState() { return m_Planetary_enabled; }
-    void SetPlanetaryEnableState(bool enabled) { m_Planetary_enabled = enabled; }
+    bool GetSolarBodyEnableState() { return m_Planetary_enabled; }
+    void SetSolarBodyEnableState(bool enabled) { m_Planetary_enabled = enabled; }
     bool GetDetectionPausedState() { return m_PlanetaryDetectionPaused; }
     void SetDetectionPausedState(bool paused) { m_PlanetaryDetectionPaused = paused; }
     bool GetSurfaceTrackingState() { return m_Planetary_SurfaceTracking; }
@@ -192,21 +192,21 @@ public:
         m_measuringSharpnessMode = enabled;
         m_unknownHFD = true;
     }
-    void   SetPlanetaryParam_minRadius(double val) { m_Planetary_minRadius = val; }
-    double GetPlanetaryParam_minRadius() { return m_Planetary_minRadius; }
-    void   SetPlanetaryParam_maxRadius(double val) { m_Planetary_maxRadius = val; }
-    double GetPlanetaryParam_maxRadius() { return m_Planetary_maxRadius; }
+    void   SetSolarBodyParam_minRadius(double val) { m_Planetary_minRadius = val; }
+    double GetSolarBodyParam_minRadius() { return m_Planetary_minRadius; }
+    void   SetSolarBodyParam_maxRadius(double val) { m_Planetary_maxRadius = val; }
+    double GetSolarBodyParam_maxRadius() { return m_Planetary_maxRadius; }
     bool GetRoiEnableState() { return m_RoiEnabled; }
     void SetRoiEnableState(bool enabled) { m_RoiEnabled = enabled; }
-    void SetPlanetaryParam_lowThreshold(int value) { m_Planetary_lowThreshold = value; }
-    int  GetPlanetaryParam_lowThreshold() { return m_Planetary_lowThreshold; }
-    void SetPlanetaryParam_highThreshold(int value) { m_Planetary_highThreshold = value; }
-    int  GetPlanetaryParam_highThreshold() { return m_Planetary_highThreshold; }
+    void SetSolarBodyParam_lowThreshold(int value) { m_Planetary_lowThreshold = value; }
+    int  GetSolarBodyParam_lowThreshold() { return m_Planetary_lowThreshold; }
+    void SetSolarBodyParam_highThreshold(int value) { m_Planetary_highThreshold = value; }
+    int  GetSolarBodyParam_highThreshold() { return m_Planetary_highThreshold; }
 
-    void SetPlanetaryParam_minHessian(int value);
-    int  GetPlanetaryParam_minHessian();
-    int  GetPlanetaryParam_minHessianPhysical();
-    void SetPlanetaryParam_maxFeatures(int value)
+    void SetSolarBodyParam_minHessian(int value);
+    int  GetSolarBodyParam_minHessian();
+    int  GetSolarBodyParam_minHessianPhysical();
+    void SetSolarBodyParam_maxFeatures(int value)
     {
         if (m_Planetary_maxFeatures != value)
         {
@@ -214,12 +214,12 @@ public:
             m_surfaceDetectionParamsChanging = true;
         }
     }
-    int  GetPlanetaryParam_maxFeatures() { return m_Planetary_maxFeatures; }
+    int  GetSolarBodyParam_maxFeatures() { return m_Planetary_maxFeatures; }
 
-    void SetPlanetaryElementsVisual(bool state);
-    bool GetPlanetaryElementsVisual() { return m_Planetary_ShowElementsVisual; }
-    void SetPlanetaryElementsButtonState(bool state) { m_Planetary_ShowElementsButtonState = state; }
-    bool GetPlanetaryElementsButtonState() { return m_Planetary_ShowElementsButtonState; }
+    void SetSolarBodyElementsVisual(bool state);
+    bool GetSolarBodyElementsVisual() { return m_Planetary_ShowElementsVisual; }
+    void SetSolarBodyElementsButtonState(bool state) { m_Planetary_ShowElementsButtonState = state; }
+    bool GetSolarBodyElementsButtonState() { return m_Planetary_ShowElementsButtonState; }
     void SetNoiseFilterState(bool enable) { m_Planetary_NoiseFilterState = enable; }
     bool GetNoiseFilterState() { return m_Planetary_NoiseFilterState; }
 
@@ -227,7 +227,7 @@ public:
     bool GetVideoLogging() { return m_videoLogEnabled; }
 
 public:
-    // Displaying visual aid for planetary parameter tuning
+    // Displaying visual aid for solar body parameter tuning
     bool m_draw_PlanetaryHelper;
     void PlanetVisualRefresh() { m_draw_PlanetaryHelper = true; }
     void PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFactor);

@@ -396,7 +396,7 @@ bool GuiderMultiStar::SetCurrentPosition(const usImage *pImage, const PHD_Point&
         }
 
         m_massChecker->Reset();
-        int searchRegion = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? m_Planet.m_searchRegion : m_searchRegion;
+        int searchRegion = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? m_SolarBody.m_searchRegion : m_searchRegion;
         bError = !m_primaryStar.Find(pImage, searchRegion, x, y, pFrame->GetStarFindMode(),
                               GetMinStarHFD(), GetMaxStarHFD(), pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE);
     }
@@ -948,7 +948,7 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
             errorInfo->starMass = 0.0;
             errorInfo->starSNR = 0.0;
             errorInfo->starHFD = 0.0;
-            errorInfo->status = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? m_Planet.m_statusMsg : StarStatusStr(newStar);
+            errorInfo->status = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? m_SolarBody.m_statusMsg : StarStatusStr(newStar);
             m_primaryStar.SetError(newStar.GetError());
 
             if (pFrame->GetStarFindMode() != Star::FIND_PLANET)
@@ -1052,7 +1052,7 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
         if ((GetState() != STATE_GUIDING) && (pFrame->GetStarFindMode() == Star::FIND_PLANET))
         {
             wxString statusMsg;
-            m_Planet.GetDetectionStatus(statusMsg);
+            m_SolarBody.GetDetectionStatus(statusMsg);
             pFrame->StatusMsg(statusMsg);
         }
     }
@@ -1158,10 +1158,10 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
 
             if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
             {
-                m_Planet.m_clicked_x = wxMin(StarX, pImage->Size.GetWidth() - 1);
-                m_Planet.m_clicked_y = wxMin(StarY, pImage->Size.GetHeight() - 1);
-                m_Planet.m_userLClick = true;
-                m_Planet.m_detectionCounter = 0;
+                m_SolarBody.m_clicked_x = wxMin(StarX, pImage->Size.GetWidth() - 1);
+                m_SolarBody.m_clicked_y = wxMin(StarY, pImage->Size.GetHeight() - 1);
+                m_SolarBody.m_userLClick = true;
+                m_SolarBody.m_detectionCounter = 0;
             }
 
             SetCurrentPosition(pImage, PHD_Point(StarX, StarY));
@@ -1192,7 +1192,7 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
             }
 
             if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
-                m_Planet.m_draw_PlanetaryHelper = true;
+                m_SolarBody.m_draw_PlanetaryHelper = true;
 
             Refresh();
             Update();
@@ -1219,20 +1219,20 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
             dc.SetClippingRegion(wxRect(0, 0, pImg->GetWidth(), pImg->GetHeight()));
 
         Guider* pGuider = pFrame->pGuider;
-        if (pGuider->m_Planet.m_detected)
+        if (pGuider->m_SolarBody.m_detected)
         {
-            if (pGuider->m_Planet.GetPlanetDetectMode() == SolarBody::PLANET_DETECT_MODE_SURFACE)
+            if (pGuider->m_SolarBody.GetPlanetDetectMode() == SolarBody::PLANET_DETECT_MODE_SURFACE)
             {
                 // Draw target lock symbol overlay centered at the tracked location
                 wxBitmap scaledTracker;
-                PHD_Point lockedPos = pGuider->m_Planet.GetScaledTracker(scaledTracker, star, scale);
+                PHD_Point lockedPos = pGuider->m_SolarBody.GetScaledTracker(scaledTracker, star, scale);
                 dc.DrawBitmap(scaledTracker, cvRound(lockedPos.X), cvRound(lockedPos.Y));
             }
             else
             {
                 int x = int(star.X * scale + 0.5);
                 int y = int(star.Y * scale + 0.5);
-                int r = int(pGuider->m_Planet.m_radius * scale + 0.5);
+                int r = int(pGuider->m_SolarBody.m_radius * scale + 0.5);
                 dc.DrawCircle(x, y, r);
                 dc.SetPen(wxPen(dc.GetPen().GetColour(), 1, dc.GetPen().GetStyle()));
                 dc.DrawRectangle(xpos, ypos, w, w);
@@ -1240,7 +1240,7 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
         }
 
         // Replaces visual bell for paused detection while guiding
-        if (pGuider->m_Planet.GetDetectionPausedState())
+        if (pGuider->m_SolarBody.GetDetectionPausedState())
         {
             static int dash = 0;
             static wxDash dashPattern[4][4] =
@@ -1259,15 +1259,15 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
 
             int x = int(star.X * scale + 0.5);
             int y = int(star.Y * scale + 0.5);
-            int r = int(pGuider->m_Planet.m_radius * scale + 0.5);
+            int r = int(pGuider->m_SolarBody.m_radius * scale + 0.5);
             dc.DrawCircle(x, y, r);
         }
 
         // Show active processing region
-        if (pGuider->m_Planet.m_roiActive && pFrame->CaptureActive)
+        if (pGuider->m_SolarBody.m_roiActive && pFrame->CaptureActive)
         {
             dc.SetPen(wxPen(wxColour(200, 200, 200), 2, wxPENSTYLE_SHORT_DASH));
-            dc.DrawRectangle(pGuider->m_Planet.m_roiRect.x * scale, pGuider->m_Planet.m_roiRect.y * scale, pGuider->m_Planet.m_roiRect.width * scale, pGuider->m_Planet.m_roiRect.height * scale);
+            dc.DrawRectangle(pGuider->m_SolarBody.m_roiRect.x * scale, pGuider->m_SolarBody.m_roiRect.y * scale, pGuider->m_SolarBody.m_roiRect.width * scale, pGuider->m_SolarBody.m_roiRect.height * scale);
         }
 
         dc.DestroyClippingRegion();
@@ -1365,8 +1365,8 @@ void GuiderMultiStar::OnPaint(wxPaintEvent& event)
             DrawBox(dc, m_primaryStar, m_searchRegion, m_scaleFactor);
         }
 
-        if (m_Planet.GetPlanetaryEnableState() && (m_Planet.m_draw_PlanetaryHelper || m_Planet.GetPlanetaryElementsVisual()))
-            m_Planet.PlanetVisualHelper(dc, m_primaryStar, m_scaleFactor);
+        if (m_SolarBody.GetSolarBodyEnableState() && (m_SolarBody.m_draw_PlanetaryHelper || m_SolarBody.GetSolarBodyElementsVisual()))
+            m_SolarBody.PlanetVisualHelper(dc, m_primaryStar, m_scaleFactor);
     }
     catch (const wxString& Msg)
     {
