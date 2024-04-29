@@ -377,7 +377,7 @@ SBStarIndicators::SBStarIndicators(SBPanel *panel, std::vector<int>& fldWidths)
     int txtHeight;
     panel->GetTextExtent(_("SNR"), &snrLabelWidth, &txtHeight);
     panel->GetTextExtent("99999.9", &snrValueWidth, &txtHeight);
-    panel->GetTextExtent(_("PLANET"), &satWidth, &txtHeight);
+    panel->GetTextExtent(_("OBJECT"), &satWidth, &txtHeight);
     fldWidths.push_back(satWidth + 1 * panel->emWidth);
     fldWidths.push_back(snrLabelWidth + snrValueWidth + 2 * panel->emWidth);
 
@@ -386,7 +386,7 @@ SBStarIndicators::SBStarIndicators(SBPanel *panel, std::vector<int>& fldWidths)
     txtStarInfo->SetBackgroundColour(*wxBLACK);
     txtStarInfo->SetForegroundColour(*wxWHITE);
     txtStarInfo->SetToolTip(_("In multiple star mode, displays the number of guiding stars out of the total detected. "
-        "In single star mode, shows 'STAR*' (or 'SAT' if the star is saturated), and 'PLANET' in solar/planetary detection mode."));
+        "In single star mode, shows 'STAR*' (or 'SAT' if the star is saturated), and 'OBJECT' in solar/planetary detection mode."));
 
     // Label and value fields separated to allow different foreground colors for each
     txtSNRLabel = new wxStaticText(panel, wxID_ANY, _("SNR"), wxDefaultPosition, wxDefaultSize);
@@ -435,7 +435,7 @@ void SBStarIndicators::UpdateState(double MassPct, double SNR, bool Saturated)
         // Update the star info text
         wxString starText;
         if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
-            starText = _T("PLANET");
+            starText = _T("OBJECT");
         else if (pFrame->pGuider->GetMultiStarMode())
             starText = pFrame->pGuider->GetStarCount();
         else

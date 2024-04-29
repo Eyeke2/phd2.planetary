@@ -2,7 +2,7 @@
  *  guider_planetary.cpp
  *  PHD Guiding
  *
- *  Planetary detection extensions by Leo Shatz
+ *  Solar, lunar and planetary detection extensions by Leo Shatz
  *  Copyright (c) 2023-2024 Leo Shatz
  *  All rights reserved.
  *
@@ -53,9 +53,12 @@ static float gaussianWeight[GAUSSIAN_SIZE];
 // Initialize solar/planetary detection module
 SolarSystemObject::SolarSystemObject()
 {
-    m_Planetary_enabled = false;
-    m_PlanetaryDetectionPaused = false;
-    m_Planetary_SurfaceTracking = false;
+    m_paramEnabled = false;
+    m_paramDetectionPaused = false;
+    m_paramSurfaceTracking = false;
+    m_paramRoiEnabled = false;
+    m_paramShowElementsButtonState = false;
+
     m_prevCaptureActive = false;
     m_detected = false;
     m_radius = 0;
@@ -69,7 +72,7 @@ SolarSystemObject::SolarSystemObject()
     m_measuringSharpnessMode = false;
     m_unknownHFD = true;
     m_focusSharpness = 0;
-    m_noiseFilterState = false;
+    m_paramNoiseFilterState = false;
 
     m_guidingFixationPointValid = false;
     m_surfaceFixationPoint = Point2f(0, 0);
@@ -92,20 +95,12 @@ SolarSystemObject::SolarSystemObject()
     m_clicked_y = 0;
     m_prevClickedPoint = Point2f(0, 0);
     m_diskContour.clear();
-    m_RoiEnabled = false;
-    m_Planetary_minRadius = PT_MIN_RADIUS_DEFAULT;
-    m_Planetary_maxRadius = PT_MAX_RADIUS_DEFAULT;
-    m_Planetary_lowThreshold = PT_HIGH_THRESHOLD_DEFAULT / 2;
-    m_Planetary_highThreshold = PT_HIGH_THRESHOLD_DEFAULT;
-    m_Planetary_minHessian = PT_MIN_HESSIAN_UI_DEFAULT;
-    m_Planetary_maxFeatures = PT_MAX_SURFACE_FEATURES;
-    m_ShowElementsButtonState = false;
     m_showVisualElements = false;
-    m_draw_PlanetaryHelper = false;
+    m_showMinMaxDiameters = false;
     m_frameWidth = 0;
     m_frameHeight = 0;
-    m_PlanetEccentricity = 0;
-    m_PlanetAngle = 0;
+    m_eccentricity = 0;
+    m_angle = 0;
     m_trackedFeatureSize = TRACKING_FEATURE_SIZE_UNDEF;
 
     m_videoLogEnabled = false;
@@ -140,25 +135,25 @@ SolarSystemObject::SolarSystemObject()
     m_lockTargetWidthBad = (ihdrChunk2[0] << 24) | (ihdrChunk2[1] << 16) | (ihdrChunk2[2] << 8) | ihdrChunk2[3];
     m_lockTargetHeightBad = (ihdrChunk2[4] << 24) | (ihdrChunk2[5] << 16) | (ihdrChunk2[6] << 8) | ihdrChunk2[7];
 
-    // Get initial values of the solar body detection state and parameters from configuration
+    // Get initial values of the solar system object detection state and parameters from configuration
     SetSurfaceTrackingState(pConfig->Profile.GetBoolean("/PlanetTool/surface_tracking", false));
     SetNoiseFilterState(pConfig->Profile.GetBoolean("/PlanetTool/noise_filter", false));
 
-    // Enforce valid range limits on solar body detection parameters while restoring from configuration
-    m_Planetary_minRadius = pConfig->Profile.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT);
-    m_Planetary_minRadius = wxMax(PT_RADIUS_MIN, wxMin(PT_RADIUS_MAX, m_Planetary_minRadius));
-    m_Planetary_maxRadius = pConfig->Profile.GetInt("/PlanetTool/max_radius", PT_MAX_RADIUS_DEFAULT);
-    m_Planetary_maxRadius = wxMax(PT_RADIUS_MIN, wxMin(PT_RADIUS_MAX, m_Planetary_maxRadius));
-    m_Planetary_lowThreshold = pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT) / 2;
-    m_Planetary_lowThreshold = wxMax(PT_THRESHOLD_MIN, wxMin(PT_LOW_THRESHOLD_MAX, m_Planetary_lowThreshold));
-    m_Planetary_highThreshold = pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT);
-    m_Planetary_highThreshold = wxMax(PT_THRESHOLD_MIN, wxMin(PT_HIGH_THRESHOLD_MAX, m_Planetary_highThreshold));
-    m_Planetary_minHessian = pConfig->Profile.GetInt("/PlanetTool/min_hessian", PT_MIN_HESSIAN_UI_DEFAULT);
-    m_Planetary_minHessian = wxMax(PT_MIN_HESSIAN_MIN, wxMin(PT_MIN_HESSIAN_MAX, m_Planetary_minHessian));
-    m_Planetary_maxFeatures = pConfig->Profile.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES);
-    m_Planetary_maxFeatures = wxMax(PT_MIN_SURFACE_FEATURES, wxMin(PT_MAX_SURFACE_FEATURES, m_Planetary_maxFeatures));
+    // Enforce valid range limits on solar system object detection parameters while restoring from configuration
+    m_paramMinRadius = pConfig->Profile.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT);
+    m_paramMinRadius = wxMax(PT_RADIUS_MIN, wxMin(PT_RADIUS_MAX, m_paramMinRadius));
+    m_paramMaxRadius = pConfig->Profile.GetInt("/PlanetTool/max_radius", PT_MAX_RADIUS_DEFAULT);
+    m_paramMaxRadius = wxMax(PT_RADIUS_MIN, wxMin(PT_RADIUS_MAX, m_paramMaxRadius));
+    m_paramLowThreshold = pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT) / 2;
+    m_paramLowThreshold = wxMax(PT_THRESHOLD_MIN, wxMin(PT_LOW_THRESHOLD_MAX, m_paramLowThreshold));
+    m_paramHighThreshold = pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT);
+    m_paramHighThreshold = wxMax(PT_THRESHOLD_MIN, wxMin(PT_HIGH_THRESHOLD_MAX, m_paramHighThreshold));
+    m_paramMinHessian = pConfig->Profile.GetInt("/PlanetTool/min_hessian", PT_MIN_HESSIAN_UI_DEFAULT);
+    m_paramMinHessian = wxMax(PT_MIN_HESSIAN_MIN, wxMin(PT_MIN_HESSIAN_MAX, m_paramMinHessian));
+    m_maxFeatures = pConfig->Profile.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES);
+    m_maxFeatures = wxMax(PT_MIN_SURFACE_FEATURES, wxMin(PT_MAX_SURFACE_FEATURES, m_maxFeatures));
 
-    // Save PHD2 settings we change for solar body guiding
+    // Save PHD2 settings we change for solar system object guiding
     m_phd2_MassChangeThresholdEnabled = pConfig->Profile.GetBoolean("/guider/onestar/MassChangeThresholdEnabled", false);
     m_phd2_UseSubframes = pConfig->Profile.GetBoolean("/camera/UseSubframes", false);
     m_phd2_MultistarEnabled = pConfig->Profile.GetBoolean("/guider/multistar/enabled", true);
@@ -290,7 +285,7 @@ double SolarSystemObject::CalcSharpness(Mat& FullFrame, Point2f& clickedPoint, b
         return ComputeSobelSharpness(focusRoi);
     }
 
-    const int focusSize = (GetPlanetDetectMode() == PLANET_DETECT_MODE_SURFACE) ? 200 : m_Planetary_maxRadius * 3 / 2.0;
+    const int focusSize = (GetPlanetDetectMode() == PLANET_DETECT_MODE_SURFACE) ? 200 : m_paramMaxRadius * 3 / 2.0;
     focusX = wxMax(0, focusX - focusSize / 2);
     focusX = wxMax(0, wxMin(focusX, m_frameWidth - focusSize));
     focusY = wxMax(0, focusY - focusSize / 2);
@@ -434,7 +429,7 @@ PHD_Point SolarSystemObject::GetScaledTracker(wxBitmap& scaledBitmap, const PHD_
     return PHD_Point(star.X * scale - scaledWidth / 2, star.Y * scale - scaledHeight / 2);
 }
 
-// Helper for visualizing planet detection radius
+// Helper for visualizing detection radius and internal features
 void SolarSystemObject::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFactor)
 {
     // Clip drawing region to displayed image frame
@@ -494,9 +489,9 @@ void SolarSystemObject::PlanetVisualHelper(wxDC& dc, Star primaryStar, double sc
     dc.DestroyClippingRegion();
 
     // Display min/max diameters for visual feedback
-    if (m_draw_PlanetaryHelper)
+    if (m_showMinMaxDiameters)
     {
-        m_draw_PlanetaryHelper = false;
+        m_showMinMaxDiameters = false;
         if (!GetSurfaceTrackingState() && pFrame->CaptureActive)
         {
             const wxString labelTextMin("min diameter");
@@ -839,8 +834,8 @@ void SolarSystemObject::FindCenters(Mat image, const std::vector<Point>& contour
     maxRadius = (maxRadius * 5) / 4;
     minRadius = (minRadius * 3) / 4;
 
-    m_PlanetEccentricity = 0;
-    m_PlanetAngle = 0;
+    m_eccentricity = 0;
+    m_angle = 0;
     circle.radius = 0;
     centroid.radius = 0;
     diskContour.clear();
@@ -892,11 +887,11 @@ void SolarSystemObject::FindCenters(Mat image, const std::vector<Point>& contour
             double b = sqrt(4 * mu.mu11 * mu.mu11 + (mu.mu20 - mu.mu02) * (mu.mu20 - mu.mu02));
             double major_axis = sqrt(2 * (a + b));
             double minor_axis = sqrt(2 * (a - b));
-            m_PlanetEccentricity = sqrt(1 - (minor_axis * minor_axis) / (major_axis * major_axis));
+            m_eccentricity = sqrt(1 - (minor_axis * minor_axis) / (major_axis * major_axis));
 
             // Calculate orientation (theta) in radians and convert to degrees
             float theta = 0.5 * atan2(2 * mu.mu11, (mu.mu20 - mu.mu02));
-            m_PlanetAngle = theta * (180.0 / CV_PI);
+            m_angle = theta * (180.0 / CV_PI);
         }
     }
 }
@@ -995,15 +990,15 @@ bool SolarSystemObject::validateAndFilterKeypoints(std::vector<KeyPoint>& keypoi
 
 void SolarSystemObject::Set_minHessian(int value)
 {
-    if (m_Planetary_minHessian != value)
+    if (m_paramMinHessian != value)
     {
-        m_Planetary_minHessian = value;
+        m_paramMinHessian = value;
         m_surfaceDetectionParamsChanging = true;
     }
 }
 int SolarSystemObject::Get_minHessian()
 {
-    return wxMax(PT_MIN_HESSIAN_UI_MIN, wxMin(m_Planetary_minHessian, PT_MIN_HESSIAN_UI_MAX));
+    return wxMax(PT_MIN_HESSIAN_UI_MIN, wxMin(m_paramMinHessian, PT_MIN_HESSIAN_UI_MAX));
 }
 
 // Map the slider value to physical minHessian parameter value using inverse logarithmic scale
@@ -1080,7 +1075,7 @@ bool SolarSystemObject::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, 
     }
 
     // Limit to top N keypoints
-    int maxKeypoints = min(m_Planetary_maxFeatures, (int)keypoints.size());
+    int maxKeypoints = min(m_maxFeatures, (int)keypoints.size());
     std::vector<KeyPoint> topKeypoints;
     if (keypoints.size() <= maxKeypoints)
         topKeypoints.assign(keypoints.begin(), keypoints.end());
@@ -1325,14 +1320,14 @@ bool SolarSystemObject::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, 
     return true;
 }
 
-// Find planet center using circle matching with contours
-bool SolarSystemObject::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool roiActive, Point2f& clickedPoint, Rect& roiRect, bool activeRoiLimits, float distanceRoiMax)
+// Find orb center using circle matching with contours
+bool SolarSystemObject::FindOrbisCenter(Mat img8, int minRadius, int maxRadius, bool roiActive, Point2f& clickedPoint, Rect& roiRect, bool activeRoiLimits, float distanceRoiMax)
 {
     int LowThreshold = Get_lowThreshold();
     int HighThreshold = Get_highThreshold();
 
     // Apply Canny edge detection
-    Debug.Write(wxString::Format("Start detection of solar body (roi:%d low_tr=%d,high_tr=%d,minr=%d,maxr=%d)\n", roiActive, LowThreshold, HighThreshold, minRadius, maxRadius));
+    Debug.Write(wxString::Format("Start detection of solar system object (roi:%d low_tr=%d,high_tr=%d,minr=%d,maxr=%d)\n", roiActive, LowThreshold, HighThreshold, minRadius, maxRadius));
     Mat edges, dilatedEdges;
     Canny(img8, edges, LowThreshold, HighThreshold, 5, true);
     dilate(edges, dilatedEdges, Mat(), Point(-1, -1), 2);
@@ -1402,7 +1397,7 @@ bool SolarSystemObject::FindPlanetCenter(Mat img8, int minRadius, int maxRadius,
         // Refine the best fit
         if (score > 0.01)
         {
-            float searchRadius = 20 * m_PlanetEccentricity + 3;
+            float searchRadius = 20 * m_eccentricity + 3;
             int threadCount = RefineDiskCenter(score, diskCenter, diskContour, minRadius, maxRadius, searchRadius);
             maxThreadsCount = max(maxThreadsCount, threadCount);
             if (score > bestScore * 0.8)
@@ -1423,8 +1418,8 @@ bool SolarSystemObject::FindPlanetCenter(Mat img8, int minRadius, int maxRadius,
     }
 
     // Update stats window
-    Debug.Write(wxString::Format("End detection of solar body (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%.3f, contours=%d/%d, threads=%d\n",
-        m_PlanetWatchdog.Time(), bestDiskCenter.radius, roiRect.x + bestDiskCenter.x, roiRect.y + bestDiskCenter.y, bestScore, contourMatchingCount, contourAllCount, maxThreadsCount));
+    Debug.Write(wxString::Format("End detection of solar system object (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%.3f, contours=%d/%d, threads=%d\n",
+        m_SolarSystemObjWatchdog.Time(), bestDiskCenter.radius, roiRect.x + bestDiskCenter.x, roiRect.y + bestDiskCenter.y, bestScore, contourMatchingCount, contourAllCount, maxThreadsCount));
     pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contours/points"), contourMatchingCount, bestContour.size());
     pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), bestScore);
 
@@ -1518,16 +1513,16 @@ void SolarSystemObject::UpdateDetectionErrorInSimulator(Point2f& clickedPoint)
     }
 }
 
-// Find planet center of round/crescent shape in the given image
-bool SolarSystemObject::FindPlanet(const usImage* pImage, bool autoSelect)
+// Find object in the given image
+bool SolarSystemObject::FindSolarSystemObject(const usImage* pImage, bool autoSelect)
 {
-    m_PlanetWatchdog.Start();
+    m_SolarSystemObjWatchdog.Start();
 
     // Default error status message
     m_statusMsg = _("Object not found");
 
     // Skip detection when paused
-    if (m_PlanetaryDetectionPaused)
+    if (m_paramDetectionPaused)
     {
         m_syncLock.Lock();
         m_detected = false;
@@ -1561,7 +1556,7 @@ bool SolarSystemObject::FindPlanet(const usImage* pImage, bool autoSelect)
     // Refuse to process images larger than 4096x4096 and request to use camera binning
     if (FullFrame.cols > 4096 || FullFrame.rows > 4096)
     {
-        Debug.Write(wxString::Format("Find planet: image is too large %dx%d\n", FullFrame.cols, FullFrame.rows));
+        Debug.Write(wxString::Format("Find solar system object: image is too large %dx%d\n", FullFrame.cols, FullFrame.rows));
         pFrame->Alert(_("ERROR: camera frame size exceeds maximum limit. Please apply binning to reduce the frame size."), wxICON_ERROR);
         m_syncLock.Lock();
         m_detected = false;
@@ -1633,10 +1628,10 @@ bool SolarSystemObject::FindPlanet(const usImage* pImage, bool autoSelect)
             Mat filteredImage;
             bilateralFilter(imgFiltered, filteredImage, d, sigmaColor, sigmaSpace);
             imgFiltered = filteredImage;
-            Debug.Write(_("Find planet: noise filter applied\n"));
+            Debug.Write(_("Find solar system object: noise filter applied\n"));
         }
 
-        // Find planet center depending on the selected detection mode
+        // Find object depending on the selected detection mode
         switch (GetPlanetDetectMode())
         {
         case PLANET_DETECT_MODE_SURFACE:
@@ -1644,7 +1639,7 @@ bool SolarSystemObject::FindPlanet(const usImage* pImage, bool autoSelect)
             pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_detectedFeatures : 0);
             break;
         case PLANET_DETECT_MODE_DISK:
-            detectionResult = FindPlanetCenter(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
+            detectionResult = FindOrbisCenter(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
             break;
         }
 
@@ -1653,7 +1648,7 @@ bool SolarSystemObject::FindPlanet(const usImage* pImage, bool autoSelect)
             m_focusSharpness = CalcSharpness(FullFrame, clickedPoint, detectionResult);
 
         // Update detection time stats
-        pFrame->pStatsWin->UpdatePlanetDetectionTime(m_PlanetWatchdog.Time());
+        pFrame->pStatsWin->UpdatePlanetDetectionTime(m_SolarSystemObjWatchdog.Time());
 
         if (detectionResult)
         {
@@ -1674,19 +1669,19 @@ bool SolarSystemObject::FindPlanet(const usImage* pImage, bool autoSelect)
     catch (const wxString& msg)
     {
         POSSIBLY_UNUSED(msg);
-        Debug.Write(wxString::Format("Find planet: exception %s\n", msg));
+        Debug.Write(wxString::Format("Find solar system object: exception %s\n", msg));
     }
     catch (const cv::Exception& ex)
     {
         // Handle OpenCV exceptions
-        Debug.Write(wxString::Format("Find planet: OpenCV exception %s\n", ex.what()));
+        Debug.Write(wxString::Format("Find solar system object: OpenCV exception %s\n", ex.what()));
         pFrame->Alert(_("ERROR: exception occurred during image processing: change detection parameters"), wxICON_ERROR);
     }
     catch (...)
     {
         // Handle any other exceptions
-        Debug.Write("Find planet: unknown exception\n");
-        pFrame->Alert(_("ERROR: unknown exception occurred in solar body detection"), wxICON_ERROR);
+        Debug.Write("Find solar system object: unknown exception\n");
+        pFrame->Alert(_("ERROR: unknown exception occurred in solar system object detection"), wxICON_ERROR);
     }
 
     // For simulated camera, calculate detection error by comparing with the simulated position
@@ -1713,7 +1708,7 @@ bool SolarSystemObject::FindPlanet(const usImage* pImage, bool autoSelect)
         if (!pPointingSource->GetTracking(&tracking) && !tracking)
         {
             pFrame->Alert("WARNING: mount tracking is disabled!", wxICON_WARNING);
-            Debug.Write("Find planet: tracking is disabled during guiding!\n");
+            Debug.Write("Find solar system object: tracking is disabled during guiding!\n");
         }
     }
 

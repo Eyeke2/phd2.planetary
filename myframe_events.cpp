@@ -1333,7 +1333,7 @@ void MyFrame::OnPlanetTool(wxCommandEvent& evt)
     if (pPlanetTool)
     {
         // Reset dialog position when opened when any of Alt/Ctrl/Shift is pressed while clicking the button
-        if ((evt.GetId() == BUTTON_PLANETARY) &&
+        if ((evt.GetId() == BUTTON_SOLAR_SYSTEM_TOOL) &&
             (wxGetKeyState(WXK_ALT) || wxGetKeyState(WXK_CONTROL) || wxGetKeyState(WXK_SHIFT)))
         {
             PlaceWindowOnScreen(pPlanetTool, -1, -1);

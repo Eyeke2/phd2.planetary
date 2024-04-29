@@ -224,7 +224,7 @@ PlanetToolWin::PlanetToolWin()
     m_RoiCheckBox = new wxCheckBox(m_planetTab, wxID_ANY, _("Enable ROI"));
     m_RoiCheckBox->SetToolTip(_("Enable automatically selected Region Of Interest (ROI) for improved processing speed and reduced CPU usage."));
 
-    // Add all solar body tab elements
+    // Add all solar system object tab elements
     wxStaticBoxSizer *planetSizer = new wxStaticBoxSizer(new wxStaticBox(m_planetTab, wxID_ANY, _("")), wxVERTICAL);
     planetSizer->AddSpacer(10);
     planetSizer->Add(m_RoiCheckBox, 0, wxLEFT | wxALIGN_LEFT, 10);
@@ -259,7 +259,7 @@ PlanetToolWin::PlanetToolWin()
     // Show/hide detected elements
     m_ShowElements = new wxCheckBox(this, wxID_ANY, _("Display internal edges/features"));
     m_ShowElements->SetToolTip(_("Toggle the visibility of internally detected edges/features and tune detection parameters "
-        "to maintain a manageable number of these features while keeping them as close as possible to the solar body limb in the solar body guiding mode."));
+        "to maintain a manageable number of these features while keeping them as close as possible to the object limb in the solar system object guiding mode."));
 
     // Mount settings group
     wxStaticBoxSizer* pMountGroup = new wxStaticBoxSizer(wxHORIZONTAL, this, _("Mount settings"));
@@ -491,14 +491,14 @@ void PlanetToolWin::OnSpinCtrl_minRadius(wxSpinDoubleEvent& event)
 {
     int v = m_minRadius->GetValue();
     pSolarSystemObj->Set_minRadius(v < 1 ? 1 : v);
-    pSolarSystemObj->PlanetVisualRefresh();
+    pSolarSystemObj->RefreshMinMaxDiameters();
 }
 
 void PlanetToolWin::OnSpinCtrl_maxRadius(wxSpinDoubleEvent& event)
 {
     int v = m_maxRadius->GetValue();
     pSolarSystemObj->Set_maxRadius(v < 1 ? 1 : v);
-    pSolarSystemObj->PlanetVisualRefresh();
+    pSolarSystemObj->RefreshMinMaxDiameters();
 }
 
 void PlanetToolWin::OnRoiModeClick(wxCommandEvent& event)
@@ -789,7 +789,7 @@ void PlanetToolWin::UpdateStatus()
     // Toggle the visibility of solar/planetary stats grid
     pFrame->pStatsWin->ShowPlanetStats(enabled);
 
-    // Pause solar body guiding can be enabled only when guiding is still active
+    // Pause solar system object guiding can be enabled only when guiding is still active
     m_PauseButton->Enable(enabled && pFrame->pGuider->IsGuiding());
 }
 
@@ -856,7 +856,7 @@ static void SuppressPausePlanetDetection(long)
 
 void PlanetToolWin::OnPauseButton(wxCommandEvent& event)
 {
-    // Toggle solar body detection pause state depending if guiding is actually active
+    // Toggle solar system object detection pause state depending if guiding is actually active
     bool paused = !pSolarSystemObj->GetDetectionPausedState() && pFrame->pGuider->IsGuiding();
     pSolarSystemObj->SetDetectionPausedState(paused);
     m_PauseButton->SetLabel(paused ? _("Resume") : _("Pause"));

@@ -2,7 +2,7 @@
  *  guider_planetary.h
  *  PHD Guiding
  *
- *  Planetary detection extensions by Leo Shatz
+ *  Solar, lunar and planetary detection extensions by Leo Shatz
  *  Copyright (c) 2023-2024 Leo Shatz
  *  All rights reserved.
  *
@@ -44,35 +44,35 @@
 // Marks undefined feature size
 #define TRACKING_FEATURE_SIZE_UNDEF 999.99
 
-// Planetary guiding/tracking state and control class
+// Solar, lunar and planetary detection state and control class
 class SolarSystemObject
 {
 private:
-    // Planetary guiding parameters
-    bool m_Planetary_enabled;
-    bool m_PlanetaryDetectionPaused;
-    bool m_Planetary_SurfaceTracking;
-    bool m_RoiEnabled;
-    bool m_prevCaptureActive;
+    // Solar system object guiding parameters
+    bool   m_paramEnabled;
+    bool   m_paramDetectionPaused;
+    bool   m_paramSurfaceTracking;
+    bool   m_paramRoiEnabled;
 
-    double m_Planetary_minRadius;
-    double m_Planetary_maxRadius;
-    int    m_Planetary_lowThreshold;
-    int    m_Planetary_highThreshold;
-    int    m_Planetary_minHessian;
-    bool   m_ShowElementsButtonState;
+    double m_paramMinRadius;
+    double m_paramMaxRadius;
+    int    m_paramLowThreshold;
+    int    m_paramHighThreshold;
+    int    m_paramMinHessian;
+    bool   m_paramShowElementsButtonState;
+    bool   m_paramNoiseFilterState;
+
     bool   m_showVisualElements;
-    bool   m_noiseFilterState;
-
+    bool   m_prevCaptureActive;
     bool   m_measuringSharpnessMode;
     bool   m_unknownHFD;
     double m_focusSharpness;
     int    m_starProfileSize;
 
-    float  m_PlanetEccentricity;
-    float  m_PlanetAngle;
+    float  m_eccentricity;
+    float  m_angle;
 
-    int  m_Planetary_maxFeatures;
+    int  m_maxFeatures;
     bool m_surfaceDetectionParamsChanging;
     int  m_trackingQuality;
     int  m_cachedScaledWidth;
@@ -124,7 +124,7 @@ private:
     SERFile *m_SER;
 
 public:
-    // Planet detection modes
+    // Solar system object detection modes
     enum PlanetDetectMode
     {
         PLANET_DETECT_MODE_DISK = 1,
@@ -149,7 +149,7 @@ public:
     bool m_simulationZeroOffset;
     bool m_cameraSimulationRefPointValid;
 
-    // PHD2 parameters saved before enabling solar body guiding and restored after disabling
+    // PHD2 parameters saved before enabling solar system object mode and restored after disabling
     bool m_phd2_MassChangeThresholdEnabled;
     bool m_phd2_UseSubframes;
     bool m_phd2_MultistarEnabled;
@@ -158,14 +158,14 @@ public:
     SolarSystemObject();
     ~SolarSystemObject();
 
-    bool FindPlanet(const usImage* pImage, bool autoSelect = false);
+    bool FindSolarSystemObject(const usImage* pImage, bool autoSelect = false);
     void RestartSimulatorErrorDetection();
 
     PHD_Point GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale);
 
     PlanetDetectMode GetPlanetDetectMode() const
     {
-        if (m_Planetary_SurfaceTracking)
+        if (m_paramSurfaceTracking)
             return PLANET_DETECT_MODE_SURFACE;
         else
             return PLANET_DETECT_MODE_DISK;
@@ -181,59 +181,59 @@ public:
     bool UpdateCaptureState(bool CaptureActive);
     void SaveCameraSimulationMove(double rx, double ry);
 
-    bool Get_SolarSystemObjMode() { return m_Planetary_enabled; }
-    void Set_SolarSystemObjMode(bool enabled) { m_Planetary_enabled = enabled; }
-    bool GetDetectionPausedState() { return m_PlanetaryDetectionPaused; }
-    void SetDetectionPausedState(bool paused) { m_PlanetaryDetectionPaused = paused; }
-    bool GetSurfaceTrackingState() { return m_Planetary_SurfaceTracking; }
+    bool Get_SolarSystemObjMode() { return m_paramEnabled; }
+    void Set_SolarSystemObjMode(bool enabled) { m_paramEnabled = enabled; }
+    bool GetDetectionPausedState() { return m_paramDetectionPaused; }
+    void SetDetectionPausedState(bool paused) { m_paramDetectionPaused = paused; }
+    bool GetSurfaceTrackingState() { return m_paramSurfaceTracking; }
     void SetSurfaceTrackingState(bool enabled)
     {
-        m_Planetary_SurfaceTracking = enabled;
+        m_paramSurfaceTracking = enabled;
         m_measuringSharpnessMode = enabled;
         m_unknownHFD = true;
     }
-    void   Set_minRadius(double val) { m_Planetary_minRadius = val; }
-    double Get_minRadius() { return m_Planetary_minRadius; }
-    void   Set_maxRadius(double val) { m_Planetary_maxRadius = val; }
-    double Get_maxRadius() { return m_Planetary_maxRadius; }
-    bool GetRoiEnableState() { return m_RoiEnabled; }
-    void SetRoiEnableState(bool enabled) { m_RoiEnabled = enabled; }
-    void Set_lowThreshold(int value) { m_Planetary_lowThreshold = value; }
-    int  Get_lowThreshold() { return m_Planetary_lowThreshold; }
-    void Set_highThreshold(int value) { m_Planetary_highThreshold = value; }
-    int  Get_highThreshold() { return m_Planetary_highThreshold; }
+    void   Set_minRadius(double val) { m_paramMinRadius = val; }
+    double Get_minRadius() { return m_paramMinRadius; }
+    void   Set_maxRadius(double val) { m_paramMaxRadius = val; }
+    double Get_maxRadius() { return m_paramMaxRadius; }
+    bool GetRoiEnableState() { return m_paramRoiEnabled; }
+    void SetRoiEnableState(bool enabled) { m_paramRoiEnabled = enabled; }
+    void Set_lowThreshold(int value) { m_paramLowThreshold = value; }
+    int  Get_lowThreshold() { return m_paramLowThreshold; }
+    void Set_highThreshold(int value) { m_paramHighThreshold = value; }
+    int  Get_highThreshold() { return m_paramHighThreshold; }
 
     void Set_minHessian(int value);
     int  Get_minHessian();
     int  Get_minHessianPhysical();
     void Set_maxFeatures(int value)
     {
-        if (m_Planetary_maxFeatures != value)
+        if (m_maxFeatures != value)
         {
-            m_Planetary_maxFeatures = value;
+            m_maxFeatures = value;
             m_surfaceDetectionParamsChanging = true;
         }
     }
-    int  Get_maxFeatures() { return m_Planetary_maxFeatures; }
+    int  Get_maxFeatures() { return m_maxFeatures; }
 
     void ShowVisualElements(bool state);
     bool VisualElementsEnabled() { return m_showVisualElements; }
-    void SetShowFeaturesButtonState(bool state) { m_ShowElementsButtonState = state; }
-    bool GetShowFeaturesButtonState() { return m_ShowElementsButtonState; }
-    void SetNoiseFilterState(bool enable) { m_noiseFilterState = enable; }
-    bool GetNoiseFilterState() { return m_noiseFilterState; }
+    void SetShowFeaturesButtonState(bool state) { m_paramShowElementsButtonState = state; }
+    bool GetShowFeaturesButtonState() { return m_paramShowElementsButtonState; }
+    void SetNoiseFilterState(bool enable) { m_paramNoiseFilterState = enable; }
+    bool GetNoiseFilterState() { return m_paramNoiseFilterState; }
 
     void SetVideoLogging(bool enable) { m_videoLogEnabled = enable; }
     bool GetVideoLogging() { return m_videoLogEnabled; }
 
 public:
-    // Displaying visual aid for solar body parameter tuning
-    bool m_draw_PlanetaryHelper;
-    void PlanetVisualRefresh() { m_draw_PlanetaryHelper = true; }
+    // Displaying visual aid for solar system object parameter tuning
+    bool m_showMinMaxDiameters;
+    void RefreshMinMaxDiameters() { m_showMinMaxDiameters = true; }
     void PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFactor);
 
 private:
-    wxStopWatch m_PlanetWatchdog;
+    wxStopWatch m_SolarSystemObjWatchdog;
     typedef struct {
         float x;
         float y;
@@ -260,7 +260,7 @@ private:
     int     RefineDiskCenter(float& bestScore, CircleDescriptor& diskCenter, std::vector<cv::Point2f>& diskContour, int minRadius, int maxRadius, float searchRadius, float resolution = 1.0);
     float   FindContourCenter(CircleDescriptor& diskCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, cv::Moments& mu, int minRadius, int maxRadius);
     void    FindCenters(cv::Mat image, const std::vector<cv::Point>& contour, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, cv::Moments& mu, int minRadius, int maxRadius);
-    bool    FindPlanetCenter(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
+    bool    FindOrbisCenter(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
 
     cv::Point2f calculateCentroid(const std::vector<cv::KeyPoint>& keypoints, cv::Point2f& clickedPoint);
     bool areCollinear(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::KeyPoint& kp3);

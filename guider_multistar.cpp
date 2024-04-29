@@ -14,7 +14,7 @@
  *  Copyright (c) 2020 Bruce Waddington
  *  All rights reserved.
  *
- *  Planetary detection extensions by Leo Shatz
+ *  Solar, lunar and planetary detection extensions by Leo Shatz
  *
  *  This source code is distributed under the following "BSD" license
  *  Redistribution and use in source and binary forms, with or without
@@ -1192,7 +1192,7 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
             }
 
             if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
-                m_SolarSystemObject.m_draw_PlanetaryHelper = true;
+                m_SolarSystemObject.m_showMinMaxDiameters = true;
 
             Refresh();
             Update();
@@ -1365,7 +1365,7 @@ void GuiderMultiStar::OnPaint(wxPaintEvent& event)
             DrawBox(dc, m_primaryStar, m_searchRegion, m_scaleFactor);
         }
 
-        if (m_SolarSystemObject.Get_SolarSystemObjMode() && (m_SolarSystemObject.m_draw_PlanetaryHelper || m_SolarSystemObject.VisualElementsEnabled()))
+        if (m_SolarSystemObject.Get_SolarSystemObjMode() && (m_SolarSystemObject.m_showMinMaxDiameters || m_SolarSystemObject.VisualElementsEnabled()))
             m_SolarSystemObject.PlanetVisualHelper(dc, m_primaryStar, m_scaleFactor);
     }
     catch (const wxString& Msg)

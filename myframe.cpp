@@ -149,7 +149,7 @@ wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_TOOL(BUTTON_AUTOSTAR, MyFrame::OnButtonAutoStar)
     EVT_MENU(MENU_STOP, MyFrame::OnButtonStop)
     EVT_TOOL(BUTTON_ADVANCED, MyFrame::OnAdvanced)
-    EVT_TOOL(BUTTON_PLANETARY, MyFrame::OnPlanetTool)
+    EVT_TOOL(BUTTON_SOLAR_SYSTEM_TOOL, MyFrame::OnPlanetTool)
     EVT_MENU(MENU_BRAIN, MyFrame::OnAdvanced)
     EVT_TOOL(BUTTON_GUIDE,MyFrame::OnButtonGuide)
     EVT_MENU(MENU_GUIDE,MyFrame::OnButtonGuide)
@@ -1052,7 +1052,7 @@ void MyFrame::SetupToolBar()
     MainToolbar->AddSeparator();
     MainToolbar->AddTool(BUTTON_ADVANCED, _("Advanced Settings"), brain_bmp, _("Advanced Settings"));
     MainToolbar->AddTool(BUTTON_CAM_PROPERTIES, cam_setup_bmp, cam_setup_bmp_disabled, false, 0, _("Camera settings"));
-    MainToolbar->AddTool(BUTTON_PLANETARY, _("Solar, lunar or planetary guiding"), eclipse_bmp, _("Solar, lunar or planetary guiding"));
+    MainToolbar->AddTool(BUTTON_SOLAR_SYSTEM_TOOL, _("Solar, lunar or planetary guiding"), eclipse_bmp, _("Solar, lunar or planetary guiding"));
     MainToolbar->EnableTool(BUTTON_CAM_PROPERTIES, false);
     MainToolbar->EnableTool(BUTTON_LOOP, false);
     MainToolbar->EnableTool(BUTTON_AUTOSTAR, false);

@@ -34,7 +34,7 @@
 
 #pragma once
 
-// Default solar body detection parameters values
+// Default solar system object detection parameters values
 #define PT_MIN_RADIUS_DEFAULT  100
 #define PT_MAX_RADIUS_DEFAULT  200
 #define PT_RADIUS_MIN          1
