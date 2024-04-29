@@ -473,38 +473,24 @@ bool GuiderMultiStar::AutoSelect(const wxRect& roi)
             edgeAllowance = wxMax(edgeAllowance, pSecondaryMount->CalibrationTotDistance());
 
         GuideStar newStar;
-        int searchRegion;
-        Star::FindMode findMode = pFrame->GetStarFindMode();
-
-        if (findMode == Star::FIND_PLANET)
+        Star::FindMode findMode = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? Star::FIND_PLANET : Star::FIND_CENTROID;
+        if (!newStar.AutoFind(*image, edgeAllowance, m_searchRegion, roi, m_guideStars, MAX_LIST_SIZE))
         {
-            if (m_Planet.FindPlanet(image, true))
-            {
-                newStar.X = newStar.referencePoint.X = m_Planet.m_center_x;
-                newStar.Y = newStar.referencePoint.Y = m_Planet.m_center_y;
-                searchRegion = m_Planet.m_searchRegion;
-                m_guideStars.clear();
-                m_guideStars.push_back(newStar);
-            } else
-            {
-                throw ERROR_INFO("Unable to AutoFind");
-            }
-        } else
-        {
-            searchRegion = m_searchRegion;
-            findMode = Star::FIND_CENTROID;
-            if (!newStar.AutoFind(*image, edgeAllowance, m_searchRegion, roi, m_guideStars, MAX_LIST_SIZE))
-            {
-                throw ERROR_INFO("Unable to AutoFind");
-            }
+            throw ERROR_INFO("Unable to AutoFind");
         }
 
         m_massChecker->Reset();
-
-        if (!m_primaryStar.Find(image, searchRegion, newStar.X, newStar.Y, findMode, GetMinStarHFD(), GetMaxStarHFD(),
-                         pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE))
+        if (!m_primaryStar.Find(image, m_searchRegion, newStar.X, newStar.Y, findMode, GetMinStarHFD(), GetMaxStarHFD(),
+            pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE, true))
         {
             throw ERROR_INFO("Unable to find");
+        }
+
+        if (findMode == Star::FIND_PLANET)
+        {
+            // After finding planet metric we can fill the set using complete data
+            m_guideStars.clear();
+            m_guideStars.push_back(m_primaryStar);
         }
 
         // DEBUG OUTPUT
@@ -955,23 +941,6 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
         Star newStar(m_primaryStar);
         int search_region = m_searchRegion;
 
-        if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
-        {
-            if (!m_Planet.FindPlanet(pImage))
-            {
-                errorInfo->starError = newStar.GetError();
-                errorInfo->starMass = 0.0;
-                errorInfo->starSNR = 0.0;
-                errorInfo->starHFD = 0.0;
-                errorInfo->status = m_Planet.m_statusMsg;
-                throw ERROR_INFO("UpdateCurrentPosition():newStar not found");
-            }
-            double newpos_x = m_Planet.m_center_x;
-            double newpos_y = m_Planet.m_center_y;
-            newStar.SetXY(newpos_x, newpos_y);
-            search_region = m_Planet.m_searchRegion;
-        }
-
         if (!newStar.Find(pImage, search_region, pFrame->GetStarFindMode(), GetMinStarHFD(),
             GetMaxStarHFD(), pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE))
         {
@@ -979,10 +948,11 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
             errorInfo->starMass = 0.0;
             errorInfo->starSNR = 0.0;
             errorInfo->starHFD = 0.0;
-            errorInfo->status = StarStatusStr(newStar);
+            errorInfo->status = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? m_Planet.m_statusMsg : StarStatusStr(newStar);
             m_primaryStar.SetError(newStar.GetError());
 
-            s_distanceChecker.Activate();
+            if (pFrame->GetStarFindMode() != Star::FIND_PLANET)
+                s_distanceChecker.Activate();
             ImageLogger::LogImage(pImage, *errorInfo);
 
             throw ERROR_INFO("UpdateCurrentPosition():newStar not found");
@@ -1182,38 +1152,16 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
             }
 
             double StarX, StarY;
+            double scaleFactor = ScaleFactor();
+            StarX = (double)mevent.m_x / scaleFactor;
+            StarY = (double)mevent.m_y / scaleFactor;
 
-            /* Set ROI to a square around clicked position */
             if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
             {
-                int x = mevent.m_x / ScaleFactor();
-                m_Planet.m_clicked_x = std::min(x, pImage->Size.GetWidth() - 1);
-                int y = mevent.m_y / ScaleFactor();
-                m_Planet.m_clicked_y = std::min(y, pImage->Size.GetHeight() - 1);
-                m_Planet.m_roiClicked = true;
+                m_Planet.m_clicked_x = wxMin(StarX, pImage->Size.GetWidth() - 1);
+                m_Planet.m_clicked_y = wxMin(StarY, pImage->Size.GetHeight() - 1);
+                m_Planet.m_userLClick = true;
                 m_Planet.m_detectionCounter = 0;
-
-                if (m_Planet.GetRoiEnableState())
-                {
-                    // Set ROI centered around currently clicked point
-                    m_Planet.m_center_x = m_Planet.m_clicked_x;
-                    m_Planet.m_center_y = m_Planet.m_clicked_y;
-                }
-
-                // Try to locate a planet
-                m_Planet.FindPlanet((const usImage*)pImage);
-            }
-
-            if ((pFrame->GetStarFindMode() == Star::FIND_PLANET) && m_Planet.m_detected)
-            {
-                StarX = (double) m_Planet.m_center_x;
-                StarY = (double) m_Planet.m_center_y;
-            }
-            else
-            {
-                double scaleFactor = ScaleFactor();
-                StarX = (double) mevent.m_x / scaleFactor;
-                StarY = (double) mevent.m_y / scaleFactor;
             }
 
             SetCurrentPosition(pImage, PHD_Point(StarX, StarY));

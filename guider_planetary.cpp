@@ -85,7 +85,7 @@ GuiderPlanet::GuiderPlanet()
     m_cachedScaledHeight = 0;
     m_cachedTrackerImage = NULL;
 
-    m_roiClicked = false;
+    m_userLClick = false;
     m_roiActive = false;
     m_detectionCounter = 0;
     m_clicked_x = 0;
@@ -362,7 +362,7 @@ void GuiderPlanet::NotifyCameraConnect(bool connected)
     bool isSimCam = (pCamera && pCamera->Name == "Simulator");
     pFrame->pStatsWin->ShowSimulatorStats(isSimCam && connected);
     pFrame->pStatsWin->ShowPlanetStats(GetPlanetaryEnableState() && connected);
-    m_roiClicked = false;
+    m_userLClick = false;
 }
 
 void GuiderPlanet::SaveCameraSimulationMove(double rx, double ry)
@@ -1538,7 +1538,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
     {
         m_clicked_x = 0;
         m_clicked_y = 0;
-        m_roiClicked = false;
+        m_userLClick = false;
         m_detectionCounter = 0;
         RestartSimulatorErrorDetection();
     }
@@ -1567,6 +1567,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
         return false;
     }
 
+    // Limit image processing to ROI when enabled
     Mat RoiFrame;
     Rect roiRect(0, 0, pImage->Size.GetWidth(), pImage->Size.GetHeight());
     if (!autoSelect && GetRoiEnableState() && m_detected &&
@@ -1574,8 +1575,11 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
         (m_center_x < m_frameWidth) && (m_center_y < m_frameHeight) &&
         (m_frameWidth == pImage->Size.GetWidth()) && (m_frameHeight == pImage->Size.GetHeight()))
     {
-        roiOffsetX = wxMax(0, m_center_x - roiRadius);
-        roiOffsetY = wxMax(0, m_center_y - roiRadius);
+        float fraction = (m_userLClick && (m_detectionCounter <= 4)) ? (1.0 - m_detectionCounter / 4.0) : 0.0;
+        int x = cvRound(m_clicked_x * fraction + m_center_x * (1.0 - fraction));
+        int y = cvRound(m_clicked_y * fraction + m_center_y * (1.0 - fraction));
+        roiOffsetX = wxMax(0, x - roiRadius);
+        roiOffsetY = wxMax(0, y - roiRadius);
         int w = wxMin(roiRadius * 2, pImage->Size.GetWidth() - roiOffsetX);
         int h = wxMin(roiRadius * 2, pImage->Size.GetHeight() - roiOffsetY);
         roiRect = Rect(roiOffsetX, roiOffsetY, w, h);
@@ -1605,7 +1609,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
     }
 
     // ROI current state and limit
-    bool activeRoiLimits = m_roiClicked && GetRoiEnableState();
+    bool activeRoiLimits = m_userLClick && GetRoiEnableState();
     float distanceRoiMax = maxRadius * 3 / 2.0;
 
     bool detectionResult = false;
@@ -1655,7 +1659,7 @@ bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
                 m_searchRegion = cvRound(m_searchRegion * 0.3 + m_prevSearchRegion * 0.7);
 
                 // Forget about the clicked point after a few successful detections
-                m_roiClicked = false;
+                m_userLClick = false;
             }
             m_prevSearchRegion = m_searchRegion;
         }

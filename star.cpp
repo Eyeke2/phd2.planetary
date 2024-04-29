@@ -275,7 +275,8 @@ double Star::CalcSurfaceMetrics(const usImage* pImg, int start_x, int end_x, int
     return snr;
 }
 
-bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double base_y, FindMode mode, double minHFD, double maxHFD, unsigned short maxADU, StarFindLogType loggingControl)
+bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double base_y, FindMode mode,
+    double minHFD, double maxHFD, unsigned short maxADU, StarFindLogType loggingControl, bool autoFound)
 {
     FindResult Result = STAR_OK;
     double newX = (int) base_x;
@@ -304,14 +305,18 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
         }
 
         // search region bounds
-        int start_x = wxMax(base_x - searchRegion, minx);
-        int end_x   = wxMin(base_x + searchRegion, maxx);
-        int start_y = wxMax(base_y - searchRegion, miny);
-        int end_y   = wxMin(base_y + searchRegion, maxy);
-
-        if (end_x <= start_x || end_y <= start_y)
+        int start_x, end_x, start_y, end_y;
+        if (mode != FIND_PLANET)
         {
-            throw ERROR_INFO("coordinates are invalid");
+            start_x = wxMax(base_x - searchRegion, minx);
+            end_x = wxMin(base_x + searchRegion, maxx);
+            start_y = wxMax(base_y - searchRegion, miny);
+            end_y = wxMin(base_y + searchRegion, maxy);
+
+            if (end_x <= start_x || end_y <= start_y)
+            {
+                throw ERROR_INFO("coordinates are invalid");
+            }
         }
 
         const unsigned short *imgdata = pImg->ImageData;
@@ -382,12 +387,25 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
         }
         else // FIND_PLANET
         {
-            // Use exact position for planet tracking
-            newX = base_x;
-            newY = base_y;
-
-            if (pFrame->pGuider->m_Planet.GetPlanetDetectMode() == GuiderPlanet::PLANET_DETECT_MODE_SURFACE)
+            GuiderPlanet* planet = &pFrame->pGuider->m_Planet;
+            if (!autoFound && !planet->FindPlanet(pImg))
             {
+                Result = STAR_ERROR;
+                goto done;
+            }
+
+            // Use calculated position for planet guiding
+            searchRegion = planet->m_searchRegion;
+            newX = planet->m_center_x;
+            newY = planet->m_center_y;
+
+            if (planet->GetPlanetDetectMode() == GuiderPlanet::PLANET_DETECT_MODE_SURFACE)
+            {
+                start_x = wxMax(newX - searchRegion, minx);
+                end_x = wxMin(newX + searchRegion, maxx);
+                start_y = wxMax(newY - searchRegion, miny);
+                end_y = wxMin(newY + searchRegion, maxy);
+
                 // Adjust roi if it gets clipped
                 if (end_x - start_x < searchRegion * 2)
                 {
@@ -408,10 +426,10 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
             }
             else
             {
-                SNR = CalcPlanetMetrics(pImg, base_x, base_y, searchRegion, 15);
+                SNR = CalcPlanetMetrics(pImg, newX, newY, searchRegion, 15);
             }
 
-            HFD = pFrame->pGuider->m_Planet.GetHFD();
+            HFD = planet->GetHFD();
             goto done;
         }
 
@@ -895,6 +913,24 @@ bool GuideStar::AutoFind(const usImage& image, int extraEdgeAllowance, int searc
     {
         Debug.AddLine("AutoFind called on subframe, returning error");
         return false; // not found
+    }
+
+    if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+    {
+        GuiderPlanet* planet = &pFrame->pGuider->m_Planet;
+        if (planet->FindPlanet(&image, true))
+        {
+            referencePoint.X = planet->m_center_x;
+            referencePoint.Y = planet->m_center_y;
+            SetXY(referencePoint.X, referencePoint.Y);
+            Debug.Write(wxString::Format("Star::AutoFind found planet at (%.1f, %.1f)\n", X, Y));
+            return true;
+        }
+        else
+        {
+            Debug.Write("AutoFind: no planet found\n");
+            return false;
+        }
     }
 
     wxBusyCursor busy;

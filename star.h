@@ -86,7 +86,8 @@ public:
      *       error
      */
     bool Find(const usImage *pImg, int searchRegion, FindMode mode, double min_hfd, double max_hfd, unsigned short saturation, StarFindLogType loggingControl);
-    bool Find(const usImage *pImg, int searchRegion, double X, double Y, FindMode mode, double min_hfd, double max_hfd, unsigned short saturation, StarFindLogType loggingControl);
+    bool Find(const usImage *pImg, int searchRegion, double X, double Y, FindMode mode,
+        double min_hfd, double max_hfd, unsigned short saturation, StarFindLogType loggingControl, bool autoFound = false);
 
     static bool WasFound(FindResult result);
     bool WasFound() const;

@@ -141,7 +141,7 @@ public:
 
     bool m_roiActive;
     cv::Rect m_roiRect;
-    bool m_roiClicked;
+    bool m_userLClick;
     int m_clicked_x;
     int m_clicked_y;
 
