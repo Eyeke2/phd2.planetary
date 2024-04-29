@@ -428,12 +428,12 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
         pFrame->m_PlanetaryMenuItem->Check(true);
         SetEnabledState(this, true);
 
+        // Disable mass change threshold
         if (pMultiGuider)
         {
-            // Save the current state of the mass change threshold and disable it
-            bool prev = pMultiGuider->GetMassChangeThresholdEnabled();
+            pPlanet->m_phd2_MassChangeThresholdEnabled = pMultiGuider->GetMassChangeThresholdEnabled();
             pMultiGuider->SetMassChangeThresholdEnabled(false);
-            pConfig->Profile.SetBoolean("/guider/onestar/MassChangeThresholdEnabled", prev);
+            pConfig->Profile.SetBoolean("/guider/onestar/MassChangeThresholdEnabled", pPlanet->m_phd2_MassChangeThresholdEnabled);
         }
 
         // Make sure lock position shift is disabled
@@ -443,14 +443,14 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
         if (pCamera)
         {
             pConfig->Profile.SetBoolean("/camera/UseSubframes", pCamera->UseSubframes);
+            pPlanet->m_phd2_UseSubframes = pCamera->UseSubframes;
             pCamera->UseSubframes = false;
         }
 
         // Disable multi-star mode
-        bool prev = pFrame->pGuider->GetMultiStarMode();
+        pPlanet->m_phd2_MultistarEnabled = pFrame->pGuider->GetMultiStarMode();
         pFrame->pGuider->SetMultiStarMode(false);
-        pConfig->Profile.SetBoolean("/guider/multistar/enabled", prev);
-
+        pConfig->Profile.SetBoolean("/guider/multistar/enabled", pPlanet->m_phd2_MultistarEnabled);
         Debug.Write(_("Planetary guiding mode: enabled\n"));
     }
     else
@@ -460,22 +460,12 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
         pFrame->m_PlanetaryMenuItem->Check(false);
         SetEnabledState(this, false);
 
-        // Restore the previous state of the mass change threshold
+        // Restore the previous state of the mass change threshold, subframes and multi-star mode
         if (pMultiGuider)
-        {
-            bool prev = pConfig->Profile.GetBoolean("/guider/onestar/MassChangeThresholdEnabled", false);
-            pMultiGuider->SetMassChangeThresholdEnabled(prev);
-        }
-
-        // Restore subframes
+            pMultiGuider->SetMassChangeThresholdEnabled(pPlanet->m_phd2_MassChangeThresholdEnabled);
         if (pCamera)
-        {
-            pCamera->UseSubframes = pConfig->Profile.GetBoolean("/camera/UseSubframes", false);
-        }
-
-        // Restore multi-star mode
-        bool prev = pConfig->Profile.GetBoolean("/guider/multistar/enabled", false);
-        pFrame->pGuider->SetMultiStarMode(prev);
+            pCamera->UseSubframes = pPlanet->m_phd2_UseSubframes;
+        pFrame->pGuider->SetMultiStarMode(pPlanet->m_phd2_MultistarEnabled);
 
         Debug.Write(_("Planetary guiding mode: disabled\n"));
     }

@@ -158,6 +158,11 @@ GuiderPlanet::GuiderPlanet()
     m_Planetary_maxFeatures = pConfig->Profile.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES);
     m_Planetary_maxFeatures = wxMax(PT_MIN_SURFACE_FEATURES, wxMin(PT_MAX_SURFACE_FEATURES, m_Planetary_maxFeatures));
 
+    // Save PHD2 settings we change for planetary guiding
+    m_phd2_MassChangeThresholdEnabled = pConfig->Profile.GetBoolean("/guider/onestar/MassChangeThresholdEnabled", false);
+    m_phd2_UseSubframes = pConfig->Profile.GetBoolean("/camera/UseSubframes", false);
+    m_phd2_MultistarEnabled = pConfig->Profile.GetBoolean("/guider/multistar/enabled", true);
+
     // Remove the alert dialog setting for pausing planetary detection
     pConfig->Global.DeleteEntry(PausePlanetDetectionAlertEnabledKey());
 
