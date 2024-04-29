@@ -51,7 +51,7 @@ using namespace cv;
 static float gaussianWeight[GAUSSIAN_SIZE];
 
 // Initialize planetary module
-GuiderPlanet::GuiderPlanet()
+SolarBody::SolarBody()
 {
     m_Planetary_enabled = false;
     m_PlanetaryDetectionPaused = false;
@@ -173,7 +173,7 @@ GuiderPlanet::GuiderPlanet()
     assert(nonfreeInit);
 }
 
-GuiderPlanet::~GuiderPlanet()
+SolarBody::~SolarBody()
 {
     delete m_SER;
 
@@ -189,7 +189,7 @@ GuiderPlanet::~GuiderPlanet()
 }
 
 // Planet/feature size depending on planetary detection mode
-double GuiderPlanet::GetHFD()
+double SolarBody::GetHFD()
 {
     if (m_unknownHFD)
         return std::nan("1");
@@ -199,7 +199,7 @@ double GuiderPlanet::GetHFD()
         return m_detected ? m_radius : 0;
 }
 
-wxString GuiderPlanet::GetHfdLabel()
+wxString SolarBody::GetHfdLabel()
 {
     if (m_measuringSharpnessMode)
         return _("SHARPNESS: ");
@@ -207,14 +207,14 @@ wxString GuiderPlanet::GetHfdLabel()
         return _("RADIUS: ");
 }
 
-bool GuiderPlanet::IsPixelMetrics()
+bool SolarBody::IsPixelMetrics()
 {
     return GetPlanetaryEnableState() ? !m_measuringSharpnessMode : true;
 }
 
 // Handle mouse wheel rotation event from Star Profile windows.
 // Positive or negative indicates direction of rotation.
-void GuiderPlanet::ZoomStarProfile(int rotation)
+void SolarBody::ZoomStarProfile(int rotation)
 {
     // Reset profile zoom when user does L-click and hold Alt button
     if (rotation == 0)
@@ -234,7 +234,7 @@ void GuiderPlanet::ZoomStarProfile(int rotation)
 }
 
 // Toggle between sharpness and radius display
-void GuiderPlanet::ToggleSharpness()
+void SolarBody::ToggleSharpness()
 {
     // In surface tracking mode sharpness is always displayed
     if (GetPlanetDetectMode() != PLANET_DETECT_MODE_SURFACE)
@@ -247,7 +247,7 @@ void GuiderPlanet::ToggleSharpness()
 // The Sobel operator can be used to detect edges in an image, which are more pronounced in
 // focused images. You can apply the Sobel operator to the image and calculate the sum or mean
 // of the absolute values of the gradients.
-double GuiderPlanet::ComputeSobelSharpness(const Mat& img)
+double SolarBody::ComputeSobelSharpness(const Mat& img)
 {
     Mat grad_x, grad_y;
     Sobel(img, grad_x, CV_32F, 1, 0);
@@ -261,7 +261,7 @@ double GuiderPlanet::ComputeSobelSharpness(const Mat& img)
 }
 
 // Calculate focus metrics around the updated tracked position
-double GuiderPlanet::CalcSharpness(Mat& FullFrame, Point2f& clickedPoint, bool detectionResult)
+double SolarBody::CalcSharpness(Mat& FullFrame, Point2f& clickedPoint, bool detectionResult)
 {
     double scaleFactor;
     cv::Scalar meanSignal;
@@ -306,7 +306,7 @@ double GuiderPlanet::CalcSharpness(Mat& FullFrame, Point2f& clickedPoint, bool d
 }
 
 // Get current detection status
-void GuiderPlanet::GetDetectionStatus(wxString& statusMsg)
+void SolarBody::GetDetectionStatus(wxString& statusMsg)
 {
     if (GetPlanetDetectMode() == PLANET_DETECT_MODE_SURFACE)
         statusMsg = wxString::Format(_("Object at (%.1f, %.1f)"), m_center_x, m_center_y);
@@ -315,7 +315,7 @@ void GuiderPlanet::GetDetectionStatus(wxString& statusMsg)
 }
 
 // Update state used to visualize internally detected features
-void GuiderPlanet::SetPlanetaryElementsVisual(bool state)
+void SolarBody::SetPlanetaryElementsVisual(bool state)
 {
     m_syncLock.Lock();
     m_diskContour.clear();
@@ -325,7 +325,7 @@ void GuiderPlanet::SetPlanetaryElementsVisual(bool state)
 }
 
 // Notification callback when PHD2 may change CaptureActive state
-bool GuiderPlanet::UpdateCaptureState(bool CaptureActive)
+bool SolarBody::UpdateCaptureState(bool CaptureActive)
 {
     bool need_update = false;
     if (m_prevCaptureActive != CaptureActive)
@@ -362,7 +362,7 @@ bool GuiderPlanet::UpdateCaptureState(bool CaptureActive)
 }
 
 // Notification callback when camera is connected/disconnected
-void GuiderPlanet::NotifyCameraConnect(bool connected)
+void SolarBody::NotifyCameraConnect(bool connected)
 {
     bool isSimCam = (pCamera && pCamera->Name == "Simulator");
     pFrame->pStatsWin->ShowSimulatorStats(isSimCam && connected);
@@ -370,7 +370,7 @@ void GuiderPlanet::NotifyCameraConnect(bool connected)
     m_userLClick = false;
 }
 
-void GuiderPlanet::SaveCameraSimulationMove(double rx, double ry)
+void SolarBody::SaveCameraSimulationMove(double rx, double ry)
 {
     m_cameraSimulationMove = Point2f(rx, ry);
     if (m_simulationZeroOffset)
@@ -380,14 +380,14 @@ void GuiderPlanet::SaveCameraSimulationMove(double rx, double ry)
     }
 }
 
-void GuiderPlanet::RestartSimulatorErrorDetection()
+void SolarBody::RestartSimulatorErrorDetection()
 {
     m_cameraSimulationRefPointValid = false;
     m_simulationZeroOffset = true;
 }
 
 // Return scaled tracking image with lock target symbol
-PHD_Point GuiderPlanet::GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale)
+PHD_Point SolarBody::GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale)
 {
     // Select tracking symbol based on tracking quality
     int targetWidth;
@@ -435,7 +435,7 @@ PHD_Point GuiderPlanet::GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point
 }
 
 // Helper for visualizing planet detection radius
-void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFactor)
+void SolarBody::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFactor)
 {
     // Clip drawing region to displayed image frame
     wxImage* pImg = pFrame->pGuider->DisplayedImage();
@@ -535,7 +535,7 @@ void GuiderPlanet::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFa
     }
 }
 
-void GuiderPlanet::CalcLineParams(CircleDescriptor p1, CircleDescriptor p2)
+void SolarBody::CalcLineParams(CircleDescriptor p1, CircleDescriptor p2)
 {
     float dx = p1.x - p2.x;
     float dy = p1.y - p2.y;
@@ -661,7 +661,7 @@ public:
 };
 
 /* Find best circle candidate */
-int GuiderPlanet::RefineDiskCenter(float& bestScore, CircleDescriptor& diskCenter, std::vector<Point2f>& diskContour, int minRadius, int maxRadius, float searchRadius, float resolution)
+int SolarBody::RefineDiskCenter(float& bestScore, CircleDescriptor& diskCenter, std::vector<Point2f>& diskContour, int minRadius, int maxRadius, float searchRadius, float resolution)
 {
     const int maxWorkloadSize = 256;
     const Point2f center = { diskCenter.x, diskCenter.y };
@@ -733,7 +733,7 @@ int GuiderPlanet::RefineDiskCenter(float& bestScore, CircleDescriptor& diskCente
 }
 
 // An algorithm to find contour center
-float GuiderPlanet::FindContourCenter(CircleDescriptor& diskCenter, CircleDescriptor& circle, std::vector<Point2f>& diskContour, Moments& mu, int minRadius, int maxRadius)
+float SolarBody::FindContourCenter(CircleDescriptor& diskCenter, CircleDescriptor& circle, std::vector<Point2f>& diskContour, Moments& mu, int minRadius, int maxRadius)
 {
     float score;
     float maxScore = 0;
@@ -827,7 +827,7 @@ float GuiderPlanet::FindContourCenter(CircleDescriptor& diskCenter, CircleDescri
 }
 
 // Find a minimum enclosing circle of the contour and also its center of mass
-void GuiderPlanet::FindCenters(Mat image, const std::vector<Point>& contour, CircleDescriptor& centroid, CircleDescriptor& circle, std::vector<Point2f>& diskContour, Moments& mu, int minRadius, int maxRadius)
+void SolarBody::FindCenters(Mat image, const std::vector<Point>& contour, CircleDescriptor& centroid, CircleDescriptor& circle, std::vector<Point2f>& diskContour, Moments& mu, int minRadius, int maxRadius)
 {
     const std::vector<Point>* effectiveContour = &contour;
     std::vector<Point> decimatedContour;
@@ -902,7 +902,7 @@ void GuiderPlanet::FindCenters(Mat image, const std::vector<Point>& contour, Cir
 }
 
 // Calculate position of fixation point
-Point2f GuiderPlanet::calculateCentroid(const std::vector<KeyPoint>& keypoints, Point2f& clickedPoint)
+Point2f SolarBody::calculateCentroid(const std::vector<KeyPoint>& keypoints, Point2f& clickedPoint)
 {
     // If no clicked point is available, calculate centroid of keypoints
     if ((clickedPoint.x == 0) || (clickedPoint.y == 0) || (clickedPoint.x > m_frameWidth) || (clickedPoint.y > m_frameHeight))
@@ -942,14 +942,14 @@ Point2f GuiderPlanet::calculateCentroid(const std::vector<KeyPoint>& keypoints, 
 }
 
 // Function to check for collinearity
-bool GuiderPlanet::areCollinear(const KeyPoint& kp1, const KeyPoint& kp2, const KeyPoint& kp3)
+bool SolarBody::areCollinear(const KeyPoint& kp1, const KeyPoint& kp2, const KeyPoint& kp3)
 {
     double area2 = abs((kp2.pt.x - kp1.pt.x) * (kp3.pt.y - kp1.pt.y) - (kp3.pt.x - kp1.pt.x) * (kp2.pt.y - kp1.pt.y));
     return area2 < 2.0;  // Consider using a relative threshold based on image dimensions
 }
 
 // Function to validate and filter keypoints
-bool GuiderPlanet::validateAndFilterKeypoints(std::vector<KeyPoint>& keypoints, std::vector<KeyPoint>& filteredKeypoints)
+bool SolarBody::validateAndFilterKeypoints(std::vector<KeyPoint>& keypoints, std::vector<KeyPoint>& filteredKeypoints)
 {
     // Check for sufficient keypoints (at least 4):
     if (keypoints.size() < 4)
@@ -993,7 +993,7 @@ bool GuiderPlanet::validateAndFilterKeypoints(std::vector<KeyPoint>& keypoints, 
     return true; // Indicate successful filtering
 }
 
-void GuiderPlanet::SetPlanetaryParam_minHessian(int value)
+void SolarBody::SetPlanetaryParam_minHessian(int value)
 {
     if (m_Planetary_minHessian != value)
     {
@@ -1001,13 +1001,13 @@ void GuiderPlanet::SetPlanetaryParam_minHessian(int value)
         m_surfaceDetectionParamsChanging = true;
     }
 }
-int GuiderPlanet::GetPlanetaryParam_minHessian()
+int SolarBody::GetPlanetaryParam_minHessian()
 {
     return wxMax(PT_MIN_HESSIAN_UI_MIN, wxMin(m_Planetary_minHessian, PT_MIN_HESSIAN_UI_MAX));
 }
 
 // Map the slider value to physical minHessian parameter value using inverse logarithmic scale
-int GuiderPlanet::GetPlanetaryParam_minHessianPhysical()
+int SolarBody::GetPlanetaryParam_minHessianPhysical()
 {
     // Ensure the sensitivity value is within the expected range
     int uiSensitivityValue = GetPlanetaryParam_minHessian();
@@ -1026,7 +1026,7 @@ int GuiderPlanet::GetPlanetaryParam_minHessianPhysical()
 }
 
 // Detect/track surface features
-bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool autoSelect)
+bool SolarBody::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool autoSelect)
 {
     // No detected features yet
     m_detectedFeatures = 0;
@@ -1326,7 +1326,7 @@ bool GuiderPlanet::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool 
 }
 
 // Find planet center using circle matching with contours
-bool GuiderPlanet::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool roiActive, Point2f& clickedPoint, Rect& roiRect, bool activeRoiLimits, float distanceRoiMax)
+bool SolarBody::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool roiActive, Point2f& clickedPoint, Rect& roiRect, bool activeRoiLimits, float distanceRoiMax)
 {
     int LowThreshold = GetPlanetaryParam_lowThreshold();
     int HighThreshold = GetPlanetaryParam_highThreshold();
@@ -1454,7 +1454,7 @@ bool GuiderPlanet::FindPlanetCenter(Mat img8, int minRadius, int maxRadius, bool
 }
 
 // Save full 8-bit frame to SER file
-void GuiderPlanet::SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool roiActive, int bppFactor)
+void SolarBody::SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool roiActive, int bppFactor)
 {
     Mat FullFrame8;
     if (roiActive)
@@ -1485,7 +1485,7 @@ void GuiderPlanet::SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool roiAct
     }
 }
 
-void GuiderPlanet::UpdateDetectionErrorInSimulator(Point2f& clickedPoint)
+void SolarBody::UpdateDetectionErrorInSimulator(Point2f& clickedPoint)
 {
     if (pCamera && pCamera->Name == "Simulator")
     {
@@ -1519,7 +1519,7 @@ void GuiderPlanet::UpdateDetectionErrorInSimulator(Point2f& clickedPoint)
 }
 
 // Find planet center of round/crescent shape in the given image
-bool GuiderPlanet::FindPlanet(const usImage* pImage, bool autoSelect)
+bool SolarBody::FindPlanet(const usImage* pImage, bool autoSelect)
 {
     m_PlanetWatchdog.Start();
 

@@ -45,7 +45,7 @@
 #define TRACKING_FEATURE_SIZE_UNDEF 999.99
 
 // Planetary guiding/tracking state and control class
-class GuiderPlanet
+class SolarBody
 {
 private:
     // Planetary guiding parameters
@@ -155,8 +155,8 @@ public:
     bool m_phd2_MultistarEnabled;
 
 public:
-    GuiderPlanet();
-    ~GuiderPlanet();
+    SolarBody();
+    ~SolarBody();
 
     bool FindPlanet(const usImage* pImage, bool autoSelect = false);
     void RestartSimulatorErrorDetection();

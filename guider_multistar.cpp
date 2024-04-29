@@ -1221,7 +1221,7 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
         Guider* pGuider = pFrame->pGuider;
         if (pGuider->m_Planet.m_detected)
         {
-            if (pGuider->m_Planet.GetPlanetDetectMode() == GuiderPlanet::PLANET_DETECT_MODE_SURFACE)
+            if (pGuider->m_Planet.GetPlanetDetectMode() == SolarBody::PLANET_DETECT_MODE_SURFACE)
             {
                 // Draw target lock symbol overlay centered at the tracked location
                 wxBitmap scaledTracker;

@@ -42,7 +42,7 @@ static bool pauseAlert = false;
 
 struct PlanetToolWin : public wxDialog
 {
-    GuiderPlanet* pPlanet;
+    SolarBody* pSolarBody;
 
     wxTimer m_planetaryTimer;
 
@@ -125,7 +125,7 @@ static wxString TITLE_PAUSED = wxTRANSLATE("Planetary guiding | paused");
 
 static void SetEnabledState(PlanetToolWin* win, bool active)
 {
-    bool paused = win->pPlanet->GetDetectionPausedState();
+    bool paused = win->pSolarBody->GetDetectionPausedState();
     win->SetTitle(wxGetTranslation(active ? (paused ? TITLE_PAUSED : TITLE_ACTIVE) : TITLE));
     win->UpdateStatus();
 }
@@ -161,7 +161,7 @@ static wxSpinCtrlDouble* NewSpinner(wxWindow* parent, wxString formatstr, double
 
 PlanetToolWin::PlanetToolWin()
     : wxDialog(pFrame, wxID_ANY, wxGetTranslation(TITLE), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX),
-    m_planetaryTimer(this), pPlanet(&pFrame->pGuider->m_Planet), m_MouseHoverFlag(false)
+    m_planetaryTimer(this), pSolarBody(&pFrame->pGuider->m_Planet), m_MouseHoverFlag(false)
 
 {
     SetSizeHints(wxDefaultSize, wxDefaultSize);
@@ -357,26 +357,26 @@ PlanetToolWin::PlanetToolWin()
     m_minRadius->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_minRadius), NULL, this);
     m_maxRadius->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_maxRadius), NULL, this);
 
-    pPlanet->SetPlanetaryElementsButtonState(false);
-    pPlanet->SetPlanetaryElementsVisual(false);
+    pSolarBody->SetPlanetaryElementsButtonState(false);
+    pSolarBody->SetPlanetaryElementsVisual(false);
 
-    m_minRadius->SetValue(pPlanet->GetPlanetaryParam_minRadius());
-    m_maxRadius->SetValue(pPlanet->GetPlanetaryParam_maxRadius());
-    m_thresholdSlider->SetValue(pPlanet->GetPlanetaryParam_highThreshold());
-    m_minHessianSlider->SetValue(pPlanet->GetPlanetaryParam_minHessian());
-    m_maxFeaturesSlider->SetValue(pPlanet->GetPlanetaryParam_maxFeatures());
-    m_featureTrackingCheckBox->SetValue(pPlanet->GetSurfaceTrackingState());
-    m_RoiCheckBox->SetValue(pPlanet->GetRoiEnableState());
-    m_NoiseFilter->SetValue(pPlanet->GetNoiseFilterState());
-    m_enableCheckBox->SetValue(pPlanet->GetPlanetaryEnableState());
+    m_minRadius->SetValue(pSolarBody->GetPlanetaryParam_minRadius());
+    m_maxRadius->SetValue(pSolarBody->GetPlanetaryParam_maxRadius());
+    m_thresholdSlider->SetValue(pSolarBody->GetPlanetaryParam_highThreshold());
+    m_minHessianSlider->SetValue(pSolarBody->GetPlanetaryParam_minHessian());
+    m_maxFeaturesSlider->SetValue(pSolarBody->GetPlanetaryParam_maxFeatures());
+    m_featureTrackingCheckBox->SetValue(pSolarBody->GetSurfaceTrackingState());
+    m_RoiCheckBox->SetValue(pSolarBody->GetRoiEnableState());
+    m_NoiseFilter->SetValue(pSolarBody->GetNoiseFilterState());
+    m_enableCheckBox->SetValue(pSolarBody->GetPlanetaryEnableState());
     m_BinningCtrl->Select(pCamera ? pCamera->Binning - 1 : 0);
-    m_saveVideoLogCheckBox->SetValue(pPlanet->GetVideoLogging());
-    SetEnabledState(this, pPlanet->GetPlanetaryEnableState());
+    m_saveVideoLogCheckBox->SetValue(pSolarBody->GetVideoLogging());
+    SetEnabledState(this, pSolarBody->GetPlanetaryEnableState());
 
-    m_tabs->SetSelection(pPlanet->GetSurfaceTrackingState() ? 1 : 0);
+    m_tabs->SetSelection(pSolarBody->GetSurfaceTrackingState() ? 1 : 0);
 
     // Set the initial state of the pause button
-    m_PauseButton->SetLabel(pPlanet->GetDetectionPausedState() ? _("Resume") : _("Pause"));
+    m_PauseButton->SetLabel(pSolarBody->GetDetectionPausedState() ? _("Resume") : _("Pause"));
 
     // Update mount states
     m_driveRate = (enum DriveRates) -1;
@@ -424,16 +424,16 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
     {
         pFrame->SaveStarFindMode();
         pFrame->SetStarFindMode(Star::FIND_PLANET);
-        pPlanet->SetPlanetaryEnableState(true);
+        pSolarBody->SetPlanetaryEnableState(true);
         pFrame->m_PlanetaryMenuItem->Check(true);
         SetEnabledState(this, true);
 
         // Disable mass change threshold
         if (pMultiGuider)
         {
-            pPlanet->m_phd2_MassChangeThresholdEnabled = pMultiGuider->GetMassChangeThresholdEnabled();
+            pSolarBody->m_phd2_MassChangeThresholdEnabled = pMultiGuider->GetMassChangeThresholdEnabled();
             pMultiGuider->SetMassChangeThresholdEnabled(false);
-            pConfig->Profile.SetBoolean("/guider/onestar/MassChangeThresholdEnabled", pPlanet->m_phd2_MassChangeThresholdEnabled);
+            pConfig->Profile.SetBoolean("/guider/onestar/MassChangeThresholdEnabled", pSolarBody->m_phd2_MassChangeThresholdEnabled);
         }
 
         // Make sure lock position shift is disabled
@@ -443,35 +443,35 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
         if (pCamera)
         {
             pConfig->Profile.SetBoolean("/camera/UseSubframes", pCamera->UseSubframes);
-            pPlanet->m_phd2_UseSubframes = pCamera->UseSubframes;
+            pSolarBody->m_phd2_UseSubframes = pCamera->UseSubframes;
             pCamera->UseSubframes = false;
         }
 
         // Disable multi-star mode
-        pPlanet->m_phd2_MultistarEnabled = pFrame->pGuider->GetMultiStarMode();
+        pSolarBody->m_phd2_MultistarEnabled = pFrame->pGuider->GetMultiStarMode();
         pFrame->pGuider->SetMultiStarMode(false);
-        pConfig->Profile.SetBoolean("/guider/multistar/enabled", pPlanet->m_phd2_MultistarEnabled);
+        pConfig->Profile.SetBoolean("/guider/multistar/enabled", pSolarBody->m_phd2_MultistarEnabled);
         Debug.Write(_("Planetary guiding mode: enabled\n"));
     }
     else
     {
         pFrame->RestoreStarFindMode();
-        pPlanet->SetPlanetaryEnableState(false);
+        pSolarBody->SetPlanetaryEnableState(false);
         pFrame->m_PlanetaryMenuItem->Check(false);
         SetEnabledState(this, false);
 
         // Restore the previous state of the mass change threshold, subframes and multi-star mode
         if (pMultiGuider)
-            pMultiGuider->SetMassChangeThresholdEnabled(pPlanet->m_phd2_MassChangeThresholdEnabled);
+            pMultiGuider->SetMassChangeThresholdEnabled(pSolarBody->m_phd2_MassChangeThresholdEnabled);
         if (pCamera)
-            pCamera->UseSubframes = pPlanet->m_phd2_UseSubframes;
-        pFrame->pGuider->SetMultiStarMode(pPlanet->m_phd2_MultistarEnabled);
+            pCamera->UseSubframes = pSolarBody->m_phd2_UseSubframes;
+        pFrame->pGuider->SetMultiStarMode(pSolarBody->m_phd2_MultistarEnabled);
 
         Debug.Write(_("Planetary guiding mode: disabled\n"));
     }
 
     // Update elements display state
-    m_tabs->SetSelection(pPlanet->GetSurfaceTrackingState() ? 1 : 0);
+    m_tabs->SetSelection(pSolarBody->GetSurfaceTrackingState() ? 1 : 0);
     pFrame->pStatsWin->ClearPlanetStats();
     OnShowElementsClick(event);
 }
@@ -480,42 +480,42 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
 void PlanetToolWin::OnSurfaceTrackingClick(wxCommandEvent& event)
 {
     bool featureTracking = m_featureTrackingCheckBox->IsChecked();
-    pPlanet->SetSurfaceTrackingState(featureTracking);
+    pSolarBody->SetSurfaceTrackingState(featureTracking);
     m_tabs->SetSelection(featureTracking ? 1 : 0);
     UpdateStatus();
-    pPlanet->RestartSimulatorErrorDetection();
+    pSolarBody->RestartSimulatorErrorDetection();
     Debug.Write(wxString::Format("Planetary tracking: %s surface features mode\n", featureTracking ? "enabled" : "disabled"));
 }
 
 void PlanetToolWin::OnSpinCtrl_minRadius(wxSpinDoubleEvent& event)
 {
     int v = m_minRadius->GetValue();
-    pPlanet->SetPlanetaryParam_minRadius(v < 1 ? 1 : v);
-    pPlanet->PlanetVisualRefresh();
+    pSolarBody->SetPlanetaryParam_minRadius(v < 1 ? 1 : v);
+    pSolarBody->PlanetVisualRefresh();
 }
 
 void PlanetToolWin::OnSpinCtrl_maxRadius(wxSpinDoubleEvent& event)
 {
     int v = m_maxRadius->GetValue();
-    pPlanet->SetPlanetaryParam_maxRadius(v < 1 ? 1 : v);
-    pPlanet->PlanetVisualRefresh();
+    pSolarBody->SetPlanetaryParam_maxRadius(v < 1 ? 1 : v);
+    pSolarBody->PlanetVisualRefresh();
 }
 
 void PlanetToolWin::OnRoiModeClick(wxCommandEvent& event)
 {
     bool enabled = m_RoiCheckBox->IsChecked();
-    pPlanet->SetRoiEnableState(enabled);
+    pSolarBody->SetRoiEnableState(enabled);
     Debug.Write(wxString::Format("Planetary guiding mode ROI: %s\n", enabled ? "enabled" : "disabled"));
 }
 
 void PlanetToolWin::OnShowElementsClick(wxCommandEvent& event)
 {
     bool enabled = m_ShowElements->IsChecked();
-    pPlanet->SetPlanetaryElementsButtonState(enabled);
-    if (pPlanet->GetPlanetaryEnableState() && enabled)
-        pPlanet->SetPlanetaryElementsVisual(true);
+    pSolarBody->SetPlanetaryElementsButtonState(enabled);
+    if (pSolarBody->GetPlanetaryEnableState() && enabled)
+        pSolarBody->SetPlanetaryElementsVisual(true);
     else
-        pPlanet->SetPlanetaryElementsVisual(false);
+        pSolarBody->SetPlanetaryElementsVisual(false);
     pFrame->pGuider->Refresh();
     pFrame->pGuider->Update();
 }
@@ -523,14 +523,14 @@ void PlanetToolWin::OnShowElementsClick(wxCommandEvent& event)
 void PlanetToolWin::OnNoiseFilterClick(wxCommandEvent& event)
 {
     bool enabled = m_NoiseFilter->IsChecked();
-    pPlanet->SetNoiseFilterState(enabled);
+    pSolarBody->SetNoiseFilterState(enabled);
     Debug.Write(wxString::Format("Planetary tracking: %s noise filter\n", enabled ? "enabled" : "disabled"));
 }
 
 void PlanetToolWin::OnSaveVideoLog(wxCommandEvent& event)
 {
     bool enabled = m_saveVideoLogCheckBox->IsChecked();
-    pPlanet->SetVideoLogging(enabled);
+    pSolarBody->SetVideoLogging(enabled);
     Debug.Write(wxString::Format("Planetary tracking: %s video log\n", enabled ? "enabled" : "disabled"));
 }
 
@@ -563,10 +563,10 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
     bool need_update = false;
 
     // Update pause button state to sync with guiding state
-    bool paused = pPlanet->GetDetectionPausedState() && pFrame->pGuider->IsGuiding();
-    pPlanet->SetDetectionPausedState(paused);
+    bool paused = pSolarBody->GetDetectionPausedState() && pFrame->pGuider->IsGuiding();
+    pSolarBody->SetDetectionPausedState(paused);
     m_PauseButton->SetLabel(paused ? _("Resume") : _("Pause"));
-    SetEnabledState(this, pPlanet->GetPlanetaryEnableState());
+    SetEnabledState(this, pSolarBody->GetPlanetaryEnableState());
     if (!paused && pauseAlert)
     {
         pauseAlert = false;
@@ -765,8 +765,8 @@ void PlanetToolWin::OnBinningSelected(wxCommandEvent& event)
 
 void PlanetToolWin::UpdateStatus()
 {
-    bool enabled = pPlanet->GetPlanetaryEnableState();
-    bool surfaceTracking = pPlanet->GetSurfaceTrackingState();
+    bool enabled = pSolarBody->GetPlanetaryEnableState();
+    bool surfaceTracking = pSolarBody->GetSurfaceTrackingState();
 
     // Update planetary tracking controls
     m_featureTrackingCheckBox->Enable(enabled);
@@ -830,23 +830,23 @@ void PlanetToolWin::OnThresholdChanged(wxCommandEvent& event)
     highThreshold = wxMin(highThreshold, PT_HIGH_THRESHOLD_MAX);
     highThreshold = wxMax(highThreshold, PT_THRESHOLD_MIN);
     int lowThreshold = wxMax(highThreshold / 2, PT_THRESHOLD_MIN);
-    pPlanet->SetPlanetaryParam_lowThreshold(lowThreshold);
-    pPlanet->SetPlanetaryParam_highThreshold(highThreshold);
-    pPlanet->RestartSimulatorErrorDetection();
+    pSolarBody->SetPlanetaryParam_lowThreshold(lowThreshold);
+    pSolarBody->SetPlanetaryParam_highThreshold(highThreshold);
+    pSolarBody->RestartSimulatorErrorDetection();
 }
 
 void PlanetToolWin::OnMinHessianChanged(wxCommandEvent& event)
 {
     int value = event.GetInt();
-    pPlanet->SetPlanetaryParam_minHessian(value);
-    pPlanet->RestartSimulatorErrorDetection();
+    pSolarBody->SetPlanetaryParam_minHessian(value);
+    pSolarBody->RestartSimulatorErrorDetection();
 }
 
 void PlanetToolWin::OnMaxFeaturesChanged(wxCommandEvent& event)
 {
     int value = event.GetInt();
-    pPlanet->SetPlanetaryParam_maxFeatures(value);
-    pPlanet->RestartSimulatorErrorDetection();
+    pSolarBody->SetPlanetaryParam_maxFeatures(value);
+    pSolarBody->RestartSimulatorErrorDetection();
 }
 
 static void SuppressPausePlanetDetection(long)
@@ -857,10 +857,10 @@ static void SuppressPausePlanetDetection(long)
 void PlanetToolWin::OnPauseButton(wxCommandEvent& event)
 {
     // Toggle planetary detection pause state depending if guiding is actually active
-    bool paused = !pPlanet->GetDetectionPausedState() && pFrame->pGuider->IsGuiding();
-    pPlanet->SetDetectionPausedState(paused);
+    bool paused = !pSolarBody->GetDetectionPausedState() && pFrame->pGuider->IsGuiding();
+    pSolarBody->SetDetectionPausedState(paused);
     m_PauseButton->SetLabel(paused ? _("Resume") : _("Pause"));
-    SetEnabledState(this, pPlanet->GetPlanetaryEnableState());
+    SetEnabledState(this, pSolarBody->GetPlanetaryEnableState());
 
     // Display special message if detection is paused
     if (paused)
@@ -878,9 +878,9 @@ void PlanetToolWin::OnPauseButton(wxCommandEvent& event)
 
 void PlanetToolWin::OnClose(wxCloseEvent& evt)
 {
-    pFrame->m_PlanetaryMenuItem->Check(pPlanet->GetPlanetaryEnableState());
-    pPlanet->SetPlanetaryElementsButtonState(false);
-    pPlanet->SetPlanetaryElementsVisual(false);
+    pFrame->m_PlanetaryMenuItem->Check(pSolarBody->GetPlanetaryEnableState());
+    pSolarBody->SetPlanetaryElementsButtonState(false);
+    pSolarBody->SetPlanetaryElementsVisual(false);
     pFrame->pGuider->Refresh();
     pFrame->pGuider->Update();
 
@@ -901,20 +901,20 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
     // Reset all to defaults
     if (wxGetKeyState(WXK_ALT))
     {
-        pPlanet->SetPlanetaryParam_minRadius(PT_MIN_RADIUS_DEFAULT);
-        pPlanet->SetPlanetaryParam_maxRadius(PT_MAX_RADIUS_DEFAULT);
-        pPlanet->SetPlanetaryParam_lowThreshold(PT_HIGH_THRESHOLD_DEFAULT/2);
-        pPlanet->SetPlanetaryParam_highThreshold(PT_HIGH_THRESHOLD_DEFAULT);
-        pPlanet->SetPlanetaryParam_minHessian(PT_MIN_HESSIAN_UI_DEFAULT);
-        pPlanet->SetPlanetaryParam_maxFeatures(PT_MAX_SURFACE_FEATURES);
-        pPlanet->SetNoiseFilterState(false);
+        pSolarBody->SetPlanetaryParam_minRadius(PT_MIN_RADIUS_DEFAULT);
+        pSolarBody->SetPlanetaryParam_maxRadius(PT_MAX_RADIUS_DEFAULT);
+        pSolarBody->SetPlanetaryParam_lowThreshold(PT_HIGH_THRESHOLD_DEFAULT/2);
+        pSolarBody->SetPlanetaryParam_highThreshold(PT_HIGH_THRESHOLD_DEFAULT);
+        pSolarBody->SetPlanetaryParam_minHessian(PT_MIN_HESSIAN_UI_DEFAULT);
+        pSolarBody->SetPlanetaryParam_maxFeatures(PT_MAX_SURFACE_FEATURES);
+        pSolarBody->SetNoiseFilterState(false);
 
-        m_minRadius->SetValue(pPlanet->GetPlanetaryParam_minRadius());
-        m_maxRadius->SetValue(pPlanet->GetPlanetaryParam_maxRadius());
-        m_thresholdSlider->SetValue(pPlanet->GetPlanetaryParam_highThreshold());
-        m_minHessianSlider->SetValue(pPlanet->GetPlanetaryParam_minHessian());
-        m_maxFeaturesSlider->SetValue(pPlanet->GetPlanetaryParam_maxFeatures());
-        m_NoiseFilter->SetValue(pPlanet->GetNoiseFilterState());
+        m_minRadius->SetValue(pSolarBody->GetPlanetaryParam_minRadius());
+        m_maxRadius->SetValue(pSolarBody->GetPlanetaryParam_maxRadius());
+        m_thresholdSlider->SetValue(pSolarBody->GetPlanetaryParam_highThreshold());
+        m_minHessianSlider->SetValue(pSolarBody->GetPlanetaryParam_minHessian());
+        m_maxFeaturesSlider->SetValue(pSolarBody->GetPlanetaryParam_maxFeatures());
+        m_NoiseFilter->SetValue(pSolarBody->GetNoiseFilterState());
     }
     else
         this->Close();
