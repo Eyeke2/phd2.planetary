@@ -399,7 +399,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
             newX = planet->m_center_x;
             newY = planet->m_center_y;
 
-            if (planet->GetPlanetDetectMode() == SolarSystemObject::PLANET_DETECT_MODE_SURFACE)
+            if (planet->GetPlanetDetectMode() == SolarSystemObject::DETECTION_MODE_SURFACE)
             {
                 start_x = wxMax(newX - searchRegion, minx);
                 end_x = wxMin(newX + searchRegion, maxx);

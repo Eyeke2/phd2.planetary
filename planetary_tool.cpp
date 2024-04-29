@@ -119,9 +119,9 @@ struct PlanetToolWin : public wxDialog
     void UpdateStatus();
 };
 
-static wxString TITLE = wxTRANSLATE("Solar, lunar or planetary guiding | disabled");
-static wxString TITLE_ACTIVE = wxTRANSLATE("Solar, lunar or planetary guiding | enabled");
-static wxString TITLE_PAUSED = wxTRANSLATE("Solar, lunar or planetary guiding | paused");
+static wxString TITLE = wxTRANSLATE("Solar, lunar or planetary mode | disabled");
+static wxString TITLE_ACTIVE = wxTRANSLATE("Solar, lunar or planetary mode | enabled");
+static wxString TITLE_PAUSED = wxTRANSLATE("Solar, lunar or planetary mode | paused");
 
 static void SetEnabledState(PlanetToolWin* win, bool active)
 {
@@ -175,7 +175,7 @@ PlanetToolWin::PlanetToolWin()
 
     m_featuresTab = new wxPanel(m_tabs, wxID_ANY);
     m_tabs->AddPage(m_featuresTab, "Surface features tracking", false);
-    m_enableCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable solar, lunar or planetary guiding"));
+    m_enableCheckBox = new wxCheckBox(this, wxID_ANY, _("Solar, lunar or planetary mode"));
     m_enableCheckBox->SetToolTip(_("Toggle between star and solar/lunar/planetary guiding modes"));
 
     m_featureTrackingCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable surface features detection/guiding"));

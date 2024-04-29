@@ -1221,7 +1221,7 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
         Guider* pGuider = pFrame->pGuider;
         if (pGuider->m_SolarSystemObject.m_detected)
         {
-            if (pGuider->m_SolarSystemObject.GetPlanetDetectMode() == SolarSystemObject::PLANET_DETECT_MODE_SURFACE)
+            if (pGuider->m_SolarSystemObject.GetPlanetDetectMode() == SolarSystemObject::DETECTION_MODE_SURFACE)
             {
                 // Draw target lock symbol overlay centered at the tracked location
                 wxBitmap scaledTracker;
@@ -1366,7 +1366,7 @@ void GuiderMultiStar::OnPaint(wxPaintEvent& event)
         }
 
         if (m_SolarSystemObject.Get_SolarSystemObjMode() && (m_SolarSystemObject.m_showMinMaxDiameters || m_SolarSystemObject.VisualElementsEnabled()))
-            m_SolarSystemObject.PlanetVisualHelper(dc, m_primaryStar, m_scaleFactor);
+            m_SolarSystemObject.VisualHelper(dc, m_primaryStar, m_scaleFactor);
     }
     catch (const wxString& Msg)
     {

@@ -150,8 +150,8 @@ SolarSystemObject::SolarSystemObject()
     m_paramHighThreshold = wxMax(PT_THRESHOLD_MIN, wxMin(PT_HIGH_THRESHOLD_MAX, m_paramHighThreshold));
     m_paramMinHessian = pConfig->Profile.GetInt("/PlanetTool/min_hessian", PT_MIN_HESSIAN_UI_DEFAULT);
     m_paramMinHessian = wxMax(PT_MIN_HESSIAN_MIN, wxMin(PT_MIN_HESSIAN_MAX, m_paramMinHessian));
-    m_maxFeatures = pConfig->Profile.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES);
-    m_maxFeatures = wxMax(PT_MIN_SURFACE_FEATURES, wxMin(PT_MAX_SURFACE_FEATURES, m_maxFeatures));
+    m_paramMaxFeatures = pConfig->Profile.GetInt("/PlanetTool/max_features", PT_MAX_SURFACE_FEATURES);
+    m_paramMaxFeatures = wxMax(PT_MIN_SURFACE_FEATURES, wxMin(PT_MAX_SURFACE_FEATURES, m_paramMaxFeatures));
 
     // Save PHD2 settings we change for solar system object guiding
     m_phd2_MassChangeThresholdEnabled = pConfig->Profile.GetBoolean("/guider/onestar/MassChangeThresholdEnabled", false);
@@ -232,7 +232,7 @@ void SolarSystemObject::ZoomStarProfile(int rotation)
 void SolarSystemObject::ToggleSharpness()
 {
     // In surface tracking mode sharpness is always displayed
-    if (GetPlanetDetectMode() != PLANET_DETECT_MODE_SURFACE)
+    if (GetPlanetDetectMode() != DETECTION_MODE_SURFACE)
     {
         m_measuringSharpnessMode = !m_measuringSharpnessMode;
         m_unknownHFD = true;
@@ -285,7 +285,7 @@ double SolarSystemObject::CalcSharpness(Mat& FullFrame, Point2f& clickedPoint, b
         return ComputeSobelSharpness(focusRoi);
     }
 
-    const int focusSize = (GetPlanetDetectMode() == PLANET_DETECT_MODE_SURFACE) ? 200 : m_paramMaxRadius * 3 / 2.0;
+    const int focusSize = (GetPlanetDetectMode() == DETECTION_MODE_SURFACE) ? 200 : m_paramMaxRadius * 3 / 2.0;
     focusX = wxMax(0, focusX - focusSize / 2);
     focusX = wxMax(0, wxMin(focusX, m_frameWidth - focusSize));
     focusY = wxMax(0, focusY - focusSize / 2);
@@ -303,7 +303,7 @@ double SolarSystemObject::CalcSharpness(Mat& FullFrame, Point2f& clickedPoint, b
 // Get current detection status
 void SolarSystemObject::GetDetectionStatus(wxString& statusMsg)
 {
-    if (GetPlanetDetectMode() == PLANET_DETECT_MODE_SURFACE)
+    if (GetPlanetDetectMode() == DETECTION_MODE_SURFACE)
         statusMsg = wxString::Format(_("Object at (%.1f, %.1f)"), m_center_x, m_center_y);
     else
         statusMsg = wxString::Format(_("Object at (%.1f, %.1f) radius=%d"), m_center_x, m_center_y, m_radius);
@@ -430,7 +430,7 @@ PHD_Point SolarSystemObject::GetScaledTracker(wxBitmap& scaledBitmap, const PHD_
 }
 
 // Helper for visualizing detection radius and internal features
-void SolarSystemObject::PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFactor)
+void SolarSystemObject::VisualHelper(wxDC& dc, Star primaryStar, double scaleFactor)
 {
     // Clip drawing region to displayed image frame
     wxImage* pImg = pFrame->pGuider->DisplayedImage();
@@ -447,7 +447,7 @@ void SolarSystemObject::PlanetVisualHelper(wxDC& dc, Star primaryStar, double sc
 
         switch (GetPlanetDetectMode())
         {
-        case PLANET_DETECT_MODE_SURFACE:
+        case DETECTION_MODE_SURFACE:
             // Draw detected surface features
             dc.SetPen(wxPen(wxColour(230, 0, 0), 2, wxPENSTYLE_SOLID));
             for (const auto& feature : m_inlierPoints)
@@ -455,7 +455,7 @@ void SolarSystemObject::PlanetVisualHelper(wxDC& dc, Star primaryStar, double sc
                 dc.DrawCircle(feature.x * scaleFactor, feature.y * scaleFactor, 5);
             }
             break;
-        case PLANET_DETECT_MODE_DISK:
+        case DETECTION_MODE_DISK:
             // Draw contour points in solar/planetary mode
             if (m_diskContour.size())
             {
@@ -1075,7 +1075,7 @@ bool SolarSystemObject::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, 
     }
 
     // Limit to top N keypoints
-    int maxKeypoints = min(m_maxFeatures, (int)keypoints.size());
+    int maxKeypoints = min(m_paramMaxFeatures, (int)keypoints.size());
     std::vector<KeyPoint> topKeypoints;
     if (keypoints.size() <= maxKeypoints)
         topKeypoints.assign(keypoints.begin(), keypoints.end());
@@ -1634,11 +1634,11 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage* pImage, bool autoSe
         // Find object depending on the selected detection mode
         switch (GetPlanetDetectMode())
         {
-        case PLANET_DETECT_MODE_SURFACE:
+        case DETECTION_MODE_SURFACE:
             detectionResult = DetectSurfaceFeatures(imgFiltered, clickedPoint, autoSelect);
             pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_detectedFeatures : 0);
             break;
-        case PLANET_DETECT_MODE_DISK:
+        case DETECTION_MODE_DISK:
             detectionResult = FindOrbisCenter(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
             break;
         }

@@ -61,6 +61,7 @@ private:
     int    m_paramMinHessian;
     bool   m_paramShowElementsButtonState;
     bool   m_paramNoiseFilterState;
+    int    m_paramMaxFeatures;
 
     bool   m_showVisualElements;
     bool   m_prevCaptureActive;
@@ -72,7 +73,6 @@ private:
     float  m_eccentricity;
     float  m_angle;
 
-    int  m_maxFeatures;
     bool m_surfaceDetectionParamsChanging;
     int  m_trackingQuality;
     int  m_cachedScaledWidth;
@@ -125,10 +125,10 @@ private:
 
 public:
     // Solar system object detection modes
-    enum PlanetDetectMode
+    enum DetectionMode
     {
-        PLANET_DETECT_MODE_DISK = 1,
-        PLANET_DETECT_MODE_SURFACE = 2
+        DETECTION_MODE_DISK = 1,
+        DETECTION_MODE_SURFACE = 2
     };
 
     wxString m_statusMsg;
@@ -163,12 +163,12 @@ public:
 
     PHD_Point GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale);
 
-    PlanetDetectMode GetPlanetDetectMode() const
+    DetectionMode GetPlanetDetectMode() const
     {
         if (m_paramSurfaceTracking)
-            return PLANET_DETECT_MODE_SURFACE;
+            return DETECTION_MODE_SURFACE;
         else
-            return PLANET_DETECT_MODE_DISK;
+            return DETECTION_MODE_DISK;
     }
 
     double GetHFD();
@@ -208,13 +208,13 @@ public:
     int  Get_minHessianPhysical();
     void Set_maxFeatures(int value)
     {
-        if (m_maxFeatures != value)
+        if (m_paramMaxFeatures != value)
         {
-            m_maxFeatures = value;
+            m_paramMaxFeatures = value;
             m_surfaceDetectionParamsChanging = true;
         }
     }
-    int  Get_maxFeatures() { return m_maxFeatures; }
+    int  Get_maxFeatures() { return m_paramMaxFeatures; }
 
     void ShowVisualElements(bool state);
     bool VisualElementsEnabled() { return m_showVisualElements; }
@@ -230,7 +230,7 @@ public:
     // Displaying visual aid for solar system object parameter tuning
     bool m_showMinMaxDiameters;
     void RefreshMinMaxDiameters() { m_showMinMaxDiameters = true; }
-    void PlanetVisualHelper(wxDC& dc, Star primaryStar, double scaleFactor);
+    void VisualHelper(wxDC& dc, Star primaryStar, double scaleFactor);
 
 private:
     wxStopWatch m_SolarSystemObjWatchdog;
