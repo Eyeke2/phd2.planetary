@@ -45,7 +45,7 @@
 #define TRACKING_FEATURE_SIZE_UNDEF 999.99
 
 // Planetary guiding/tracking state and control class
-class SolarBody
+class SolarSystemObject
 {
 private:
     // Planetary guiding parameters
@@ -60,9 +60,9 @@ private:
     int    m_Planetary_lowThreshold;
     int    m_Planetary_highThreshold;
     int    m_Planetary_minHessian;
-    bool   m_Planetary_ShowElementsButtonState;
-    bool   m_Planetary_ShowElementsVisual;
-    bool   m_Planetary_NoiseFilterState;
+    bool   m_ShowElementsButtonState;
+    bool   m_showVisualElements;
+    bool   m_noiseFilterState;
 
     bool   m_measuringSharpnessMode;
     bool   m_unknownHFD;
@@ -155,8 +155,8 @@ public:
     bool m_phd2_MultistarEnabled;
 
 public:
-    SolarBody();
-    ~SolarBody();
+    SolarSystemObject();
+    ~SolarSystemObject();
 
     bool FindPlanet(const usImage* pImage, bool autoSelect = false);
     void RestartSimulatorErrorDetection();
@@ -181,8 +181,8 @@ public:
     bool UpdateCaptureState(bool CaptureActive);
     void SaveCameraSimulationMove(double rx, double ry);
 
-    bool GetSolarBodyEnableState() { return m_Planetary_enabled; }
-    void SetSolarBodyEnableState(bool enabled) { m_Planetary_enabled = enabled; }
+    bool Get_SolarSystemObjMode() { return m_Planetary_enabled; }
+    void Set_SolarSystemObjMode(bool enabled) { m_Planetary_enabled = enabled; }
     bool GetDetectionPausedState() { return m_PlanetaryDetectionPaused; }
     void SetDetectionPausedState(bool paused) { m_PlanetaryDetectionPaused = paused; }
     bool GetSurfaceTrackingState() { return m_Planetary_SurfaceTracking; }
@@ -192,21 +192,21 @@ public:
         m_measuringSharpnessMode = enabled;
         m_unknownHFD = true;
     }
-    void   SetSolarBodyParam_minRadius(double val) { m_Planetary_minRadius = val; }
-    double GetSolarBodyParam_minRadius() { return m_Planetary_minRadius; }
-    void   SetSolarBodyParam_maxRadius(double val) { m_Planetary_maxRadius = val; }
-    double GetSolarBodyParam_maxRadius() { return m_Planetary_maxRadius; }
+    void   Set_minRadius(double val) { m_Planetary_minRadius = val; }
+    double Get_minRadius() { return m_Planetary_minRadius; }
+    void   Set_maxRadius(double val) { m_Planetary_maxRadius = val; }
+    double Get_maxRadius() { return m_Planetary_maxRadius; }
     bool GetRoiEnableState() { return m_RoiEnabled; }
     void SetRoiEnableState(bool enabled) { m_RoiEnabled = enabled; }
-    void SetSolarBodyParam_lowThreshold(int value) { m_Planetary_lowThreshold = value; }
-    int  GetSolarBodyParam_lowThreshold() { return m_Planetary_lowThreshold; }
-    void SetSolarBodyParam_highThreshold(int value) { m_Planetary_highThreshold = value; }
-    int  GetSolarBodyParam_highThreshold() { return m_Planetary_highThreshold; }
+    void Set_lowThreshold(int value) { m_Planetary_lowThreshold = value; }
+    int  Get_lowThreshold() { return m_Planetary_lowThreshold; }
+    void Set_highThreshold(int value) { m_Planetary_highThreshold = value; }
+    int  Get_highThreshold() { return m_Planetary_highThreshold; }
 
-    void SetSolarBodyParam_minHessian(int value);
-    int  GetSolarBodyParam_minHessian();
-    int  GetSolarBodyParam_minHessianPhysical();
-    void SetSolarBodyParam_maxFeatures(int value)
+    void Set_minHessian(int value);
+    int  Get_minHessian();
+    int  Get_minHessianPhysical();
+    void Set_maxFeatures(int value)
     {
         if (m_Planetary_maxFeatures != value)
         {
@@ -214,14 +214,14 @@ public:
             m_surfaceDetectionParamsChanging = true;
         }
     }
-    int  GetSolarBodyParam_maxFeatures() { return m_Planetary_maxFeatures; }
+    int  Get_maxFeatures() { return m_Planetary_maxFeatures; }
 
-    void SetSolarBodyElementsVisual(bool state);
-    bool GetSolarBodyElementsVisual() { return m_Planetary_ShowElementsVisual; }
-    void SetSolarBodyElementsButtonState(bool state) { m_Planetary_ShowElementsButtonState = state; }
-    bool GetSolarBodyElementsButtonState() { return m_Planetary_ShowElementsButtonState; }
-    void SetNoiseFilterState(bool enable) { m_Planetary_NoiseFilterState = enable; }
-    bool GetNoiseFilterState() { return m_Planetary_NoiseFilterState; }
+    void ShowVisualElements(bool state);
+    bool VisualElementsEnabled() { return m_showVisualElements; }
+    void SetShowFeaturesButtonState(bool state) { m_ShowElementsButtonState = state; }
+    bool GetShowFeaturesButtonState() { return m_ShowElementsButtonState; }
+    void SetNoiseFilterState(bool enable) { m_noiseFilterState = enable; }
+    bool GetNoiseFilterState() { return m_noiseFilterState; }
 
     void SetVideoLogging(bool enable) { m_videoLogEnabled = enable; }
     bool GetVideoLogging() { return m_videoLogEnabled; }

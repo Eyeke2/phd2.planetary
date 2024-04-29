@@ -96,7 +96,7 @@ wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(MENU_POLARDRIFTTOOL, MyFrame::OnPolarDriftTool)
     EVT_MENU(MENU_STATICPATOOL, MyFrame::OnStaticPaTool)
     EVT_MENU(MENU_COMETTOOL, MyFrame::OnCometTool)
-    EVT_MENU(MENU_PLANETARY, MyFrame::OnPlanetTool)
+    EVT_MENU(MENU_SOLAR_SYSTEM_TOOL, MyFrame::OnPlanetTool)
     EVT_MENU(MENU_GUIDING_ASSISTANT, MyFrame::OnGuidingAssistant)
     EVT_MENU(MENU_HELP_UPGRADE, MyFrame::OnUpgrade)
     EVT_MENU(MENU_HELP_ONLINE, MyFrame::OnHelpOnline)
@@ -536,7 +536,7 @@ void MyFrame::SetupMenuBar()
 
     tools_menu->Append(EEGG_MANUALLOCK, _("Adjust &Lock Position"), _("Adjust the lock position"));
     tools_menu->Append(MENU_COMETTOOL, _("&Comet Tracking"), _("Run the Comet Tracking tool"));
-    m_PlanetaryMenuItem = tools_menu->AppendCheckItem(MENU_PLANETARY, _("Solar/&Planetary Guiding\tCtrl-P"), _("Run the Solar/Planetary tool"));
+    m_PlanetaryMenuItem = tools_menu->AppendCheckItem(MENU_SOLAR_SYSTEM_TOOL, _("Solar System Object Tool\tCtrl-P"), _("Run the Solar/lunar/planetary tool"));
     tools_menu->Append(MENU_STARCROSS_TEST, _("Star-Cross Test"), _("Run a star-cross test for mount diagnostics"));
     tools_menu->Append(MENU_PIERFLIP_TOOL, _("Calibrate meridian flip"), _("Automatically determine the correct meridian flip settings"));
     tools_menu->Append(MENU_GUIDING_ASSISTANT, _("&Guiding Assistant"), _("Run the Guiding Assistant"));
@@ -1052,7 +1052,7 @@ void MyFrame::SetupToolBar()
     MainToolbar->AddSeparator();
     MainToolbar->AddTool(BUTTON_ADVANCED, _("Advanced Settings"), brain_bmp, _("Advanced Settings"));
     MainToolbar->AddTool(BUTTON_CAM_PROPERTIES, cam_setup_bmp, cam_setup_bmp_disabled, false, 0, _("Camera settings"));
-    MainToolbar->AddTool(BUTTON_PLANETARY, _("Planetary Guiding"), eclipse_bmp, _("Planetary Guiding"));
+    MainToolbar->AddTool(BUTTON_PLANETARY, _("Solar, lunar or planetary guiding"), eclipse_bmp, _("Solar, lunar or planetary guiding"));
     MainToolbar->EnableTool(BUTTON_CAM_PROPERTIES, false);
     MainToolbar->EnableTool(BUTTON_LOOP, false);
     MainToolbar->EnableTool(BUTTON_AUTOSTAR, false);
@@ -1244,7 +1244,7 @@ void MyFrame::UpdateButtonsStatus()
     if (pierFlipToolWin)
         PierFlipTool::UpdateUIControls();
 
-    if (pGuider->m_SolarBody.UpdateCaptureState(CaptureActive))
+    if (pGuider->m_SolarSystemObject.UpdateCaptureState(CaptureActive))
         need_update = true;
 
     if (need_update)

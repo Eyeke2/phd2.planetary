@@ -78,7 +78,7 @@ void ProfileWindow::OnLClick(wxMouseEvent& mevent)
     {
         rawMode = !rawMode;
         pConfig->Global.SetBoolean("/ProfileRawMode", rawMode);
-        pFrame->pGuider->m_SolarBody.ZoomStarProfile(0);
+        pFrame->pGuider->m_SolarSystemObject.ZoomStarProfile(0);
     }
     else
     {
@@ -87,7 +87,7 @@ void ProfileWindow::OnLClick(wxMouseEvent& mevent)
             m_inFocusingMode && (mevent.GetX() <= m_labelX + m_labelWidth + 5) && (mevent.GetY() >= m_labelY - 5))
         {
             // Toggle between radius and sharpness metrics
-            pFrame->pGuider->m_SolarBody.ToggleSharpness();
+            pFrame->pGuider->m_SolarSystemObject.ToggleSharpness();
         }
         else if (mevent.GetX() < imageLeftMargin)
         {
@@ -101,7 +101,7 @@ void ProfileWindow::OnLClick(wxMouseEvent& mevent)
 void ProfileWindow::OnMouseWheel(wxMouseEvent& mevent)
 {
     if (mevent.GetX() > imageLeftMargin && mevent.GetY() <= imageBottom)
-        pFrame->pGuider->m_SolarBody.ZoomStarProfile(mevent.GetWheelRotation());
+        pFrame->pGuider->m_SolarSystemObject.ZoomStarProfile(mevent.GetWheelRotation());
 }
 
 void ProfileWindow::SetState(bool is_active)
@@ -116,7 +116,7 @@ void ProfileWindow::UpdateData(const usImage *img, float xpos, float ypos)
     if (this->data == NULL) return;
 
     Star::FindMode findMode = pFrame->GetStarFindMode();
-    int radius = (findMode == Star::FIND_PLANET) ? pFrame->pGuider->m_SolarBody.m_radius * 5 / 4: HALFW;
+    int radius = (findMode == Star::FIND_PLANET) ? pFrame->pGuider->m_SolarSystemObject.m_radius * 5 / 4: HALFW;
     radius = wxMax(radius, (int) HALFW);
 
     int xstart = ROUNDF(xpos) - radius;
@@ -188,10 +188,10 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
     int labelTextHeight;
 
     // Set label for displaying tracked object measured property, depending on star find mode
-    wxString hfdLabel = pFrame->GetStarFindMode() == Star::FIND_PLANET ? pFrame->pGuider->m_SolarBody.GetHfdLabel() : _("HFD: ");
+    wxString hfdLabel = pFrame->GetStarFindMode() == Star::FIND_PLANET ? pFrame->pGuider->m_SolarSystemObject.GetHfdLabel() : _("HFD: ");
 
     const Star& star = pFrame->pGuider->PrimaryStar();
-    float hfd = pFrame->GetStarFindMode() == Star::FIND_PLANET ? pFrame->pGuider->m_SolarBody.GetHFD() : star.HFD;
+    float hfd = pFrame->GetStarFindMode() == Star::FIND_PLANET ? pFrame->pGuider->m_SolarSystemObject.GetHFD() : star.HFD;
     if (inFocusingMode) {
         // To compute the scale factor, we use the following formula, which maximizes the use of all available
         // window width (xsize) while displaying HFD metrics in the exact format. The scaling value is calculated
@@ -201,11 +201,11 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         // xsize = 20 + smallFontTextWidth + scale * (sfw * strlen(largeFontTextWithoutDot) + dotw);
         // therefore, scale = (xsize - 10 - smallFontTextWidth) / (sfw * strlen(largeFontTextWithoutDot) + dotw)
         const Star& star = pFrame->pGuider->PrimaryStar();
-        float hfd = pFrame->GetStarFindMode() == Star::FIND_PLANET ? pFrame->pGuider->m_SolarBody.GetHFD() : star.HFD;
+        float hfd = pFrame->GetStarFindMode() == Star::FIND_PLANET ? pFrame->pGuider->m_SolarSystemObject.GetHFD() : star.HFD;
         float sfw = (float)dc.GetTextExtent("0").GetWidth();
         float dotw = (float)dc.GetTextExtent(".").GetWidth();
         wxString smallFontText = hfdLabel;
-        if (pFrame->pGuider->m_SolarBody.IsPixelMetrics() && !std::isnan(hfd))
+        if (pFrame->pGuider->m_SolarSystemObject.IsPixelMetrics() && !std::isnan(hfd))
         {
             float hfdArcSec = hfd * pFrame->GetCameraPixelScale();
             smallFontText += wxString::Format("  %.2f\"", hfdArcSec);
@@ -335,7 +335,7 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         double dStarY = LockY - pFrame->pGuider->CurrentPosition().Y * scaleFactor;
         // grab the subframe
         wxBitmap dBmp(*img);
-        int planetRadius = pFrame->pGuider->m_SolarBody.m_radius;
+        int planetRadius = pFrame->pGuider->m_SolarSystemObject.m_radius;
         int radius = (pFrame->GetStarFindMode() == Star::FIND_PLANET) && (planetRadius > HALFW) ? planetRadius * 5 / 4 : 15;
         radius *= scaleFactor;
         int lkx = ROUND(LockX);
@@ -430,7 +430,7 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
                 dc.DrawText(s, x, ysize - largeFontHeight);
                 x += dc.GetTextExtent(s).GetWidth();
 
-                if (pFrame->pGuider->m_SolarBody.IsPixelMetrics())
+                if (pFrame->pGuider->m_SolarSystemObject.IsPixelMetrics())
                 {
                     dc.SetFont(smallFont);
                     s = wxString::Format(_T("  %.2f\""), hfdArcSec);
@@ -440,7 +440,7 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         }
         else
         {
-            if (pFrame->pGuider->m_SolarBody.IsPixelMetrics())
+            if (pFrame->pGuider->m_SolarSystemObject.IsPixelMetrics())
                 dc.DrawText(wxString::Format(_("%s FWHM: %.2f, %s%.2f (%.2f\")"), profileLabel, fwhm, hfdLabel, hfd, hfdArcSec), 5, ysize - smallFontHeight - 5);
             else
                 dc.DrawText(wxString::Format(_("%s; %s%.2f"), profileLabel, hfdLabel, hfd), 5, ysize - smallFontHeight - 5);

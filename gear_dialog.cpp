@@ -1094,7 +1094,7 @@ bool GearDialog::DoConnectCamera(bool autoReconnecting)
         }
 
         // Notify solar/planetary module of camera connect
-        pFrame->pGuider->m_SolarBody.NotifyCameraConnect(true);
+        pFrame->pGuider->m_SolarSystemObject.NotifyCameraConnect(true);
 
         // update camera pixel size from the driver, cam must be connected for reliable results
         double prevPixelSize = m_pCamera->GetProfilePixelSize();
@@ -1254,7 +1254,7 @@ void GearDialog::OnButtonDisconnectCamera(wxCommandEvent& event)
         m_pCamera->Disconnect();
 
         // Notify solar/planetary module of camera disconnect
-        pFrame->pGuider->m_SolarBody.NotifyCameraConnect(false);
+        pFrame->pGuider->m_SolarSystemObject.NotifyCameraConnect(false);
 
         if (m_pScope && m_pScope->RequiresCamera() && m_pScope->IsConnected())
         {

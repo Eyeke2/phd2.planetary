@@ -282,7 +282,7 @@ public:
     unsigned int GetAutoSelDownsample() const;
 
     // Planetary disk detection parameters
-    SolarBody m_SolarBody;
+    SolarSystemObject m_SolarSystemObject;
 
     // virtual functions -- these CAN be overridden by a subclass, which should
     // consider whether they need to call the base class functions as part of

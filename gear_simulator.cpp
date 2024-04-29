@@ -1507,7 +1507,7 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
             sim.SimulateDisplacement(rx, ry);
 
             // Save actual simulator displacement for tracking accuracy error analysis
-            pFrame->pGuider->m_SolarBody.SaveCameraSimulationMove(rx, ry);
+            pFrame->pGuider->m_SolarSystemObject.SaveCameraSimulationMove(rx, ry);
 
             // Translate the image by shifting it few pixels
             double borderValue = calculateBorderAverage(*disk_image);
@@ -1529,7 +1529,7 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
             // Finally, render clouds
             if (SimCamParams::clouds_opacity > 0)
             {
-                if (pFrame->pGuider->m_SolarBody.GetSolarBodyEnableState())
+                if (pFrame->pGuider->m_SolarSystemObject.Get_SolarSystemObjMode())
                     subframe = wxRect(0, 0, FullSize.x, FullSize.y);
                 render_clouds(img, subframe, duration, 30, 100);
             }
