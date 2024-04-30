@@ -1,5 +1,5 @@
 /*
- *  guider_planetary.cpp
+ *  planetary.cpp
  *  PHD Guiding
  *
  *  Solar, lunar and planetary detection extensions by Leo Shatz
@@ -33,7 +33,7 @@
  */
 
 #include "phd.h"
-#include "guider_planetary.h"
+#include "planetary.h"
 #include "planetary_tool.h"
 
 #include <algorithm>

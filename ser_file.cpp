@@ -34,7 +34,6 @@
  */
 
 #include "phd.h"
-#include "guider_planetary.h"
 #include "planetary_tool.h"
 #include "ser_file.h"
 
