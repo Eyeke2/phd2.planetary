@@ -432,6 +432,10 @@ PHD_Point SolarSystemObject::GetScaledTracker(wxBitmap& scaledBitmap, const PHD_
 // Helper for visualizing detection radius and internal features
 void SolarSystemObject::VisualHelper(wxDC& dc, Star primaryStar, double scaleFactor)
 {
+    // Do nothin if not in solar/planetary mode or no visual elements are enabled
+    if (!Get_SolarSystemObjMode() || !m_showMinMaxDiameters && !VisualElementsEnabled())
+        return;
+
     // Clip drawing region to displayed image frame
     wxImage* pImg = pFrame->pGuider->DisplayedImage();
     if (pImg)

@@ -396,8 +396,7 @@ bool GuiderMultiStar::SetCurrentPosition(const usImage *pImage, const PHD_Point&
         }
 
         m_massChecker->Reset();
-        int searchRegion = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? m_SolarSystemObject.m_searchRegion : m_searchRegion;
-        bError = !m_primaryStar.Find(pImage, searchRegion, x, y, pFrame->GetStarFindMode(),
+        bError = !m_primaryStar.Find(pImage, m_searchRegion, x, y, pFrame->GetStarFindMode(),
                               GetMinStarHFD(), GetMaxStarHFD(), pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE);
     }
     catch (const wxString& Msg)
@@ -473,22 +472,22 @@ bool GuiderMultiStar::AutoSelect(const wxRect& roi)
             edgeAllowance = wxMax(edgeAllowance, pSecondaryMount->CalibrationTotDistance());
 
         GuideStar newStar;
-        Star::FindMode findMode = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? Star::FIND_PLANET : Star::FIND_CENTROID;
         if (!newStar.AutoFind(*image, edgeAllowance, m_searchRegion, roi, m_guideStars, MAX_LIST_SIZE))
         {
             throw ERROR_INFO("Unable to AutoFind");
         }
 
         m_massChecker->Reset();
+        Star::FindMode findMode = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? Star::FIND_PLANET : Star::FIND_CENTROID;
         if (!m_primaryStar.Find(image, m_searchRegion, newStar.X, newStar.Y, findMode, GetMinStarHFD(), GetMaxStarHFD(),
             pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE, true))
         {
             throw ERROR_INFO("Unable to find");
         }
 
+        // After finding planet metric we can fill the set using complete data
         if (findMode == Star::FIND_PLANET)
         {
-            // After finding planet metric we can fill the set using complete data
             m_guideStars.clear();
             m_guideStars.push_back(m_primaryStar);
         }
@@ -1365,8 +1364,7 @@ void GuiderMultiStar::OnPaint(wxPaintEvent& event)
             DrawBox(dc, m_primaryStar, m_searchRegion, m_scaleFactor);
         }
 
-        if (m_SolarSystemObject.Get_SolarSystemObjMode() && (m_SolarSystemObject.m_showMinMaxDiameters || m_SolarSystemObject.VisualElementsEnabled()))
-            m_SolarSystemObject.VisualHelper(dc, m_primaryStar, m_scaleFactor);
+        m_SolarSystemObject.VisualHelper(dc, m_primaryStar, m_scaleFactor);
     }
     catch (const wxString& Msg)
     {
