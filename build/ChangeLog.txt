@@ -6,6 +6,22 @@ installation path, so you can keep two versions at the same time.
 
 Change log
 
+v2.6.13-planet.dev7
+* Multiple refactoring commits to rename internal variable and method names to consistently use terms like "solar system object," "solar/lunar/planetary," 
+instead of just "planetary" or "eclipse", renamed guider_planetary module to planetary and updated label naming.
+* Code integration and cleanup: integrated planetary-related logic into Star::Find and GuideStar::AutoFind, simplifying previous changes
+made for planetary guiding. Renamed "Planetary Tracking" to "Solar, lunar and planetary guiding", class GuiderPlanet - to SolarSystemObject.
+* Minor code refactoring and cleanup in several commits, tooltip text updates.
+* Performance optimization: applied decimation to very large contours to maintain processing time within reasonable limits.
+Additionally, limited the input image frame size to a maximum of 4096x4096 pixels.
+* API and functional changes: started upgrading from C to C++ API of OpenCV, including a specific update for planetary disk detection
+using C++ OpenCV API - as part of future migration to OpenCV 4.
+* Removed redundant call to debayering mono image in the camera simulator.
+* Settings Management: fixed saving and restoring of certain PHD2 advanced settings that are temporarily disabled when switching to planetary mode,
+ensuring they are restored after deactivating planetary mode.
+* Cross-platform fixes: addressed cross-platform compatibility issues.
+* Update INDI device's Connect method to wait for 'Connected' property (#1177).
+
 v2.6.13-planet.dev7.rc5
 * Planetary tool: add debug log messages to trace events of interest during surface feature detection and tracking.
 * Planetary tool: normalize image by a scale factor derived from its mean value to calculate sharpness independently
