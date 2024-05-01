@@ -1724,6 +1724,8 @@ void MyFrame::ScheduleExposure()
 
     if (m_pPrimaryWorkerThread) // can be null when app is shutting down (unlikely but possible)
         m_pPrimaryWorkerThread->EnqueueWorkerThreadExposeRequest(img, exposureDuration, exposureOptions, subframe);
+    else
+        delete img;
 }
 
 void MyFrame::SchedulePrimaryMove(Mount *mount, const GuiderOffset& ofs, unsigned int moveOptions)
