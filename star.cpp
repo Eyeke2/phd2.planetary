@@ -365,7 +365,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, int base_x, int base_y, F
         // SNR estimate from: Measuring the Signal-to-Noise Ratio S/N of the CCD Image of a Star or Nebula, J.H.Simonetti, 2004 January 8
         //     http://www.phys.vt.edu/~jhs/phys3154/snr20040108.pdf
         double const gain = .5; // electrons per ADU, nominal
-        SNR = n > 0 ? mass / sqrt(mass / gain + sigma2_bg * (double) n * (1.0 + 1.0 / (double) nbg)) : 0.0;
+        SNR = (n > 0 && nbg > 0) ? mass / sqrt(mass / gain + sigma2_bg * (double)n * (1.0 + 1.0 / (double)nbg)) : 0.0;
 
         double const LOW_SNR = 3.0;
 
