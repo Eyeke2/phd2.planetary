@@ -1145,6 +1145,14 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
             double StarX = (double) mevent.m_x / scaleFactor;
             double StarY = (double) mevent.m_y / scaleFactor;
 
+            if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+            {
+                m_SolarSystemObject.m_clicked_x = wxMin(StarX, pImage->Size.GetWidth() - 1);
+                m_SolarSystemObject.m_clicked_y = wxMin(StarY, pImage->Size.GetHeight() - 1);
+                m_SolarSystemObject.m_userLClick = true;
+                m_SolarSystemObject.m_detectionCounter = 0;
+            }
+
             SetCurrentPosition(pImage, PHD_Point(StarX, StarY));
 
             if (!m_primaryStar.IsValid())
@@ -1169,6 +1177,9 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
                 pFrame->UpdateButtonsStatus();
                 pFrame->pProfile->UpdateData(pImage, m_primaryStar.X, m_primaryStar.Y);
             }
+
+            if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+                m_SolarSystemObject.m_showMinMaxDiameters = true;
 
             Refresh();
             Update();
@@ -1272,6 +1283,9 @@ void GuiderMultiStar::OnPaint(wxPaintEvent& event)
                 dc.SetPen(wxPen(wxColour(230,130,30), 1, wxPENSTYLE_DOT));
             DrawBox(dc, m_primaryStar, m_searchRegion, m_scaleFactor);
         }
+
+        // Display visual elements to assist with tuning the solar and planetary detection parameters
+        m_SolarSystemObject.VisualHelper(dc, m_primaryStar, m_scaleFactor);
     }
     catch (const wxString& Msg)
     {

@@ -222,6 +222,82 @@ void SolarSystemObject::ShowVisualElements(bool state)
     m_syncLock.Unlock();
 }
 
+// Helper for visualizing detection radius and internal features
+void SolarSystemObject::VisualHelper(wxDC& dc, Star primaryStar, double scaleFactor)
+{
+    // Do nothin if not in solar/planetary mode or no visual elements are enabled
+    if (!Get_SolarSystemObjMode() || !m_showMinMaxDiameters && !VisualElementsEnabled())
+        return;
+
+    // Clip drawing region to displayed image frame
+    wxImage* pImg = pFrame->pGuider->DisplayedImage();
+    if (pImg)
+        dc.SetClippingRegion(wxRect(0, 0, pImg->GetWidth(), pImg->GetHeight()));
+
+    // Make sure to use transparent brush
+    dc.SetBrush(*wxTRANSPARENT_BRUSH);
+
+    // Display internally detected elements (must be enabled in UI)
+    if (VisualElementsEnabled())
+    {
+        m_syncLock.Lock();
+
+        // Draw contour points in solar/planetary mode
+        if (m_diskContour.size())
+        {
+            dc.SetPen(wxPen(wxColour(230, 0, 0), 2, wxPENSTYLE_SOLID));
+            for (const Point2f& contourPoint : m_diskContour)
+                dc.DrawCircle((contourPoint.x + m_roiRect.x) * scaleFactor, (contourPoint.y + m_roiRect.y) * scaleFactor, 2);
+        }
+
+        m_syncLock.Unlock();
+    }
+
+    // Reset clipping region (don't clip min/max circles)
+    dc.DestroyClippingRegion();
+
+    // Display min/max diameters for visual feedback
+    if (m_showMinMaxDiameters)
+    {
+        m_showMinMaxDiameters = false;
+        if (pFrame->CaptureActive)
+        {
+            const wxString labelTextMin("min diameter");
+            const wxString labelTextMax("max diameter");
+            int x = int(primaryStar.X * scaleFactor + 0.5);
+            int y = int(primaryStar.Y * scaleFactor + 0.5);
+            int radius = int(m_radius * scaleFactor + 0.5);
+            float minRadius = Get_minRadius() * scaleFactor;
+            float maxRadius = Get_maxRadius() * scaleFactor;
+            int minRadius_x = x + minRadius;
+            int maxRadius_x = x + maxRadius;
+            int lineMin_x = x;
+            int lineMax_x = x;
+
+            // Center the elements at the tracking point
+            if (m_detected)
+            {
+                minRadius_x = maxRadius_x = x;
+                lineMin_x -= minRadius;
+                lineMax_x -= maxRadius;
+            }
+
+            // Draw min and max diameters legends
+            dc.SetPen(wxPen(wxColour(230, 130, 30), 1, wxPENSTYLE_DOT));
+            dc.SetTextForeground(wxColour(230, 130, 30));
+            dc.DrawLine(lineMin_x, y - 5, lineMin_x + minRadius * 2, y - 5);
+            dc.DrawCircle(minRadius_x, y, minRadius);
+            dc.DrawText(labelTextMin, minRadius_x - dc.GetTextExtent(labelTextMin).GetWidth() / 2, y - 10 - dc.GetTextExtent(labelTextMin).GetHeight());
+
+            dc.SetPen(wxPen(wxColour(130, 230, 30), 1, wxPENSTYLE_DOT));
+            dc.SetTextForeground(wxColour(130, 230, 30));
+            dc.DrawLine(lineMax_x, y + 5, lineMax_x + maxRadius * 2, y + 5);
+            dc.DrawCircle(maxRadius_x, y, maxRadius);
+            dc.DrawText(labelTextMax, maxRadius_x - dc.GetTextExtent(labelTextMax).GetWidth() / 2, y + 5);
+        }
+    }
+}
+
 void SolarSystemObject::CalcLineParams(CircleDescriptor p1, CircleDescriptor p2)
 {
     float dx = p1.x - p2.x;

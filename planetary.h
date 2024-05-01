@@ -130,6 +130,7 @@ public:
     // Displaying visual aid for solar system object parameter tuning
     bool m_showMinMaxDiameters;
     void RefreshMinMaxDiameters() { m_showMinMaxDiameters = true; }
+    void VisualHelper(wxDC& dc, Star primaryStar, double scaleFactor);
 
 private:
     wxStopWatch m_SolarSystemObjWatchdog;
