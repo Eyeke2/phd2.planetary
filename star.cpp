@@ -463,7 +463,7 @@ done:
 
     bool wasFound = WasFound(Result);
 
-    if (!IsValid() || Result == STAR_ERROR)
+    if (Result == STAR_ERROR)
     {
         Mass = 0.0;
         SNR = 0.0;
