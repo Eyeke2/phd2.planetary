@@ -731,6 +731,7 @@ bool SolarSystemObject::FindOrbisCenter(Mat img8, int minRadius, int maxRadius, 
         Debug.Write(wxString::Format("Too many contour points detected (%d)\n", totalPoints));
         m_statusMsg = _("Too many contour points detected. Please apply pixel binning, enable ROI, or increase the Edge Detection Threshold.");
         pFrame->Alert(m_statusMsg, wxICON_WARNING);
+        pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), totalPoints);
         return false;
     }
 
@@ -798,8 +799,11 @@ bool SolarSystemObject::FindOrbisCenter(Mat img8, int minRadius, int maxRadius, 
         contourMatchingCount++;
     }
 
+    // Update stats window
     Debug.Write(wxString::Format("End detection of solar system object (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%.3f, contours=%d/%d, threads=%d\n",
         m_SolarSystemObjWatchdog.Time(), bestDiskCenter.radius, roiRect.x + bestDiskCenter.x, roiRect.y + bestDiskCenter.y, bestScore, contourMatchingCount, contourAllCount, maxThreadsCount));
+    pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contours/points"), contourMatchingCount, bestContour.size());
+    pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), bestScore);
 
     // For use by visual aid for parameter tuning
     if (VisualElementsEnabled())
@@ -928,6 +932,9 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage* pImage, bool autoSe
         // Calculate sharpness of the image
         if (m_measuringSharpnessMode)
             m_focusSharpness = CalcSharpness(FullFrame, clickedPoint, detectionResult);
+
+        // Update detection time stats
+        pFrame->pStatsWin->UpdatePlanetDetectionTime(m_SolarSystemObjWatchdog.Time());
 
         if (detectionResult)
         {
