@@ -1194,8 +1194,42 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
 inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double scale)
 {
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    halfW = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? 10 : halfW;
     double w = ROUND((halfW * 2 + 1) * scale);
-    dc.DrawRectangle(int((star.X - halfW) * scale), int((star.Y - halfW) * scale), w, w);
+    int xpos = int((star.X - halfW) * scale);
+    int ypos = int((star.Y - halfW) * scale);
+    if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+    {
+        // Clip drawing region to displayed image frame
+        wxImage* pImg = pFrame->pGuider->DisplayedImage();
+        if (pImg)
+            dc.SetClippingRegion(wxRect(0, 0, pImg->GetWidth(), pImg->GetHeight()));
+
+        Guider* pGuider = pFrame->pGuider;
+        if (pGuider->m_SolarSystemObject.m_detected)
+        {
+            int x = int(star.X * scale + 0.5);
+            int y = int(star.Y * scale + 0.5);
+            int r = int(pGuider->m_SolarSystemObject.m_radius * scale + 0.5);
+            dc.DrawCircle(x, y, r);
+            dc.SetPen(wxPen(dc.GetPen().GetColour(), 1, dc.GetPen().GetStyle()));
+            dc.DrawRectangle(xpos, ypos, w, w);
+        }
+
+
+        // Show active processing region (ROI)
+        if (pGuider->m_SolarSystemObject.m_roiActive && pFrame->CaptureActive)
+        {
+            dc.SetPen(wxPen(wxColour(200, 200, 200), 2, wxPENSTYLE_SHORT_DASH));
+            dc.DrawRectangle(pGuider->m_SolarSystemObject.m_roiRect.x * scale, pGuider->m_SolarSystemObject.m_roiRect.y * scale, pGuider->m_SolarSystemObject.m_roiRect.width * scale, pGuider->m_SolarSystemObject.m_roiRect.height * scale);
+        }
+
+        dc.DestroyClippingRegion();
+    }
+    else
+    {
+        dc.DrawRectangle(xpos, ypos, w, w);
+    }
 }
 
 // Define the repainting behaviour
@@ -1260,27 +1294,28 @@ void GuiderMultiStar::OnPaint(wxPaintEvent& event)
         GUIDER_STATE state = GetState();
         bool FoundStar = m_primaryStar.WasFound();
 
+        int thickness = pFrame->GetStarFindMode() == Star::FIND_PLANET ? 4 : 1;
         if (state == STATE_SELECTED)
         {
             if (FoundStar)
-                dc.SetPen(wxPen(wxColour(100,255,90), 1, wxPENSTYLE_SOLID));  // Draw the box around the star
+                dc.SetPen(wxPen(wxColour(100,255,90), thickness, wxPENSTYLE_SOLID));  // Draw the box around the star
             else
-                dc.SetPen(wxPen(wxColour(230,130,30), 1, wxPENSTYLE_DOT));
+                dc.SetPen(wxPen(wxColour(230,130,30), thickness, wxPENSTYLE_DOT));
             DrawBox(dc, m_primaryStar, m_searchRegion, m_scaleFactor);
         }
         else if (state == STATE_CALIBRATING_PRIMARY || state == STATE_CALIBRATING_SECONDARY)
         {
             // in the calibration process
-            dc.SetPen(wxPen(wxColour(32,196,32), 1, wxPENSTYLE_SOLID));  // Draw the box around the star
+            dc.SetPen(wxPen(wxColour(32,196,32), thickness, wxPENSTYLE_SOLID));  // Draw the box around the star
             DrawBox(dc, m_primaryStar, m_searchRegion, m_scaleFactor);
         }
         else if (state == STATE_CALIBRATED || state == STATE_GUIDING)
         {
             // locked and guiding
             if (FoundStar)
-                dc.SetPen(wxPen(wxColour(32,196,32), 1, wxPENSTYLE_SOLID));  // Draw the box around the star
+                dc.SetPen(wxPen(wxColour(32,196,32), thickness, wxPENSTYLE_SOLID));  // Draw the box around the star
             else
-                dc.SetPen(wxPen(wxColour(230,130,30), 1, wxPENSTYLE_DOT));
+                dc.SetPen(wxPen(wxColour(230,130,30), thickness, wxPENSTYLE_DOT));
             DrawBox(dc, m_primaryStar, m_searchRegion, m_scaleFactor);
         }
 
