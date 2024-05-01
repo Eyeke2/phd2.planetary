@@ -67,6 +67,11 @@ SolarSystemObject::SolarSystemObject()
     m_unknownHFD = true;
     m_focusSharpness = 0;
 
+    m_origPoint = Point2f(0, 0);
+    m_cameraSimulationMove = Point2f(0, 0);
+    m_cameraSimulationRefPoint = Point2f(0, 0);
+    m_cameraSimulationRefPointValid = false;
+    m_simulationZeroOffset = false;
     m_center_x = m_center_y = 0;
 
     m_userLClick = false;
@@ -250,6 +255,7 @@ bool SolarSystemObject::UpdateCaptureState(bool CaptureActive)
             // control drawing of the internal detection elements.
             if (Get_SolarSystemObjMode() && GetShowFeaturesButtonState())
                 ShowVisualElements(true);
+            RestartSimulatorErrorDetection();
         }
     }
 
@@ -266,7 +272,26 @@ bool SolarSystemObject::UpdateCaptureState(bool CaptureActive)
 // Notification callback when camera is connected/disconnected
 void SolarSystemObject::NotifyCameraConnect(bool connected)
 {
+    bool isSimCam = (pCamera && pCamera->Name == "Simulator");
+    pFrame->pStatsWin->ShowSimulatorStats(isSimCam && connected);
+    pFrame->pStatsWin->ShowPlanetStats(Get_SolarSystemObjMode() && connected);
     m_userLClick = false;
+}
+
+void SolarSystemObject::SaveCameraSimulationMove(double rx, double ry)
+{
+    m_cameraSimulationMove = Point2f(rx, ry);
+    if (m_simulationZeroOffset)
+    {
+        m_cameraSimulationRefPoint = m_cameraSimulationMove;
+        m_cameraSimulationRefPointValid = true;
+    }
+}
+
+void SolarSystemObject::RestartSimulatorErrorDetection()
+{
+    m_cameraSimulationRefPointValid = false;
+    m_simulationZeroOffset = true;
 }
 
 // Helper for visualizing detection radius and internal features
@@ -830,6 +855,39 @@ bool SolarSystemObject::FindOrbisCenter(Mat img8, int minRadius, int maxRadius, 
     return false;
 }
 
+void SolarSystemObject::UpdateDetectionErrorInSimulator(Point2f& clickedPoint)
+{
+    if (pCamera && pCamera->Name == "Simulator")
+    {
+        bool errUnknown = true;
+        bool clicked = (m_prevClickedPoint != clickedPoint);
+
+        if (m_detected)
+        {
+            if (m_cameraSimulationRefPointValid)
+            {
+                m_simulationZeroOffset = false;
+                m_cameraSimulationRefPointValid = false;
+                m_origPoint = Point2f(m_center_x, m_center_y);
+            }
+            else if (!m_simulationZeroOffset && !clicked)
+            {
+                Point2f delta = Point2f(m_center_x, m_center_y) - m_origPoint;
+                pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"), norm(delta - (m_cameraSimulationMove - m_cameraSimulationRefPoint)));
+                errUnknown = false;
+            }
+        }
+
+        if (errUnknown)
+            pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"), -1);
+
+        if (clicked)
+        {
+            RestartSimulatorErrorDetection();
+        }
+    }
+}
+
 // Find object in the given image
 bool SolarSystemObject::FindSolarSystemObject(const usImage* pImage, bool autoSelect)
 {
@@ -856,6 +914,7 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage* pImage, bool autoSe
         m_clicked_y = 0;
         m_userLClick = false;
         m_detectionCounter = 0;
+        RestartSimulatorErrorDetection();
     }
     Point2f clickedPoint = Point2f(m_clicked_x, m_clicked_y);
 
@@ -969,6 +1028,9 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage* pImage, bool autoSe
         Debug.Write("Find solar system object: unknown exception\n");
         pFrame->Alert(_("ERROR: unknown exception occurred in solar system object detection"), wxICON_ERROR);
     }
+
+    // For simulated camera, calculate detection error by comparing with the simulated position
+    UpdateDetectionErrorInSimulator(clickedPoint);
 
     // Update data shared with other thread
     m_syncLock.Lock();

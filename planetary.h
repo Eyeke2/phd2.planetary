@@ -73,6 +73,10 @@ private:
     int m_frameWidth;
     int m_frameHeight;
 
+    cv::Point2f m_origPoint;
+    cv::Point2f m_cameraSimulationMove;
+    cv::Point2f m_cameraSimulationRefPoint;
+
 public:
     wxString m_statusMsg;
     bool m_detected;
@@ -89,6 +93,8 @@ public:
     int m_clicked_y;
 
     int m_detectionCounter;
+    bool m_simulationZeroOffset;
+    bool m_cameraSimulationRefPointValid;
 
     // PHD2 parameters saved before enabling solar system object mode and restored after disabling
     bool m_phd2_MassChangeThresholdEnabled;
@@ -100,6 +106,8 @@ public:
     ~SolarSystemObject();
 
     bool FindSolarSystemObject(const usImage* pImage, bool autoSelect = false);
+    void RestartSimulatorErrorDetection();
+    void SaveCameraSimulationMove(double rx, double ry);
 
     double GetHFD();
     wxString GetHfdLabel();
@@ -163,4 +171,5 @@ private:
     float   FindContourCenter(CircleDescriptor& diskCenter, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContourVector, cv::Moments& mu, int minRadius, int maxRadius);
     void    FindCenters(cv::Mat image, const std::vector<cv::Point>& contour, CircleDescriptor& bestCentroid, CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, cv::Moments& mu, int minRadius, int maxRadius);
     bool    FindOrbisCenter(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint, cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
+    void    UpdateDetectionErrorInSimulator(cv::Point2f& clickedPoint);
 };

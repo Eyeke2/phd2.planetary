@@ -1506,6 +1506,9 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
             double rx, ry;
             sim.SimulateDisplacement(rx, ry);
 
+            // Save actual simulator displacement for tracking accuracy error analysis
+            pFrame->pGuider->m_SolarSystemObject.SaveCameraSimulationMove(rx, ry);
+
             // Translate the image by shifting it few pixels
             double borderValue = calculateBorderAverage(*disk_image);
             cv::Mat translatedImage;

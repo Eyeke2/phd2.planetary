@@ -743,6 +743,7 @@ void PlanetToolWin::OnThresholdChanged(wxCommandEvent& event)
     int lowThreshold = wxMax(highThreshold / 2, PT_THRESHOLD_MIN);
     pSolarSystemObj->Set_lowThreshold(lowThreshold);
     pSolarSystemObj->Set_highThreshold(highThreshold);
+    pSolarSystemObj->RestartSimulatorErrorDetection();
 }
 
 static void SuppressPausePlanetDetection(long)
