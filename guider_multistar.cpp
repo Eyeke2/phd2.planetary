@@ -946,7 +946,7 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
             errorInfo->starMass = 0.0;
             errorInfo->starSNR = 0.0;
             errorInfo->starHFD = 0.0;
-            errorInfo->status = StarStatusStr(newStar);
+            errorInfo->status = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? m_SolarSystemObject.m_statusMsg : StarStatusStr(newStar);
             m_primaryStar.SetError(newStar.GetError());
 
             if (pFrame->GetStarFindMode() != Star::FIND_PLANET)
@@ -1045,6 +1045,14 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
         pFrame->AdjustAutoExposure(m_primaryStar.SNR);
         pFrame->UpdateStatusBarStarInfo(m_primaryStar.SNR, m_primaryStar.GetError() == Star::STAR_SATURATED);
         errorInfo->status = StarStatus(m_primaryStar);
+
+        // Show sun/moon/planet position after successful detection
+        if ((GetState() != STATE_GUIDING) && (pFrame->GetStarFindMode() == Star::FIND_PLANET))
+        {
+            wxString statusMsg;
+            m_SolarSystemObject.GetDetectionStatus(statusMsg);
+            pFrame->StatusMsg(statusMsg);
+        }
     }
     catch (const wxString& Msg)
     {

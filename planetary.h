@@ -105,6 +105,7 @@ public:
     wxString GetHfdLabel();
     bool IsPixelMetrics();
     void ToggleSharpness();
+    void GetDetectionStatus(wxString& statusMsg);
     void NotifyCameraConnect(bool connected);
     bool UpdateCaptureState(bool CaptureActive);
 

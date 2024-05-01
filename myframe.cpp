@@ -374,6 +374,7 @@ MyFrame::MyFrame()
     pierFlipToolWin = nullptr;
     m_starFindMode = Star::FIND_CENTROID;
     m_StarFindMode_Saved = m_starFindMode;
+    m_StopReason = wxEmptyString;
     m_rawImageMode = false;
     m_rawImageModeWarningDone = false;
 

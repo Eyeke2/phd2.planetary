@@ -213,6 +213,12 @@ double SolarSystemObject::CalcSharpness(Mat& FullFrame, Point2f& clickedPoint, b
     return ComputeSobelSharpness(focusRoi);
 }
 
+// Get current detection status
+void SolarSystemObject::GetDetectionStatus(wxString& statusMsg)
+{
+    statusMsg = wxString::Format(_("Object at (%.1f, %.1f) radius=%d"), m_center_x, m_center_y, m_radius);
+}
+
 // Update state used to visualize internally detected features
 void SolarSystemObject::ShowVisualElements(bool state)
 {
