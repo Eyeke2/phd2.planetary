@@ -460,7 +460,7 @@ bool GuiderMultiStar::AutoSelect(const wxRect& roi)
         }
 
         // If mount is not calibrated, we need to chose a star a bit farther
-        // from the egde to allow for the motion of the star during
+        // from the edge to allow for the motion of the star during
         // calibration
         //
         int edgeAllowance = 0;
