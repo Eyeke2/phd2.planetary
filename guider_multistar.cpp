@@ -1216,6 +1216,29 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
             dc.DrawRectangle(xpos, ypos, w, w);
         }
 
+        // Replaces visual bell for paused detection while guiding
+        if (pGuider->m_SolarSystemObject.GetDetectionPausedState())
+        {
+            static int dash = 0;
+            static wxDash dashPattern[4][4] =
+            {  /* d  g  d  g */
+                { 4, 2, 4, 2 },
+                { 4, 3, 4, 3 },
+                { 4, 4, 4, 4 },
+                { 4, 3, 4, 3 },
+            };
+
+            // Create a pen with the custom dash pattern
+            dash = (dash + 1) % 4;
+            wxPen pen(wxColour(230, 30, 30), 4, wxPENSTYLE_USER_DASH);
+            pen.SetDashes(4, dashPattern[dash]);
+            dc.SetPen(pen);
+
+            int x = int(star.X * scale + 0.5);
+            int y = int(star.Y * scale + 0.5);
+            int r = int(pGuider->m_SolarSystemObject.m_radius * scale + 0.5);
+            dc.DrawCircle(x, y, r);
+        }
 
         // Show active processing region (ROI)
         if (pGuider->m_SolarSystemObject.m_roiActive && pFrame->CaptureActive)
