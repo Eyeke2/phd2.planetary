@@ -1058,8 +1058,6 @@ void MyFrame::GuideButtonClick(bool interactive, const wxString& context)
                 return;
         }
 
-
-
         if (interactive && pPointingSource && pPointingSource->IsConnected() &&
             pPointingSource->CanReportPosition())
         {
@@ -1332,7 +1330,8 @@ void MyFrame::OnPlanetTool(wxCommandEvent& evt)
 
     if (pPlanetTool)
     {
-        // Reset dialog position when opened when any of Alt/Ctrl/Shift is pressed while clicking the button
+        // Reset planetary tool dialog position when opened when any
+        // of Alt/Ctrl/Shift is pressed while clicking the button
         if ((evt.GetId() == BUTTON_SOLAR_SYSTEM_TOOL) &&
             (wxGetKeyState(WXK_ALT) || wxGetKeyState(WXK_CONTROL) || wxGetKeyState(WXK_SHIFT)))
         {

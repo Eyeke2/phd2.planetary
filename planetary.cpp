@@ -183,7 +183,7 @@ SolarSystemObject::~SolarSystemObject()
     pConfig->Flush();
 }
 
-// Feature size depending on detection mode
+// Report detected object size or sharpness depending on measurement mode
 double SolarSystemObject::GetHFD()
 {
     if (m_unknownHFD)

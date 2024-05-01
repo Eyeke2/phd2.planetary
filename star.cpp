@@ -123,6 +123,7 @@ static double hfr(std::vector<R2M>& vec, double cx, double cy, double mass)
     return hfr;
 }
 
+// Calculate metrics for a solar system object
 double Star::CalcPlanetMetrics(const usImage* pImg, int center_x, int center_y, int r, int annulusWidth)
 {
     const double sigma_factor = 1.0;
@@ -394,7 +395,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
                 goto done;
             }
 
-            // Use calculated position for planet guiding
+            // Use detected center of the Sun, Moon or planet for guiding
             searchRegion = planet->m_searchRegion;
             newX = planet->m_center_x;
             newY = planet->m_center_y;
@@ -923,12 +924,12 @@ bool GuideStar::AutoFind(const usImage& image, int extraEdgeAllowance, int searc
             referencePoint.X = planet->m_center_x;
             referencePoint.Y = planet->m_center_y;
             SetXY(referencePoint.X, referencePoint.Y);
-            Debug.Write(wxString::Format("Star::AutoFind found planet at (%.1f, %.1f)\n", X, Y));
+            Debug.Write(wxString::Format("Star::AutoFind found object at (%.1f, %.1f)\n", X, Y));
             return true;
         }
         else
         {
-            Debug.Write("AutoFind: no planet found\n");
+            Debug.Write("AutoFind: no object found\n");
             return false;
         }
     }

@@ -34,7 +34,6 @@
 #include "phd.h"
 #include "nudge_lock.h"
 #include "comet_tool.h"
-#include "planetary_tool.h"
 #include "polardrift_tool.h"
 #include "staticpa_tool.h"
 #include "guiding_assistant.h"

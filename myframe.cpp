@@ -1361,7 +1361,7 @@ void MyFrame::DoAlert(const alert_params& params)
     // workaround, do not display any icon on Mac.
     showMessageFlags = wxICON_NONE;
 #endif
-    m_infoBar->Layout();
+    m_infoBar->Dismiss();
     m_infoBar->ShowMessage(wrappedText, showMessageFlags);
     m_statusbar->UpdateStates();        // might have disconnected a device
     EvtServer.NotifyAlert(params.msg, params.flags);

@@ -938,9 +938,8 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
     try
     {
         Star newStar(m_primaryStar);
-        int search_region = m_searchRegion;
 
-        if (!newStar.Find(pImage, search_region, pFrame->GetStarFindMode(), GetMinStarHFD(),
+        if (!newStar.Find(pImage, m_searchRegion, pFrame->GetStarFindMode(), GetMinStarHFD(),
             GetMaxStarHFD(), pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE))
         {
             errorInfo->starError = newStar.GetError();
@@ -1047,7 +1046,7 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
         pFrame->UpdateStatusBarStarInfo(m_primaryStar.SNR, m_primaryStar.GetError() == Star::STAR_SATURATED);
         errorInfo->status = StarStatus(m_primaryStar);
 
-        // Show planet position after successful detection
+        // Show sun/moon/planet position after successful detection
         if ((GetState() != STATE_GUIDING) && (pFrame->GetStarFindMode() == Star::FIND_PLANET))
         {
             wxString statusMsg;
@@ -1150,10 +1149,9 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
                 throw ERROR_INFO("Skipping event m_pCurrentImage->NPixels == 0");
             }
 
-            double StarX, StarY;
             double scaleFactor = ScaleFactor();
-            StarX = (double)mevent.m_x / scaleFactor;
-            StarY = (double)mevent.m_y / scaleFactor;
+            double StarX = (double) mevent.m_x / scaleFactor;
+            double StarY = (double) mevent.m_y / scaleFactor;
 
             if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
             {
@@ -1179,10 +1177,8 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
                     m_guideStars.push_back(m_primaryStar);
                 }
                 Debug.Write("MultiStar: single-star usage forced by user star selection\n");
-                if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
-                    pFrame->StatusMsg(wxString::Format(_("Selected point at (%.1f, %.1f)"), m_primaryStar.X, m_primaryStar.Y));
-                else
-                    pFrame->StatusMsg(wxString::Format(_("Selected star at (%.1f, %.1f)"), m_primaryStar.X, m_primaryStar.Y));
+                wxString targetType = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? _("object") : _("star");
+                pFrame->StatusMsg(wxString::Format(_("Selected %s at (%.1f, %.1f)"), targetType, m_primaryStar.X, m_primaryStar.Y));
                 pFrame->UpdateStatusBarStarInfo(m_primaryStar.SNR, m_primaryStar.GetError() == Star::STAR_SATURATED);
                 EvtServer.NotifyStarSelected(CurrentPosition());
                 SetState(STATE_SELECTED);
@@ -1262,7 +1258,7 @@ inline static void DrawBox(wxDC& dc, const PHD_Point& star, int halfW, double sc
             dc.DrawCircle(x, y, r);
         }
 
-        // Show active processing region
+        // Show active processing region (ROI)
         if (pGuider->m_SolarSystemObject.m_roiActive && pFrame->CaptureActive)
         {
             dc.SetPen(wxPen(wxColour(200, 200, 200), 2, wxPENSTYLE_SHORT_DASH));
@@ -1364,6 +1360,7 @@ void GuiderMultiStar::OnPaint(wxPaintEvent& event)
             DrawBox(dc, m_primaryStar, m_searchRegion, m_scaleFactor);
         }
 
+        // Display visual elements to assist with tuning the solar and planetary detection parameters
         m_SolarSystemObject.VisualHelper(dc, m_primaryStar, m_scaleFactor);
     }
     catch (const wxString& Msg)
