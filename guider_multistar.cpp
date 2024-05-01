@@ -14,6 +14,8 @@
  *  Copyright (c) 2020 Bruce Waddington
  *  All rights reserved.
  *
+ *  Solar, lunar and planetary detection extensions by Leo Shatz
+ *
  *  This source code is distributed under the following "BSD" license
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
@@ -476,11 +478,18 @@ bool GuiderMultiStar::AutoSelect(const wxRect& roi)
         }
 
         m_massChecker->Reset();
-
-        if (!m_primaryStar.Find(image, m_searchRegion, newStar.X, newStar.Y, Star::FIND_CENTROID, GetMinStarHFD(), GetMaxStarHFD(),
-                         pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE))
+        Star::FindMode findMode = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? Star::FIND_PLANET : Star::FIND_CENTROID;
+        if (!m_primaryStar.Find(image, m_searchRegion, newStar.X, newStar.Y, findMode, GetMinStarHFD(), GetMaxStarHFD(),
+            pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE, true))
         {
             throw ERROR_INFO("Unable to find");
+        }
+
+        // After finding planet metric we can fill the set using complete data
+        if (findMode == Star::FIND_PLANET)
+        {
+            m_guideStars.clear();
+            m_guideStars.push_back(m_primaryStar);
         }
 
         // DEBUG OUTPUT
@@ -940,7 +949,8 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
             errorInfo->status = StarStatusStr(newStar);
             m_primaryStar.SetError(newStar.GetError());
 
-            s_distanceChecker.Activate();
+            if (pFrame->GetStarFindMode() != Star::FIND_PLANET)
+                s_distanceChecker.Activate();
             ImageLogger::LogImage(pImage, *errorInfo);
 
             throw ERROR_INFO("UpdateCurrentPosition():newStar not found");
@@ -1151,7 +1161,8 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
                     m_guideStars.push_back(m_primaryStar);
                 }
                 Debug.Write("MultiStar: single-star usage forced by user star selection\n");
-                pFrame->StatusMsg(wxString::Format(_("Selected star at (%.1f, %.1f)"), m_primaryStar.X, m_primaryStar.Y));
+                wxString targetType = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? _("object") : _("star");
+                pFrame->StatusMsg(wxString::Format(_("Selected %s at (%.1f, %.1f)"), targetType, m_primaryStar.X, m_primaryStar.Y));
                 pFrame->UpdateStatusBarStarInfo(m_primaryStar.SNR, m_primaryStar.GetError() == Star::STAR_SATURATED);
                 EvtServer.NotifyStarSelected(CurrentPosition());
                 SetState(STATE_SELECTED);

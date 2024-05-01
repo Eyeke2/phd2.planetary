@@ -123,7 +123,17 @@ static double hfr(std::vector<R2M>& vec, double cx, double cy, double mass)
     return hfr;
 }
 
-bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double base_y, FindMode mode, double minHFD, double maxHFD, unsigned short maxADU, StarFindLogType loggingControl)
+// Calculate metric for a solar system object
+double Star::CalcPlanetMetric(const usImage* pImg, int center_x, int center_y, int r, int annulusWidth)
+{
+    // temporary placeholders
+    PeakVal = 110;
+    Mass = 100;
+    return 3;
+}
+
+bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double base_y, FindMode mode,
+    double minHFD, double maxHFD, unsigned short maxADU, StarFindLogType loggingControl, bool autoFound)
 {
     FindResult Result = STAR_OK;
     double newX = (int) base_x;
@@ -152,14 +162,18 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
         }
 
         // search region bounds
-        int start_x = wxMax(base_x - searchRegion, minx);
-        int end_x   = wxMin(base_x + searchRegion, maxx);
-        int start_y = wxMax(base_y - searchRegion, miny);
-        int end_y   = wxMin(base_y + searchRegion, maxy);
-
-        if (end_x <= start_x || end_y <= start_y)
+        int start_x, end_x, start_y, end_y;
+        if (mode != FIND_PLANET)
         {
-            throw ERROR_INFO("coordinates are invalid");
+            start_x = wxMax(base_x - searchRegion, minx);
+            end_x = wxMin(base_x + searchRegion, maxx);
+            start_y = wxMax(base_y - searchRegion, miny);
+            end_y = wxMin(base_y + searchRegion, maxy);
+
+            if (end_x <= start_x || end_y <= start_y)
+            {
+                throw ERROR_INFO("coordinates are invalid");
+            }
         }
 
         const unsigned short *imgdata = pImg->ImageData;
@@ -230,7 +244,19 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
         }
         else // FIND_PLANET
         {
-            Result = STAR_ERROR;
+            SolarSystemObject* planet = &pFrame->pGuider->m_SolarSystemObject;
+            if (!autoFound && !planet->FindSolarSystemObject(pImg))
+            {
+                Result = STAR_ERROR;
+                goto done;
+            }
+
+            // Use detected center of the Sun, Moon or planet for guiding
+            searchRegion = planet->m_searchRegion;
+            newX = planet->m_center_x;
+            newY = planet->m_center_y;
+            SNR = CalcPlanetMetric(pImg, newX, newY, searchRegion, 15);
+            HFD = 1.0; // temporary placeholder for HFD
             goto done;
         }
 
@@ -714,6 +740,24 @@ bool GuideStar::AutoFind(const usImage& image, int extraEdgeAllowance, int searc
     {
         Debug.AddLine("AutoFind called on subframe, returning error");
         return false; // not found
+    }
+
+    if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+    {
+        SolarSystemObject* planet = &pFrame->pGuider->m_SolarSystemObject;
+        if (planet->FindSolarSystemObject(&image, true))
+        {
+            referencePoint.X = planet->m_center_x;
+            referencePoint.Y = planet->m_center_y;
+            SetXY(referencePoint.X, referencePoint.Y);
+            Debug.Write(wxString::Format("Star::AutoFind found object at (%.1f, %.1f)\n", X, Y));
+            return true;
+        }
+        else
+        {
+            Debug.Write("AutoFind: no object found\n");
+            return false;
+        }
     }
 
     wxBusyCursor busy;
