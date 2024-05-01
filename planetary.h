@@ -101,6 +101,10 @@ public:
 
     bool FindSolarSystemObject(const usImage* pImage, bool autoSelect = false);
 
+    double GetHFD();
+    wxString GetHfdLabel();
+    bool IsPixelMetrics();
+
     bool Get_SolarSystemObjMode() { return m_paramEnabled; }
     void Set_SolarSystemObjMode(bool enabled) { m_paramEnabled = enabled; }
     bool GetDetectionPausedState() { return m_paramDetectionPaused; }

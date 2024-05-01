@@ -121,6 +121,30 @@ SolarSystemObject::~SolarSystemObject()
     pConfig->Flush();
 }
 
+// Report detected object size or sharpness depending on measurement mode
+double SolarSystemObject::GetHFD()
+{
+    if (m_unknownHFD)
+        return std::nan("1");
+    if (m_measuringSharpnessMode)
+        return m_focusSharpness;
+    else
+        return m_detected ? m_radius : 0;
+}
+
+wxString SolarSystemObject::GetHfdLabel()
+{
+    if (m_measuringSharpnessMode)
+        return _("SHARPNESS: ");
+    else
+        return _("RADIUS: ");
+}
+
+bool SolarSystemObject::IsPixelMetrics()
+{
+    return Get_SolarSystemObjMode() ? !m_measuringSharpnessMode : true;
+}
+
 // The Sobel operator can be used to detect edges in an image, which are more pronounced in
 // focused images. You can apply the Sobel operator to the image and calculate the sum or mean
 // of the absolute values of the gradients.
