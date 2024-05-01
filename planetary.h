@@ -104,6 +104,7 @@ public:
     double GetHFD();
     wxString GetHfdLabel();
     bool IsPixelMetrics();
+    void ToggleSharpness();
 
     bool Get_SolarSystemObjMode() { return m_paramEnabled; }
     void Set_SolarSystemObjMode(bool enabled) { m_paramEnabled = enabled; }

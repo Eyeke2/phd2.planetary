@@ -145,6 +145,13 @@ bool SolarSystemObject::IsPixelMetrics()
     return Get_SolarSystemObjMode() ? !m_measuringSharpnessMode : true;
 }
 
+// Toggle between sharpness and radius display
+void SolarSystemObject::ToggleSharpness()
+{
+    m_measuringSharpnessMode = !m_measuringSharpnessMode;
+    m_unknownHFD = true;
+}
+
 // The Sobel operator can be used to detect edges in an image, which are more pronounced in
 // focused images. You can apply the Sobel operator to the image and calculate the sum or mean
 // of the absolute values of the gradients.
