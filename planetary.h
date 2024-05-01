@@ -105,6 +105,8 @@ public:
     wxString GetHfdLabel();
     bool IsPixelMetrics();
     void ToggleSharpness();
+    void NotifyCameraConnect(bool connected);
+    bool UpdateCaptureState(bool CaptureActive);
 
     bool Get_SolarSystemObjMode() { return m_paramEnabled; }
     void Set_SolarSystemObjMode(bool enabled) { m_paramEnabled = enabled; }

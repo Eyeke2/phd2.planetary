@@ -222,6 +222,47 @@ void SolarSystemObject::ShowVisualElements(bool state)
     m_syncLock.Unlock();
 }
 
+// Notification callback when PHD2 may change CaptureActive state
+bool SolarSystemObject::UpdateCaptureState(bool CaptureActive)
+{
+    bool need_update = false;
+    if (m_prevCaptureActive != CaptureActive)
+    {
+        if (!CaptureActive)
+        {
+            // Clear selection symbols (green circle/target lock) and visual elements
+            if (Get_SolarSystemObjMode())
+            {
+                ShowVisualElements(false);
+                pFrame->pGuider->Reset(false);
+            }
+            need_update = true;
+        }
+        else
+        {
+            // In solar/planetary mode update the state used to
+            // control drawing of the internal detection elements.
+            if (Get_SolarSystemObjMode() && GetShowFeaturesButtonState())
+                ShowVisualElements(true);
+        }
+    }
+
+    // Reset the detection paused state if guiding has been cancelled
+    if (!pFrame->pGuider->IsGuiding())
+    {
+        SetDetectionPausedState(false);
+    }
+
+    m_prevCaptureActive = CaptureActive;
+    return need_update;
+}
+
+// Notification callback when camera is connected/disconnected
+void SolarSystemObject::NotifyCameraConnect(bool connected)
+{
+    m_userLClick = false;
+}
+
 // Helper for visualizing detection radius and internal features
 void SolarSystemObject::VisualHelper(wxDC& dc, Star primaryStar, double scaleFactor)
 {
