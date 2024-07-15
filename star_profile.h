@@ -61,7 +61,7 @@ private:
 
     unsigned short *data;
     int horiz_profile[21], vert_profile[21], midrow_profile[21];
-    DECLARE_EVENT_TABLE()
+    wxDECLARE_EVENT_TABLE();
 };
 
 #endif

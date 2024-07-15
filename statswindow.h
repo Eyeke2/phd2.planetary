@@ -73,7 +73,7 @@ public:
     void ClearPlanetStats();
     void SetState(bool is_active);
 
-    DECLARE_EVENT_TABLE()
+    wxDECLARE_EVENT_TABLE();
 };
 
 #endif

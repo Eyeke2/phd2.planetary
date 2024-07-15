@@ -326,7 +326,7 @@ public:
 
 private:
     void UpdateLockPosShiftCameraCoords();
-    DECLARE_EVENT_TABLE()
+    wxDECLARE_EVENT_TABLE();
 };
 
 inline bool Guider::IsPaused() const
