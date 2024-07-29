@@ -330,7 +330,7 @@ function(generate_single_doc_targets)
               -E make_directory
               "${current_translation_output_folder}"
           COMMAND 
-            ${XGETTEXT} *.cpp *.h -C
+            ${XGETTEXT} src/*.cpp src/*.h -C
               --from-code=CP1252
               --keyword="_"
               --keyword="wxPLURAL:1,2"
