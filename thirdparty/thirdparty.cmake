@@ -71,7 +71,7 @@ if(WIN32)
   FetchContent_Declare(
     vcpkg
     GIT_REPOSITORY https://github.com/microsoft/vcpkg.git
-    GIT_TAG 61f610845fb206298a69f708104a51d651872877
+    GIT_TAG f7423ee180c4b7f40d43402c2feb3859161ef625
     UPDATE_COMMAND bootstrap-vcpkg.bat -disableMetrics
     COMMAND ${CMAKE_COMMAND} -E echo "Building vcpkg cfitsio"
     COMMAND vcpkg install --binarysource=default --no-print-usage cfitsio:x86-windows
@@ -621,6 +621,7 @@ else()
       -DCMAKE_PREFIX_PATH=${VCPKG_PREFIX}
       -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libindi
       -DCMAKE_CXX_FLAGS=-D_CRT_SECURE_NO_WARNINGS
+      -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
   )
   include_directories(${indi_INSTALL_DIR}/include)
   if (WIN32)
@@ -719,7 +720,7 @@ if (NOT OPENSOURCE_ONLY)
   FetchContent_Declare(
     OGMAcamSDK
     GIT_REPOSITORY https://github.com/OGMAvision/OGMAcamSDK.git
-    GIT_TAG be02a7317194e28e5b4f5f0d735eae729d096752
+    GIT_TAG 4314639b289636425821d0bb4d47aa3d652e790e
   )
   FetchContent_MakeAvailable(OGMAcamSDK)
   include_directories(${ogmacamsdk_SOURCE_DIR}/inc)
@@ -803,6 +804,7 @@ if(WIN32)
   set(PHD_COPY_EXTERNAL_ALL ${PHD_COPY_EXTERNAL_ALL}  ${PHD_PROJECT_ROOT_DIR}/WinLibs/msvcp140.dll)
   set(PHD_COPY_EXTERNAL_ALL ${PHD_COPY_EXTERNAL_ALL}  ${PHD_PROJECT_ROOT_DIR}/WinLibs/vcomp140.dll)
   set(PHD_COPY_EXTERNAL_ALL ${PHD_COPY_EXTERNAL_ALL}  ${PHD_PROJECT_ROOT_DIR}/WinLibs/vcruntime140.dll)
+  set(PHD_COPY_EXTERNAL_ALL ${PHD_COPY_EXTERNAL_ALL}  ${PHD_PROJECT_ROOT_DIR}/WinLibs/concrt140.dll)
 
   # ASCOM
   # disabled since not used in the SLN
@@ -892,7 +894,7 @@ if(APPLE)
 
   find_library( qhylib
                 NAMES qhyccd
-                PATHS ${PHD_PROJECT_ROOT_DIR}/cameras/qhyccdlibs/mac/x86_64)
+                PATHS ${PHD_PROJECT_ROOT_DIR}/cameras/qhyccdlibs/mac/universal)
   if(NOT qhylib)
     message(FATAL_ERROR "Cannot find the qhy SDK libs")
   endif()
@@ -967,18 +969,18 @@ if(UNIX AND NOT APPLE)
 
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "^armv6(.*)")
       set(zwoarch "armv6")
-      set(qhyarch "armv6")
+      set(qhyarch "arm32")
       set(toupcam_arch "armel")
       set(svbony_arch "armv6")
     elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^armv7(.*)|arm64|aarch64|^armv8(.*)")
       if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         set(zwoarch "armv8")
-        set(qhyarch "armv8")
+        set(qhyarch "arm64")
         set(toupcam_arch "arm64")
         set(svbony_arch "armv8")
       else()
         set(zwoarch "armv7")
-        set(qhyarch "armv7")
+        set(qhyarch "arm32")
         set(toupcam_arch "armhf")
         set(svbony_arch "armv7")
       endif()
@@ -990,7 +992,7 @@ if(UNIX AND NOT APPLE)
         set(svbony_arch "x64")
       else()
         set(zwoarch "x86")
-        set(qhyarch "x86_32")
+        set(qhyarch "x86_32")  # no longer distributed by QHY
         set(toupcam_arch "x86")
         set(svbony_arch "x86")
       endif()
@@ -1068,7 +1070,7 @@ if(UNIX AND NOT APPLE)
         if(NOT qhylib)
           message(FATAL_ERROR "Cannot find the qhy SDK libs")
         endif()
-          set(PHD_LINK_EXTERNAL ${PHD_LINK_EXTERNAL} ${qhylib})
+        set(PHD_LINK_EXTERNAL ${PHD_LINK_EXTERNAL} ${qhylib})
       endif()
     endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
 
@@ -1124,8 +1126,8 @@ if(WIN32)
 elseif(UNIX OR APPLE)
   add_definitions(-DHAVE_SXV_CAMERA=1)
   set(SXV_PLATFORM_SRC
-      ${phd_src_dir}/cameras/SXMacLib.h
-      ${phd_src_dir}/cameras/SXMacLib.c)
+      ${PHD_PROJECT_ROOT_DIR}/cameras/SXMacLib.h
+      ${PHD_PROJECT_ROOT_DIR}/cameras/SXMacLib.c)
 endif()
 
 
@@ -1135,13 +1137,13 @@ endif()
 
 if(APPLE)
   add_definitions(-DHAVE_KWIQGUIDER_CAMERA=1)
-  include_directories(${phd_src_dir}/cam_KWIQGuider/)
+  include_directories(${PHD_PROJECT_ROOT_DIR}/cameras/KWIQGuider/)
   set(KWIQGuider_PLATFORM_SRC
-    ${phd_src_dir}/cam_KWIQGuider/KWIQGuider.cpp
-    ${phd_src_dir}/cam_KWIQGuider/KWIQGuider.h
-    ${phd_src_dir}/cam_KWIQGuider/KWIQGuider_firmware.h
-    ${phd_src_dir}/cam_KWIQGuider/KWIQGuider_loader.cpp
-    ${phd_src_dir}/cam_KWIQGuider/KWIQGuider_priv.h
+    ${PHD_PROJECT_ROOT_DIR}/cameras/KWIQGuider/KWIQGuider.cpp
+    ${PHD_PROJECT_ROOT_DIR}/cameras/KWIQGuider/KWIQGuider.h
+    ${PHD_PROJECT_ROOT_DIR}/cameras/KWIQGuider/KWIQGuider_firmware.h
+    ${PHD_PROJECT_ROOT_DIR}/cameras/KWIQGuider/KWIQGuider_loader.cpp
+    ${PHD_PROJECT_ROOT_DIR}/cameras/KWIQGuider/KWIQGuider_priv.h
   )
 endif()
 
