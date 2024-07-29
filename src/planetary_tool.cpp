@@ -579,10 +579,13 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
     m_driveRate = driveRate;
 
     // Update camera binning
-    int localBinning = m_BinningCtrl->GetSelection();
-    if (pCamera->Binning != localBinning + 1)
+    if (pCamera)
     {
-        m_BinningCtrl->Select(pCamera->Binning - 1);
+        int localBinning = m_BinningCtrl->GetSelection();
+        if (pCamera->Binning != localBinning + 1)
+        {
+            m_BinningCtrl->Select(pCamera->Binning - 1);
+        }
     }
 }
 
