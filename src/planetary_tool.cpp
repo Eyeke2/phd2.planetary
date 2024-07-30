@@ -197,7 +197,7 @@ PlanetToolWin::PlanetToolWin()
     x_radii->Add(0, 0, 1, wxEXPAND, 5);
 
     // Planetary disk detection stuff
-    wxStaticText* ThresholdLabel = new wxStaticText(m_planetTab, wxID_ANY, wxT("Edge Detection Threshold:"), wxDefaultPosition, wxDefaultSize, 0);
+    wxStaticText* ThresholdLabel = new wxStaticText(m_planetTab, wxID_ANY, _("Edge Detection Threshold:"), wxDefaultPosition, wxDefaultSize, 0);
     m_thresholdSlider = new wxSlider(m_planetTab, wxID_ANY, PT_HIGH_THRESHOLD_DEFAULT, PT_THRESHOLD_MIN, PT_HIGH_THRESHOLD_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
     ThresholdLabel->SetToolTip(_("Higher values reduce sensitivity to weaker edges, resulting in cleaner contour. This is displayed in red when the display of internal contour edges is enabled."));
     m_thresholdSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnThresholdChanged, this);
@@ -710,14 +710,14 @@ void PlanetToolWin::UpdateStatus()
 void PlanetToolWin::OnKeyDown(wxKeyEvent& event)
 {
     if (event.AltDown() && m_MouseHoverFlag) {
-        m_CloseButton->SetLabel(wxT("Reset"));
+        m_CloseButton->SetLabel(_("Reset"));
     }
     event.Skip(); // Ensure that other key handlers are not skipped
 }
 
 void PlanetToolWin::OnKeyUp(wxKeyEvent& event)
 {
-    m_CloseButton->SetLabel(wxT("Close"));
+    m_CloseButton->SetLabel(_("Close"));
     event.Skip();
 }
 
@@ -726,7 +726,7 @@ void PlanetToolWin::OnMouseEnterCloseBtn(wxMouseEvent& event)
     m_MouseHoverFlag = true;
     if (wxGetKeyState(WXK_ALT))
     {
-        m_CloseButton->SetLabel(wxT("Reset"));
+        m_CloseButton->SetLabel(_("Reset"));
     }
     event.Skip();
 }
@@ -734,7 +734,7 @@ void PlanetToolWin::OnMouseEnterCloseBtn(wxMouseEvent& event)
 void PlanetToolWin::OnMouseLeaveCloseBtn(wxMouseEvent& event)
 {
     m_MouseHoverFlag = false;
-    m_CloseButton->SetLabel(wxT("Close"));
+    m_CloseButton->SetLabel(_("Close"));
     event.Skip();
 }
 
