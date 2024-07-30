@@ -480,6 +480,9 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
     bool tracking = false;
     bool need_update = false;
 
+    // Freeze the window to prevent updates
+    this->Freeze();
+
     // Update pause button state to sync with guiding state
     bool paused = pSolarSystemObj->GetDetectionPausedState() && pFrame->pGuider->IsGuiding();
     pSolarSystemObj->SetDetectionPausedState(paused);
@@ -587,6 +590,9 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
             m_BinningCtrl->Select(pCamera->Binning - 1);
         }
     }
+
+    // Thaw the window to allow updates
+    this->Thaw();
 }
 
 void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
