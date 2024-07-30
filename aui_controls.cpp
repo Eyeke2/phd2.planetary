@@ -435,11 +435,11 @@ void SBStarIndicators::UpdateState(double MassPct, double SNR, bool Saturated)
         // Update the star info text
         wxString starText;
         if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
-            starText = _T("OBJECT");
+            starText = _("OBJECT");
         else if (pFrame->pGuider->GetMultiStarMode())
             starText = pFrame->pGuider->GetStarCount();
         else
-            starText = Saturated ? _T(" SAT ") : _T("STAR*");
+            starText = Saturated ? " SAT " : _("STAR");
         txtStarInfo->SetLabelText(starText);
     }
     else

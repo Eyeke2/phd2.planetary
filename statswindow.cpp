@@ -144,16 +144,16 @@ StatsWindow::StatsWindow(wxWindow *parent)
 
     row = 0, col = 0;
     m_grid3->SetCellValue(row, col++, _("Detection time"));
-    m_grid3->SetCellValue(row, col, _("000000 ms"));
+    m_grid3->SetCellValue(row, col, _T("000000 ms"));
     ++row, col = 0;
     m_grid3->SetCellValue(row, col++, _("Contours/points"));
-    m_grid3->SetCellValue(row, col, _("9999/9999"));
+    m_grid3->SetCellValue(row, col, _T("9999/9999"));
     ++row, col = 0;
     m_grid3->SetCellValue(row, col++, _("Fitting score"));
-    m_grid3->SetCellValue(row, col, _("1.00"));
+    m_grid3->SetCellValue(row, col, _T("1.00"));
     ++row, col = 0;
     m_grid3->SetCellValue(row, col++, _("Detection error"));
-    m_grid3->SetCellValue(row, col, _("9999999"));
+    m_grid3->SetCellValue(row, col, _T("9999999"));
     m_grid3->AutoSize();
 
     m_grid3->SetCellValue(0, 1, wxEmptyString);

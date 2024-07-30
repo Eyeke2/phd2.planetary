@@ -40,7 +40,7 @@ class StatsWindow : public wxWindow
     bool m_visible;
     wxGrid *m_grid1;
     wxGrid *m_grid2;
-    wxGrid* m_grid3;
+    wxGrid *m_grid3;
     int m_length;
     OptionsButton *m_pLengthButton;
     wxTimer m_coolerTimer;

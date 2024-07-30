@@ -217,7 +217,7 @@ PlanetToolWin::PlanetToolWin()
     x_radii->Add(0, 0, 1, wxEXPAND, 5);
 
     // Planetary disk detection stuff
-    wxStaticText* ThresholdLabel = new wxStaticText(m_planetTab, wxID_ANY, wxT("Edge Detection Threshold:"), wxDefaultPosition, wxDefaultSize, 0);
+    wxStaticText* ThresholdLabel = new wxStaticText(m_planetTab, wxID_ANY, _("Edge Detection Threshold:"), wxDefaultPosition, wxDefaultSize, 0);
     m_thresholdSlider = new wxSlider(m_planetTab, wxID_ANY, PT_HIGH_THRESHOLD_DEFAULT, PT_THRESHOLD_MIN, PT_HIGH_THRESHOLD_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
     ThresholdLabel->SetToolTip(_("Higher values reduce sensitivity to weaker edges, resulting in cleaner contour. This is displayed in red when the display of internal contour edges is enabled."));
     m_thresholdSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnThresholdChanged, this);
@@ -225,7 +225,7 @@ PlanetToolWin::PlanetToolWin()
     m_RoiCheckBox->SetToolTip(_("Enable automatically selected Region Of Interest (ROI) for improved processing speed and reduced CPU usage."));
 
     // Add all solar system object tab elements
-    wxStaticBoxSizer *planetSizer = new wxStaticBoxSizer(new wxStaticBox(m_planetTab, wxID_ANY, _("")), wxVERTICAL);
+    wxStaticBoxSizer *planetSizer = new wxStaticBoxSizer(new wxStaticBox(m_planetTab, wxID_ANY, _T("")), wxVERTICAL);
     planetSizer->AddSpacer(10);
     planetSizer->Add(m_RoiCheckBox, 0, wxLEFT | wxALIGN_LEFT, 10);
     planetSizer->AddSpacer(10);
@@ -237,17 +237,17 @@ PlanetToolWin::PlanetToolWin()
     m_planetTab->Layout();
 
     // Surface tracking elements
-    wxStaticText* minHessianLabel = new wxStaticText(m_featuresTab, wxID_ANY, wxT("Detection Sensitivity:"), wxDefaultPosition, wxDefaultSize, 0);
+    wxStaticText* minHessianLabel = new wxStaticText(m_featuresTab, wxID_ANY, _("Detection Sensitivity:"), wxDefaultPosition, wxDefaultSize, 0);
     m_minHessianSlider = new wxSlider(m_featuresTab, wxID_ANY, PT_MIN_HESSIAN_UI_DEFAULT, PT_MIN_HESSIAN_UI_MIN, PT_MIN_HESSIAN_UI_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
     minHessianLabel->SetToolTip(_("Adjusts the sensitivity of feature detection. A lower value detects fewer but more robust features. "
                                   "Higher values increase the number of detected features but may include more noise. "
                                   "Ideal value depends on image content and quality"));
-    wxStaticText* maxFeaturesLabel = new wxStaticText(m_featuresTab, wxID_ANY, wxT("Maximum number of surface features:"), wxDefaultPosition, wxDefaultSize, 0);
+    wxStaticText* maxFeaturesLabel = new wxStaticText(m_featuresTab, wxID_ANY, _("Maximum number of surface features:"), wxDefaultPosition, wxDefaultSize, 0);
     m_maxFeaturesSlider = new wxSlider(m_featuresTab, wxID_ANY, PT_MAX_SURFACE_FEATURES, 5, PT_MAX_SURFACE_FEATURES, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
     maxFeaturesLabel->SetToolTip(_("Limits maximum number of features used for tracking."));
     m_minHessianSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnMinHessianChanged, this);
     m_maxFeaturesSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnMaxFeaturesChanged, this);
-    wxStaticBoxSizer* surfaceSizer = new wxStaticBoxSizer(new wxStaticBox(m_featuresTab, wxID_ANY, _("")), wxVERTICAL);
+    wxStaticBoxSizer* surfaceSizer = new wxStaticBoxSizer(new wxStaticBox(m_featuresTab, wxID_ANY, _T("")), wxVERTICAL);
     surfaceSizer->Add(minHessianLabel, 0, wxLEFT | wxTOP, 10);
     surfaceSizer->Add(m_minHessianSlider, 0, wxALL, 10);
     surfaceSizer->Add(maxFeaturesLabel, 0, wxLEFT | wxTOP, 10);
@@ -807,14 +807,14 @@ void PlanetToolWin::UpdateStatus()
 void PlanetToolWin::OnKeyDown(wxKeyEvent& event)
 {
     if (event.AltDown() && m_MouseHoverFlag) {
-        m_CloseButton->SetLabel(wxT("Reset"));
+        m_CloseButton->SetLabel(_("Reset"));
     }
     event.Skip(); // Ensure that other key handlers are not skipped
 }
 
 void PlanetToolWin::OnKeyUp(wxKeyEvent& event)
 {
-    m_CloseButton->SetLabel(wxT("Close"));
+    m_CloseButton->SetLabel(_("Close"));
     event.Skip();
 }
 
@@ -823,7 +823,7 @@ void PlanetToolWin::OnMouseEnterCloseBtn(wxMouseEvent& event)
     m_MouseHoverFlag = true;
     if (wxGetKeyState(WXK_ALT))
     {
-        m_CloseButton->SetLabel(wxT("Reset"));
+        m_CloseButton->SetLabel(_("Reset"));
     }
     event.Skip();
 }
@@ -831,7 +831,7 @@ void PlanetToolWin::OnMouseEnterCloseBtn(wxMouseEvent& event)
 void PlanetToolWin::OnMouseLeaveCloseBtn(wxMouseEvent& event)
 {
     m_MouseHoverFlag = false;
-    m_CloseButton->SetLabel(wxT("Close"));
+    m_CloseButton->SetLabel(_("Close"));
     event.Skip();
 }
 
