@@ -894,7 +894,6 @@ void PlanetToolWin::OnClose(wxCloseEvent& evt)
     pSolarSystemObj->SetShowFeaturesButtonState(false);
     pSolarSystemObj->ShowVisualElements(false);
     pFrame->pGuider->Refresh();
-    pFrame->pGuider->Update();
 
     // save the window position
     int x, y;
