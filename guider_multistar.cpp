@@ -1117,7 +1117,6 @@ void GuiderMultiStar::OnLClick(wxMouseEvent &mevent)
             m_showBookmarks = true;
             pFrame->bookmarks_menu->Check(MENU_BOOKMARKS_SHOW, GetBookmarksShown());
             Refresh();
-            Update();
             return;
         }
 

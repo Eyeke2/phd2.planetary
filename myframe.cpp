@@ -1253,7 +1253,13 @@ void MyFrame::UpdateButtonsStatus()
             m_statusbar->ClearStarInfo();
         if (!guiding_active)
             m_statusbar->ClearGuiderInfo();
-        Update();
+        // Invalidate the main window and let the event loop update it.
+        // The Windows event loop will call OnPaint() when it's ready.
+        // Do not call Update() here, as it may cause deadlocks in some cases.
+        // When called from the context of the event server, calling Update()
+        // could cause Windows message loop to deadlock at wxFindWindowAtPoint(wxGetMousePosition()).
+        // This occurs because the client application is waiting for the
+        // event server to process the event.
         Refresh();
     }
 }

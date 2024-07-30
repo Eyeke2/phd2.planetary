@@ -254,7 +254,6 @@ PauseType Guider::SetPaused(PauseType pause)
     if (pause != prev)
     {
         Refresh();
-        Update();
     }
 
     return prev;

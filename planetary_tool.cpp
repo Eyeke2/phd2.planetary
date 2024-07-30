@@ -517,7 +517,6 @@ void PlanetToolWin::OnShowElementsClick(wxCommandEvent& event)
     else
         pSolarSystemObj->ShowVisualElements(false);
     pFrame->pGuider->Refresh();
-    pFrame->pGuider->Update();
 }
 
 void PlanetToolWin::OnNoiseFilterClick(wxCommandEvent& event)
