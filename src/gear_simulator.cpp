@@ -1060,7 +1060,7 @@ double SimCamState::SimulateDisplacement(double& total_shift_x, double& total_sh
 
     // convert RA hours to SI seconds
     const double SIDEREAL_SECONDS_PER_SEC = 0.9973;
-    dra *= 3600 / SIDEREAL_SECONDS_PER_SEC;
+    dra *= 3600. / SIDEREAL_SECONDS_PER_SEC;
     s_ra_offset += dra;
 
     // an increase in RA means the worm moved backwards
@@ -1094,15 +1094,16 @@ double SimCamState::SimulateDisplacement(double& total_shift_x, double& total_sh
     cum_dec_drift += (double)delta_time_ms * SimCamParams::dec_drift_rate / 1000.;
 
     // Include mount tracking in the drift if enabled
-    if (SimCamParams::mount_dynamics)
+    bool onCameraMount = pMount && (pMount->Name() == _T("On Camera"));
+    if (pMount && !onCameraMount && SimCamParams::mount_dynamics)
     {
         cum_ra_drift += mount_ra_delta_arcsec;
         cum_dec_drift += mount_dec_delta_arcsec;
     }
 
     // Total movements from all sources, in units of arcseconds
-    total_shift_ra = cum_ra_drift + pe;
-    total_shift_dec = cum_dec_drift;
+    total_shift_ra = cum_ra_drift + pe + ra_ofs * SimCamParams::image_scale;
+    total_shift_dec = cum_dec_drift + dec_ofs.val() * SimCamParams::image_scale;
 
     // simulate seeing (x/y)
     if (SimCamParams::seeing_scale > 0.0)
@@ -2356,6 +2357,8 @@ void CameraSimulator::ShowPropertyDialog()
         if (!pFrame->CaptureActive)
             SetRBState(pCameraSimTool, pCameraSimTool->pPEDefaultRb->GetValue());
         pCameraSimTool->UpdatePierSideLabel();
+        bool onCameraMount = pMount && (pMount->Name() == _T("On Camera"));
+        pCameraSimTool->pMountDynamicsCheckBox->Enable(pMount && pMount->IsConnected() && !onCameraMount);
     }
 }
 
