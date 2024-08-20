@@ -340,6 +340,7 @@ void ProfileWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
         int planetRadius = pFrame->pGuider->m_SolarSystemObject.m_radius;
         int radius = (pFrame->GetStarFindMode() == Star::FIND_PLANET) && (planetRadius > HALFW) ? planetRadius * 5 / 4 : 15;
         radius *= scaleFactor;
+        radius = wxMax(radius, 15);
         int lkx = ROUND(LockX);
         int l = std::max(0, lkx - radius);
         int r = std::min(dBmp.GetWidth() - 1, lkx + radius);
