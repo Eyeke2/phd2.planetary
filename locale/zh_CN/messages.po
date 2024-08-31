@@ -34,7 +34,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PHD2 2.6.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-07-30 19:54+0300\n"
+"POT-Creation-Date: 2024-08-31 18:49+0300\n"
 "PO-Revision-Date: 2023-01-26 10:13+0800\n"
 "Last-Translator: Linkage <Linkage@163.com>\n"
 "Language-Team: Linkage <Linkage@163.com>\n"
@@ -1140,8 +1140,8 @@ msgid "Approximate declination where you will do calibration"
 msgstr "校准时大约的赤纬角度"
 
 #: calstep_dialog.cpp:162 camera.cpp:903 darks_dialog.cpp:202
-#: gear_simulator.cpp:2184 mount.cpp:270 mount.cpp:322 planetary_tool.cpp:810
-#: planetary_tool.cpp:826 Refine_DefMap.cpp:177 starcross_test.cpp:147
+#: gear_simulator.cpp:2184 mount.cpp:270 mount.cpp:322 planetary_tool.cpp:823
+#: planetary_tool.cpp:839 Refine_DefMap.cpp:177 starcross_test.cpp:147
 #: testguide.cpp:103
 msgid "Reset"
 msgstr "重置"
@@ -2154,7 +2154,7 @@ msgid ""
 "Reset gain to camera's default value (disabled when camera is not connected)"
 msgstr "将增益重置为相机的默认值（未连接相机时禁用）"
 
-#: camera.cpp:922 planetary_tool.cpp:305
+#: camera.cpp:922 planetary_tool.cpp:307
 msgid "Binning"
 msgstr "像素合并"
 
@@ -3089,8 +3089,8 @@ msgstr "断开所有设备"
 msgid "Disconnect all equipment"
 msgstr "断开所有的设备"
 
-#: gear_dialog.cpp:346 myframe.cpp:1348 planetary_tool.cpp:314
-#: planetary_tool.cpp:817 planetary_tool.cpp:834 polardrift_toolwin.cpp:210
+#: gear_dialog.cpp:346 myframe.cpp:1348 planetary_tool.cpp:316
+#: planetary_tool.cpp:830 planetary_tool.cpp:847 polardrift_toolwin.cpp:210
 #: staticpa_toolwin.cpp:426
 msgid "Close"
 msgstr "关闭"
@@ -5317,7 +5317,7 @@ msgstr "高级设置\tCtrl-A"
 msgid "&Camera Settings"
 msgstr "相机设置"
 
-#: myframe.cpp:523 myframe.cpp:1057 planetary_tool.cpp:282
+#: myframe.cpp:523 myframe.cpp:1057 planetary_tool.cpp:284
 msgid "Camera settings"
 msgstr "相机设置"
 
@@ -5983,7 +5983,7 @@ msgstr "降噪"
 msgid "Technique to reduce noise in images"
 msgstr "减少图像噪音技术"
 
-#: myframe.cpp:3105 planetary_tool.cpp:303
+#: myframe.cpp:3105 planetary_tool.cpp:305
 msgid "Time Lapse (ms)"
 msgstr "延时 (毫秒)"
 
@@ -6874,79 +6874,79 @@ msgstr ""
 "中天翻转工具不能在“禁用赤纬导星”时使用。如果您的赤道仪可以进行赤纬导星，请将"
 "赤纬导星模式设置为自动后重试。"
 
-#: planetary.cpp:200
+#: planetary.cpp:206
 msgid "SHARPNESS: "
 msgstr ""
 
-#: planetary.cpp:202
+#: planetary.cpp:208
 msgid "RADIUS: "
 msgstr ""
 
-#: planetary.cpp:307
+#: planetary.cpp:313
 #, c-format
 msgid "Object at (%.1f, %.1f)"
 msgstr ""
 
-#: planetary.cpp:309
+#: planetary.cpp:315
 #, c-format
 msgid "Object at (%.1f, %.1f) radius=%d"
 msgstr ""
 
-#: planetary.cpp:697
+#: planetary.cpp:703
 msgid "RefineDiskCenter: failed to start a thread\n"
 msgstr ""
 
-#: planetary.cpp:1100
+#: planetary.cpp:1106
 msgid "No detectable features"
 msgstr ""
 
-#: planetary.cpp:1132
+#: planetary.cpp:1138
 msgid "Too few matched features"
 msgstr ""
 
-#: planetary.cpp:1180 planetary.cpp:1229
+#: planetary.cpp:1186 planetary.cpp:1235
 msgid "Too few detectable features"
 msgstr ""
 
-#: planetary.cpp:1248
+#: planetary.cpp:1254
 msgid "WARNING: image is not stable, tracking may not be accurate!"
 msgstr ""
 
-#: planetary.cpp:1354
+#: planetary.cpp:1360
 msgid ""
 "Too many contour points detected. Please apply pixel binning, enable ROI, or "
 "increase the Edge Detection Threshold."
 msgstr ""
 
-#: planetary.cpp:1477
+#: planetary.cpp:1483
 msgid "\\"
 msgstr ""
 
-#: planetary.cpp:1478
+#: planetary.cpp:1484
 msgid "PHD2"
 msgstr ""
 
-#: planetary.cpp:1526
+#: planetary.cpp:1532
 msgid "Object not found"
 msgstr ""
 
-#: planetary.cpp:1564
+#: planetary.cpp:1570
 msgid ""
 "ERROR: camera frame size exceeds maximum limit. Please apply binning to "
 "reduce the frame size."
 msgstr ""
 
-#: planetary.cpp:1635
+#: planetary.cpp:1642
 msgid "Find solar system object: noise filter applied\n"
 msgstr ""
 
-#: planetary.cpp:1682
+#: planetary.cpp:1690
 msgid ""
 "ERROR: exception occurred during image processing: change detection "
 "parameters"
 msgstr ""
 
-#: planetary.cpp:1688
+#: planetary.cpp:1696
 msgid "ERROR: unknown exception occurred in solar system object detection"
 msgstr ""
 
@@ -6980,75 +6980,75 @@ msgid ""
 "magnification"
 msgstr ""
 
-#: planetary_tool.cpp:185
+#: planetary_tool.cpp:186
 msgid "Enable noise suppression filter (experimental)"
 msgstr ""
 
-#: planetary_tool.cpp:186
+#: planetary_tool.cpp:187
 msgid ""
 "Enable noise filtering only for extremely noisy images. Use this option "
 "cautiously, as it's recommended only when absolutely necessary."
 msgstr ""
 
-#: planetary_tool.cpp:188
+#: planetary_tool.cpp:190
 msgid ""
 "For initial guess of possible radius range connect the gear and set correct "
 "focal length."
 msgstr ""
 
-#: planetary_tool.cpp:197
+#: planetary_tool.cpp:199
 #, c-format
 msgid ""
 "Hint: for solar/lunar detection (pixel size=%.2f, binning=x%d, FL=%d mm) set "
 "the radius to approximately %.0f-%.0f."
 msgstr ""
 
-#: planetary_tool.cpp:202
+#: planetary_tool.cpp:204
 msgid "min radius:"
 msgstr ""
 
-#: planetary_tool.cpp:204
+#: planetary_tool.cpp:206
 msgid ""
 "Minimum planet radius (in pixels). Set this a few pixels lower than the "
 "actual planet radius. "
 msgstr ""
 
-#: planetary_tool.cpp:206
+#: planetary_tool.cpp:208
 msgid "max radius:"
 msgstr ""
 
-#: planetary_tool.cpp:208
+#: planetary_tool.cpp:210
 msgid ""
 "Maximum planet radius (in pixels). Set this a few pixels higher than the "
 "actual planet radius. "
 msgstr ""
 
-#: planetary_tool.cpp:220
+#: planetary_tool.cpp:222
 msgid "Edge Detection Threshold:"
 msgstr ""
 
-#: planetary_tool.cpp:222
+#: planetary_tool.cpp:224
 msgid ""
 "Higher values reduce sensitivity to weaker edges, resulting in cleaner "
 "contour. This is displayed in red when the display of internal contour edges "
 "is enabled."
 msgstr ""
 
-#: planetary_tool.cpp:224
+#: planetary_tool.cpp:226
 msgid "Enable ROI"
 msgstr ""
 
-#: planetary_tool.cpp:225
+#: planetary_tool.cpp:227
 msgid ""
 "Enable automatically selected Region Of Interest (ROI) for improved "
 "processing speed and reduced CPU usage."
 msgstr ""
 
-#: planetary_tool.cpp:240
+#: planetary_tool.cpp:242
 msgid "Detection Sensitivity:"
 msgstr ""
 
-#: planetary_tool.cpp:242
+#: planetary_tool.cpp:244
 msgid ""
 "Adjusts the sensitivity of feature detection. A lower value detects fewer "
 "but more robust features. Higher values increase the number of detected "
@@ -7056,19 +7056,19 @@ msgid ""
 "and quality"
 msgstr ""
 
-#: planetary_tool.cpp:245
+#: planetary_tool.cpp:247
 msgid "Maximum number of surface features:"
 msgstr ""
 
-#: planetary_tool.cpp:247
+#: planetary_tool.cpp:249
 msgid "Limits maximum number of features used for tracking."
 msgstr ""
 
-#: planetary_tool.cpp:260
+#: planetary_tool.cpp:262
 msgid "Display internal edges/features"
 msgstr ""
 
-#: planetary_tool.cpp:261
+#: planetary_tool.cpp:263
 msgid ""
 "Toggle the visibility of internally detected edges/features and tune "
 "detection parameters to maintain a manageable number of these features while "
@@ -7076,125 +7076,125 @@ msgid ""
 "object guiding mode."
 msgstr ""
 
-#: planetary_tool.cpp:265
+#: planetary_tool.cpp:267
 msgid "Mount settings"
 msgstr ""
 
-#: planetary_tool.cpp:267
+#: planetary_tool.cpp:269
 msgid "Tracking"
 msgstr ""
 
-#: planetary_tool.cpp:268
+#: planetary_tool.cpp:270
 msgid "Press and hold CTRL key to toggle mount tracking state"
 msgstr ""
 
-#: planetary_tool.cpp:270 planetary_tool.cpp:623 planetary_tool.cpp:690
+#: planetary_tool.cpp:272 planetary_tool.cpp:634 planetary_tool.cpp:701
 #: scope_ascom.cpp:538 scope_ascom.cpp:609
 msgid "Sidereal"
 msgstr ""
 
-#: planetary_tool.cpp:278
+#: planetary_tool.cpp:280
 msgid "Tracking rate"
 msgstr ""
 
-#: planetary_tool.cpp:278
+#: planetary_tool.cpp:280
 msgid "Select the desired tracking rate for the mount"
 msgstr ""
 
-#: planetary_tool.cpp:292
+#: planetary_tool.cpp:294
 msgid "Enable video log"
 msgstr ""
 
-#: planetary_tool.cpp:293
+#: planetary_tool.cpp:295
 msgid ""
 "Enable recording camera frames to video log file during guiding (using SER "
 "format)"
 msgstr ""
 
-#: planetary_tool.cpp:300
+#: planetary_tool.cpp:302
 msgid "Exposure (ms)"
 msgstr ""
 
-#: planetary_tool.cpp:300
+#: planetary_tool.cpp:302
 msgid "Camera exposure in milliseconds)"
 msgstr ""
 
-#: planetary_tool.cpp:301
+#: planetary_tool.cpp:303
 msgid "Gain"
 msgstr ""
 
-#: planetary_tool.cpp:301
+#: planetary_tool.cpp:303
 msgid "Camera gain (0-100)"
 msgstr ""
 
-#: planetary_tool.cpp:304
+#: planetary_tool.cpp:306
 msgid ""
 "How long should PHD wait between guide frames? Useful when using very short "
 "exposures but wanting to send guide commands less frequently"
 msgstr ""
 
-#: planetary_tool.cpp:305
+#: planetary_tool.cpp:307
 msgid "Camera binning. For solar/planetary guiding 1x1 is recommended."
 msgstr ""
 
-#: planetary_tool.cpp:315 planetary_tool.cpp:379 planetary_tool.cpp:570
-#: planetary_tool.cpp:873
+#: planetary_tool.cpp:317 planetary_tool.cpp:388 planetary_tool.cpp:581
+#: planetary_tool.cpp:886
 msgid "Pause"
 msgstr ""
 
-#: planetary_tool.cpp:316
+#: planetary_tool.cpp:318
 msgid ""
 "Use this button to pause/resume detection during clouds or totality instead "
 "of stopping guiding. It preserves object lock position, allowing PHD2 to "
 "realign the object without losing its original position"
 msgstr ""
 
-#: planetary_tool.cpp:379 planetary_tool.cpp:570 planetary_tool.cpp:873
+#: planetary_tool.cpp:388 planetary_tool.cpp:581 planetary_tool.cpp:886
 msgid "Resume"
 msgstr ""
 
-#: planetary_tool.cpp:454
+#: planetary_tool.cpp:463
 msgid "Solar/planetary guiding mode: enabled\n"
 msgstr ""
 
-#: planetary_tool.cpp:470
+#: planetary_tool.cpp:479
 msgid "Solar/planetary guiding mode: disabled\n"
 msgstr ""
 
-#: planetary_tool.cpp:581 scope.cpp:331
+#: planetary_tool.cpp:592 scope.cpp:331
 msgid "INDI Mount"
 msgstr "INDI赤道仪"
 
-#: planetary_tool.cpp:624 planetary_tool.cpp:634 planetary_tool.cpp:692
+#: planetary_tool.cpp:635 planetary_tool.cpp:645 planetary_tool.cpp:703
 #: scope_ascom.cpp:542 scope_ascom.cpp:612
 msgid "Lunar"
 msgstr ""
 
-#: planetary_tool.cpp:625 planetary_tool.cpp:641 planetary_tool.cpp:697
+#: planetary_tool.cpp:636 planetary_tool.cpp:652 planetary_tool.cpp:708
 #: scope_ascom.cpp:546 scope_ascom.cpp:615
 msgid "Solar"
 msgstr ""
 
-#: planetary_tool.cpp:626 planetary_tool.cpp:702 scope_ascom.cpp:550
+#: planetary_tool.cpp:637 planetary_tool.cpp:713 scope_ascom.cpp:550
 msgid "King"
 msgstr ""
 
-#: planetary_tool.cpp:626 planetary_tool.cpp:647 planetary_tool.cpp:702
+#: planetary_tool.cpp:637 planetary_tool.cpp:658 planetary_tool.cpp:713
 #: scope_ascom.cpp:619
 msgid "Custom"
 msgstr ""
 
-#: planetary_tool.cpp:718
+#: planetary_tool.cpp:729
 msgid "EQMOD ASCOM"
 msgstr ""
 
-#: planetary_tool.cpp:880
+#: planetary_tool.cpp:893
 msgid ""
 "Planetary detection paused : do not stop guiding to keep the original lock "
 "position!"
 msgstr ""
 
-#: planetary_tool.cpp:939
+#: planetary_tool.cpp:956
 msgid ""
 "Warning: the sum of camera exposure and time lapse duration must be at least "
 "500 msec (recommended 500-5000 msec)!"
@@ -8588,52 +8588,57 @@ msgstr "新的服务器连接"
 msgid "Lock set to %d,%d"
 msgstr "锁定框设定为%d,%d"
 
-#: star_profile.cpp:53
+#: star_profile.cpp:53 star_profile_new.cpp:50
 msgid "Profile"
 msgstr "配置文件"
 
-#: star_profile.cpp:193
+#: star_profile.cpp:193 star_profile_new.cpp:358
 msgid "HFD: "
 msgstr "HFD: "
 
-#: star_profile.cpp:247
+#: star_profile.cpp:247 star_profile_new.cpp:198
 msgid "Mid row"
 msgstr "Mid row"
 
-#: star_profile.cpp:251
+#: star_profile.cpp:251 star_profile_new.cpp:202
 msgid "Avg row"
 msgstr "平均 行"
 
-#: star_profile.cpp:255
+#: star_profile.cpp:255 star_profile_new.cpp:206
 msgid "Avg col"
 msgstr "平均 列"
 
-#: star_profile.cpp:362
+#: star_profile.cpp:363 star_profile_new.cpp:303
 msgid "Click image for raw view"
 msgstr ""
 
-#: star_profile.cpp:367
+#: star_profile.cpp:368 star_profile_new.cpp:308
 msgid "Click image for interpolated view"
 msgstr ""
 
-#: star_profile.cpp:398
+#: star_profile.cpp:399 star_profile_new.cpp:340
 msgid "Peak"
 msgstr "峰值"
 
-#: star_profile.cpp:402
+#: star_profile.cpp:403 star_profile_new.cpp:350 star_profile_new.cpp:378
 #, c-format
 msgid "%s FWHM: %.2f"
 msgstr "%s FWHM: %.2f"
 
-#: star_profile.cpp:446
+#: star_profile.cpp:447
 #, c-format
 msgid "%s FWHM: %.2f, %s%.2f (%.2f\")"
 msgstr ""
 
-#: star_profile.cpp:448
+#: star_profile.cpp:449
 #, c-format
 msgid "%s; %s%.2f"
 msgstr ""
+
+#: star_profile_new.cpp:373
+#, c-format
+msgid "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
+msgstr "%s FWHM: %.2f, HFD: %.2f (%.2f”)"
 
 #: starcross_test.cpp:85
 msgid "88888"
@@ -9436,9 +9441,6 @@ msgstr "正在连接旋转器 ..."
 #~ msgstr ""
 #~ "在 %.f 和 %.f 之间输入以毫米为单位的焦距，\n"
 #~ "如果焦距未知，则输入 0"
-
-#~ msgid "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
-#~ msgstr "%s FWHM: %.2f, HFD: %.2f (%.2f”)"
 
 #~ msgid "Cannot connect to camera %s: %s"
 #~ msgstr "无法连接相机 %s ：%s"
