@@ -81,7 +81,7 @@
 
 #define APPNAME _T("PHD2 Guiding")
 #define PHDVERSION _T("2.6.13")
-#define PHDSUBVER _T("dev5-planet.rc2")
+#define PHDSUBVER _T("dev5-planet.rc3")
 #ifdef DEVELOPER_MODE
 #define FULLVER PHDVERSION PHDSUBVER _T(" (Developer mode)")
 #else
