@@ -315,8 +315,9 @@ PlanetToolWin::PlanetToolWin()
     m_PauseButton = new wxButton(this, wxID_ANY, _("Pause"));
     m_PauseButton->SetToolTip(_("Use this button to pause/resume detection during clouds or totality instead of stopping guiding. "
         "It preserves object lock position, allowing PHD2 to realign the object without losing its original position"));
-    ButtonSizer->Add(m_PauseButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     ButtonSizer->Add(m_CloseButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    ButtonSizer->AddSpacer(15);
+    ButtonSizer->Add(m_PauseButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
     // All top level controls
     wxBoxSizer *topSizer = new wxBoxSizer(wxVERTICAL);
