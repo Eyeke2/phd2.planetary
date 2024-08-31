@@ -1237,7 +1237,7 @@ bool SolarSystemObject::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, 
                 // Set new reference frame. The new position may not be rather accurate
                 m_referencePoint = m_surfaceFixationPoint;
                 m_referenceKeypoints = filteredKeypoints;
-                m_referenceDescriptors = descriptors;
+                m_referenceDescriptors = descriptors.clone();
                 Debug.Write("Surface feature tracking: update reference point\n");
             }
 
@@ -1292,7 +1292,7 @@ bool SolarSystemObject::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, 
         m_trackingQuality = 0;
 
         m_referenceKeypoints = filteredKeypoints;
-        m_referenceDescriptors = descriptors;
+        m_referenceDescriptors = descriptors.clone();
 
         // Save reference frame centroid
         m_referencePoint = calculateCentroid(filteredKeypoints, clickedPoint);
