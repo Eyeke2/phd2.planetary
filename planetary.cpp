@@ -72,7 +72,9 @@ SolarSystemObject::SolarSystemObject()
     m_measuringSharpnessMode = false;
     m_unknownHFD = true;
     m_focusSharpness = 0;
+#ifdef DEVELOPER_MODE
     m_paramNoiseFilterState = false;
+#endif
 
     m_guidingFixationPointValid = false;
     m_surfaceFixationPoint = Point2f(0, 0);
@@ -137,7 +139,9 @@ SolarSystemObject::SolarSystemObject()
 
     // Get initial values of the solar system object detection state and parameters from configuration
     SetSurfaceTrackingState(pConfig->Profile.GetBoolean("/PlanetTool/surface_tracking", false));
+#ifdef DEVELOPER_MODE
     SetNoiseFilterState(pConfig->Profile.GetBoolean("/PlanetTool/noise_filter", false));
+#endif
 
     // Enforce valid range limits on solar system object detection parameters while restoring from configuration
     m_paramMinRadius = pConfig->Profile.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT);
@@ -174,7 +178,9 @@ SolarSystemObject::~SolarSystemObject()
 
     // Save all detection parameters
     pConfig->Profile.SetBoolean("/PlanetTool/surface_tracking", GetSurfaceTrackingState());
+#ifdef DEVELOPER_MODE
     pConfig->Profile.SetBoolean("/PlanetTool/noise_filter", GetNoiseFilterState());
+#endif
     pConfig->Profile.SetInt("/PlanetTool/min_radius", Get_minRadius());
     pConfig->Profile.SetInt("/PlanetTool/max_radius", Get_maxRadius());
     pConfig->Profile.SetInt("/PlanetTool/high_threshold", Get_highThreshold());
@@ -1623,6 +1629,7 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage* pImage, bool autoSe
         Mat imgFiltered;
         GaussianBlur(img8, imgFiltered, cv::Size(3, 3), 1.5);
 
+#ifdef DEVELOPER_MODE
         // Optional noise suppression filter
         if (GetNoiseFilterState())
         {
@@ -1634,6 +1641,7 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage* pImage, bool autoSe
             imgFiltered = filteredImage;
             Debug.Write(_("Find solar system object: noise filter applied\n"));
         }
+#endif
 
         // Find object depending on the selected detection mode
         switch (GetPlanetDetectMode())

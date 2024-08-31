@@ -60,7 +60,9 @@ private:
     int    m_paramHighThreshold;
     int    m_paramMinHessian;
     bool   m_paramShowElementsButtonState;
+#ifdef DEVELOPER_MODE
     bool   m_paramNoiseFilterState;
+#endif
     int    m_paramMaxFeatures;
 
     bool   m_showVisualElements;
@@ -220,8 +222,10 @@ public:
     bool VisualElementsEnabled() { return m_showVisualElements; }
     void SetShowFeaturesButtonState(bool state) { m_paramShowElementsButtonState = state; }
     bool GetShowFeaturesButtonState() { return m_paramShowElementsButtonState; }
+#ifdef DEVELOPER_MODE
     void SetNoiseFilterState(bool enable) { m_paramNoiseFilterState = enable; }
     bool GetNoiseFilterState() { return m_paramNoiseFilterState; }
+#endif
 
     void SetVideoLogging(bool enable) { m_videoLogEnabled = enable; }
     bool GetVideoLogging() { return m_videoLogEnabled; }

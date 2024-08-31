@@ -181,9 +181,11 @@ PlanetToolWin::PlanetToolWin()
     m_featureTrackingCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable surface features detection/guiding"));
     m_featureTrackingCheckBox->SetToolTip(_("Enable surface feature detection/guiding mode for imaging at high magnification"));
 
+#ifdef DEVELOPER_MODE
     // Experimental noise filter
     m_NoiseFilter = new wxCheckBox(this, wxID_ANY, _("Enable noise suppression filter (experimental)"));
     m_NoiseFilter->SetToolTip(_("Enable noise filtering only for extremely noisy images. Use this option cautiously, as it's recommended only when absolutely necessary."));
+#endif
 
     wxString radiusTooltip = _("For initial guess of possible radius range connect the gear and set correct focal length.");
     if (pCamera)
@@ -326,8 +328,10 @@ PlanetToolWin::PlanetToolWin()
     topSizer->AddSpacer(5);
     topSizer->Add(m_featureTrackingCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
     topSizer->AddSpacer(5);
+#ifdef DEVELOPER_MODE
     topSizer->Add(m_NoiseFilter, 0, wxLEFT | wxALIGN_LEFT, 20);
     topSizer->AddSpacer(5);
+#endif
     topSizer->Add(m_tabs, 0, wxEXPAND | wxALL, 5);
     topSizer->AddSpacer(5);
     topSizer->Add(m_ShowElements, 0, wxLEFT | wxALIGN_LEFT, 20);
@@ -352,7 +356,9 @@ PlanetToolWin::PlanetToolWin()
     m_PauseButton->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &PlanetToolWin::OnPauseButton, this);
     m_RoiCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnRoiModeClick, this);
     m_ShowElements->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnShowElementsClick, this);
+#ifdef DEVELOPER_MODE
     m_NoiseFilter->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnNoiseFilterClick, this);
+#endif
     Bind(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(PlanetToolWin::OnClose), this);
 
     m_minRadius->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_minRadius), NULL, this);
@@ -368,7 +374,9 @@ PlanetToolWin::PlanetToolWin()
     m_maxFeaturesSlider->SetValue(pSolarSystemObj->Get_maxFeatures());
     m_featureTrackingCheckBox->SetValue(pSolarSystemObj->GetSurfaceTrackingState());
     m_RoiCheckBox->SetValue(pSolarSystemObj->GetRoiEnableState());
+#ifdef DEVELOPER_MODE
     m_NoiseFilter->SetValue(pSolarSystemObj->GetNoiseFilterState());
+#endif
     m_enableCheckBox->SetValue(pSolarSystemObj->Get_SolarSystemObjMode());
     m_BinningCtrl->Select(pCamera ? pCamera->Binning - 1 : 0);
     m_saveVideoLogCheckBox->SetValue(pSolarSystemObj->GetVideoLogging());
@@ -520,12 +528,14 @@ void PlanetToolWin::OnShowElementsClick(wxCommandEvent& event)
     pFrame->pGuider->Refresh();
 }
 
+#ifdef DEVELOPER_MODE
 void PlanetToolWin::OnNoiseFilterClick(wxCommandEvent& event)
 {
     bool enabled = m_NoiseFilter->IsChecked();
     pSolarSystemObj->SetNoiseFilterState(enabled);
     Debug.Write(wxString::Format("Solar/planetary: noise filter %s\n", enabled ? "enabled" : "disabled"));
 }
+#endif
 
 void PlanetToolWin::OnSaveVideoLog(wxCommandEvent& event)
 {
@@ -783,7 +793,9 @@ void PlanetToolWin::UpdateStatus()
     m_maxRadius->Enable(enabled && !surfaceTracking);
     m_RoiCheckBox->Enable(enabled && !surfaceTracking);
     m_ShowElements->Enable(enabled);
+#ifdef DEVELOPER_MODE
     m_NoiseFilter->Enable(enabled);
+#endif
     m_saveVideoLogCheckBox->Enable(enabled);
 
     // Update slider states
@@ -918,14 +930,18 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         pSolarSystemObj->Set_highThreshold(PT_HIGH_THRESHOLD_DEFAULT);
         pSolarSystemObj->Set_minHessian(PT_MIN_HESSIAN_UI_DEFAULT);
         pSolarSystemObj->Set_maxFeatures(PT_MAX_SURFACE_FEATURES);
+#ifdef DEVELOPER_MODE
         pSolarSystemObj->SetNoiseFilterState(false);
+#endif
 
         m_minRadius->SetValue(pSolarSystemObj->Get_minRadius());
         m_maxRadius->SetValue(pSolarSystemObj->Get_maxRadius());
         m_thresholdSlider->SetValue(pSolarSystemObj->Get_highThreshold());
         m_minHessianSlider->SetValue(pSolarSystemObj->Get_minHessian());
         m_maxFeaturesSlider->SetValue(pSolarSystemObj->Get_maxFeatures());
+#ifdef DEVELOPER_MODE
         m_NoiseFilter->SetValue(pSolarSystemObj->GetNoiseFilterState());
+#endif
     }
     else
         this->Close();
