@@ -422,7 +422,6 @@ void Mount::MountConfigDialogPane::OnXAlgorithmSelected(wxCommandEvent& evt)
     m_pRABox->Layout();
     m_pAlgoBox->Layout();
     m_pParent->Layout();
-    m_pParent->Update();
     m_pParent->Refresh();
 
     // we can probably get rid of this when we reduce the number of GP algo settings
@@ -442,7 +441,6 @@ void Mount::MountConfigDialogPane::OnYAlgorithmSelected(wxCommandEvent& evt)
     m_pDecBox->Layout();
     m_pAlgoBox->Layout();
     m_pParent->Layout();
-    m_pParent->Update();
     m_pParent->Refresh();
 
     // For Dec algo change, enable algo controls based on current UI setting for Dec guide mode
@@ -791,6 +789,7 @@ void Mount::TestTransforms()
                 Debug.Write(wxString::Format("xidx=%.2f, yIdx=%.2f\n", xAngle / M_PI * 180.0 / 15, yAngle / M_PI * 180.0 / 15));
 
                 SetCalibration(xAngle, yAngle, 1.0, 1.0);
+                EvtServer.NotifyCalibrationUpdate();
 
                 for (int j = -13; j < 14; j++)
                 {
@@ -942,6 +941,7 @@ bool Mount::FlipCalibration()
         cal.decGuideParity = newDecParity;
 
         SetCalibration(cal);
+        EvtServer.NotifyCalibrationUpdate();
 
         pFrame->StatusMsg(wxString::Format(_("CAL: %s(%.f,%.f)->%s(%.f,%.f)"), ::PierSideStrTr(priorPierSide, wxEmptyString),
                                            degrees(origX), degrees(origY), ::PierSideStrTr(newPierSide, wxEmptyString),
@@ -1070,6 +1070,7 @@ Mount::MOVE_RESULT Mount::MoveOffset(GuiderOffset *ofs, unsigned int moveOptions
         info.decLimited = yMoveResult.limited;
         info.aoPos = GetAoPos();
         const Star& star = pFrame->pGuider->PrimaryStar();
+        info.starPos = PHD_Point(star);
         info.starMass = star.Mass;
         info.starSNR = star.SNR;
         info.starHFD = star.HFD;
@@ -1326,6 +1327,7 @@ void Mount::AdjustCalibrationForScopePointing()
                                      m_cal.xRate * 1000., m_cal.yRate * 1000., cal.xRate * 1000., cal.yRate * 1000.));
 
         SetCalibration(cal);
+        EvtServer.NotifyCalibrationUpdate();
     }
 
     // If the image scale has changed, make some other adjustments
@@ -1368,6 +1370,7 @@ void Mount::AdjustCalibrationForScopePointing()
                 cal.rotatorAngle = newRotatorAngle;
 
                 SetCalibration(cal);
+                EvtServer.NotifyCalibrationUpdate();
             }
         }
     }
@@ -1537,6 +1540,7 @@ bool Mount::IsCalibrated() const
 void Mount::ClearCalibration()
 {
     m_calibrated = false;
+    m_calIssue = CI_None;
     if (pFrame)
         pFrame->UpdateStatusBarCalibrationStatus();
 }

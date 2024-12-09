@@ -123,22 +123,44 @@ static double hfr(std::vector<R2M>& vec, double cx, double cy, double mass)
     return hfr;
 }
 
-bool Star::Find(const usImage *pImg, int searchRegion, int base_x, int base_y, FindMode mode, double minHFD, double maxHFD,
-                unsigned short maxADU, StarFindLogType loggingControl)
+bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double base_y, FindMode mode, double minHFD,
+                double maxHFD, unsigned short maxADU, StarFindLogType loggingControl, bool autoFound)
 {
     FindResult Result = STAR_OK;
-    double newX = base_x;
-    double newY = base_y;
+    double newX = (int) base_x;
+    double newY = (int) base_y;
 
     try
     {
         if (loggingControl == FIND_LOGGING_VERBOSE)
-            Debug.Write(wxString::Format("Star::Find(%d, %d, %d, %d, (%d,%d,%d,%d), %.1f, %0.1f, %hu) frame %u\n", searchRegion,
-                                         base_x, base_y, mode, pImg->Subframe.x, pImg->Subframe.y, pImg->Subframe.width,
-                                         pImg->Subframe.height, minHFD, maxHFD, maxADU, pImg->FrameNum));
+            Debug.Write(wxString::Format("Star::Find(%d, %.2f, %.2f, %d, (%d,%d,%d,%d), %.1f, %0.1f, %hu) frame %u\n",
+                                         searchRegion, base_x, base_y, mode, pImg->Subframe.x, pImg->Subframe.y,
+                                         pImg->Subframe.width, pImg->Subframe.height, minHFD, maxHFD, maxADU, pImg->FrameNum));
+
+        if (mode == FIND_PLANET)
+        {
+            SolarSystemObject *planet = &pFrame->pGuider->m_SolarSystemObject;
+            bool found = autoFound || planet->FindSolarSystemObject(pImg);
+            if (found)
+            {
+                // Use detected center of the Sun, Moon or planet for guiding
+                newX = planet->m_center_x;
+                newY = planet->m_center_y;
+
+                // Collect metrics computed by FindSolarSystemObject()
+                planet->GetPlanetMetrics(SNR, Mass, HFD, PeakVal);
+                EvtServer.NotifyPlanetMetrics(SNR, Mass, PeakVal);
+            }
+            else
+            {
+                Result = STAR_ERROR;
+            }
+            goto done;
+        }
 
         int minx, miny, maxx, maxy;
 
+        // Planetary mode doesn't use subframes
         if (pImg->Subframe.IsEmpty())
         {
             minx = miny = 0;
@@ -154,10 +176,11 @@ bool Star::Find(const usImage *pImg, int searchRegion, int base_x, int base_y, F
         }
 
         // search region bounds
-        int start_x = wxMax(base_x - searchRegion, minx);
-        int end_x = wxMin(base_x + searchRegion, maxx);
-        int start_y = wxMax(base_y - searchRegion, miny);
-        int end_y = wxMin(base_y + searchRegion, maxy);
+        int start_x, end_x, start_y, end_y;
+        start_x = wxMax(base_x - searchRegion, minx);
+        end_x = wxMin(base_x + searchRegion, maxx);
+        start_y = wxMax(base_y - searchRegion, miny);
+        end_y = wxMin(base_y + searchRegion, maxy);
 
         if (end_x <= start_x || end_y <= start_y)
         {
@@ -190,7 +213,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, int base_x, int base_y, F
 
             PeakVal = peak_val;
         }
-        else
+        else if (mode == FIND_CENTROID)
         {
             // find the peak value within the search region using a smoothing function
             // also check for saturation
@@ -363,7 +386,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, int base_x, int base_y, F
         // January 8
         //     http://www.phys.vt.edu/~jhs/phys3154/snr20040108.pdf
         double const gain = .5; // electrons per ADU, nominal
-        SNR = n > 0 ? mass / sqrt(mass / gain + sigma2_bg * (double) n * (1.0 + 1.0 / (double) nbg)) : 0.0;
+        SNR = (n > 0 && nbg > 0) ? mass / sqrt(mass / gain + sigma2_bg * (double) n * (1.0 + 1.0 / (double) nbg)) : 0.0;
 
         double const LOW_SNR = 3.0;
 
@@ -462,7 +485,7 @@ done:
 
     bool wasFound = WasFound(Result);
 
-    if (!IsValid() || Result == STAR_ERROR)
+    if (Result == STAR_ERROR)
     {
         Mass = 0.0;
         SNR = 0.0;
@@ -722,6 +745,24 @@ bool GuideStar::AutoFind(const usImage& image, int extraEdgeAllowance, int searc
     {
         Debug.AddLine("AutoFind called on subframe, returning error");
         return false; // not found
+    }
+
+    if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+    {
+        SolarSystemObject *planet = &pFrame->pGuider->m_SolarSystemObject;
+        if (planet->FindSolarSystemObject(&image, true))
+        {
+            referencePoint.X = planet->m_center_x;
+            referencePoint.Y = planet->m_center_y;
+            SetXY(referencePoint.X, referencePoint.Y);
+            Debug.Write(wxString::Format("Star::AutoFind found object at (%.1f, %.1f)\n", X, Y));
+            return true;
+        }
+        else
+        {
+            Debug.Write("AutoFind: no object found\n");
+            return false;
+        }
     }
 
     wxBusyCursor busy;

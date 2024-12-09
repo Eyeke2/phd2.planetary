@@ -45,6 +45,7 @@ public:
 
 private:
     wxSocketServer *m_serverSocket;
+    wxMutex m_clientsLock;
     CliSockSet m_eventServerClients;
     wxTimer *m_configEventDebouncer;
 
@@ -57,8 +58,9 @@ public:
 
     void NotifyStartCalibration(const Mount *mount);
     void NotifyCalibrationStep(const CalibrationStepInfo& info);
+    void NotifyCalibrationUpdate();
     void NotifyCalibrationFailed(const Mount *mount, const wxString& msg);
-    void NotifyCalibrationComplete(const Mount *mount);
+    void NotifyCalibrationComplete(const Mount *mount, CalibrationIssueType issue);
     void NotifyCalibrationDataFlipped(const Mount *mount);
     void NotifyLooping(unsigned int exposure, const Star *star, const FrameDroppedInfo *info);
     void NotifyLoopingStopped();
@@ -78,11 +80,18 @@ public:
     void NotifySettling(double distance, double time, double settleTime, bool starLocked);
     void NotifySettleDone(const wxString& errorMsg, int settleFrames, int droppedFrames);
     void NotifyAlert(const wxString& msg, int type);
+    void NotifyClearAlert();
     void NotifyGuidingParam(const wxString& name, double val);
     void NotifyGuidingParam(const wxString& name, int val);
     void NotifyGuidingParam(const wxString& name, bool val);
     void NotifyGuidingParam(const wxString& name, const wxString& val);
     void NotifyConfigurationChange();
+    void NotifyGearChange();
+    void NotifyStartCapture();
+    void NotifyPlanetaryDetection(bool detected, int points, double score, int radius);
+    void NotifyPlanetMetrics(double snr, double mass, int peak);
+    void NotifyMouseClick(PHD_Point& point);
+    void NotifyAutoSelect();
 
 private:
     void OnEventServerEvent(wxSocketEvent& evt);

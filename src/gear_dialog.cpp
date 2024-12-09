@@ -883,6 +883,27 @@ void GearDialog::OnButtonConnectAll(wxCommandEvent& event)
 {
     Debug.Write("gear_dialog: OnButtonConnectAll\n");
 
+#if defined(FRAME_MONITOR_CAMERA)
+    // A workaround for cases where the frame monitor camera was previously selected but later removed
+    // from the equipment profile by the standard PHD2 version.
+    if (m_pCamera)
+    {
+        pConfig->Profile.SetString("/camera/LastKnownGood", m_pCamera->Name);
+    }
+    else
+    {
+        wxString cameraName = pConfig->Profile.GetString("/camera/LastKnownGood", FRAME_MONITOR_CAMERA);
+        if (cameraName == FRAME_MONITOR_CAMERA)
+        {
+            pConfig->Profile.SetString("/camera/LastMenuChoice", cameraName);
+            Debug.Write(wxString::Format("gear_dialog: OnButtonConnectAll: restore camera '%s' in current profile\n", cameraName));
+            pCamera = m_pCamera = GuideCamera::Factory(cameraName);
+            SetMatchingSelection(m_pCameras, cameraName);
+            m_cameraUpdated = true;
+        }
+    }
+#endif
+
     bool canceled = DoConnectCamera(false);
     if (canceled)
         return;
@@ -1120,10 +1141,18 @@ bool GearDialog::DoConnectCamera(bool autoReconnecting)
         Debug.Write(wxString::Format("DoConnectCamera: reconnecting=%d warningIssued=%d lastCam=[%s] scaleRatio=%.3f\n",
                                      autoReconnecting, m_camWarningIssued, m_lastCamera, m_imageScaleRatio));
 
+        bool enableDarksFeature = true;
+#if defined(FRAME_MONITOR_CAMERA)
+        if (m_pCamera->Name == FRAME_MONITOR_CAMERA)
+        {
+            enableDarksFeature = false;
+        }
+#endif
+
         // No very reliable way to know if cam selection has changed - id's and name strings may be the same for different cams
         // from same mfr so do what we can here including consideration of image scale change Purpose is to warn user of
         // potential loss of dark/bpm files and later, to adjust guide params as best we can
-        if (!m_camWarningIssued && !autoReconnecting)
+        if (!m_camWarningIssued && !autoReconnecting && enableDarksFeature)
         {
             if ((m_lastCamera != _("None") && newCam != _("None") && !DeviceSelectionMatches(m_lastCamera, newCam)) ||
                 (fabs(m_imageScaleRatio - 1.0) >= 0.01))
@@ -1170,6 +1199,10 @@ bool GearDialog::DoConnectCamera(bool autoReconnecting)
             Debug.Write(wxString::Format("Initializing camera gain to %d%%\n", defaultGain));
             m_pCamera->SetCameraGain(defaultGain);
         }
+
+        // Notify solar/planetary module of camera connect
+        pFrame->pGuider->m_SolarSystemObject.NotifyCameraConnect(true);
+        EvtServer.NotifyGearChange();
 
         // See if the profile was created with a binning level that isn't supported by the camera (user mistake) - if so, reset
         // binning to 1 Must be done here because orig binning level is not saved
@@ -1262,7 +1295,16 @@ void GearDialog::OnButtonDisconnectCamera(wxCommandEvent& event)
             throw THROW_INFO("OnButtonDisconnectCamera: called when not connected");
         }
 
+        if (pFrame->CaptureActive)
+        {
+            Debug.Write("OnButtonDisconnectCamera: aborting exposure on camera disconnect\n");
+            pFrame->StopCapturing();
+        }
         m_pCamera->Disconnect();
+
+        // Notify solar/planetary module of camera disconnect
+        pFrame->pGuider->m_SolarSystemObject.NotifyCameraConnect(false);
+        EvtServer.NotifyGearChange();
 
         if (m_pScope && m_pScope->RequiresCamera() && m_pScope->IsConnected())
         {
@@ -1425,6 +1467,7 @@ void GearDialog::OnButtonConnectScope(wxCommandEvent& event)
 
             pFrame->StatusMsg(_("Mount Connected"));
             pFrame->UpdateStatusBarStateLabels();
+            EvtServer.NotifyGearChange();
         }
         else
         {
@@ -1468,6 +1511,7 @@ void GearDialog::OnButtonConnectAuxScope(wxCommandEvent& event)
             }
 
             pFrame->StatusMsg(_("Aux Mount Connected"));
+            EvtServer.NotifyGearChange();
         }
 
         Debug.AddLine("Connected AuxScope:" + (m_pAuxScope ? m_pAuxScope->Name() : "None"));
@@ -1501,6 +1545,7 @@ void GearDialog::OnButtonDisconnectScope(wxCommandEvent& event)
 
         pFrame->StatusMsg(_("Mount Disconnected"));
         pFrame->UpdateStatusBarStateLabels();
+        EvtServer.NotifyGearChange();
 
         if (pFrame->pManualGuide)
         {
@@ -1533,6 +1578,7 @@ void GearDialog::OnButtonDisconnectAuxScope(wxCommandEvent& event)
 
         m_pAuxScope->Disconnect();
         pFrame->StatusMsg(_("Aux Mount Disconnected"));
+        EvtServer.NotifyGearChange();
     }
     catch (const wxString& Msg)
     {
@@ -1646,6 +1692,7 @@ void GearDialog::OnButtonConnectStepGuider(wxCommandEvent& event)
         {
             pFrame->StatusMsg(_("AO Connected"));
             pFrame->UpdateStatusBarStateLabels();
+            EvtServer.NotifyGearChange();
         }
         else
         {
@@ -1690,6 +1737,7 @@ void GearDialog::OnButtonDisconnectStepGuider(wxCommandEvent& event)
 
         pFrame->StatusMsg(_("AO Disconnected"));
         pFrame->UpdateStatusBarStateLabels();
+        EvtServer.NotifyGearChange();
 
         if (pFrame->pManualGuide)
         {
@@ -1777,6 +1825,7 @@ void GearDialog::OnButtonConnectRotator(wxCommandEvent& event)
         {
             pFrame->StatusMsg(_("Rotator Connected"));
             pFrame->UpdateStatusBarStateLabels();
+            EvtServer.NotifyGearChange();
         }
         else
         {
@@ -1815,6 +1864,7 @@ void GearDialog::OnButtonDisconnectRotator(wxCommandEvent& event)
 
         pFrame->StatusMsg(_("Rotator Disconnected"));
         pFrame->UpdateStatusBarStateLabels();
+        EvtServer.NotifyGearChange();
     }
     catch (const wxString& Msg)
     {

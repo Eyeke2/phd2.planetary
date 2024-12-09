@@ -79,6 +79,7 @@ struct GuideStepInfo
     int directionRA;
     int directionDec;
     wxPoint aoPos;
+    PHD_Point starPos;
     double starMass;
     double starSNR;
     double starHFD;
@@ -96,6 +97,7 @@ struct FrameDroppedInfo
     double avgDist;
     int starError;
     wxString status;
+    wxString state;
 };
 
 struct GuideLogSummaryInfo

@@ -56,6 +56,8 @@ wxDECLARE_EVENT(STATUSBAR_ENQUEUE_EVENT, wxCommandEvent);
 wxDECLARE_EVENT(STATUSBAR_TIMER_EVENT, wxTimerEvent);
 wxDECLARE_EVENT(SET_STATUS_TEXT_EVENT, wxThreadEvent);
 wxDECLARE_EVENT(ALERT_FROM_THREAD_EVENT, wxThreadEvent);
+wxDECLARE_EVENT(CLEAR_ALERT_FROM_THREAD_EVENT, wxThreadEvent);
+wxDECLARE_EVENT(SOLAR_PLANETARY_EVENT, wxThreadEvent);
 
 enum NOISE_REDUCTION_METHOD
 {
@@ -165,6 +167,52 @@ public:
     void SetFocalLength(int val);
 };
 
+// NOTE: Custom Workaround for Toolbar Sync
+// ------------------------------------------------------------------------
+// This derived wxAuiToolBarExt class includes methods to access private
+// data of wxAuiToolBar. These methods are used to manually sync the
+// toolbar's pane info (wxAuiPaneInfo) in scenarios where the default
+// wxWidgets behavior does not suffice (e.g., syncing toolbar layout after
+// dynamic changes).
+//
+// Be cautious with this approach:
+// 1. It relies on accessing private members of wxWidgets' classes, which
+//    might change in future wxWidgets releases, potentially breaking
+//    compatibility.
+// 2. Such modifications are not standard practice and could complicate
+//    future maintenance or updates to newer wxWidgets versions.
+// 3. If PHD2 ever updates its wxWidgets version, this part of the code
+//    should be revisited and refactored as needed.
+//
+// This workaround is currently necessary due to the longstanding use of
+// wxWidgets 3.0.5 in PHD2 and its specific UI requirements. If updating
+// wxWidgets or adjusting UI implementation, consider removing or
+// updating this custom extension.
+// ------------------------------------------------------------------------
+class wxAuiToolBarExt : public wxAuiToolBar
+{
+public:
+    wxAuiToolBarExt(wxWindow *parent, wxWindowID id = -1, const wxPoint& position = wxDefaultPosition,
+                    const wxSize& size = wxDefaultSize, long style = wxAUI_TB_DEFAULT_STYLE)
+        : wxAuiToolBar(parent, id, position, size, style)
+    {
+    }
+
+    wxSize GetAbsoluteMinSize() const { return m_absoluteMinSize; }
+
+    int GetToolPanes() const
+    { // iterate over m_items and count the number of tool panes
+        int count = 0;
+        for (size_t i = 0; i < m_items.GetCount(); i++)
+        {
+            wxAuiToolBarItem& item = m_items.Item(i);
+            if (item.GetKind() != wxITEM_SEPARATOR)
+                count++;
+        }
+        return count;
+    }
+};
+
 class MyFrame : public wxFrame
 {
 protected:
@@ -178,11 +226,11 @@ protected:
     int GetTimeLapse() const;
     int GetExposureDelay();
 
-    bool SetFocalLength(int focalLength);
-
     friend class MyFrameConfigDialogPane;
     friend class MyFrameConfigDialogCtrlSet;
     friend class WorkerThread;
+    friend class PlanetToolWin;
+    friend class SolarSystemObject;
 
 private:
     NOISE_REDUCTION_METHOD m_noiseReductionMethod;
@@ -223,13 +271,14 @@ public:
     wxMenuItem *m_cameraMenuItem;
     wxMenuItem *m_autoSelectStarMenuItem;
     wxMenuItem *m_takeDarksMenuItem;
+    wxMenuItem *m_PlanetaryMenuItem;
     wxMenuItem *m_useDarksMenuItem;
     wxMenuItem *m_refineDefMapMenuItem;
     wxMenuItem *m_useDefectMapMenuItem;
     wxMenuItem *m_calibrationMenuItem;
     wxMenuItem *m_importCamCalMenuItem;
     wxMenuItem *m_upgradeMenuItem;
-    wxAuiToolBar *MainToolbar;
+    wxAuiToolBarExt *MainToolbar;
     wxInfoBar *m_infoBar;
     wxComboBox *Dur_Choice;
     wxCheckBox *HotPixel_Checkbox;
@@ -249,12 +298,14 @@ public:
     wxDialog *pStarCrossDlg;
     wxWindow *pNudgeLock;
     wxWindow *pCometTool;
+    wxWindow *pPlanetTool;
     wxWindow *pGuidingAssistant;
     wxWindow *pierFlipToolWin;
     RefineDefMap *pRefineDefMap;
     wxDialog *pCalSanityCheckDlg;
     wxDialog *pCalReviewDlg;
     wxDialog *pCalibrationAssistant;
+    wxMutex planetLock;
     bool CaptureActive; // Is camera looping captures?
     bool m_exposurePending; // exposure scheduled and not completed
     double Stretch_gamma;
@@ -305,6 +356,7 @@ public:
     void OnStaticPaTool(wxCommandEvent& evt);
     void OnCalibrationAssistant(wxCommandEvent& evt);
     void OnCometTool(wxCommandEvent& evt);
+    void OnPlanetTool(wxCommandEvent& evt);
     void OnGuidingAssistant(wxCommandEvent& evt);
     void OnSetupCamera(wxCommandEvent& evt);
     void OnExposureDurationSelected(wxCommandEvent& evt);
@@ -349,8 +401,8 @@ public:
 
     const std::vector<int>& GetExposureDurations() const;
     bool SetCustomExposureDuration(int ms);
-    void GetExposureInfo(int *currExpMs, bool *autoExp) const;
-    bool SetExposureDuration(int val);
+    bool GetExposureInfo(int *currExpMs, bool *autoExp) const;
+    bool SetExposureDuration(int val, bool updateCustom = false);
     const AutoExposureCfg& GetAutoExposureCfg() const { return m_autoExp; }
     bool SetAutoExposureCfg(int minExp, int maxExp, double targetSNR);
     void ResetAutoExposure();
@@ -372,6 +424,7 @@ public:
     bool FlipCalibrationData();
     int RequestedExposureDuration();
     int GetFocalLength() const;
+    bool SetFocalLength(int focalLength);
     bool GetAutoLoadCalibration() const;
     void SetAutoLoadCalibration(bool val);
     void LoadCalibration();
@@ -395,6 +448,7 @@ public:
     static void PlaceWindowOnScreen(wxWindow *window, int x, int y);
     bool GetBeepForLostStar();
     void SetBeepForLostStar(bool beep);
+    int GetGuidingPeriod(int *exposure = nullptr, int *timeLapse = nullptr) const;
 
     MyFrameConfigDialogPane *GetConfigDialogPane(wxWindow *pParent);
     MyFrameConfigDialogCtrlSet *GetConfigDlgCtrlSet(MyFrame *pFrame, AdvancedDialog *pAdvancedDialog, BrainCtrlIdMap& CtrlMap);
@@ -429,6 +483,7 @@ public:
 
     void NotifyUpdateButtonsStatus(); // can be called from any thread
     void UpdateButtonsStatus();
+    void UpdateCameraSettings();
 
     static double GetPixelScale(double pixelSizeMicrons, int focalLengthMm, int binning);
     double GetCameraPixelScale() const;
@@ -439,6 +494,7 @@ public:
     void SuppressableAlert(const wxString& configPropKey, const wxString& msg, alert_fn *dontShowFn, long arg,
                            bool showHelpButton = false, int flags = wxICON_EXCLAMATION);
     void ClearAlert();
+    void ClearAlert(const wxString& msg);
     void StatusMsg(const wxString& text);
     void StatusMsgNoTimeout(const wxString& text);
     wxString GetSettingsSummary() const;
@@ -450,6 +506,7 @@ public:
 
     void NotifyGuidingStarted();
     void NotifyGuidingStopped();
+    bool IsCaptureActive(bool& paused) const;
 
     void SetDitherMode(DitherMode mode);
     DitherMode GetDitherMode() const;
@@ -484,6 +541,10 @@ private:
     wxSocketServer *SocketServer;
     wxTimer m_statusbarTimer;
 
+    wxCriticalSection m_alertLock;
+    wxString m_prevAlertMsg;
+    wxString m_currentAlertMsg;
+
     int m_exposureDuration;
     AutoExposureCfg m_autoExp;
 
@@ -497,12 +558,16 @@ private:
     bool StopWorkerThread(WorkerThread *& pWorkerThread);
     void OnStatusMsg(wxThreadEvent& event);
     void DoAlert(const alert_params& params);
+    void DoClearAlert();
     void OnAlertButton(wxCommandEvent& evt);
     void OnAlertHelp(wxCommandEvent& evt);
+    void OnAlertSize(wxSizeEvent& evt);
     void OnAlertFromThread(wxThreadEvent& event);
+    void OnClearAlertFromThread(wxThreadEvent& event);
     void OnReconnectCameraFromThread(wxThreadEvent& event);
     void OnStatusBarTimerEvent(wxTimerEvent& evt);
     void OnUpdaterStateChanged(wxThreadEvent& event);
+    void OnSolarSystemModeEvent(wxThreadEvent& event);
     void OnMessageBoxProxy(wxCommandEvent& evt);
     void SetupMenuBar();
     void SetupStatusBar();
@@ -549,6 +614,7 @@ enum
     BUTTON_AUTOSTAR,
     BUTTON_DURATION,
     BUTTON_ADVANCED,
+    BUTTON_SOLAR_SYSTEM_TOOL,
     BUTTON_CAM_PROPERTIES,
     BUTTON_ALERT_ACTION,
     BUTTON_ALERT_CLOSE,
@@ -635,6 +701,7 @@ enum
     MENU_POLARDRIFTTOOL,
     MENU_STATICPATOOL,
     MENU_COMETTOOL,
+    MENU_SOLAR_SYSTEM_TOOL,
     MENU_GUIDING_ASSISTANT,
     MENU_SAVESETTINGS,
     MENU_LOADSETTINGS,
@@ -702,6 +769,7 @@ enum
     SOCK_SERVER_CLIENT_ID,
     EVENT_SERVER_ID,
     EVENT_SERVER_CLIENT_ID,
+    FRAME_MONITOR_ID
 };
 
 wxDECLARE_EVENT(APPSTATE_NOTIFY_EVENT, wxCommandEvent);
@@ -776,6 +844,15 @@ inline int MyFrame::GetTimeLapse() const
 inline int MyFrame::GetFocalLength() const
 {
     return m_focalLength;
+}
+
+inline int MyFrame::GetGuidingPeriod(int *exposure, int *timeLapse) const
+{
+    if (exposure)
+        *exposure = m_exposureDuration;
+    if (timeLapse)
+        *timeLapse = m_timeLapse;
+    return m_timeLapse + m_exposureDuration;
 }
 
 #endif /* MYFRAME_H_INCLUDED */

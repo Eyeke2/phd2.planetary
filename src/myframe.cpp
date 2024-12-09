@@ -38,6 +38,7 @@
 
 #include "aui_controls.h"
 #include "comet_tool.h"
+#include "planetary_tool.h"
 #include "config_indi.h"
 #include "guiding_assistant.h"
 #include "phdupdate.h"
@@ -74,7 +75,9 @@ wxDEFINE_EVENT(STATUSBAR_ENQUEUE_EVENT, wxCommandEvent);
 wxDEFINE_EVENT(STATUSBAR_TIMER_EVENT, wxTimerEvent);
 wxDEFINE_EVENT(SET_STATUS_TEXT_EVENT, wxThreadEvent);
 wxDEFINE_EVENT(ALERT_FROM_THREAD_EVENT, wxThreadEvent);
+wxDEFINE_EVENT(CLEAR_ALERT_FROM_THREAD_EVENT, wxThreadEvent);
 wxDEFINE_EVENT(RECONNECT_CAMERA_EVENT, wxThreadEvent);
+wxDEFINE_EVENT(SOLAR_PLANETARY_EVENT, wxThreadEvent);
 wxDEFINE_EVENT(UPDATER_EVENT, wxThreadEvent);
 
 // clang-format off
@@ -97,6 +100,7 @@ wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(MENU_POLARDRIFTTOOL, MyFrame::OnPolarDriftTool)
     EVT_MENU(MENU_STATICPATOOL, MyFrame::OnStaticPaTool)
     EVT_MENU(MENU_COMETTOOL, MyFrame::OnCometTool)
+    EVT_MENU(MENU_SOLAR_SYSTEM_TOOL, MyFrame::OnPlanetTool)
     EVT_MENU(MENU_GUIDING_ASSISTANT, MyFrame::OnGuidingAssistant)
     EVT_MENU(MENU_HELP_UPGRADE, MyFrame::OnUpgrade)
     EVT_MENU(MENU_HELP_ONLINE, MyFrame::OnHelpOnline)
@@ -149,6 +153,7 @@ wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_TOOL(BUTTON_AUTOSTAR, MyFrame::OnButtonAutoStar)
     EVT_MENU(MENU_STOP, MyFrame::OnButtonStop)
     EVT_TOOL(BUTTON_ADVANCED, MyFrame::OnAdvanced)
+    EVT_TOOL(BUTTON_SOLAR_SYSTEM_TOOL, MyFrame::OnPlanetTool)
     EVT_MENU(MENU_BRAIN, MyFrame::OnAdvanced)
     EVT_TOOL(BUTTON_GUIDE,MyFrame::OnButtonGuide)
     EVT_MENU(MENU_GUIDE,MyFrame::OnButtonGuide)
@@ -168,8 +173,11 @@ wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
 
     EVT_THREAD(SET_STATUS_TEXT_EVENT, MyFrame::OnStatusMsg)
     EVT_THREAD(ALERT_FROM_THREAD_EVENT, MyFrame::OnAlertFromThread)
+    EVT_THREAD(CLEAR_ALERT_FROM_THREAD_EVENT, MyFrame::OnClearAlertFromThread)
     EVT_THREAD(RECONNECT_CAMERA_EVENT, MyFrame::OnReconnectCameraFromThread)
     EVT_THREAD(UPDATER_EVENT, MyFrame::OnUpdaterStateChanged)
+    EVT_THREAD(SOLAR_PLANETARY_EVENT, MyFrame::OnSolarSystemModeEvent)
+
     EVT_COMMAND(wxID_ANY, REQUEST_MOUNT_MOVE_EVENT, MyFrame::OnRequestMountMove)
     EVT_TIMER(STATUSBAR_TIMER_EVENT, MyFrame::OnStatusBarTimerEvent)
 
@@ -211,7 +219,8 @@ struct FileDropTarget : public wxFileDropTarget
 // ---------------------- Main Frame -------------------------------------
 // frame constructor
 MyFrame::MyFrame()
-    : wxFrame(nullptr, wxID_ANY, wxEmptyString), m_showBookmarksAccel(0), m_bookmarkLockPosAccel(0), pStatsWin(nullptr)
+    : wxFrame(nullptr, wxID_ANY, wxEmptyString), pGuider(nullptr), pPlanetTool(nullptr), m_showBookmarksAccel(0),
+      m_bookmarkLockPosAccel(0), pStatsWin(nullptr)
 {
     m_mgr.SetManagedWindow(this);
 
@@ -229,6 +238,10 @@ MyFrame::MyFrame()
     SetServerMode(serverMode);
 
     m_sampling = 1.0;
+
+    // Alert messages
+    m_prevAlertMsg = wxEmptyString;
+    m_currentAlertMsg = wxEmptyString;
 
 #include "icons/phd2_128.png.h"
     wxBitmap phd2(wxBITMAP_PNG_FROM_DATA(phd2_128));
@@ -259,6 +272,7 @@ MyFrame::MyFrame()
     m_infoBar->Connect(BUTTON_ALERT_DONTSHOW, wxEVT_BUTTON, wxCommandEventHandler(MyFrame::OnAlertButton), nullptr, this);
     m_infoBar->Connect(BUTTON_ALERT_CLOSE, wxEVT_BUTTON, wxCommandEventHandler(MyFrame::OnAlertButton), nullptr, this);
     m_infoBar->Connect(BUTTON_ALERT_HELP, wxEVT_BUTTON, wxCommandEventHandler(MyFrame::OnAlertHelp), nullptr, this);
+    m_infoBar->Bind(wxEVT_SIZE, &MyFrame::OnAlertSize, this);
 
     sizer->Add(m_infoBar, wxSizerFlags().Expand());
 
@@ -335,6 +349,7 @@ MyFrame::MyFrame()
     pStarCrossDlg = nullptr;
     pNudgeLock = nullptr;
     pCometTool = nullptr;
+    pPlanetTool = nullptr;
     pGuidingAssistant = nullptr;
     pRefineDefMap = nullptr;
     pCalSanityCheckDlg = nullptr;
@@ -413,6 +428,12 @@ MyFrame::MyFrame()
     pTarget->SetState(panel_state);
     Menubar->Check(MENU_TARGET, panel_state);
 
+    // update MainToolbar size to reflect its actual dimensions
+    wxAuiPaneInfo& MenubarInfo = m_mgr.GetPane(_T("MainToolBar"));
+    MenubarInfo.Layer(MainToolbar->GetToolPanes());
+    MenubarInfo.BestSize(MainToolbar->GetAbsoluteMinSize());
+
+    // update panes based on current panes state
     m_mgr.Update();
 
     // this forces force a resize of MainToolbar in case size changed from the saved perspective
@@ -442,6 +463,8 @@ MyFrame::~MyFrame()
         pStarCrossDlg->Destroy();
     if (pierFlipToolWin)
         pierFlipToolWin->Destroy();
+    if (pPlanetTool)
+        pPlanetTool->Destroy();
 
     m_mgr.UnInit();
 
@@ -496,6 +519,8 @@ void MyFrame::SetupMenuBar()
 
     tools_menu->Append(EEGG_MANUALLOCK, _("Adjust &Lock Position"), _("Adjust the lock position"));
     tools_menu->Append(MENU_COMETTOOL, _("&Comet Tracking"), _("Run the Comet Tracking tool"));
+    m_PlanetaryMenuItem = tools_menu->AppendCheckItem(MENU_SOLAR_SYSTEM_TOOL, _("&Planetary and Solar Guiding Tool\tCtrl-P"),
+                                                      _("Run the solar/lunar/planetary guiding tool"));
     tools_menu->Append(MENU_STARCROSS_TEST, _("Star-Cross Test"), _("Run a star-cross test for mount diagnostics"));
     tools_menu->Append(MENU_PIERFLIP_TOOL, _("Calibrate meridian flip"),
                        _("Automatically determine the correct meridian flip settings"));
@@ -626,7 +651,7 @@ int MyFrame::GetExposureDelay()
 void MyFrame::SetComboBoxWidth(wxComboBox *pComboBox, unsigned int extra)
 {
     unsigned int i;
-    int width = -1;
+    int width = GetTextWidth(pComboBox, _("Custom: 0.999 s"));
 
     for (i = 0; i < pComboBox->GetCount(); i++)
     {
@@ -665,18 +690,21 @@ bool MyFrame::SetCustomExposureDuration(int ms)
     return false;
 }
 
-void MyFrame::GetExposureInfo(int *currExpMs, bool *autoExp) const
+bool MyFrame::GetExposureInfo(int *currExpMs, bool *autoExp) const
 {
+    bool bEerr = false;
     if (!pCamera || !pCamera->Connected)
     {
         *currExpMs = 0;
         *autoExp = false;
+        bEerr = true;
     }
     else
     {
         *currExpMs = m_exposureDuration;
         *autoExp = m_autoExp.enabled;
     }
+    return bEerr;
 }
 
 static int dur_index(int duration)
@@ -687,7 +715,7 @@ static int dur_index(int duration)
     return -1;
 }
 
-bool MyFrame::SetExposureDuration(int val)
+bool MyFrame::SetExposureDuration(int val, bool updateCustom)
 {
     if (val < 0)
     {
@@ -698,7 +726,15 @@ bool MyFrame::SetExposureDuration(int val)
     {
         int idx = dur_index(val);
         if (idx == -1)
-            return false;
+        {
+            if (updateCustom)
+            {
+                SetCustomExposureDuration(val);
+                idx = dur_index(val);
+            }
+            if (idx == -1)
+                return false;
+        }
         Dur_Choice->SetSelection(idx + 1); // skip Auto
     }
 
@@ -922,7 +958,7 @@ void MyFrame::LoadProfileSettings()
 
 void MyFrame::SetupToolBar()
 {
-    MainToolbar = new wxAuiToolBar(this, -1, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE);
+    MainToolbar = new wxAuiToolBarExt(this, -1, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE);
 
 #include "icons/loop.png.h"
     wxBitmap loop_bmp(wxBITMAP_PNG_FROM_DATA(loop));
@@ -963,6 +999,11 @@ void MyFrame::SetupToolBar()
 #include "icons/cam_setup_disabled.png.h"
     wxBitmap cam_setup_bmp_disabled(wxBITMAP_PNG_FROM_DATA(cam_setup_disabled));
 
+    // This mage sourced from https://www.pngegg.com/en/png-zffyt
+    // The image is used under its "Non-commercial use, DMCA" terms.
+#include "icons/eclipse.png.h"
+    wxBitmap eclipse_bmp(wxBITMAP_PNG_FROM_DATA(eclipse));
+
     int dur_values[] = {
         10,    20,   50,   100,  200,  500,  1000, 1500, 2000,  2500,  3000,
         3500,  4000, 4500, 5000, 6000, 7000, 8000, 9000, 10000, 15000,
@@ -981,7 +1022,7 @@ void MyFrame::SetupToolBar()
     Dur_Choice =
         new wxComboBox(MainToolbar, BUTTON_DURATION, wxEmptyString, wxDefaultPosition, wxDefaultSize, durs, wxCB_READONLY);
     Dur_Choice->SetToolTip(_("Camera exposure duration"));
-    SetComboBoxWidth(Dur_Choice, 10);
+    SetComboBoxWidth(Dur_Choice, 35);
 
     Gamma_Slider = new wxSlider(MainToolbar, CTRL_GAMMA, GAMMA_DEFAULT, GAMMA_MIN, GAMMA_MAX, wxPoint(-1, -1), wxSize(160, -1));
     Gamma_Slider->SetBackgroundColour(wxColor(60, 60, 60)); // Slightly darker than toolbar background
@@ -1001,6 +1042,8 @@ void MyFrame::SetupToolBar()
     MainToolbar->AddSeparator();
     MainToolbar->AddTool(BUTTON_ADVANCED, _("Advanced Settings"), brain_bmp, _("Advanced Settings"));
     MainToolbar->AddTool(BUTTON_CAM_PROPERTIES, cam_setup_bmp, cam_setup_bmp_disabled, false, 0, _("Camera settings"));
+    MainToolbar->AddTool(BUTTON_SOLAR_SYSTEM_TOOL, _("Planetary and Solar Guiding Tool"), eclipse_bmp,
+                         _("Planetary and Solar Guiding Tool"));
     MainToolbar->EnableTool(BUTTON_CAM_PROPERTIES, false);
     MainToolbar->EnableTool(BUTTON_LOOP, false);
     MainToolbar->EnableTool(BUTTON_AUTOSTAR, false);
@@ -1080,9 +1123,21 @@ static bool cond_update_tool(wxAuiToolBar *tb, int toolId, wxMenuItem *mi, bool 
     return ret;
 }
 
+void MyFrame::UpdateCameraSettings()
+{
+    wxMutexLocker lock(planetLock);
+    if (pPlanetTool)
+    {
+        wxCommandEvent event(APPSTATE_NOTIFY_EVENT, GetId());
+        event.SetEventObject(this);
+        wxPostEvent(pPlanetTool, event);
+    }
+}
+
 void MyFrame::UpdateButtonsStatus()
 {
     assert(wxThread::IsMain());
+    assert(pGuider);
 
     bool need_update = false;
 
@@ -1107,7 +1162,7 @@ void MyFrame::UpdateButtonsStatus()
         need_update = true;
     }
 
-    bool guiding_active = pGuider && pGuider->IsCalibratingOrGuiding(); // Not the same as 'bGuideable below
+    bool guiding_active = pGuider->IsCalibratingOrGuiding(); // Not the same as 'bGuideable below
 
     if (!guiding_active ^ m_autoSelectStarMenuItem->IsEnabled())
     {
@@ -1170,13 +1225,22 @@ void MyFrame::UpdateButtonsStatus()
     if (pierFlipToolWin)
         PierFlipTool::UpdateUIControls();
 
+    if (pGuider->m_SolarSystemObject.UpdateCaptureState(CaptureActive))
+        need_update = true;
+
     if (need_update)
     {
         if (pGuider->GetState() < STATE_SELECTED)
             m_statusbar->ClearStarInfo();
         if (!guiding_active)
             m_statusbar->ClearGuiderInfo();
-        Update();
+        // Invalidate the main window and let the event loop update it.
+        // The Windows event loop will call OnPaint() when it's ready.
+        // Do not call Update() here, as it may cause deadlocks in some cases.
+        // When called from the context of the event server, calling Update()
+        // could cause Windows message loop to deadlock at wxFindWindowAtPoint(wxGetMousePosition()).
+        // This occurs because the client application is waiting for the
+        // event server to process the event.
         Refresh();
     }
 }
@@ -1213,21 +1277,60 @@ void MyFrame::OnAlertButton(wxCommandEvent& evt)
     {
         (*m_alertDontShowFn)(m_alertFnArg);
         // Don't show should also mean close the window
-        m_infoBar->Dismiss();
+        ClearAlert();
     }
     if (evt.GetId() == BUTTON_ALERT_CLOSE)
-        m_infoBar->Dismiss();
+        ClearAlert();
+}
+
+void MyFrame::DoClearAlert()
+{
+    wxCriticalSectionLocker lock(m_alertLock);
+    m_currentAlertMsg.Clear();
+    m_infoBar->Dismiss();
 }
 
 void MyFrame::ClearAlert()
 {
-    m_infoBar->Dismiss();
+    if (wxThread::IsMain())
+    {
+        DoClearAlert();
+    }
+    else
+    {
+        wxThreadEvent *event = new wxThreadEvent(wxEVT_THREAD, CLEAR_ALERT_FROM_THREAD_EVENT);
+        wxQueueEvent(this, event);
+    }
+}
+
+void MyFrame::ClearAlert(const wxString& msg)
+{
+    bool clear = false;
+    {
+        wxCriticalSectionLocker lock(m_alertLock);
+        if (m_currentAlertMsg == msg)
+        {
+            m_prevAlertMsg.Clear();
+            m_currentAlertMsg.Clear();
+            clear = true;
+        }
+    }
+    if (clear)
+        ClearAlert();
 }
 
 void MyFrame::OnAlertHelp(wxCommandEvent& evt)
 {
     // Any open help window will be re-directed
     help->Display(_("Trouble-shooting and Analysis"));
+}
+
+void MyFrame::OnAlertSize(wxSizeEvent& evt)
+{
+    // Detect and notify about hidden alert window
+    if (!m_infoBar->IsShown())
+        EvtServer.NotifyClearAlert();
+    evt.Skip();
 }
 
 // Alerts may have a combination of 'Don't show', help, close, and 'Custom' buttons.  The 'close' button is added automatically
@@ -1282,6 +1385,11 @@ void MyFrame::DoAlert(const alert_params& params)
     // workaround, do not display any icon on Mac.
     showMessageFlags = wxICON_NONE;
 #endif
+    {
+        wxCriticalSectionLocker lock(m_alertLock);
+        m_currentAlertMsg = params.msg;
+    }
+    m_infoBar->Dismiss();
     m_infoBar->ShowMessage(wrappedText, showMessageFlags);
     m_statusbar->UpdateStates(); // might have disconnected a device
     EvtServer.NotifyAlert(params.msg, params.flags);
@@ -1290,6 +1398,23 @@ void MyFrame::DoAlert(const alert_params& params)
 void MyFrame::Alert(const wxString& msg, alert_fn *DontShowFn, const wxString& buttonLabel, alert_fn *SpecialFn, long arg,
                     bool showHelpButton, int flags)
 {
+    {
+        // Avoid displaying duplicate message multiple times
+        bool dupMsg = false;
+        {
+            wxCriticalSectionLocker lock(m_alertLock);
+            if ((msg == m_prevAlertMsg) && m_infoBar->IsShown())
+                dupMsg = true;
+            m_prevAlertMsg = msg;
+        }
+        if (dupMsg)
+        {
+            // Send duplicate alert via the event server but don't show it again
+            EvtServer.NotifyAlert(msg, flags);
+            return;
+        }
+    }
+
     if (wxThread::IsMain())
     {
         alert_params params;
@@ -1341,6 +1466,11 @@ void MyFrame::OnAlertFromThread(wxThreadEvent& event)
     alert_params *params = (alert_params *) event.GetExtraLong();
     DoAlert(*params);
     delete params;
+}
+
+void MyFrame::OnClearAlertFromThread(wxThreadEvent& event)
+{
+    DoClearAlert();
 }
 
 void MyFrame::OnReconnectCameraFromThread(wxThreadEvent& event)
@@ -1570,6 +1700,18 @@ void MyFrame::OnUpdaterStateChanged(wxThreadEvent& event)
     PHD2Updater::OnUpdaterStateChanged();
 }
 
+void MyFrame::OnSolarSystemModeEvent(wxThreadEvent& evt)
+{
+    SolarPlanetaryMessage *msg = (SolarPlanetaryMessage *) evt.GetExtraLong();
+    switch (msg->type)
+    {
+    case SolarPlanetaryMessage::PLANETARY_MODE_CHANGE:
+        pGuider->m_SolarSystemObject.Set_SolarSystemObjMode(msg->enabled);
+        break;
+    }
+    delete msg;
+}
+
 bool MyFrame::StartWorkerThread(WorkerThread *& pWorkerThread)
 {
     bool bError = false;
@@ -1716,6 +1858,8 @@ void MyFrame::ScheduleExposure()
 
     if (m_pPrimaryWorkerThread) // can be null when app is shutting down (unlikely but possible)
         m_pPrimaryWorkerThread->EnqueueWorkerThreadExposeRequest(img, exposureDuration, exposureOptions, subframe);
+    else
+        delete img;
 }
 
 void MyFrame::SchedulePrimaryMove(Mount *mount, const GuiderOffset& ofs, unsigned int moveOptions)
@@ -2565,8 +2709,14 @@ bool MyFrame::DarkLibExists(int profileId, bool showAlert)
 // surprise changes in binning
 void MyFrame::CheckDarkFrameGeometry()
 {
-    bool haveDefectMap = DefectMap::DefectMapExists(pConfig->GetCurrentProfileId(), m_useDefectMapMenuItem->IsEnabled());
-    bool haveDarkLib = DarkLibExists(pConfig->GetCurrentProfileId(), m_useDarksMenuItem->IsEnabled());
+    bool enableDarksFeature = true;
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera && pCamera->Name == FRAME_MONITOR_CAMERA)
+        enableDarksFeature = false;
+#endif
+
+    bool haveDefectMap = enableDarksFeature && DefectMap::DefectMapExists(pConfig->GetCurrentProfileId(), m_useDefectMapMenuItem->IsEnabled());
+    bool haveDarkLib = enableDarksFeature && DarkLibExists(pConfig->GetCurrentProfileId(), m_useDarksMenuItem->IsEnabled());
     bool defectMapOk = true;
 
     if (m_useDefectMapMenuItem->IsEnabled())
@@ -2609,11 +2759,17 @@ void MyFrame::CheckDarkFrameGeometry()
 
 void MyFrame::SetDarkMenuState()
 {
-    bool haveDarkLib = DarkLibExists(pConfig->GetCurrentProfileId(), true);
+    bool enableDarksFeature = true;
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera && pCamera->Name == FRAME_MONITOR_CAMERA)
+        enableDarksFeature = false;
+#endif
+
+    bool haveDarkLib = enableDarksFeature && DarkLibExists(pConfig->GetCurrentProfileId(), true);
     m_useDarksMenuItem->Enable(haveDarkLib);
     if (!haveDarkLib)
         m_useDarksMenuItem->Check(false);
-    bool haveDefectMap = DefectMap::DefectMapExists(pConfig->GetCurrentProfileId(), true);
+    bool haveDefectMap = enableDarksFeature && DefectMap::DefectMapExists(pConfig->GetCurrentProfileId(), true);
     m_useDefectMapMenuItem->Enable(haveDefectMap);
     if (!haveDefectMap)
         m_useDefectMapMenuItem->Check(false);
@@ -2694,6 +2850,7 @@ bool MyFrame::SetTimeLapse(int timeLapse)
         }
 
         m_timeLapse = timeLapse;
+        pFrame->NotifyGuidingParam("Time lapse", m_timeLapse);
     }
     catch (const wxString& Msg)
     {
@@ -2703,6 +2860,8 @@ bool MyFrame::SetTimeLapse(int timeLapse)
     }
 
     pConfig->Profile.SetInt("/frame/timeLapse", m_timeLapse);
+
+    UpdateCameraSettings();
 
     return bError;
 }
@@ -3515,4 +3674,12 @@ void MyFrame::NotifyGuidingParam(const wxString& name, const wxString& val, bool
 {
     GuideLog.SetGuidingParam(name, val, true);
     EvtServer.NotifyGuidingParam(name, val);
+}
+
+bool MyFrame::IsCaptureActive(bool& paused) const
+{
+    if (WorkerThread::InterruptRequested())
+        return false;
+    paused = pFrame->pGuider->IsPaused();
+    return m_continueCapturing && !paused;
 }

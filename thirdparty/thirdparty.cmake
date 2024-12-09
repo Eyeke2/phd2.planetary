@@ -489,7 +489,6 @@ else()
     indi
     GIT_REPOSITORY https://github.com/indilib/indi.git
     GIT_TAG 856ac85b965177d23cd0c819a49fd50bdaeece60  # v2.0.5
-    GIT_SHALLOW 1
     CMAKE_ARGS -Wno-dev
       -DINDI_BUILD_SERVER=OFF
       -DINDI_BUILD_DRIVERS=OFF
@@ -615,7 +614,6 @@ if (NOT OPENSOURCE_ONLY)
     OGMAcamSDK
     GIT_REPOSITORY https://github.com/OGMAvision/OGMAcamSDK.git
     GIT_TAG 9787aaf4882497262a8ba1612b43f93fb083d2e6
-    GIT_SHALLOW 1
   )
   FetchContent_MakeAvailable(OGMAcamSDK)
   include_directories(${ogmacamsdk_SOURCE_DIR}/inc)

@@ -53,6 +53,8 @@ enum
     MSG_PROTOCOL_VERSION = 1,
 };
 
+#define MSG_EXTENTED_PROTOCOL_VERSION "solar.1"
+
 static const wxString literal_null("null");
 static const wxString literal_true("true");
 static const wxString literal_false("false");
@@ -289,7 +291,7 @@ static Ev ev_message_version()
 {
     Ev ev("Version");
     ev << NV("PHDVersion", PHDVERSION) << NV("PHDSubver", PHDSUBVER) << NV("OverlapSupport", true)
-       << NV("MsgVersion", MSG_PROTOCOL_VERSION);
+       << NV("MsgVersion", MSG_PROTOCOL_VERSION) << NV("MsgExtVersion", MSG_EXTENTED_PROTOCOL_VERSION);
     return ev;
 }
 
@@ -300,7 +302,7 @@ static Ev ev_set_lock_position(const PHD_Point& xy)
     return ev;
 }
 
-static Ev ev_calibration_complete(const Mount *mount)
+static Ev ev_calibration_complete(const Mount *mount, CalibrationIssueType issue)
 {
     Ev ev("CalibrationComplete");
     ev << NVMount(mount);
@@ -309,6 +311,27 @@ static Ev ev_calibration_complete(const Mount *mount)
     {
         ev << NV("Limit", mount->GetAoMaxPos());
     }
+
+    wxString issueStr;
+    switch (issue)
+    {
+    case CI_Steps:
+        issueStr = "Steps";
+        break;
+    case CI_Angle:
+        issueStr = "Angle";
+        break;
+    case CI_Rates:
+        issueStr = "Rates";
+        break;
+    case CI_Different:
+        issueStr = "Different";
+        break;
+    default:
+        issueStr = "None";
+        break;
+    }
+    ev << NV("Issue", issueStr);
 
     return ev;
 }
@@ -480,20 +503,22 @@ static void do_notify(const EventServer::CliSockSet& cli, const JObj& jj)
     }
 }
 
-inline static void simple_notify(const EventServer::CliSockSet& cli, const wxString& ev)
+inline static void simple_notify(wxMutex& lock, const EventServer::CliSockSet& cli, const wxString& ev)
 {
+    wxMutexLocker lck(lock);
     if (!cli.empty())
         do_notify(cli, Ev(ev));
 }
 
-inline static void simple_notify_ev(const EventServer::CliSockSet& cli, const Ev& ev)
+inline static void simple_notify_ev(wxMutex& lock, const EventServer::CliSockSet& cli, const Ev& ev)
 {
+    wxMutexLocker lck(lock);
     if (!cli.empty())
         do_notify(cli, ev);
 }
 
-#define SIMPLE_NOTIFY(s) simple_notify(m_eventServerClients, s)
-#define SIMPLE_NOTIFY_EV(ev) simple_notify_ev(m_eventServerClients, ev)
+#define SIMPLE_NOTIFY(s) simple_notify(m_clientsLock, m_eventServerClients, s)
+#define SIMPLE_NOTIFY_EV(ev) simple_notify_ev(m_clientsLock, m_eventServerClients, ev)
 
 static void send_catchup_events(wxSocketClient *cli)
 {
@@ -511,10 +536,10 @@ static void send_catchup_events(wxSocketClient *cli)
     }
 
     if (pMount && pMount->IsCalibrated())
-        do_notify1(cli, ev_calibration_complete(pMount));
+        do_notify1(cli, ev_calibration_complete(pMount, pMount->GetCalIssue()));
 
     if (pSecondaryMount && pSecondaryMount->IsCalibrated())
-        do_notify1(cli, ev_calibration_complete(pSecondaryMount));
+        do_notify1(cli, ev_calibration_complete(pSecondaryMount, pSecondaryMount->GetCalIssue()));
 
     if (st == EXPOSED_STATE_GUIDING_LOCKED)
     {
@@ -728,7 +753,7 @@ static void set_exposure(JObj& response, const json_value *params)
         return;
     }
 
-    bool ok = pFrame->SetExposureDuration(exp->int_value);
+    bool ok = pFrame->SetExposureDuration(exp->int_value, true);
     if (ok)
     {
         response << jrpc_result(0);
@@ -1914,6 +1939,413 @@ static void get_variable_delay_settings(JObj& response, const json_value *params
     response << jrpc_result(rslt);
 }
 
+static void get_guiding_period(JObj& response, const json_value *params)
+{
+    JObj rslt;
+    int exposure;
+    int timeLapse;
+    rslt << NV("period", pFrame->GetGuidingPeriod(&exposure, &timeLapse));
+    rslt << NV("exposure", exposure);
+    rslt << NV("timelapse", timeLapse);
+    response << jrpc_result(rslt);
+}
+
+static void set_time_lapse(JObj& response, const json_value *params)
+{
+    Params p("interval", params);
+    const json_value *val = p.param("interval");
+    if (!val || val->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected interval param");
+        return;
+    }
+    if (pFrame->pGuider)
+        pFrame->pGuider->m_SolarSystemObject.SetTimeLapse(val->int_value);
+    response << jrpc_result(0);
+}
+
+static void get_pixel_size(JObj& response, const json_value *params)
+{
+    if (pCamera)
+    {
+        double pixelSize = pCamera->GetCameraPixelSize();
+        response << jrpc_result(pixelSize);
+    }
+    else
+    {
+        response << jrpc_error(1, "camera not connected");
+    }
+}
+
+static void set_pixel_size(JObj& response, const json_value *params)
+{
+    Params p("PixelSize", params);
+    const json_value *val = p.param("PixelSize");
+    double pixelSize;
+    if (!val || !float_param(val, &pixelSize))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected pixel size param");
+        return;
+    }
+    if (pCamera)
+        pCamera->SetCameraPixelSize(pixelSize);
+    response << jrpc_result(0);
+}
+
+static void get_focal_length(JObj& response, const json_value *params)
+{
+    int focalLength = pFrame->GetFocalLength();
+    response << jrpc_result(focalLength);
+}
+
+static void set_focal_length(JObj& response, const json_value *params)
+{
+    Params p("length", params);
+    const json_value *val = p.param("length");
+    if (!val || val->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected focal length param");
+        return;
+    }
+    int focalLength = val->int_value;
+    if (focalLength < 50)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "focal length must be at least 50 mm");
+        return;
+    }
+    pFrame->SetFocalLength(focalLength);
+    response << jrpc_result(0);
+}
+
+static void set_planetary_mode(JObj& response, const json_value *params)
+{
+    Params p("mode", params);
+    const json_value *val = p.param("mode");
+    bool planetaryMode;
+    if (!val || !bool_param(val, &planetaryMode))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected planetary mode param");
+        return;
+    }
+    if (pFrame->pGuider)
+        pFrame->pGuider->m_SolarSystemObject.Set_SolarSystemObjMode(planetaryMode);
+    response << jrpc_result(0);
+}
+
+static void set_guide_frame(JObj& response, const json_value *params)
+{
+    Params p("path", params);
+    const json_value *path = p.param("path");
+
+    if (!path || path->type != JSON_STRING)
+    {
+        response << jrpc_error(1, "expected path string");
+        return;
+    }
+    if (pCamera)
+        pCamera->SetProperty("path_broadcast", path->string_value);
+}
+
+static void get_guide_frame(JObj& response, const json_value *params)
+{
+    VERIFY_GUIDER(response);
+
+    Guider *guider = pFrame->pGuider;
+    const usImage *img = guider->CurrentImage();
+
+    if (!img->ImageData)
+    {
+        response << jrpc_error(2, "no image available");
+        return;
+    }
+
+    if (img->NPixels > 2048 * 2048)
+    {
+        response << jrpc_error(3, "image too large");
+        return;
+    }
+
+    B64Encode enc;
+    for (int y = 0; y < img->Size.GetHeight(); y++)
+    {
+        const unsigned short *p = img->ImageData + y * img->Size.GetWidth();
+        enc.append(p, img->Size.GetWidth() * sizeof(unsigned short));
+    }
+
+    JObj rslt;
+    rslt << NV("frame", img->FrameNum) << NV("width", img->Size.GetWidth()) << NV("height", img->Size.GetHeight()) << NV("pixels", enc.finish());
+
+    response << jrpc_result(rslt);
+}
+
+static void get_cal_settings(JObj& response, const json_value *params)
+{
+    JObj rslt;
+    double guideSpeed = 0.5;
+    double declination = 0;
+    if (pFrame->pGuider)
+        pFrame->pGuider->m_SolarSystemObject.GetCalSettings(&declination, &guideSpeed);
+    rslt << NV("speed", guideSpeed) << NV("dec", declination);
+    response << jrpc_result(rslt);
+}
+
+static void set_surf_mode(JObj& response, const json_value *params)
+{
+    Params p("mode", params);
+
+    const json_value *val = p.param("mode");
+    if (!val || val->type != JSON_BOOL)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected mode param");
+        return;
+    }
+    bool mode = val->int_value;
+    if (pFrame->pGuider)
+        pFrame->pGuider->m_SolarSystemObject.Set_SurfaceDetectionMode(mode);
+    response << jrpc_result(0);
+}
+
+static void get_surf_mode(JObj& response, const json_value *params)
+{
+    if (pFrame->pGuider)
+        response << NV("surf", pFrame->pGuider->m_SolarSystemObject.GetSurfaceTrackingState());
+    else
+        response << jrpc_error(1, "guider not connected");
+}
+
+static void get_process_id(JObj& response, const json_value *params)
+{
+    // Return the process ID of the server
+    response << jrpc_result((int) wxGetProcessId());
+}
+
+static void set_planet_size(JObj& response, const json_value *params)
+{
+    Params p("radii", params);
+    const json_value *val = p.param("MinRadius");
+    if (!val || val->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected min radius");
+        return;
+    }
+    int minRadius = val->int_value;
+
+    val = p.param("MaxRadius");
+    if (!val || val->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected max radius");
+        return;
+    }
+    int maxRadius = val->int_value;
+
+    if (pFrame->pGuider)
+    {
+        if (!pFrame->pGuider->m_SolarSystemObject.SetLimits(minRadius, maxRadius))
+        {
+            response << jrpc_error(1, "invalid data");
+            return;
+        }
+    }
+    response << jrpc_result(0);
+}
+
+static void get_mount_coords(JObj& response, const json_value *params)
+{
+    JObj rslt;
+    double ra, dec, st;
+    if (pPointingSource && pPointingSource->IsConnected() && !pPointingSource->GetCoordinates(&ra, &dec, &st))
+    {
+        rslt << NV("ra", ra) << NV("dec", dec) << NV("sidereal", st);
+        response << jrpc_result(rslt);
+    }
+    else
+    {
+        response << jrpc_error(1, "mount not connected");
+    }
+}
+
+static void get_mount_tracking(JObj& response, const json_value *params)
+{
+    JObj rslt;
+
+    if (pPointingSource && pPointingSource->IsConnected() && pFrame->pGuider)
+    {
+        wxString rate;
+        bool trackingValid;
+        bool tracking;
+        bool rateValid = pFrame->pGuider->m_SolarSystemObject.GetMountTrackingState(trackingValid, tracking, rate);
+        if (trackingValid)
+            rslt << NV("tracking", tracking);
+        if (rateValid)
+            rslt << NV("rate", rate);
+        if (trackingValid || rateValid)
+            response << jrpc_result(rslt);
+        else
+            response << jrpc_error(1, "mount tracking not available");
+    }
+    else
+    {
+        response << jrpc_error(1, "mount not connected");
+    }
+}
+
+static void set_mount_tracking(JObj& response, const json_value *params)
+{
+    Params p("params", params);
+    const json_value *val = p.param("rate");
+    if (!val || val->type != JSON_STRING)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected rate param");
+        return;
+    }
+    wxString rate = val->string_value;
+    if (pFrame->pGuider && pFrame->pGuider->m_SolarSystemObject.SetMountTrackingRate(rate))
+        response << jrpc_result(0);
+    else
+        response << jrpc_error(1, "failed to set mount tracking rate");
+}
+
+static void get_cal_data(JObj& response, const json_value *params)
+{
+    JObj rslt;
+
+    Mount *mount = (!pSecondaryMount || AO) ? pMount : pSecondaryMount;
+    if (mount && mount->IsCalibrated())
+    {
+        CalibrationDetails d;
+        mount->LoadCalibrationDetails(&d);
+
+        JObj details;
+        details << NV("focalLength", d.focalLength);
+        details << NV("imageScale", d.imageScale);
+        details << NV("raGuideSpeed", d.raGuideSpeed);
+        details << NV("decGuideSpeed", d.decGuideSpeed);
+        details << NV("orthoError", d.orthoError);
+        details << NV("origBinning", d.origBinning);
+        details << NV("raStepCount", d.raStepCount);
+        details << NV("decStepCount", d.decStepCount);
+        details << NV("origTimestamp", d.origTimestamp);
+        if (d.origPierSide == PIER_SIDE_UNKNOWN)
+            details << NV("origPierSide", "?");
+        else
+            details << NV("origPierSide", d.origPierSide == PIER_SIDE_EAST ? "east" : "west");
+
+        JAry raSteps;
+        for (unsigned int i = 0; i < d.raSteps.size(); i++)
+        {
+            PHD_Point pt(d.raSteps[i].x, d.raSteps[i].y);
+            JObj t;
+            t << pt;
+            raSteps << t;
+        }
+        details << NV("raSteps", raSteps);
+
+        JAry decSteps;
+        for (unsigned int i = 0; i < d.decSteps.size(); i++)
+        {
+            PHD_Point pt(d.decSteps[i].x, d.decSteps[i].y);
+            JObj t;
+            t << pt;
+            decSteps << t;
+        }
+        details << NV("decSteps", decSteps);
+
+        Calibration b;
+        mount->GetLastCalibration(&b);
+        JObj last;
+        last << NV("xRate", b.xRate);
+        last << NV("yRate", b.yRate);
+        last << NV("xAngle", b.xAngle);
+        last << NV("yAngle", b.yAngle);
+        last << NV("declination", b.declination);
+        last << NV("rotatorAngle", b.rotatorAngle);
+        last << NV("binning", b.binning);
+        if (b.pierSide == PIER_SIDE_UNKNOWN)
+            last << NV("pierSide", "?");
+        else
+            last << NV("pierSide", b.pierSide == PIER_SIDE_EAST ? "east" : "west");
+        last << NV("timestamp", b.timestamp);
+        last << NV("isValid", b.isValid);
+
+        rslt << NV("details", details);
+        rslt << NV("last", last);
+        response << jrpc_result(rslt);
+    }
+    else
+    {
+        response << jrpc_error(1, "mount not calibrated");
+    }
+}
+
+// Use with caution: this will clear the calibration
+static void set_cal_step(JObj& response, const json_value *params)
+{
+    Params p("step", params);
+
+    const json_value *val = p.param("step");
+    if (!val || val->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected step param");
+        return;
+    }
+    int step = val->int_value;
+
+    val = p.param("dist");
+    if (!val || val->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected dist param");
+        return;
+    }
+    int dist = val->int_value;
+
+    if (pPointingSource &&
+        ((pPointingSource->GetCalibrationDistance() != dist) || (pPointingSource->GetCalibrationDuration() != step)))
+    {
+        pPointingSource->SetCalibrationDistance(dist);
+        pPointingSource->SetCalibrationDuration(step);
+        if (pMount)
+        {
+            pMount->ClearCalibration();
+            if (pMount->IsStepGuider() && pSecondaryMount)
+                pSecondaryMount->ClearCalibration();
+
+            double defMinMove =
+                GuideAlgorithm::SmartDefaultMinMove(pFrame->GetFocalLength(), pCamera->GetCameraPixelSize(), pCamera->Binning);
+            pMount->GetXGuideAlgorithm()->SetMinMove(defMinMove);
+            pMount->GetYGuideAlgorithm()->SetMinMove(defMinMove);
+        }
+    }
+    response << jrpc_result(0);
+}
+
+static void set_iflink(JObj& response, const json_value *params)
+{
+    Params p("port", params);
+    const json_value *val = p.param("port");
+    if (!val || val->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected port number");
+        return;
+    }
+    if (pCamera)
+        pCamera->SetProperty("port", val->int_value);
+    response << jrpc_result(0);
+}
+
+static void set_iflink_cam(JObj& response, const json_value *params)
+{
+    Params p("name", params);
+    const json_value *val = p.param("name");
+    if (!val || val->type != JSON_STRING)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected name");
+        return;
+    }
+    if (pCamera)
+        pCamera->SetProperty("name", val->string_value);
+    response << jrpc_result(0);
+}
+
 // set_variable_delay values are in units of seconds to match the UI convention in the Advanced Settings dialog
 static void set_variable_delay_settings(JObj& response, const json_value *params)
 {
@@ -2257,208 +2689,81 @@ static bool handle_request(JRpcCall& call)
     {
         const char *name;
         void (*fn)(JObj& response, const json_value *params);
-    } methods[] = { {
-                        "clear_calibration",
-                        &clear_calibration,
-                    },
-                    {
-                        "deselect_star",
-                        &deselect_star,
-                    },
-                    {
-                        "get_exposure",
-                        &get_exposure,
-                    },
-                    {
-                        "set_exposure",
-                        &set_exposure,
-                    },
-                    {
-                        "get_exposure_durations",
-                        &get_exposure_durations,
-                    },
-                    {
-                        "get_profiles",
-                        &get_profiles,
-                    },
-                    {
-                        "get_profile",
-                        &get_profile,
-                    },
-                    {
-                        "set_profile",
-                        &set_profile,
-                    },
-                    {
-                        "get_connected",
-                        &get_connected,
-                    },
-                    {
-                        "set_connected",
-                        &set_connected,
-                    },
-                    {
-                        "get_calibrated",
-                        &get_calibrated,
-                    },
-                    {
-                        "get_paused",
-                        &get_paused,
-                    },
-                    {
-                        "set_paused",
-                        &set_paused,
-                    },
-                    {
-                        "get_lock_position",
-                        &get_lock_position,
-                    },
-                    {
-                        "set_lock_position",
-                        &set_lock_position,
-                    },
-                    {
-                        "loop",
-                        &loop,
-                    },
-                    {
-                        "stop_capture",
-                        &stop_capture,
-                    },
-                    {
-                        "guide",
-                        &guide,
-                    },
-                    {
-                        "dither",
-                        &dither,
-                    },
-                    {
-                        "find_star",
-                        &find_star,
-                    },
-                    {
-                        "get_pixel_scale",
-                        &get_pixel_scale,
-                    },
-                    {
-                        "get_app_state",
-                        &get_app_state,
-                    },
-                    {
-                        "flip_calibration",
-                        &flip_calibration,
-                    },
-                    {
-                        "get_lock_shift_enabled",
-                        &get_lock_shift_enabled,
-                    },
-                    {
-                        "set_lock_shift_enabled",
-                        &set_lock_shift_enabled,
-                    },
-                    {
-                        "get_lock_shift_params",
-                        &get_lock_shift_params,
-                    },
-                    {
-                        "set_lock_shift_params",
-                        &set_lock_shift_params,
-                    },
-                    {
-                        "save_image",
-                        &save_image,
-                    },
-                    {
-                        "get_star_image",
-                        &get_star_image,
-                    },
-                    {
-                        "get_use_subframes",
-                        &get_use_subframes,
-                    },
-                    {
-                        "get_search_region",
-                        &get_search_region,
-                    },
-                    {
-                        "shutdown",
-                        &shutdown,
-                    },
-                    {
-                        "get_camera_binning",
-                        &get_camera_binning,
-                    },
-                    {
-                        "get_camera_frame_size",
-                        &get_camera_frame_size,
-                    },
-                    {
-                        "get_current_equipment",
-                        &get_current_equipment,
-                    },
-                    {
-                        "get_guide_output_enabled",
-                        &get_guide_output_enabled,
-                    },
-                    {
-                        "set_guide_output_enabled",
-                        &set_guide_output_enabled,
-                    },
-                    {
-                        "get_algo_param_names",
-                        &get_algo_param_names,
-                    },
-                    {
-                        "get_algo_param",
-                        &get_algo_param,
-                    },
-                    {
-                        "set_algo_param",
-                        &set_algo_param,
-                    },
-                    {
-                        "get_dec_guide_mode",
-                        &get_dec_guide_mode,
-                    },
-                    {
-                        "set_dec_guide_mode",
-                        &set_dec_guide_mode,
-                    },
-                    {
-                        "get_settling",
-                        &get_settling,
-                    },
-                    {
-                        "guide_pulse",
-                        &guide_pulse,
-                    },
-                    {
-                        "get_calibration_data",
-                        &get_calibration_data,
-                    },
-                    {
-                        "capture_single_frame",
-                        &capture_single_frame,
-                    },
-                    {
-                        "get_cooler_status",
-                        &get_cooler_status,
-                    },
-                    {
-                        "set_cooler_state",
-                        &set_cooler_state,
-                    },
-                    {
-                        "get_ccd_temperature",
-                        &get_sensor_temperature,
-                    },
-                    {
-                        "export_config_settings",
-                        &export_config_settings,
-                    },
+    } methods[] = { { "clear_calibration", &clear_calibration },
+                    { "deselect_star", &deselect_star },
+                    { "get_exposure", &get_exposure },
+                    { "set_exposure", &set_exposure },
+                    { "get_exposure_durations", &get_exposure_durations },
+                    { "get_profiles", &get_profiles },
+                    { "get_profile", &get_profile },
+                    { "set_profile", &set_profile },
+                    { "get_connected", &get_connected },
+                    { "set_connected", &set_connected },
+                    { "get_calibrated", &get_calibrated },
+                    { "get_paused", &get_paused },
+                    { "set_paused", &set_paused },
+                    { "get_lock_position", &get_lock_position },
+                    { "set_lock_position", &set_lock_position },
+                    { "loop", &loop },
+                    { "stop_capture", &stop_capture },
+                    { "guide", &guide },
+                    { "dither", &dither },
+                    { "find_star", &find_star },
+                    { "get_pixel_scale", &get_pixel_scale },
+                    { "get_app_state", &get_app_state },
+                    { "flip_calibration", &flip_calibration },
+                    { "get_lock_shift_enabled", &get_lock_shift_enabled },
+                    { "set_lock_shift_enabled", &set_lock_shift_enabled },
+                    { "get_lock_shift_params", &get_lock_shift_params },
+                    { "set_lock_shift_params", &set_lock_shift_params },
+                    { "save_image", &save_image },
+                    { "get_star_image", &get_star_image },
+                    { "get_use_subframes", &get_use_subframes },
+                    { "get_search_region", &get_search_region },
+                    { "shutdown", &shutdown },
+                    { "get_camera_binning", &get_camera_binning },
+                    { "get_camera_frame_size", &get_camera_frame_size },
+                    { "get_current_equipment", &get_current_equipment },
+                    { "get_guide_output_enabled", &get_guide_output_enabled },
+                    { "set_guide_output_enabled", &set_guide_output_enabled },
+                    { "get_algo_param_names", &get_algo_param_names },
+                    { "get_algo_param", &get_algo_param },
+                    { "set_algo_param", &set_algo_param },
+                    { "get_dec_guide_mode", &get_dec_guide_mode },
+                    { "set_dec_guide_mode", &set_dec_guide_mode },
+                    { "get_settling", &get_settling },
+                    { "guide_pulse", &guide_pulse },
+                    { "get_calibration_data", &get_calibration_data },
+                    { "capture_single_frame", &capture_single_frame },
+                    { "get_cooler_status", &get_cooler_status },
+                    { "set_cooler_state", &set_cooler_state },
+                    { "get_ccd_temperature", &get_sensor_temperature },
+                    { "export_config_settings", &export_config_settings },
                     { "get_variable_delay_settings", &get_variable_delay_settings },
-                    { "set_variable_delay_settings", &set_variable_delay_settings } };
+                    { "set_variable_delay_settings", &set_variable_delay_settings },
+
+                    // PHD2 extensions
+                    { "get_guiding_period", &get_guiding_period },
+                    { "set_time_lapse", &set_time_lapse },
+                    { "set_guide_frame", &set_guide_frame },
+                    { "get_guide_frame", &get_guide_frame },
+                    { "get_pixel_size", &get_pixel_size },
+                    { "set_pixel_size", &set_pixel_size },
+                    { "get_focal_length", &get_focal_length },
+                    { "set_focal_length", &set_focal_length },
+                    { "set_planetary_mode", &set_planetary_mode },
+                    { "get_cal_settings", &get_cal_settings },
+                    { "get_mount_coords", &get_mount_coords },
+                    { "get_mount_tracking", &get_mount_tracking },
+                    { "set_mount_tracking", &set_mount_tracking },
+                    { "set_surf_mode", &set_surf_mode },
+                    { "get_surf_mode", &get_surf_mode },
+                    { "get_process_id", &get_process_id },
+                    { "set_planet_size", &set_planet_size},
+                    { "set_cal_step", &set_cal_step },
+                    { "set_iflink", &set_iflink },
+                    { "set_iflink_cam", &set_iflink_cam },
+                    { "get_cal_data", &get_cal_data } };
 
     for (unsigned int i = 0; i < WXSIZEOF(methods); i++)
     {
@@ -2634,6 +2939,7 @@ bool EventServer::EventServerStart(unsigned int instanceId)
 
 void EventServer::EventServerStop()
 {
+    wxMutexLocker lck(m_clientsLock);
     if (!m_serverSocket)
         return;
 
@@ -2674,6 +2980,7 @@ void EventServer::OnEventServerEvent(wxSocketEvent& event)
 
     send_catchup_events(client);
 
+    wxMutexLocker lck(m_clientsLock);
     m_eventServerClients.insert(client);
 }
 
@@ -2685,6 +2992,7 @@ void EventServer::OnEventServerClientEvent(wxSocketEvent& event)
     {
         Debug.Write(wxString::Format("evsrv: cli %p disconnect\n", cli));
 
+        wxMutexLocker lck(m_clientsLock);
         unsigned int const n = m_eventServerClients.erase(cli);
         if (n != 1)
             Debug.AddLine("client disconnected but not present in client set!");
@@ -2708,6 +3016,7 @@ void EventServer::NotifyStartCalibration(const Mount *mount)
 
 void EventServer::NotifyCalibrationStep(const CalibrationStepInfo& info)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2722,8 +3031,14 @@ void EventServer::NotifyCalibrationStep(const CalibrationStepInfo& info)
     do_notify(m_eventServerClients, ev);
 }
 
+void EventServer::NotifyCalibrationUpdate()
+{
+    SIMPLE_NOTIFY("CalibrationUpdate");
+}
+
 void EventServer::NotifyCalibrationFailed(const Mount *mount, const wxString& msg)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2733,16 +3048,18 @@ void EventServer::NotifyCalibrationFailed(const Mount *mount, const wxString& ms
     do_notify(m_eventServerClients, ev);
 }
 
-void EventServer::NotifyCalibrationComplete(const Mount *mount)
+void EventServer::NotifyCalibrationComplete(const Mount *mount, CalibrationIssueType issue)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
-    do_notify(m_eventServerClients, ev_calibration_complete(mount));
+    do_notify(m_eventServerClients, ev_calibration_complete(mount, issue));
 }
 
 void EventServer::NotifyCalibrationDataFlipped(const Mount *mount)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2754,6 +3071,7 @@ void EventServer::NotifyCalibrationDataFlipped(const Mount *mount)
 
 void EventServer::NotifyLooping(unsigned int exposure, const Star *star, const FrameDroppedInfo *info)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2794,6 +3112,12 @@ void EventServer::NotifyLooping(unsigned int exposure, const Star *star, const F
     if (!status.IsEmpty())
         ev << NV("Status", status);
 
+    if (star && star->IsValid())
+    {
+        PHD_Point pos(star->X, star->Y);
+        ev << NV("StarPos", pos);
+    }
+
     do_notify(m_eventServerClients, ev);
 }
 
@@ -2809,6 +3133,7 @@ void EventServer::NotifyStarSelected(const PHD_Point& pt)
 
 void EventServer::NotifyStarLost(const FrameDroppedInfo& info)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2822,6 +3147,9 @@ void EventServer::NotifyStarLost(const FrameDroppedInfo& info)
 
     if (!info.status.IsEmpty())
         ev << NV("Status", info.status);
+
+    if (!info.state.IsEmpty())
+        ev << NV("State", info.state);
 
     do_notify(m_eventServerClients, ev);
 }
@@ -2848,6 +3176,7 @@ void EventServer::NotifyResumed()
 
 void EventServer::NotifyGuideStep(const GuideStepInfo& step)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2887,11 +3216,17 @@ void EventServer::NotifyGuideStep(const GuideStepInfo& step)
     if (step.decLimited)
         ev << NV("DecLimited", true);
 
+    if (step.starPos.IsValid())
+    {
+        ev << NV("StarPos", step.starPos);
+    }
+
     do_notify(m_eventServerClients, ev);
 }
 
 void EventServer::NotifyGuidingDithered(double dx, double dy)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2903,6 +3238,7 @@ void EventServer::NotifyGuidingDithered(double dx, double dy)
 
 void EventServer::NotifySetLockPosition(const PHD_Point& xy)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2921,6 +3257,7 @@ void EventServer::NotifyLockShiftLimitReached()
 
 void EventServer::NotifyAppState()
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2934,6 +3271,7 @@ void EventServer::NotifySettleBegin()
 
 void EventServer::NotifySettling(double distance, double time, double settleTime, bool starLocked)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2946,6 +3284,7 @@ void EventServer::NotifySettling(double distance, double time, double settleTime
 
 void EventServer::NotifySettleDone(const wxString& errorMsg, int settleFrames, int droppedFrames)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2958,6 +3297,7 @@ void EventServer::NotifySettleDone(const wxString& errorMsg, int settleFrames, i
 
 void EventServer::NotifyAlert(const wxString& msg, int type)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2987,9 +3327,15 @@ void EventServer::NotifyAlert(const wxString& msg, int type)
     do_notify(m_eventServerClients, ev);
 }
 
-template<typename T>
-static void NotifyGuidingParam(const EventServer::CliSockSet& clients, const wxString& name, T val)
+void EventServer::NotifyClearAlert()
 {
+    SIMPLE_NOTIFY("ClearAlert");
+}
+
+template<typename T>
+static void NotifyGuidingParam(wxMutex& lock, const EventServer::CliSockSet& clients, const wxString& name, T val)
+{
+    wxMutexLocker lck(lock);
     if (clients.empty())
         return;
 
@@ -3002,22 +3348,22 @@ static void NotifyGuidingParam(const EventServer::CliSockSet& clients, const wxS
 
 void EventServer::NotifyGuidingParam(const wxString& name, double val)
 {
-    ::NotifyGuidingParam(m_eventServerClients, name, val);
+    ::NotifyGuidingParam(m_clientsLock, m_eventServerClients, name, val);
 }
 
 void EventServer::NotifyGuidingParam(const wxString& name, int val)
 {
-    ::NotifyGuidingParam(m_eventServerClients, name, val);
+    ::NotifyGuidingParam(m_clientsLock, m_eventServerClients, name, val);
 }
 
 void EventServer::NotifyGuidingParam(const wxString& name, bool val)
 {
-    ::NotifyGuidingParam(m_eventServerClients, name, val);
+    ::NotifyGuidingParam(m_clientsLock, m_eventServerClients, name, val);
 }
 
 void EventServer::NotifyGuidingParam(const wxString& name, const wxString& val)
 {
-    ::NotifyGuidingParam(m_eventServerClients, name, val);
+    ::NotifyGuidingParam(m_clientsLock, m_eventServerClients, name, val);
 }
 
 void EventServer::NotifyConfigurationChange()
@@ -3025,7 +3371,54 @@ void EventServer::NotifyConfigurationChange()
     if (m_configEventDebouncer == nullptr || m_configEventDebouncer->IsRunning())
         return;
 
+    wxMutexLocker lck(m_clientsLock);
     Ev ev("ConfigurationChange");
     do_notify(m_eventServerClients, ev);
     m_configEventDebouncer->StartOnce(0);
+}
+
+void EventServer::NotifyGearChange()
+{
+    wxMutexLocker lck(m_clientsLock);
+    Ev ev("GearChange");
+    do_notify(m_eventServerClients, ev);
+}
+
+void EventServer::NotifyPlanetaryDetection(bool detected, int points, double score, int radius)
+{
+    wxMutexLocker lck(m_clientsLock);
+    Ev ev("PlanetaryDetection");
+    ev << NV("detect", detected);
+    ev << NV("points", points);
+    ev << NV("score", score);
+    ev << NV("radius", radius);
+    do_notify(m_eventServerClients, ev);
+}
+
+void EventServer::NotifyPlanetMetrics(double snr, double mass, int peak)
+{
+    wxMutexLocker lck(m_clientsLock);
+    Ev ev("PlanetMetrics");
+    ev << NV("snr", snr);
+    ev << NV("mass", mass);
+    ev << NV("peak", peak);
+    do_notify(m_eventServerClients, ev);
+}
+
+void EventServer::NotifyMouseClick(PHD_Point& click)
+{
+    wxMutexLocker lck(m_clientsLock);
+    Ev ev("MouseClick");
+    ev << click;
+    do_notify(m_eventServerClients, ev);
+}
+
+void EventServer::NotifyAutoSelect()
+{
+    SIMPLE_NOTIFY("AutoSelect");
+}
+
+void EventServer::NotifyStartCapture()
+{
+    SIMPLE_NOTIFY("StartCapture");
 }

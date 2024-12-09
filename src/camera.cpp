@@ -118,6 +118,10 @@ wxSize UNDEFINED_FRAME_SIZE = wxSize(0, 0);
 # include "cam_vfw.h"
 #endif
 
+#if defined(FRAME_MONITOR_CAMERA)
+# include "cam_FrameMon.h"
+#endif
+
 #if defined(OGMA_CAMERA)
 # include "cam_ogma.h"
 #endif
@@ -344,6 +348,9 @@ wxArrayString GuideCamera::GuideCameraList()
 #if defined(FIREWIRE_CAMERA)
     CameraList.Add(_T("The Imaging Source (DCAM Firewire)"));
 #endif
+#if defined(FRAME_MONITOR_CAMERA)
+    CameraList.Add(FRAME_MONITOR_CAMERA);
+#endif
 #if defined(OGMA_CAMERA)
     CameraList.Add(_T("OGMA Camera"));
 #endif
@@ -509,6 +516,10 @@ GuideCamera *GuideCamera::Factory(const wxString& choice)
 #if defined(SVB_CAMERA)
         else if (choice == _T("Svbony Camera"))
             pReturn = SVBCameraFactory::MakeSVBCamera();
+#endif
+#if defined(FRAME_MONITOR_CAMERA)
+        else if (choice == FRAME_MONITOR_CAMERA)
+            pReturn = new CameraFrameMonitor();
 #endif
 #if defined(OGMA_CAMERA)
         else if (choice == _T("OGMA Camera"))
@@ -696,6 +707,9 @@ bool GuideCamera::SetCameraGain(int cameraGain)
 
     pConfig->Profile.SetInt("/camera/gain", GuideCameraGain);
 
+    if (pFrame)
+        pFrame->UpdateCameraSettings();
+
     return bError;
 }
 
@@ -786,6 +800,11 @@ bool GuideCamera::GetCoolerStatus(bool *on, double *setpoint, double *power, dou
 }
 
 bool GuideCamera::GetSensorTemperature(double *temperature)
+{
+    return true; // error
+}
+
+bool GuideCamera::GetCaptureDescriptor(void* desc)
 {
     return true; // error
 }

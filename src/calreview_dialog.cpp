@@ -553,6 +553,7 @@ void CalRestoreDialog::OnRestore(wxCommandEvent& event)
 {
     Debug.AddLine("User-requested restore calibration");
     pFrame->LoadCalibration();
+    EvtServer.NotifyCalibrationUpdate();
     pFrame->StatusMsg(_("Calibration restored"));
     EndModal(wxID_OK);
 }
@@ -811,6 +812,7 @@ void CalSanityDialog::OnRestore(wxCommandEvent& evt)
 
     pFrame->LoadCalibration();
     pFrame->StatusMsg(_("Previous calibration restored"));
+    EvtServer.NotifyCalibrationUpdate();
     Debug.AddLine("Calibration sanity check: user chose to restore old calibration");
     ShutDown();
 }

@@ -161,7 +161,7 @@ static const wxStringCharType *StateStr(GUIDER_STATE st)
 }
 
 Guider::Guider(wxWindow *parent, int xSize, int ySize)
-    : wxWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE)
+    : wxWindow(parent, wxID_ANY, wxDefaultPosition, wxSize(xSize, ySize), wxFULL_REPAINT_ON_RESIZE)
 {
     m_state = STATE_UNINITIALIZED;
     Debug.Write(wxString::Format("guider state => %s\n", StateStr(m_state)));
@@ -266,7 +266,6 @@ PauseType Guider::SetPaused(PauseType pause)
     if (pause != prev)
     {
         Refresh();
-        Update();
     }
 
     return prev;
@@ -453,6 +452,15 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
         {
             int blevel = m_pCurrentImage->FiltMin;
             int wlevel = m_pCurrentImage->FiltMax;
+
+            // Enhance contrast for very low contrast images. This adjustment prevents the frames
+            // from being displayed as all-white, which is a visually unpleasant artifact commonly
+            // encountered in dark frames. By slightly increasing the maximum value
+            // when the difference between min and max values is minimal, we improve the visibility
+            // of image details while avoiding the all-white display issue.
+            if ((m_pCurrentImage->BitsPerPixel > 8) && (wlevel < 4096 && (wlevel - blevel) < 16))
+                wlevel += 16;
+
             m_pCurrentImage->CopyToImage(&m_displayedImage, blevel, wlevel, pFrame->Stretch_gamma);
         }
 
@@ -497,7 +505,10 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
 
                     if (newWidth > 0 && newHeight > 0)
                     {
-                        m_displayedImage->Rescale(newWidth, newHeight, wxIMAGE_QUALITY_BILINEAR);
+                        wxImageResizeQuality quality = (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+                            ? wxIMAGE_QUALITY_NORMAL
+                            : wxIMAGE_QUALITY_BILINEAR;
+                        m_displayedImage->Rescale(newWidth, newHeight, quality);
                     }
                 }
             }
@@ -714,13 +725,39 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
 
         if (IsPaused())
         {
+            wxString label = _("PAUSED");
+            wxSize textSize = dc.GetTextExtent(label);
             dc.SetTextForeground(*wxYELLOW);
-            dc.DrawText(_("PAUSED"), 10, YWinSize - 20);
+            dc.DrawText(label, 10, YWinSize - textSize.GetHeight() - 5);
         }
         else if (pMount && !pMount->GetGuidingEnabled())
         {
+            wxString label = _("Guide output DISABLED");
+            wxSize textSize = dc.GetTextExtent(label);
             dc.SetTextForeground(*wxYELLOW);
-            dc.DrawText(_("Guide output DISABLED"), 10, YWinSize - 20);
+            dc.DrawText(label, 10, YWinSize - textSize.GetHeight() - 5);
+        }
+#if defined(FRAME_MONITOR_CAMERA)
+        else if (pCamera && pCamera->Name == FRAME_MONITOR_CAMERA && pCamera->Connected)
+        {
+            extern wxString GetFrameMonitorLabel();
+            wxString framePath = GetFrameMonitorLabel();
+            if (!framePath.IsEmpty())
+            {
+                wxSize textSize = dc.GetTextExtent(framePath);
+                dc.SetTextForeground(*wxYELLOW);
+                dc.DrawText(framePath, 10, YWinSize - textSize.GetHeight() - 5);
+            }
+        }
+#endif
+        else if (pCamera && pCamera->Name == _T("Simulator") && pCamera->Connected)
+        {
+            wxFileName fileName(pCamera->GetStrProperty("path"));
+            if (fileName != wxEmptyString)
+            {
+                dc.SetTextForeground(*wxYELLOW);
+                dc.DrawText(wxString::Format("%s", fileName.GetFullName()), 10, YWinSize - 25);
+            }
         }
     }
     catch (const wxString& Msg)
@@ -1195,7 +1232,7 @@ void Guider::Reset(bool fullReset)
 static void SetAutoLoad(long param)
 {
     pFrame->SetAutoLoadCalibration(true);
-    pFrame->m_infoBar->Dismiss();
+    pFrame->ClearAlert();
 }
 
 // Generate an alert if the user is likely to be missing the opportunity for auto-restore of
@@ -1310,6 +1347,7 @@ void Guider::UpdateGuideState(usImage *pImage, bool bStopping)
 
         GuiderOffset ofs;
         FrameDroppedInfo info;
+        info.state = wxEmptyString;
 
         if (UpdateCurrentPosition(pImage, &ofs, &info)) // true means error
         {
@@ -1326,6 +1364,7 @@ void Guider::UpdateGuideState(usImage *pImage, bool bStopping)
             case STATE_SELECTED:
                 // we had a current position and lost it
                 EvtServer.NotifyLooping(pImage->FrameNum, nullptr, &info);
+                info.state = "Looping";
                 if (!m_ignoreLostStarLooping)
                 {
                     SetState(STATE_UNINITIALIZED);
@@ -1337,12 +1376,14 @@ void Guider::UpdateGuideState(usImage *pImage, bool bStopping)
             case STATE_CALIBRATING_SECONDARY:
                 GuideLog.CalibrationFrameDropped(info);
                 Debug.Write("Star lost during calibration... blundering on\n");
+                info.state = "Calibrating";
                 EvtServer.NotifyStarLost(info);
                 pFrame->StatusMsg(_("star lost"));
                 break;
             case STATE_GUIDING:
             {
                 GuideLog.FrameDropped(info);
+                info.state = "Guiding";
                 EvtServer.NotifyStarLost(info);
                 GuidingAssistant::NotifyFrameDropped(info);
                 pFrame->pGraphLog->AppendData(info);
@@ -1351,13 +1392,17 @@ void Guider::UpdateGuideState(usImage *pImage, bool bStopping)
                 static GuiderOffset ZERO_OFS;
                 pFrame->SchedulePrimaryMove(pMount, ZERO_OFS, MOVEOPTS_DEDUCED_MOVE);
 
-                wxColor prevColor = GetBackgroundColour();
-                SetBackgroundColour(wxColour(64, 0, 0));
-                ClearBackground();
-                if (pFrame->GetBeepForLostStar())
-                    wxBell();
-                wxMilliSleep(100);
-                SetBackgroundColour(prevColor);
+                // Don't blink and beep during solar/planetary guiding pause state
+                if (!m_SolarSystemObject.GetDetectionPausedState())
+                {
+                    wxColor prevColor = GetBackgroundColour();
+                    SetBackgroundColour(wxColour(64, 0, 0));
+                    ClearBackground();
+                    if (pFrame->GetBeepForLostStar())
+                        wxBell();
+                    wxMilliSleep(100);
+                    SetBackgroundColour(prevColor);
+                }
                 break;
             }
 

@@ -44,6 +44,7 @@
 #include "Refine_DefMap.h"
 #include "starcross_test.h"
 #include "calibration_assistant.h"
+#include "planetary_tool.h"
 
 #include <algorithm>
 #include <memory>
@@ -132,6 +133,7 @@ void MyFrame::NotifyExposureChanged()
 {
     NotifyGuidingParam("Exposure", ExposureDurationSummary());
     pConfig->Profile.SetInt("/ExposureDurationMs", m_autoExp.enabled ? -1 : m_exposureDuration);
+    UpdateCameraSettings();
 }
 
 int MyFrame::RequestedExposureDuration()
@@ -203,7 +205,7 @@ void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
 
 void MyFrame::OnHelpOnline(wxCommandEvent& evt)
 {
-    wxLaunchDefaultBrowser("https://openphdguiding.org/getting-help/");
+    wxLaunchDefaultBrowser(_T(CONFIG_PHD2_GETTING_HELP_URL));
 }
 
 static void _shell_open(const wxString& loc)
@@ -642,6 +644,14 @@ void MyFrame::OnDark(wxCommandEvent& WXUNUSED(event))
         return;
     }
 
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera->Name == FRAME_MONITOR_CAMERA)
+    {
+        wxMessageBox(_(FRAME_MONITOR_CAMERA " does not support the Dark Library feature"), _("Info"));
+        return;
+    }
+#endif
+
     DarksDialog dlg(this, true);
     dlg.ShowModal();
 
@@ -657,6 +667,16 @@ bool MyFrame::LoadDarkHandler(bool checkIt)
         m_useDarksMenuItem->Check(false);
         return false;
     }
+
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera->Name == FRAME_MONITOR_CAMERA)
+    {
+        Debug.Write(_("LoadDarkHandler: " FRAME_MONITOR_CAMERA " does not support the Dark Library feature\n"));
+        m_useDarksMenuItem->Check(false);
+        return false;
+    }
+#endif
+
     pConfig->Profile.SetBoolean("/camera/AutoLoadDarks", checkIt);
     if (checkIt) // enable it
     {
@@ -700,6 +720,16 @@ void MyFrame::LoadDefectMapHandler(bool checkIt)
         darks_menu->FindItem(MENU_LOADDEFECTMAP)->Check(false);
         return;
     }
+
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera->Name == FRAME_MONITOR_CAMERA)
+    {
+        Debug.Write(_("LoadDefectMapHandler: " FRAME_MONITOR_CAMERA " does not support the Defect Map feature\n"));
+        darks_menu->FindItem(MENU_LOADDEFECTMAP)->Check(false);
+        return;
+    }
+#endif
+
     pConfig->Profile.SetBoolean("/camera/AutoLoadDefectMap", checkIt);
     if (checkIt)
     {
@@ -745,6 +775,14 @@ void MyFrame::OnRefineDefMap(wxCommandEvent& evt)
         return;
     }
 
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera->Name == FRAME_MONITOR_CAMERA)
+    {
+        wxMessageBox(_(FRAME_MONITOR_CAMERA " does not support the Bad Pixel Map feature"), _("Info"));
+        return;
+    }
+#endif
+
     if (!pRefineDefMap)
         pRefineDefMap = new RefineDefMap(this);
 
@@ -768,6 +806,14 @@ void MyFrame::OnImportCamCal(wxCommandEvent& evt)
         wxMessageBox(_("Please connect a camera first."));
         return;
     }
+
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera->Name == FRAME_MONITOR_CAMERA)
+    {
+        wxMessageBox(_(FRAME_MONITOR_CAMERA " does not support the Dark Library feature"), _("Info"));
+        return;
+    }
+#endif
 
     CamCalImportDialog dlg(this);
 
@@ -1165,7 +1211,7 @@ void MyFrame::OnPanelClose(wxAuiManagerEvent& evt)
 static void AlertSetRAOnly(long param)
 {
     pFrame->SetDitherRaOnly(true);
-    pFrame->m_infoBar->Dismiss();
+    pFrame->ClearAlert();
 }
 
 static void CheckDecGuideModeAlert()
@@ -1307,5 +1353,25 @@ void MyFrame::OnCharHook(wxKeyEvent& evt)
     if (!handled)
     {
         evt.Skip();
+    }
+}
+
+void MyFrame::OnPlanetTool(wxCommandEvent& evt)
+{
+    if (!pPlanetTool)
+    {
+        pPlanetTool = PlanetTool::CreatePlanetToolWindow();
+    }
+
+    if (pPlanetTool)
+    {
+        // Reset planetary tool dialog position when opened when any
+        // of Alt/Ctrl/Shift is pressed while clicking the button
+        if ((evt.GetId() == BUTTON_SOLAR_SYSTEM_TOOL) &&
+            (wxGetKeyState(WXK_ALT) || wxGetKeyState(WXK_CONTROL) || wxGetKeyState(WXK_SHIFT)))
+        {
+            PlaceWindowOnScreen(pPlanetTool, -1, -1);
+        }
+        pPlanetTool->Show();
     }
 }

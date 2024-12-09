@@ -192,6 +192,8 @@ set(cam_SRC
   ${phd_src_dir}/cam_moravian.h
   ${phd_src_dir}/cam_NebSBIG.cpp
   ${phd_src_dir}/cam_NebSBIG.h
+  ${phd_src_dir}/cam_FrameMon.cpp
+  ${phd_src_dir}/cam_FrameMon.h
   ${phd_src_dir}/cam_ogma.cpp
   ${phd_src_dir}/cam_ogma.h
   ${phd_src_dir}/cam_opencv.cpp
@@ -427,6 +429,12 @@ set(phd2_SRC
   ${phd_src_dir}/phdupdate.h
   ${phd_src_dir}/pierflip_tool.cpp
   ${phd_src_dir}/pierflip_tool.h
+  ${phd_src_dir}/planetary_tool.cpp
+  ${phd_src_dir}/planetary_tool.h
+  ${phd_src_dir}/planetary.cpp
+  ${phd_src_dir}/planetary.h
+  ${phd_src_dir}/ser_file.cpp
+  ${phd_src_dir}/ser_file.h
   ${phd_src_dir}/polardrift_tool.h
   ${phd_src_dir}/polardrift_toolwin.h
   ${phd_src_dir}/polardrift_toolwin.cpp

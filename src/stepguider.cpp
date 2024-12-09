@@ -759,6 +759,7 @@ bool StepGuider::UpdateCalibrationState(const PHD_Point& currentLocation)
             SetCalibration(m_calibration);
             SetCalibrationDetails(m_calibrationDetails, m_calibration.xAngle, m_calibration.yAngle, pCamera->Binning);
             status0 = _("Calibration complete");
+            EvtServer.NotifyCalibrationUpdate();
             GuideLog.CalibrationComplete(this);
             Debug.Write("Calibration Complete\n");
             break;
@@ -1337,6 +1338,7 @@ void StepGuider::AdjustCalibrationForScopePointing()
                                      cal.yRate));
 
         SetCalibration(cal);
+        EvtServer.NotifyCalibrationUpdate();
     }
 }
 
