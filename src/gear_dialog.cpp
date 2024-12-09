@@ -1171,6 +1171,9 @@ bool GearDialog::DoConnectCamera(bool autoReconnecting)
             m_pCamera->SetCameraGain(defaultGain);
         }
 
+        // Notify solar/planetary module of camera connect
+        pFrame->pGuider->m_SolarSystemObject.NotifyCameraConnect(true);
+
         // See if the profile was created with a binning level that isn't supported by the camera (user mistake) - if so, reset
         // binning to 1 Must be done here because orig binning level is not saved
         if (profileBinning > m_pCamera->MaxBinning)
@@ -1263,6 +1266,9 @@ void GearDialog::OnButtonDisconnectCamera(wxCommandEvent& event)
         }
 
         m_pCamera->Disconnect();
+
+        // Notify solar/planetary module of camera disconnect
+        pFrame->pGuider->m_SolarSystemObject.NotifyCameraConnect(false);
 
         if (m_pScope && m_pScope->RequiresCamera() && m_pScope->IsConnected())
         {
