@@ -815,6 +815,9 @@ void PlanetToolWin::UpdateStatus()
     // Update checkmark state in tools menu
     pFrame->m_PlanetaryMenuItem->Check(enabled);
 
+    // Toggle the visibility of solar/planetary stats grid
+    pFrame->pStatsWin->ShowPlanetStats(enabled);
+
     // Pause solar system object guiding can be enabled only when guiding is still active
     m_PauseButton->Enable(enabled && pFrame->pGuider->IsGuiding());
 }
