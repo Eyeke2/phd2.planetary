@@ -57,6 +57,7 @@ wxDECLARE_EVENT(STATUSBAR_TIMER_EVENT, wxTimerEvent);
 wxDECLARE_EVENT(SET_STATUS_TEXT_EVENT, wxThreadEvent);
 wxDECLARE_EVENT(ALERT_FROM_THREAD_EVENT, wxThreadEvent);
 wxDECLARE_EVENT(CLEAR_ALERT_FROM_THREAD_EVENT, wxThreadEvent);
+wxDECLARE_EVENT(SOLAR_PLANETARY_EVENT, wxThreadEvent);
 
 enum NOISE_REDUCTION_METHOD
 {
@@ -179,11 +180,11 @@ protected:
     int GetTimeLapse() const;
     int GetExposureDelay();
 
-    bool SetFocalLength(int focalLength);
-
     friend class MyFrameConfigDialogPane;
     friend class MyFrameConfigDialogCtrlSet;
     friend class WorkerThread;
+    friend class PlanetToolWin;
+    friend class SolarSystemObject;
 
 private:
     NOISE_REDUCTION_METHOD m_noiseReductionMethod;
@@ -224,6 +225,7 @@ public:
     wxMenuItem *m_cameraMenuItem;
     wxMenuItem *m_autoSelectStarMenuItem;
     wxMenuItem *m_takeDarksMenuItem;
+    wxMenuItem *m_PlanetaryMenuItem;
     wxMenuItem *m_useDarksMenuItem;
     wxMenuItem *m_refineDefMapMenuItem;
     wxMenuItem *m_useDefectMapMenuItem;
@@ -250,6 +252,7 @@ public:
     wxDialog *pStarCrossDlg;
     wxWindow *pNudgeLock;
     wxWindow *pCometTool;
+    wxWindow *pPlanetTool;
     wxWindow *pGuidingAssistant;
     wxWindow *pierFlipToolWin;
     RefineDefMap *pRefineDefMap;
@@ -306,6 +309,7 @@ public:
     void OnStaticPaTool(wxCommandEvent& evt);
     void OnCalibrationAssistant(wxCommandEvent& evt);
     void OnCometTool(wxCommandEvent& evt);
+    void OnPlanetTool(wxCommandEvent& evt);
     void OnGuidingAssistant(wxCommandEvent& evt);
     void OnSetupCamera(wxCommandEvent& evt);
     void OnExposureDurationSelected(wxCommandEvent& evt);
@@ -350,8 +354,8 @@ public:
 
     const std::vector<int>& GetExposureDurations() const;
     bool SetCustomExposureDuration(int ms);
-    void GetExposureInfo(int *currExpMs, bool *autoExp) const;
-    bool SetExposureDuration(int val);
+    bool GetExposureInfo(int *currExpMs, bool *autoExp) const;
+    bool SetExposureDuration(int val, bool updateCustom = false);
     const AutoExposureCfg& GetAutoExposureCfg() const { return m_autoExp; }
     bool SetAutoExposureCfg(int minExp, int maxExp, double targetSNR);
     void ResetAutoExposure();
@@ -373,6 +377,7 @@ public:
     bool FlipCalibrationData();
     int RequestedExposureDuration();
     int GetFocalLength() const;
+    bool SetFocalLength(int focalLength);
     bool GetAutoLoadCalibration() const;
     void SetAutoLoadCalibration(bool val);
     void LoadCalibration();
@@ -512,6 +517,7 @@ private:
     void OnReconnectCameraFromThread(wxThreadEvent& event);
     void OnStatusBarTimerEvent(wxTimerEvent& evt);
     void OnUpdaterStateChanged(wxThreadEvent& event);
+    void OnSolarSystemModeEvent(wxThreadEvent& event);
     void OnMessageBoxProxy(wxCommandEvent& evt);
     void SetupMenuBar();
     void SetupStatusBar();
@@ -558,6 +564,7 @@ enum
     BUTTON_AUTOSTAR,
     BUTTON_DURATION,
     BUTTON_ADVANCED,
+    BUTTON_SOLAR_SYSTEM_TOOL,
     BUTTON_CAM_PROPERTIES,
     BUTTON_ALERT_ACTION,
     BUTTON_ALERT_CLOSE,
@@ -644,6 +651,7 @@ enum
     MENU_POLARDRIFTTOOL,
     MENU_STATICPATOOL,
     MENU_COMETTOOL,
+    MENU_SOLAR_SYSTEM_TOOL,
     MENU_GUIDING_ASSISTANT,
     MENU_SAVESETTINGS,
     MENU_LOADSETTINGS,

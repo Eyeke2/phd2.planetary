@@ -38,6 +38,7 @@
 
 #include "aui_controls.h"
 #include "comet_tool.h"
+#include "planetary_tool.h"
 #include "config_indi.h"
 #include "guiding_assistant.h"
 #include "phdupdate.h"
@@ -76,6 +77,7 @@ wxDEFINE_EVENT(SET_STATUS_TEXT_EVENT, wxThreadEvent);
 wxDEFINE_EVENT(ALERT_FROM_THREAD_EVENT, wxThreadEvent);
 wxDEFINE_EVENT(CLEAR_ALERT_FROM_THREAD_EVENT, wxThreadEvent);
 wxDEFINE_EVENT(RECONNECT_CAMERA_EVENT, wxThreadEvent);
+wxDEFINE_EVENT(SOLAR_PLANETARY_EVENT, wxThreadEvent);
 wxDEFINE_EVENT(UPDATER_EVENT, wxThreadEvent);
 
 // clang-format off
@@ -98,6 +100,7 @@ wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(MENU_POLARDRIFTTOOL, MyFrame::OnPolarDriftTool)
     EVT_MENU(MENU_STATICPATOOL, MyFrame::OnStaticPaTool)
     EVT_MENU(MENU_COMETTOOL, MyFrame::OnCometTool)
+    EVT_MENU(MENU_SOLAR_SYSTEM_TOOL, MyFrame::OnPlanetTool)
     EVT_MENU(MENU_GUIDING_ASSISTANT, MyFrame::OnGuidingAssistant)
     EVT_MENU(MENU_HELP_UPGRADE, MyFrame::OnUpgrade)
     EVT_MENU(MENU_HELP_ONLINE, MyFrame::OnHelpOnline)
@@ -150,6 +153,7 @@ wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_TOOL(BUTTON_AUTOSTAR, MyFrame::OnButtonAutoStar)
     EVT_MENU(MENU_STOP, MyFrame::OnButtonStop)
     EVT_TOOL(BUTTON_ADVANCED, MyFrame::OnAdvanced)
+    EVT_TOOL(BUTTON_SOLAR_SYSTEM_TOOL, MyFrame::OnPlanetTool)
     EVT_MENU(MENU_BRAIN, MyFrame::OnAdvanced)
     EVT_TOOL(BUTTON_GUIDE,MyFrame::OnButtonGuide)
     EVT_MENU(MENU_GUIDE,MyFrame::OnButtonGuide)
@@ -172,6 +176,8 @@ wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_THREAD(CLEAR_ALERT_FROM_THREAD_EVENT, MyFrame::OnClearAlertFromThread)
     EVT_THREAD(RECONNECT_CAMERA_EVENT, MyFrame::OnReconnectCameraFromThread)
     EVT_THREAD(UPDATER_EVENT, MyFrame::OnUpdaterStateChanged)
+    EVT_THREAD(SOLAR_PLANETARY_EVENT, MyFrame::OnSolarSystemModeEvent)
+
     EVT_COMMAND(wxID_ANY, REQUEST_MOUNT_MOVE_EVENT, MyFrame::OnRequestMountMove)
     EVT_TIMER(STATUSBAR_TIMER_EVENT, MyFrame::OnStatusBarTimerEvent)
 
@@ -213,7 +219,8 @@ struct FileDropTarget : public wxFileDropTarget
 // ---------------------- Main Frame -------------------------------------
 // frame constructor
 MyFrame::MyFrame()
-    : wxFrame(nullptr, wxID_ANY, wxEmptyString), m_showBookmarksAccel(0), m_bookmarkLockPosAccel(0), pStatsWin(nullptr)
+    : wxFrame(nullptr, wxID_ANY, wxEmptyString), pGuider(nullptr), pPlanetTool(nullptr), m_showBookmarksAccel(0),
+      m_bookmarkLockPosAccel(0), pStatsWin(nullptr)
 {
     m_mgr.SetManagedWindow(this);
 
@@ -342,6 +349,7 @@ MyFrame::MyFrame()
     pStarCrossDlg = nullptr;
     pNudgeLock = nullptr;
     pCometTool = nullptr;
+    pPlanetTool = nullptr;
     pGuidingAssistant = nullptr;
     pRefineDefMap = nullptr;
     pCalSanityCheckDlg = nullptr;
@@ -449,6 +457,8 @@ MyFrame::~MyFrame()
         pStarCrossDlg->Destroy();
     if (pierFlipToolWin)
         pierFlipToolWin->Destroy();
+    if (pPlanetTool)
+        pPlanetTool->Destroy();
 
     m_mgr.UnInit();
 
@@ -503,6 +513,8 @@ void MyFrame::SetupMenuBar()
 
     tools_menu->Append(EEGG_MANUALLOCK, _("Adjust &Lock Position"), _("Adjust the lock position"));
     tools_menu->Append(MENU_COMETTOOL, _("&Comet Tracking"), _("Run the Comet Tracking tool"));
+    m_PlanetaryMenuItem = tools_menu->AppendCheckItem(MENU_SOLAR_SYSTEM_TOOL, _("&Planetary and Solar Guiding Tool\tCtrl-P"),
+                                                      _("Run the solar/lunar/planetary guiding tool"));
     tools_menu->Append(MENU_STARCROSS_TEST, _("Star-Cross Test"), _("Run a star-cross test for mount diagnostics"));
     tools_menu->Append(MENU_PIERFLIP_TOOL, _("Calibrate meridian flip"),
                        _("Automatically determine the correct meridian flip settings"));
@@ -672,18 +684,21 @@ bool MyFrame::SetCustomExposureDuration(int ms)
     return false;
 }
 
-void MyFrame::GetExposureInfo(int *currExpMs, bool *autoExp) const
+bool MyFrame::GetExposureInfo(int *currExpMs, bool *autoExp) const
 {
+    bool bEerr = false;
     if (!pCamera || !pCamera->Connected)
     {
         *currExpMs = 0;
         *autoExp = false;
+        bEerr = true;
     }
     else
     {
         *currExpMs = m_exposureDuration;
         *autoExp = m_autoExp.enabled;
     }
+    return bEerr;
 }
 
 static int dur_index(int duration)
@@ -694,7 +709,7 @@ static int dur_index(int duration)
     return -1;
 }
 
-bool MyFrame::SetExposureDuration(int val)
+bool MyFrame::SetExposureDuration(int val, bool updateCustom)
 {
     if (val < 0)
     {
@@ -705,7 +720,15 @@ bool MyFrame::SetExposureDuration(int val)
     {
         int idx = dur_index(val);
         if (idx == -1)
-            return false;
+        {
+            if (updateCustom)
+            {
+                SetCustomExposureDuration(val);
+                idx = dur_index(val);
+            }
+            if (idx == -1)
+                return false;
+        }
         Dur_Choice->SetSelection(idx + 1); // skip Auto
     }
 
@@ -1638,6 +1661,21 @@ void MyFrame::NotifyUpdaterStateChanged()
 void MyFrame::OnUpdaterStateChanged(wxThreadEvent& event)
 {
     PHD2Updater::OnUpdaterStateChanged();
+}
+
+void MyFrame::OnSolarSystemModeEvent(wxThreadEvent& evt)
+{
+    SolarPlanetaryMessage *msg = (SolarPlanetaryMessage *) evt.GetExtraLong();
+    switch (msg->type)
+    {
+    case SolarPlanetaryMessage::PLANETARY_MODE_CHANGE:
+        pGuider->m_SolarSystemObject.Set_SolarSystemObjMode(msg->enabled);
+        break;
+    case SolarPlanetaryMessage::SURFACE_PARAMS_CHANGE:
+        pGuider->m_SolarSystemObject.Set_SurfaceDetectionParams(msg->minHessian, msg->maxFeatures);
+        break;
+    }
+    delete msg;
 }
 
 bool MyFrame::StartWorkerThread(WorkerThread *& pWorkerThread)

@@ -157,6 +157,7 @@ WX_DEFINE_ARRAY_DOUBLE(double, ArrayOfDbl);
 #include "usImage.h"
 #include "point.h"
 #include "star.h"
+#include "planetary.h"
 #include "circbuf.h"
 #include "guidinglog.h"
 #include "graph.h"

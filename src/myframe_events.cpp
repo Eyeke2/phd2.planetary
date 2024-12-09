@@ -44,6 +44,7 @@
 #include "Refine_DefMap.h"
 #include "starcross_test.h"
 #include "calibration_assistant.h"
+#include "planetary_tool.h"
 
 #include <algorithm>
 #include <memory>
@@ -1307,5 +1308,25 @@ void MyFrame::OnCharHook(wxKeyEvent& evt)
     if (!handled)
     {
         evt.Skip();
+    }
+}
+
+void MyFrame::OnPlanetTool(wxCommandEvent& evt)
+{
+    if (!pPlanetTool)
+    {
+        pPlanetTool = PlanetTool::CreatePlanetToolWindow();
+    }
+
+    if (pPlanetTool)
+    {
+        // Reset planetary tool dialog position when opened when any
+        // of Alt/Ctrl/Shift is pressed while clicking the button
+        if ((evt.GetId() == BUTTON_SOLAR_SYSTEM_TOOL) &&
+            (wxGetKeyState(WXK_ALT) || wxGetKeyState(WXK_CONTROL) || wxGetKeyState(WXK_SHIFT)))
+        {
+            PlaceWindowOnScreen(pPlanetTool, -1, -1);
+        }
+        pPlanetTool->Show();
     }
 }
