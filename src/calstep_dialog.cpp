@@ -237,7 +237,8 @@ void CalstepDialog::GetCalibrationStepSize(int FocalLength, double PixelSize, in
     Pulse = wxMin(MaxPulse, Pulse / cos(radians(Declination))); // UI forces abs(Dec) <= 60 degrees
     if (pImageScale)
         *pImageScale = ImageScale;
-    *pStepSize = (int) ceil(Pulse / 50.0) * 50; // round up to nearest 50 ms, too-small pulses can lead to calibration problems
+    *pStepSize = (int) wxMax(ceil(Pulse / 50.0) * 50,
+                             50); // round up to nearest 50 ms, too-small pulses can lead to calibration problems
 }
 
 void CalstepDialog::OnText(wxCommandEvent& evt)
