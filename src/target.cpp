@@ -238,6 +238,7 @@ TargetClient::TargetClient(wxWindow *parent)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
 
+    memset(m_history, 0, sizeof(m_history));
     m_minLength = 50;
     m_maxLength = 400;
 
@@ -304,7 +305,6 @@ void TargetClient::OnPaint(wxPaintEvent& WXUNUSED(evt))
     }
 
     // Draw circles
-
     for (int i = 1; i <= 4; i++)
     {
         int rr = radius_max * i / 4;
