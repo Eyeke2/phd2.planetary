@@ -1195,7 +1195,7 @@ void Guider::Reset(bool fullReset)
 static void SetAutoLoad(long param)
 {
     pFrame->SetAutoLoadCalibration(true);
-    pFrame->m_infoBar->Dismiss();
+    pFrame->ClearAlert();
 }
 
 // Generate an alert if the user is likely to be missing the opportunity for auto-restore of

@@ -74,6 +74,7 @@ wxDEFINE_EVENT(STATUSBAR_ENQUEUE_EVENT, wxCommandEvent);
 wxDEFINE_EVENT(STATUSBAR_TIMER_EVENT, wxTimerEvent);
 wxDEFINE_EVENT(SET_STATUS_TEXT_EVENT, wxThreadEvent);
 wxDEFINE_EVENT(ALERT_FROM_THREAD_EVENT, wxThreadEvent);
+wxDEFINE_EVENT(CLEAR_ALERT_FROM_THREAD_EVENT, wxThreadEvent);
 wxDEFINE_EVENT(RECONNECT_CAMERA_EVENT, wxThreadEvent);
 wxDEFINE_EVENT(UPDATER_EVENT, wxThreadEvent);
 
@@ -168,6 +169,7 @@ wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
 
     EVT_THREAD(SET_STATUS_TEXT_EVENT, MyFrame::OnStatusMsg)
     EVT_THREAD(ALERT_FROM_THREAD_EVENT, MyFrame::OnAlertFromThread)
+    EVT_THREAD(CLEAR_ALERT_FROM_THREAD_EVENT, MyFrame::OnClearAlertFromThread)
     EVT_THREAD(RECONNECT_CAMERA_EVENT, MyFrame::OnReconnectCameraFromThread)
     EVT_THREAD(UPDATER_EVENT, MyFrame::OnUpdaterStateChanged)
     EVT_COMMAND(wxID_ANY, REQUEST_MOUNT_MOVE_EVENT, MyFrame::OnRequestMountMove)
@@ -230,6 +232,10 @@ MyFrame::MyFrame()
 
     m_sampling = 1.0;
 
+    // Alert messages
+    m_prevAlertMsg = wxEmptyString;
+    m_currentAlertMsg = wxEmptyString;
+
 #include "icons/phd2_128.png.h"
     wxBitmap phd2(wxBITMAP_PNG_FROM_DATA(phd2_128));
     wxIcon icon;
@@ -259,6 +265,7 @@ MyFrame::MyFrame()
     m_infoBar->Connect(BUTTON_ALERT_DONTSHOW, wxEVT_BUTTON, wxCommandEventHandler(MyFrame::OnAlertButton), nullptr, this);
     m_infoBar->Connect(BUTTON_ALERT_CLOSE, wxEVT_BUTTON, wxCommandEventHandler(MyFrame::OnAlertButton), nullptr, this);
     m_infoBar->Connect(BUTTON_ALERT_HELP, wxEVT_BUTTON, wxCommandEventHandler(MyFrame::OnAlertHelp), nullptr, this);
+    m_infoBar->Bind(wxEVT_SIZE, &MyFrame::OnAlertSize, this);
 
     sizer->Add(m_infoBar, wxSizerFlags().Expand());
 
@@ -1213,21 +1220,57 @@ void MyFrame::OnAlertButton(wxCommandEvent& evt)
     {
         (*m_alertDontShowFn)(m_alertFnArg);
         // Don't show should also mean close the window
-        m_infoBar->Dismiss();
+        ClearAlert();
     }
     if (evt.GetId() == BUTTON_ALERT_CLOSE)
-        m_infoBar->Dismiss();
+        ClearAlert();
+}
+
+void MyFrame::DoClearAlert()
+{
+    wxCriticalSectionLocker lock(m_alertLock);
+    m_currentAlertMsg.Clear();
+    m_infoBar->Dismiss();
 }
 
 void MyFrame::ClearAlert()
 {
-    m_infoBar->Dismiss();
+    if (wxThread::IsMain())
+    {
+        DoClearAlert();
+    }
+    else
+    {
+        wxThreadEvent *event = new wxThreadEvent(wxEVT_THREAD, CLEAR_ALERT_FROM_THREAD_EVENT);
+        wxQueueEvent(this, event);
+    }
+}
+
+void MyFrame::ClearAlert(const wxString& msg)
+{
+    bool clear = false;
+    {
+        wxCriticalSectionLocker lock(m_alertLock);
+        if (m_currentAlertMsg == msg)
+        {
+            m_prevAlertMsg.Clear();
+            m_currentAlertMsg.Clear();
+            clear = true;
+        }
+    }
+    if (clear)
+        ClearAlert();
 }
 
 void MyFrame::OnAlertHelp(wxCommandEvent& evt)
 {
     // Any open help window will be re-directed
     help->Display(_("Trouble-shooting and Analysis"));
+}
+
+void MyFrame::OnAlertSize(wxSizeEvent& evt)
+{
+    evt.Skip();
 }
 
 // Alerts may have a combination of 'Don't show', help, close, and 'Custom' buttons.  The 'close' button is added automatically
@@ -1282,6 +1325,11 @@ void MyFrame::DoAlert(const alert_params& params)
     // workaround, do not display any icon on Mac.
     showMessageFlags = wxICON_NONE;
 #endif
+    {
+        wxCriticalSectionLocker lock(m_alertLock);
+        m_currentAlertMsg = params.msg;
+    }
+    m_infoBar->Dismiss();
     m_infoBar->ShowMessage(wrappedText, showMessageFlags);
     m_statusbar->UpdateStates(); // might have disconnected a device
     EvtServer.NotifyAlert(params.msg, params.flags);
@@ -1290,6 +1338,23 @@ void MyFrame::DoAlert(const alert_params& params)
 void MyFrame::Alert(const wxString& msg, alert_fn *DontShowFn, const wxString& buttonLabel, alert_fn *SpecialFn, long arg,
                     bool showHelpButton, int flags)
 {
+    {
+        // Avoid displaying duplicate message multiple times
+        bool dupMsg = false;
+        {
+            wxCriticalSectionLocker lock(m_alertLock);
+            if ((msg == m_prevAlertMsg) && m_infoBar->IsShown())
+                dupMsg = true;
+            m_prevAlertMsg = msg;
+        }
+        if (dupMsg)
+        {
+            // Send duplicate alert via the event server but don't show it again
+            EvtServer.NotifyAlert(msg, flags);
+            return;
+        }
+    }
+
     if (wxThread::IsMain())
     {
         alert_params params;
@@ -1341,6 +1406,11 @@ void MyFrame::OnAlertFromThread(wxThreadEvent& event)
     alert_params *params = (alert_params *) event.GetExtraLong();
     DoAlert(*params);
     delete params;
+}
+
+void MyFrame::OnClearAlertFromThread(wxThreadEvent& event)
+{
+    DoClearAlert();
 }
 
 void MyFrame::OnReconnectCameraFromThread(wxThreadEvent& event)
