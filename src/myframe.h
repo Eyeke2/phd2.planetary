@@ -56,6 +56,7 @@ wxDECLARE_EVENT(STATUSBAR_ENQUEUE_EVENT, wxCommandEvent);
 wxDECLARE_EVENT(STATUSBAR_TIMER_EVENT, wxTimerEvent);
 wxDECLARE_EVENT(SET_STATUS_TEXT_EVENT, wxThreadEvent);
 wxDECLARE_EVENT(ALERT_FROM_THREAD_EVENT, wxThreadEvent);
+wxDECLARE_EVENT(CLEAR_ALERT_FROM_THREAD_EVENT, wxThreadEvent);
 
 enum NOISE_REDUCTION_METHOD
 {
@@ -439,6 +440,7 @@ public:
     void SuppressableAlert(const wxString& configPropKey, const wxString& msg, alert_fn *dontShowFn, long arg,
                            bool showHelpButton = false, int flags = wxICON_EXCLAMATION);
     void ClearAlert();
+    void ClearAlert(const wxString& msg);
     void StatusMsg(const wxString& text);
     void StatusMsgNoTimeout(const wxString& text);
     wxString GetSettingsSummary() const;
@@ -484,6 +486,10 @@ private:
     wxSocketServer *SocketServer;
     wxTimer m_statusbarTimer;
 
+    wxCriticalSection m_alertLock;
+    wxString m_prevAlertMsg;
+    wxString m_currentAlertMsg;
+
     int m_exposureDuration;
     AutoExposureCfg m_autoExp;
 
@@ -497,9 +503,12 @@ private:
     bool StopWorkerThread(WorkerThread *& pWorkerThread);
     void OnStatusMsg(wxThreadEvent& event);
     void DoAlert(const alert_params& params);
+    void DoClearAlert();
     void OnAlertButton(wxCommandEvent& evt);
     void OnAlertHelp(wxCommandEvent& evt);
+    void OnAlertSize(wxSizeEvent& evt);
     void OnAlertFromThread(wxThreadEvent& event);
+    void OnClearAlertFromThread(wxThreadEvent& event);
     void OnReconnectCameraFromThread(wxThreadEvent& event);
     void OnStatusBarTimerEvent(wxTimerEvent& evt);
     void OnUpdaterStateChanged(wxThreadEvent& event);

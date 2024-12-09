@@ -1165,7 +1165,7 @@ void MyFrame::OnPanelClose(wxAuiManagerEvent& evt)
 static void AlertSetRAOnly(long param)
 {
     pFrame->SetDitherRaOnly(true);
-    pFrame->m_infoBar->Dismiss();
+    pFrame->ClearAlert();
 }
 
 static void CheckDecGuideModeAlert()
