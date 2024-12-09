@@ -2322,6 +2322,7 @@ void ScopeConfigDialogCtrlSet::OnCalcCalibrationStep(wxCommandEvent& evt)
             pAdvancedDlg->SetBinning(binning);
             m_pCalibrationDuration->SetValue(calibrationStep);
             m_calibrationDistance = distance;
+            m_pScope->SetCalibrationDistance(distance);
         }
     }
 }
