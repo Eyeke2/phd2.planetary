@@ -74,6 +74,10 @@ public:
     double HFD;
     unsigned short PeakVal;
 
+    // Calcular SNR, peak value and mass of a solar system object
+    double CalcPlanetMetrics(const usImage *pImg, int center_x, int center_y, int radius, int annulusWidth);
+    double CalcSurfaceMetrics(const usImage *pImg, int start_x, int end_x, int start_y, int end_y);
+
     Star();
 
     /*
@@ -83,8 +87,8 @@ public:
      */
     bool Find(const usImage *pImg, int searchRegion, FindMode mode, double min_hfd, double max_hfd, unsigned short saturation,
               StarFindLogType loggingControl);
-    bool Find(const usImage *pImg, int searchRegion, int X, int Y, FindMode mode, double min_hfd, double max_hfd,
-              unsigned short saturation, StarFindLogType loggingControl);
+    bool Find(const usImage *pImg, int searchRegion, double X, double Y, FindMode mode, double min_hfd, double max_hfd,
+              unsigned short saturation, StarFindLogType loggingControl, bool autoFound = false);
 
     static bool WasFound(FindResult result);
     bool WasFound() const;
