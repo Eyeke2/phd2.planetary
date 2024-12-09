@@ -422,7 +422,6 @@ void Mount::MountConfigDialogPane::OnXAlgorithmSelected(wxCommandEvent& evt)
     m_pRABox->Layout();
     m_pAlgoBox->Layout();
     m_pParent->Layout();
-    m_pParent->Update();
     m_pParent->Refresh();
 
     // we can probably get rid of this when we reduce the number of GP algo settings
@@ -442,7 +441,6 @@ void Mount::MountConfigDialogPane::OnYAlgorithmSelected(wxCommandEvent& evt)
     m_pDecBox->Layout();
     m_pAlgoBox->Layout();
     m_pParent->Layout();
-    m_pParent->Update();
     m_pParent->Refresh();
 
     // For Dec algo change, enable algo controls based on current UI setting for Dec guide mode
