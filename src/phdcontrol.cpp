@@ -87,6 +87,7 @@ static ControllerState ctrl;
 
 void PhdController::OnAppInit()
 {
+    ctrl.state = STATE_IDLE;
     ctrl.settleTimeout = new wxStopWatch();
     ctrl.settleInRange = new wxStopWatch();
 }
