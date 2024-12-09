@@ -999,6 +999,11 @@ void MyFrame::SetupToolBar()
 #include "icons/cam_setup_disabled.png.h"
     wxBitmap cam_setup_bmp_disabled(wxBITMAP_PNG_FROM_DATA(cam_setup_disabled));
 
+    // This mage sourced from https://www.pngegg.com/en/png-zffyt
+    // The image is used under its "Non-commercial use, DMCA" terms.
+#include "icons/eclipse.png.h"
+    wxBitmap eclipse_bmp(wxBITMAP_PNG_FROM_DATA(eclipse));
+
     int dur_values[] = {
         10,    20,   50,   100,  200,  500,  1000, 1500, 2000,  2500,  3000,
         3500,  4000, 4500, 5000, 6000, 7000, 8000, 9000, 10000, 15000,
@@ -1037,6 +1042,8 @@ void MyFrame::SetupToolBar()
     MainToolbar->AddSeparator();
     MainToolbar->AddTool(BUTTON_ADVANCED, _("Advanced Settings"), brain_bmp, _("Advanced Settings"));
     MainToolbar->AddTool(BUTTON_CAM_PROPERTIES, cam_setup_bmp, cam_setup_bmp_disabled, false, 0, _("Camera settings"));
+    MainToolbar->AddTool(BUTTON_SOLAR_SYSTEM_TOOL, _("Planetary and Solar Guiding Tool"), eclipse_bmp,
+                         _("Planetary and Solar Guiding Tool"));
     MainToolbar->EnableTool(BUTTON_CAM_PROPERTIES, false);
     MainToolbar->EnableTool(BUTTON_LOOP, false);
     MainToolbar->EnableTool(BUTTON_AUTOSTAR, false);
