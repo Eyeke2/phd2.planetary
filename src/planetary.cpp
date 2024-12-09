@@ -269,6 +269,10 @@ void SolarSystemObject::Set_SolarSystemObjMode(bool enabled)
             Debug.Write(_("Solar/planetary guiding mode: disabled\n"));
         }
 
+        // Clear planetary/solar stats window
+        pFrame->pStatsWin->ClearPlanetStats();
+        pFrame->pStatsWin->ShowPlanetStats(enabled);
+
         // Request to update controls in UI dialog (if opened)
         SetPlanetaryModeUpdate(true);
     }
@@ -545,6 +549,8 @@ bool SolarSystemObject::UpdateCaptureState(bool CaptureActive)
 void SolarSystemObject::NotifyCameraConnect(bool connected)
 {
     bool isSimCam = (pCamera && pCamera->Name == "Simulator");
+    pFrame->pStatsWin->ShowSimulatorStats(isSimCam && connected);
+    pFrame->pStatsWin->ShowPlanetStats(Get_SolarSystemObjMode() && connected);
     m_userLClick = false;
 }
 
@@ -1533,6 +1539,7 @@ bool SolarSystemObject::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, 
         Debug.Write(
             wxString::Format("Surface feature tracking: mean=%.1f, variance=%.1f, distance=%.1f, quality=%.1f, features=%d\n",
                              mean, m_surf.variance, distance, m_surf.trackingQuality, m_detectedFeatures));
+        pFrame->pStatsWin->UpdatePlanetScore(_T("Dispersion"), m_surf.variance);
     }
     // Set reference frame keypoints and descriptors
     else if (m_surf.descriptors.rows > 4)
@@ -1609,6 +1616,7 @@ bool SolarSystemObject::FindOrbisCenter(Mat img8, int minRadius, int maxRadius, 
         m_statusMsg = _("Too many contour points detected. Please apply pixel binning, enable ROI, or increase the Edge "
                         "Detection Threshold.");
         pFrame->Alert(m_statusMsg, wxICON_WARNING);
+        pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), totalPoints);
         return false;
     }
 
@@ -1683,6 +1691,8 @@ bool SolarSystemObject::FindOrbisCenter(Mat img8, int minRadius, int maxRadius, 
         "End detection of solar system object (t=%d): r=%.1f, x=%.1f, y=%.1f, score=%.3f, contours=%d/%d, threads=%d\n",
         m_SolarSystemObjWatchdog.Time(), bestDiskCenter.radius, roiRect.x + bestDiskCenter.x, roiRect.y + bestDiskCenter.y,
         bestScore, contourMatchingCount, contourAllCount, maxThreadsCount));
+    pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contours/points"), contourMatchingCount, bestContour.size());
+    pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), bestScore);
 
     // For use by visual aid for parameter tuning
     if (VisualElementsEnabled())
@@ -1758,9 +1768,14 @@ void SolarSystemObject::UpdateDetectionErrorInSimulator(Point2f& clickedPoint)
             else if (!m_simulationZeroOffset && !clicked)
             {
                 Point2f delta = Point2f(m_center_x, m_center_y) - m_origPoint;
+                pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"),
+                                                     norm(delta - (m_cameraSimulationMove - m_cameraSimulationRefPoint)));
                 errUnknown = false;
             }
         }
+
+        if (errUnknown)
+            pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"), -1);
 
         if (clicked)
         {
@@ -2014,6 +2029,7 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
         {
         case DETECTION_MODE_SURFACE:
             detectionResult = DetectSurfaceFeatures(imgFiltered, clickedPoint, autoSelect);
+            pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_detectedFeatures : 0);
             break;
         case DETECTION_MODE_DISK:
             detectionResult = FindOrbisCenter(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect,
@@ -2027,6 +2043,9 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
             m_focusSharpness = CalcSharpness(FullFrame, clickedPoint, detectionResult);
             Debug.Write(wxString::Format("Find solar system object: sharpness=%.1f\n", m_focusSharpness));
         }
+
+        // Update detection time stats
+        pFrame->pStatsWin->UpdatePlanetDetectionTime(m_SolarSystemObjWatchdog.Time());
 
         if (detectionResult)
         {
