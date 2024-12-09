@@ -1214,6 +1214,9 @@ void MyFrame::UpdateButtonsStatus()
     if (pierFlipToolWin)
         PierFlipTool::UpdateUIControls();
 
+    if (pGuider->m_SolarSystemObject.UpdateCaptureState(CaptureActive))
+        need_update = true;
+
     if (need_update)
     {
         if (pGuider->GetState() < STATE_SELECTED)
