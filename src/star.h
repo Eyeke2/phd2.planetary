@@ -47,6 +47,7 @@ public:
     {
         FIND_CENTROID,
         FIND_PEAK,
+        FIND_PLANET
     };
 
     enum FindResult
