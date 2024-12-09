@@ -395,7 +395,12 @@ wxThread::ExitCode WorkerThread::Entry()
     while (!bDone)
     {
         bool dummy;
-        wxMessageQueueError queueError = m_wakeupQueue.Receive(dummy);
+        wxMessageQueueError queueError = m_wakeupQueue.ReceiveTimeout(1000, dummy);
+        if (queueError == wxMSGQUEUE_TIMEOUT)
+        {
+            bDone |= TestDestroy();
+            continue;
+        }
 
         Debug.Write("Worker thread wakes up\n");
 
