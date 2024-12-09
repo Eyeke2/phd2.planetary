@@ -651,7 +651,7 @@ int MyFrame::GetExposureDelay()
 void MyFrame::SetComboBoxWidth(wxComboBox *pComboBox, unsigned int extra)
 {
     unsigned int i;
-    int width = -1;
+    int width = GetTextWidth(pComboBox, _("Custom: 0.999 s"));
 
     for (i = 0; i < pComboBox->GetCount(); i++)
     {
@@ -1022,7 +1022,7 @@ void MyFrame::SetupToolBar()
     Dur_Choice =
         new wxComboBox(MainToolbar, BUTTON_DURATION, wxEmptyString, wxDefaultPosition, wxDefaultSize, durs, wxCB_READONLY);
     Dur_Choice->SetToolTip(_("Camera exposure duration"));
-    SetComboBoxWidth(Dur_Choice, 10);
+    SetComboBoxWidth(Dur_Choice, 35);
 
     Gamma_Slider = new wxSlider(MainToolbar, CTRL_GAMMA, GAMMA_DEFAULT, GAMMA_MIN, GAMMA_MAX, wxPoint(-1, -1), wxSize(160, -1));
     Gamma_Slider->SetBackgroundColour(wxColor(60, 60, 60)); // Slightly darker than toolbar background
