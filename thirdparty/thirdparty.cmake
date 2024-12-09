@@ -79,8 +79,8 @@ if(WIN32)
     COMMAND vcpkg install --binarysource=default --no-print-usage curl[ssl]:x86-windows
     COMMAND ${CMAKE_COMMAND} -E echo "Building vcpkg eigen3"
     COMMAND vcpkg install --binarysource=default --no-print-usage eigen3:x86-windows
-    COMMAND ${CMAKE_COMMAND} -E echo "Building vcpkg opencv4"
-    COMMAND vcpkg install --binarysource=default --no-print-usage opencv4:x86-windows
+    COMMAND ${CMAKE_COMMAND} -E echo "Building vcpkg opencv2"
+    COMMAND vcpkg install --binarysource=default --no-print-usage opencv2:x86-windows
   )
   message(STATUS "Preparing VCPKG")
   FetchContent_MakeAvailable(vcpkg)
@@ -675,48 +675,62 @@ if(WIN32)
     message(STATUS "Disabling VLD: DISABLE_VLD is set")
   endif()
 
-  include_directories(${VCPKG_INCLUDE}/opencv2)
+  include_directories(${VCPKG_INCLUDE}/opencv2.4)
   set(PHD_LINK_EXTERNAL_DEBUG ${PHD_LINK_EXTERNAL_DEBUG}
-      ${VCPKG_DEBUG_LIB}/opencv_imgproc4d.lib
-      ${VCPKG_DEBUG_LIB}/opencv_highgui4d.lib
-      ${VCPKG_DEBUG_LIB}/opencv_core4d.lib
-      ${VCPKG_DEBUG_LIB}/opencv_videoio4d.lib
-      ${VCPKG_DEBUG_LIB}/opencv_imgcodecs4d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_imgproc2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_highgui2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_core2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_features2d2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_flann2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_calib3d2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_ocl2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_objdetect2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_ml2d.lib
+      ${VCPKG_DEBUG_LIB}/opencv_nonfree2d.lib
   )
   set(PHD_LINK_EXTERNAL_RELEASE ${PHD_LINK_EXTERNAL_RELEASE}
-      ${VCPKG_RELEASE_LIB}/opencv_imgproc4.lib
-      ${VCPKG_RELEASE_LIB}/opencv_highgui4.lib
-      ${VCPKG_RELEASE_LIB}/opencv_core4.lib
-      ${VCPKG_RELEASE_LIB}/opencv_videoio4.lib
-      ${VCPKG_RELEASE_LIB}/opencv_imgcodecs4.lib
+      ${VCPKG_RELEASE_LIB}/opencv_imgproc2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_highgui2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_core2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_features2d2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_flann2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_calib3d2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_ocl2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_objdetect2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_ml2.lib
+      ${VCPKG_RELEASE_LIB}/opencv_nonfree2.lib
   )
   set(PHD_COPY_EXTERNAL_DBG ${PHD_COPY_EXTERNAL_DBG}
-      ${VCPKG_DEBUG_BIN}/opencv_imgproc4d.dll
-      ${VCPKG_DEBUG_BIN}/opencv_highgui4d.dll
-      ${VCPKG_DEBUG_BIN}/opencv_core4d.dll
-      ${VCPKG_DEBUG_BIN}/opencv_videoio4d.dll
-      ${VCPKG_DEBUG_BIN}/opencv_imgcodecs4d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_imgproc2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_highgui2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_core2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_features2d2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_flann2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_calib3d2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_ocl2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_objdetect2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_ml2d.dll
+      ${VCPKG_DEBUG_BIN}/opencv_nonfree2d.dll
       ${VCPKG_DEBUG_BIN}/jpeg62.dll
       ${VCPKG_DEBUG_BIN}/libpng16d.dll
       ${VCPKG_DEBUG_BIN}/tiffd.dll
       ${VCPKG_DEBUG_BIN}/liblzma.dll
-      ${VCPKG_DEBUG_BIN}/libwebp.dll
-      ${VCPKG_DEBUG_BIN}/libwebpdecoder.dll
-      ${VCPKG_DEBUG_BIN}/libsharpyuv.dll
   )
   set(PHD_COPY_EXTERNAL_REL ${PHD_COPY_EXTERNAL_REL}
-      ${VCPKG_RELEASE_BIN}/opencv_imgproc4.dll
-      ${VCPKG_RELEASE_BIN}/opencv_highgui4.dll
-      ${VCPKG_RELEASE_BIN}/opencv_core4.dll
-      ${VCPKG_RELEASE_BIN}/opencv_videoio4.dll
-      ${VCPKG_RELEASE_BIN}/opencv_imgcodecs4.dll
+      ${VCPKG_RELEASE_BIN}/opencv_imgproc2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_highgui2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_core2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_flann2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_features2d2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_calib3d2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_ocl2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_objdetect2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_ml2.dll
+      ${VCPKG_RELEASE_BIN}/opencv_nonfree2.dll
       ${VCPKG_RELEASE_BIN}/jpeg62.dll
       ${VCPKG_RELEASE_BIN}/libpng16.dll
       ${VCPKG_RELEASE_BIN}/tiff.dll
       ${VCPKG_RELEASE_BIN}/liblzma.dll
-      ${VCPKG_RELEASE_BIN}/libwebp.dll
-      ${VCPKG_RELEASE_BIN}/libwebpdecoder.dll
-      ${VCPKG_RELEASE_BIN}/libsharpyuv.dll
   )
 endif()
 

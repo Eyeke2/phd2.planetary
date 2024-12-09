@@ -40,7 +40,7 @@
 
 # include "cam_opencv.h"
 
-# include <opencv2/opencv.hpp>
+# include <opencv/cv.h>
 
 CameraOpenCV::CameraOpenCV(int devNumber)
 {
@@ -135,7 +135,7 @@ bool CameraOpenCV::Capture(int duration, usImage& img, int options, const wxRect
 
         // Grab at least one frame...
         pCapDev->read(captured_frame);
-        cv::cvtColor(captured_frame, captured_frame, cv::COLOR_RGB2GRAY);
+        cvtColor(captured_frame, captured_frame, CV_RGB2GRAY);
 
         cv::Size sz = captured_frame.size();
 
@@ -153,7 +153,7 @@ bool CameraOpenCV::Capture(int duration, usImage& img, int options, const wxRect
         {
             nframes++;
             pCapDev->read(captured_frame);
-            cv::cvtColor(captured_frame, captured_frame, cv::COLOR_RGB2GRAY);
+            cvtColor(captured_frame, captured_frame, CV_RGB2GRAY);
             dptr = captured_frame.data;
             for (unsigned int i = 0; i < img.NPixels; i++)
             {

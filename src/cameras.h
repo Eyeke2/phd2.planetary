@@ -113,7 +113,6 @@
 # elif defined(__linux__) || defined(__FreeBSD__)
 
 #  define SIMULATOR
-#  define OPENCV_CAMERA
 #  define CAM_QHY5
 #  ifdef HAVE_OGMA_CAMERA
 #   define OGMA_CAMERA
