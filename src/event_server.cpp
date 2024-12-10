@@ -1948,6 +1948,370 @@ static void get_guiding_period(JObj& response, const json_value *params)
     response << jrpc_result(rslt);
 }
 
+static void set_time_lapse(JObj& response, const json_value *params)
+{
+    Params p("interval", params);
+    const json_value *val = p.param("interval");
+    if (!val || val->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected interval param");
+        return;
+    }
+    if (pFrame->pGuider)
+        pFrame->pGuider->m_SolarSystemObject.SetTimeLapse(val->int_value);
+    response << jrpc_result(0);
+}
+
+static void get_pixel_size(JObj& response, const json_value *params)
+{
+    if (pCamera)
+    {
+        double pixelSize = pCamera->GetCameraPixelSize();
+        response << jrpc_result(pixelSize);
+    }
+    else
+    {
+        response << jrpc_error(1, "camera not connected");
+    }
+}
+
+static void set_pixel_size(JObj& response, const json_value *params)
+{
+    Params p("PixelSize", params);
+    const json_value *val = p.param("PixelSize");
+    double pixelSize;
+    if (!val || !float_param(val, &pixelSize))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected pixel size param");
+        return;
+    }
+    pCamera->SetCameraPixelSize(pixelSize);
+    response << jrpc_result(0);
+}
+
+static void set_focal_length(JObj& response, const json_value *params)
+{
+    Params p("length", params);
+    const json_value *val = p.param("length");
+    if (!val || val->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected focal length param");
+        return;
+    }
+    int focalLength = val->int_value;
+    if (focalLength < 50)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "focal length must be at least 50 mm");
+        return;
+    }
+    pFrame->SetFocalLength(focalLength);
+    response << jrpc_result(0);
+}
+
+static void set_planetary_mode(JObj& response, const json_value *params)
+{
+    Params p("mode", params);
+    const json_value *val = p.param("mode");
+    bool planetaryMode;
+    if (!val || !bool_param(val, &planetaryMode))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected planetary mode param");
+        return;
+    }
+    if (pFrame->pGuider)
+        pFrame->pGuider->m_SolarSystemObject.Set_SolarSystemObjMode(planetaryMode);
+    response << jrpc_result(0);
+}
+
+static void set_guide_frame(JObj& response, const json_value *params)
+{
+    Params p("path", params);
+    const json_value *path = p.param("path");
+
+    if (!path || path->type != JSON_STRING)
+    {
+        response << jrpc_error(1, "expected path string");
+        return;
+    }
+    pFrame->SetGuideFramePath(path->string_value, true);
+}
+
+static void get_cal_settings(JObj& response, const json_value *params)
+{
+    JObj rslt;
+    double guideSpeed = 0.5;
+    double declination = 0;
+    if (pFrame->pGuider)
+        pFrame->pGuider->m_SolarSystemObject.GetCalSettings(&declination, &guideSpeed);
+    rslt << NV("speed", guideSpeed) << NV("dec", declination);
+    response << jrpc_result(rslt);
+}
+
+static void set_surf_mode(JObj& response, const json_value *params)
+{
+    Params p("mode", params);
+
+    const json_value *val = p.param("mode");
+    if (!val || val->type != JSON_BOOL)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected mode param");
+        return;
+    }
+    bool mode = val->int_value;
+    if (pFrame->pGuider)
+        pFrame->pGuider->m_SolarSystemObject.Set_SurfaceDetectionMode(mode);
+    response << jrpc_result(0);
+}
+
+static void get_surf_mode(JObj& response, const json_value *params)
+{
+    if (pFrame->pGuider)
+        response << NV("surf", pFrame->pGuider->m_SolarSystemObject.GetSurfaceTrackingState());
+    else
+        response << jrpc_error(1, "guider not connected");
+}
+
+static void set_surf_params(JObj& response, const json_value *params)
+{
+    Params p("params", params);
+
+    const json_value *sens = p.param("sensitivity");
+    if (!sens || sens->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected sensitivity param");
+        return;
+    }
+    int minHessian = sens->int_value;
+
+    const json_value *limit = p.param("limit");
+    if (!limit || limit->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected limit param");
+        return;
+    }
+    int maxFeatures = limit->int_value;
+
+    if (pFrame->pGuider)
+    {
+        pFrame->pGuider->m_SolarSystemObject.Set_SurfaceDetectionParams(minHessian, maxFeatures);
+        response << jrpc_result(0);
+    }
+    else
+        response << jrpc_error(1, "guider not connected");
+}
+
+static void get_surf_params(JObj& response, const json_value *params)
+{
+    JObj rslt;
+    if (pFrame->pGuider)
+    {
+        int minHessian = pFrame->pGuider->m_SolarSystemObject.Get_minHessian();
+        int maxFeatures = pFrame->pGuider->m_SolarSystemObject.Get_maxFeatures();
+        rslt << NV("sensitivity", minHessian) << NV("limit", maxFeatures);
+        response << jrpc_result(rslt);
+    }
+    else
+    {
+        response << jrpc_error(1, "guider not connected");
+    }
+}
+
+static void get_mount_coords(JObj& response, const json_value *params)
+{
+    JObj rslt;
+    double ra, dec, st;
+    if (pPointingSource && pPointingSource->IsConnected() && !pPointingSource->GetCoordinates(&ra, &dec, &st))
+    {
+        rslt << NV("ra", ra) << NV("dec", dec) << NV("sidereal", st);
+        response << jrpc_result(rslt);
+    }
+    else
+    {
+        response << jrpc_error(1, "mount not connected");
+    }
+}
+
+static void get_mount_tracking(JObj& response, const json_value *params)
+{
+    JObj rslt;
+
+    if (pPointingSource && pPointingSource->IsConnected() && pFrame->pGuider)
+    {
+        wxString rate;
+        bool trackingValid;
+        bool tracking;
+        bool rateValid = pFrame->pGuider->m_SolarSystemObject.GetMountTrackingState(trackingValid, tracking, rate);
+        if (trackingValid)
+            rslt << NV("tracking", tracking);
+        if (rateValid)
+            rslt << NV("rate", rate);
+        if (trackingValid || rateValid)
+            response << jrpc_result(rslt);
+        else
+            response << jrpc_error(1, "mount tracking not available");
+    }
+    else
+    {
+        response << jrpc_error(1, "mount not connected");
+    }
+}
+
+static void set_mount_tracking(JObj& response, const json_value *params)
+{
+    Params p("params", params);
+    const json_value *val = p.param("rate");
+    if (!val || val->type != JSON_STRING)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected rate param");
+        return;
+    }
+    wxString rate = val->string_value;
+    if (pFrame->pGuider && pFrame->pGuider->m_SolarSystemObject.SetMountTrackingRate(rate))
+        response << jrpc_result(0);
+    else
+        response << jrpc_error(1, "failed to set mount tracking rate");
+}
+
+static void get_cal_data(JObj& response, const json_value *params)
+{
+    JObj rslt;
+
+    Mount *mount = (!pSecondaryMount || AO) ? pMount : pSecondaryMount;
+    if (mount && mount->IsCalibrated())
+    {
+        CalibrationDetails d;
+        mount->LoadCalibrationDetails(&d);
+
+        JObj details;
+        details << NV("focalLength", d.focalLength);
+        details << NV("imageScale", d.imageScale);
+        details << NV("raGuideSpeed", d.raGuideSpeed);
+        details << NV("decGuideSpeed", d.decGuideSpeed);
+        details << NV("orthoError", d.orthoError);
+        details << NV("origBinning", d.origBinning);
+        details << NV("raStepCount", d.raStepCount);
+        details << NV("decStepCount", d.decStepCount);
+        details << NV("origTimestamp", d.origTimestamp);
+        if (d.origPierSide == PIER_SIDE_UNKNOWN)
+            details << NV("origPierSide", "?");
+        else
+            details << NV("origPierSide", d.origPierSide == PIER_SIDE_EAST ? "east" : "west");
+
+        JAry raSteps;
+        for (unsigned int i = 0; i < d.raSteps.size(); i++)
+        {
+            PHD_Point pt(d.raSteps[i].x, d.raSteps[i].y);
+            JObj t;
+            t << pt;
+            raSteps << t;
+        }
+        details << NV("raSteps", raSteps);
+
+        JAry decSteps;
+        for (unsigned int i = 0; i < d.decSteps.size(); i++)
+        {
+            PHD_Point pt(d.decSteps[i].x, d.decSteps[i].y);
+            JObj t;
+            t << pt;
+            decSteps << t;
+        }
+        details << NV("decSteps", decSteps);
+
+        Calibration b;
+        mount->GetLastCalibration(&b);
+        JObj last;
+        last << NV("xRate", b.xRate);
+        last << NV("yRate", b.yRate);
+        last << NV("xAngle", b.xAngle);
+        last << NV("yAngle", b.yAngle);
+        last << NV("declination", b.declination);
+        last << NV("rotatorAngle", b.rotatorAngle);
+        last << NV("binning", b.binning);
+        if (b.pierSide == PIER_SIDE_UNKNOWN)
+            last << NV("pierSide", "?");
+        else
+            last << NV("pierSide", b.pierSide == PIER_SIDE_EAST ? "east" : "west");
+        last << NV("timestamp", b.timestamp);
+        last << NV("isValid", b.isValid);
+
+        rslt << NV("details", details);
+        rslt << NV("last", last);
+        response << jrpc_result(rslt);
+    }
+    else
+    {
+        response << jrpc_error(1, "mount not calibrated");
+    }
+}
+
+// Use with caution: this will clear the calibration
+static void set_cal_step(JObj& response, const json_value *params)
+{
+    Params p("step", params);
+
+    const json_value *val = p.param("step");
+    if (!val || val->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected step param");
+        return;
+    }
+    int step = val->int_value;
+
+    val = p.param("dist");
+    if (!val || val->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected dist param");
+        return;
+    }
+    int dist = val->int_value;
+
+    if (pPointingSource &&
+        ((pPointingSource->GetCalibrationDistance() != dist) || (pPointingSource->GetCalibrationDuration() != step)))
+    {
+        pPointingSource->SetCalibrationDistance(dist);
+        pPointingSource->SetCalibrationDuration(step);
+        if (pMount)
+        {
+            pMount->ClearCalibration();
+            if (pMount->IsStepGuider() && pSecondaryMount)
+                pSecondaryMount->ClearCalibration();
+
+            double defMinMove =
+                GuideAlgorithm::SmartDefaultMinMove(pFrame->GetFocalLength(), pCamera->GetCameraPixelSize(), pCamera->Binning);
+            pMount->GetXGuideAlgorithm()->SetMinMove(defMinMove);
+            pMount->GetYGuideAlgorithm()->SetMinMove(defMinMove);
+        }
+    }
+    response << jrpc_result(0);
+}
+
+static void set_iflink(JObj& response, const json_value *params)
+{
+    Params p("port", params);
+    const json_value *val = p.param("port");
+    if (!val || val->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected port number");
+        return;
+    }
+    int port = val->int_value;
+    pFrame->SetIFLink(port);
+    response << jrpc_result(0);
+}
+
+static void set_iflink_cam(JObj& response, const json_value *params)
+{
+    Params p("name", params);
+    const json_value *val = p.param("name");
+    if (!val || val->type != JSON_STRING)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected name");
+        return;
+    }
+    pFrame->SetIFLinkCam(val->string_value);
+    response << jrpc_result(0);
+}
+
 // set_variable_delay values are in units of seconds to match the UI convention in the Advanced Settings dialog
 static void set_variable_delay_settings(JObj& response, const json_value *params)
 {
@@ -2343,7 +2707,25 @@ static bool handle_request(JRpcCall& call)
                     { "export_config_settings", &export_config_settings },
                     { "get_variable_delay_settings", &get_variable_delay_settings },
                     { "set_variable_delay_settings", &set_variable_delay_settings },
-                    { "get_guiding_period", &get_guiding_period } };
+                    { "get_guiding_period", &get_guiding_period },
+                    { "set_time_lapse", &set_time_lapse },
+                    { "set_guide_frame", &set_guide_frame },
+                    { "get_pixel_size", &get_pixel_size },
+                    { "set_pixel_size", &set_pixel_size },
+                    { "set_focal_length", &set_focal_length },
+                    { "set_planetary_mode", &set_planetary_mode },
+                    { "get_cal_settings", &get_cal_settings },
+                    { "get_mount_coords", &get_mount_coords },
+                    { "get_mount_tracking", &get_mount_tracking },
+                    { "set_mount_tracking", &set_mount_tracking },
+                    { "set_surf_mode", &set_surf_mode },
+                    { "get_surf_mode", &get_surf_mode },
+                    { "set_surf_params", &set_surf_params },
+                    { "get_surf_params", &get_surf_params },
+                    { "set_cal_step", &set_cal_step },
+                    { "set_iflink", &set_iflink },
+                    { "set_iflink_cam", &set_iflink_cam },
+                    { "get_cal_data", &get_cal_data } };
 
     for (unsigned int i = 0; i < WXSIZEOF(methods); i++)
     {
