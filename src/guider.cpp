@@ -733,6 +733,16 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
             dc.SetTextForeground(*wxYELLOW);
             dc.DrawText(_("Guide output DISABLED"), 10, YWinSize - 20);
         }
+        else if (pCamera && pCamera->Name == _T("Virtual Planetary Camera") && pCamera->Connected)
+        {
+            extern wxString GetFrameMonitorLabel();
+            wxString framePath = GetFrameMonitorLabel();
+            if (!framePath.IsEmpty())
+            {
+                dc.SetTextForeground(*wxYELLOW);
+                dc.DrawText(framePath, 10, YWinSize - 25);
+            }
+        }
     }
     catch (const wxString& Msg)
     {

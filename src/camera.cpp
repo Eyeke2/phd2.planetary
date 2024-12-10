@@ -114,6 +114,10 @@ wxSize UNDEFINED_FRAME_SIZE = wxSize(0, 0);
 # include "cam_vfw.h"
 #endif
 
+#if defined(FRAME_MONITOR_CAMERA)
+# include "cam_FrameMon.h"
+#endif
+
 #if defined(OGMA_CAMERA)
 # include "cam_ogma.h"
 #endif
@@ -337,6 +341,9 @@ wxArrayString GuideCamera::GuideCameraList()
 #if defined(FIREWIRE_CAMERA)
     CameraList.Add(_T("The Imaging Source (DCAM Firewire)"));
 #endif
+#if defined(FRAME_MONITOR_CAMERA)
+    CameraList.Add(_T("Virtual Planetary Camera"));
+#endif
 #if defined(OGMA_CAMERA)
     CameraList.Add(_T("OGMA Camera"));
 #endif
@@ -498,6 +505,10 @@ GuideCamera *GuideCamera::Factory(const wxString& choice)
 #if defined(SVB_CAMERA)
         else if (choice == _T("Svbony Camera"))
             pReturn = SVBCameraFactory::MakeSVBCamera();
+#endif
+#if defined(FRAME_MONITOR_CAMERA)
+        else if (choice == _T("Virtual Planetary Camera"))
+            pReturn = new CameraFrameMonitor();
 #endif
 #if defined(OGMA_CAMERA)
         else if (choice == _T("OGMA Camera"))
