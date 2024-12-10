@@ -2047,6 +2047,13 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
         // Update detection time stats
         pFrame->pStatsWin->UpdatePlanetDetectionTime(m_SolarSystemObjWatchdog.Time());
 
+        // Notify the server about the detection result
+        if (GetPlanetDetectMode() == DETECTION_MODE_SURFACE)
+            EvtServer.NotifySurfaceDetection(detectionResult, m_detectedFeatures, m_surf.variance, m_surf.trackingQuality,
+                                             m_focusSharpness, m_surf.isReferenceFrame);
+        else
+            EvtServer.NotifyPlanetaryDetection(detectionResult, m_planetaryContourPoints, m_planetaryFittingScore, m_radius);
+
         if (detectionResult)
         {
             m_detected = true;
