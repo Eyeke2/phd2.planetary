@@ -789,6 +789,7 @@ void Mount::TestTransforms()
                 Debug.Write(wxString::Format("xidx=%.2f, yIdx=%.2f\n", xAngle / M_PI * 180.0 / 15, yAngle / M_PI * 180.0 / 15));
 
                 SetCalibration(xAngle, yAngle, 1.0, 1.0);
+                EvtServer.NotifyCalibrationUpdate();
 
                 for (int j = -13; j < 14; j++)
                 {
@@ -940,6 +941,7 @@ bool Mount::FlipCalibration()
         cal.decGuideParity = newDecParity;
 
         SetCalibration(cal);
+        EvtServer.NotifyCalibrationUpdate();
 
         pFrame->StatusMsg(wxString::Format(_("CAL: %s(%.f,%.f)->%s(%.f,%.f)"), ::PierSideStrTr(priorPierSide, wxEmptyString),
                                            degrees(origX), degrees(origY), ::PierSideStrTr(newPierSide, wxEmptyString),
@@ -1324,6 +1326,7 @@ void Mount::AdjustCalibrationForScopePointing()
                                      m_cal.xRate * 1000., m_cal.yRate * 1000., cal.xRate * 1000., cal.yRate * 1000.));
 
         SetCalibration(cal);
+        EvtServer.NotifyCalibrationUpdate();
     }
 
     // If the image scale has changed, make some other adjustments
@@ -1366,6 +1369,7 @@ void Mount::AdjustCalibrationForScopePointing()
                 cal.rotatorAngle = newRotatorAngle;
 
                 SetCalibration(cal);
+                EvtServer.NotifyCalibrationUpdate();
             }
         }
     }

@@ -114,6 +114,7 @@ void MyFrame::OnEEGG(wxCommandEvent& evt)
             {
                 manualcal.GetValues(&cal);
                 pMount->SetCalibration(cal);
+                EvtServer.NotifyCalibrationUpdate();
             }
         }
     }
