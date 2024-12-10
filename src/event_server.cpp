@@ -1937,6 +1937,17 @@ static void get_variable_delay_settings(JObj& response, const json_value *params
     response << jrpc_result(rslt);
 }
 
+static void get_guiding_period(JObj& response, const json_value *params)
+{
+    JObj rslt;
+    int exposure;
+    int timeLapse;
+    rslt << NV("period", pFrame->GetGuidingPeriod(&exposure, &timeLapse));
+    rslt << NV("exposure", exposure);
+    rslt << NV("timelapse", timeLapse);
+    response << jrpc_result(rslt);
+}
+
 // set_variable_delay values are in units of seconds to match the UI convention in the Advanced Settings dialog
 static void set_variable_delay_settings(JObj& response, const json_value *params)
 {
@@ -2331,7 +2342,8 @@ static bool handle_request(JRpcCall& call)
                     { "get_ccd_temperature", &get_sensor_temperature },
                     { "export_config_settings", &export_config_settings },
                     { "get_variable_delay_settings", &get_variable_delay_settings },
-                    { "set_variable_delay_settings", &set_variable_delay_settings } };
+                    { "set_variable_delay_settings", &set_variable_delay_settings },
+                    { "get_guiding_period", &get_guiding_period } };
 
     for (unsigned int i = 0; i < WXSIZEOF(methods); i++)
     {
