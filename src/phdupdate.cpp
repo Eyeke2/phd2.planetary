@@ -316,10 +316,10 @@ struct Updater
 
     wxString ReleaseInfoURL()
     {
-        return wxString::Format(_T("https://openphdguiding.org/release-%s-") OSNAME _T(".txt"), SeriesName());
+        return wxString::Format(_T(CONFIG_PHD2_RELEASE_INFO_URL) OSNAME _T(".txt"), SeriesName());
     }
 
-    wxString ChangeLogURL() { return wxString::Format(_T("https://openphdguiding.org/changelog-%s/"), SeriesName()); }
+    wxString ChangeLogURL() {return wxString::Format(_T(CONFIG_PHD2_CHANGELOG_URL), SeriesName()); }
 
     bool FetchURL(wxString *buf, const wxString& url)
     {
@@ -328,6 +328,7 @@ struct Updater
 
         Debug.Write(wxString::Format("UPD: fetch %s\n", url));
 
+        curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, write_buf_callback);
         curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, buf);
         curl_easy_setopt(m_curl, CURLOPT_URL, static_cast<const char *>(url.c_str()));
@@ -667,8 +668,8 @@ struct Updater
 
     wxString GetDownloadPageURL()
     {
-        return m_settings.series == UPD_SERIES_DEV ? wxT("http://openphdguiding.org/development-snapshots")
-                                                   : wxT("http://openphdguiding.org/downloads");
+        return m_settings.series == UPD_SERIES_DEV ? _T(CONFIG_PHD2_DEV_DOWNLOAD_URL)
+                                                   : _T(CONFIG_PHD2_REL_DOWNLOAD_URL);
     }
 
     void ShowUpdate(UpdaterDialog::Mode mode, UpdaterDialog::Interactive interactive)

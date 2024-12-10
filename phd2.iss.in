@@ -8,7 +8,7 @@
 [Setup]
 AppName={#APP_NAME}
 AppVersion={#APP_VERSION}
-DefaultDirName={pf}\PHDGuiding2
+DefaultDirName={pf}\PHDGuiding2-solar
 DefaultGroupName=PHD Guiding 2
 UninstallDisplayIcon={app}\phd2.exe
 Compression=lzma2

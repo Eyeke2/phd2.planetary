@@ -77,10 +77,32 @@
 #include <math.h>
 #include <stdarg.h>
 
+// This is customized PHD2 project, hosted at https://github.com/Eyeke2/phd2.planetary
+#define CONFIG_CUSTOM_BUILD 1
+
 #define APPNAME _T("PHD2 Guiding")
 #define PHDVERSION _T("2.6.13")
-#define PHDSUBVER _T("dev5")
-#define FULLVER PHDVERSION PHDSUBVER
+#define PHDSUBVER _T("dev7-solar")
+#ifdef DEVELOPER_MODE
+# define FULLVER PHDVERSION PHDSUBVER _T(" (Developer mode)")
+#else
+# define FULLVER PHDVERSION PHDSUBVER
+#endif
+
+#if defined(CONFIG_CUSTOM_BUILD)
+# define CONFIG_PHD2_CHANGELOG_URL      "https://github.com/Eyeke2/phd2.planetary/releases/download/latest/changelog-%s.html"
+# define CONFIG_PHD2_RELEASE_INFO_URL   "https://github.com/Eyeke2/phd2.planetary/releases/download/latest/release-%s-"
+# define CONFIG_PHD2_REL_DOWNLOAD_URL   "https://github.com/Eyeke2/phd2.planetary/releases/latest"
+# define CONFIG_PHD2_DEV_DOWNLOAD_URL   "https://github.com/Eyeke2/phd2.planetary/releases/latest"
+# define CONFIG_PHD2_GETTING_HELP_URL   "https://github.com/Eyeke2/phd2.planetary/wiki"
+
+#else
+# define CONFIG_PHD2_CHANGELOG_URL      "https://openphdguiding.org/changelog-%s"
+# define CONFIG_PHD2_RELEASE_INFO_URL   "https://openphdguiding.org/release-%s-"
+# define CONFIG_PHD2_REL_DOWNLOAD_URL   "https://openphdguiding.org/downloads"
+# define CONFIG_PHD2_DEV_DOWNLOAD_URL   "https://openphdguiding.org/development-snapshots"
+# define CONFIG_PHD2_GETTING_HELP_URL   "https://openphdguiding.org/getting-help/"
+#endif
 
 #if defined(__WINDOWS__)
 # pragma warning(disable : 4189)
@@ -219,6 +241,11 @@ class PhdApp : public wxApp
     bool m_resetConfig;
     wxString m_resourcesDir;
     wxDateTime m_logFileTime;
+
+#if defined(FRAME_MONITOR_CAMERA)
+    // Currently supported only on Windows
+    HANDLE m_hEvent;
+#endif
 
 protected:
     wxLocale m_locale;

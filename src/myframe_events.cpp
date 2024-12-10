@@ -205,7 +205,7 @@ void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
 
 void MyFrame::OnHelpOnline(wxCommandEvent& evt)
 {
-    wxLaunchDefaultBrowser("https://openphdguiding.org/getting-help/");
+    wxLaunchDefaultBrowser(_T(CONFIG_PHD2_GETTING_HELP_URL));
 }
 
 static void _shell_open(const wxString& loc)

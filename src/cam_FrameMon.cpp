@@ -3,7 +3,8 @@
  *  PHD Guiding
  *
  *  Created by Leo Shatz.
- *  Copyright (c) 2024 openphdguiding.org
+ *  Copyright (c) 2024-2025 Leo Shatz
+ *  Copyright (c) 2018-2025 openphdguiding.org
  *  All rights reserved.
  *
  *  This source code is distributed under the following "BSD" license
