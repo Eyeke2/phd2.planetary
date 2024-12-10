@@ -133,6 +133,7 @@ void MyFrame::NotifyExposureChanged()
 {
     NotifyGuidingParam("Exposure", ExposureDurationSummary());
     pConfig->Profile.SetInt("/ExposureDurationMs", m_autoExp.enabled ? -1 : m_exposureDuration);
+    UpdateCameraSettings();
 }
 
 int MyFrame::RequestedExposureDuration()

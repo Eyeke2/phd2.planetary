@@ -1123,6 +1123,17 @@ static bool cond_update_tool(wxAuiToolBar *tb, int toolId, wxMenuItem *mi, bool 
     return ret;
 }
 
+void MyFrame::UpdateCameraSettings()
+{
+    wxMutexLocker lock(planetLock);
+    if (pPlanetTool)
+    {
+        wxCommandEvent event(APPSTATE_NOTIFY_EVENT, GetId());
+        event.SetEventObject(this);
+        wxPostEvent(pPlanetTool, event);
+    }
+}
+
 void MyFrame::UpdateButtonsStatus()
 {
     assert(wxThread::IsMain());
@@ -2836,6 +2847,8 @@ bool MyFrame::SetTimeLapse(int timeLapse)
     }
 
     pConfig->Profile.SetInt("/frame/timeLapse", m_timeLapse);
+
+    UpdateCameraSettings();
 
     return bError;
 }

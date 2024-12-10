@@ -446,6 +446,7 @@ PlanetToolWin::PlanetToolWin()
 
 PlanetToolWin::~PlanetToolWin(void)
 {
+    wxMutexLocker lock(pFrame->planetLock);
     m_planetaryTimer.Stop();
     pFrame->pPlanetTool = nullptr;
 }
