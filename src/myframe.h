@@ -505,6 +505,7 @@ public:
 
     void NotifyGuidingStarted();
     void NotifyGuidingStopped();
+    bool IsCaptureActive(bool& paused) const;
 
     void SetDitherMode(DitherMode mode);
     DitherMode GetDitherMode() const;
