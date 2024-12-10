@@ -2987,3 +2987,8 @@ void EventServer::NotifyPlanetMetrics(double snr, double mass, int peak)
     ev << NV("peak", peak);
     do_notify(m_eventServerClients, ev);
 }
+
+void EventServer::NotifyStartCapture()
+{
+    SIMPLE_NOTIFY("StartCapture");
+}
