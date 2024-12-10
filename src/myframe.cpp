@@ -2838,6 +2838,7 @@ bool MyFrame::SetTimeLapse(int timeLapse)
         }
 
         m_timeLapse = timeLapse;
+        pFrame->NotifyGuidingParam("Time lapse", m_timeLapse);
     }
     catch (const wxString& Msg)
     {
