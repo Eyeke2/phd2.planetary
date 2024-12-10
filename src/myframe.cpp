@@ -3662,3 +3662,11 @@ void MyFrame::NotifyGuidingParam(const wxString& name, const wxString& val, bool
     GuideLog.SetGuidingParam(name, val, true);
     EvtServer.NotifyGuidingParam(name, val);
 }
+
+bool MyFrame::IsCaptureActive(bool& paused) const
+{
+    if (WorkerThread::InterruptRequested())
+        return false;
+    paused = pFrame->pGuider->IsPaused();
+    return m_continueCapturing && !paused;
+}
