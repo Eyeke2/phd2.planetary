@@ -2611,6 +2611,11 @@ void EventServer::NotifyCalibrationStep(const CalibrationStepInfo& info)
     do_notify(m_eventServerClients, ev);
 }
 
+void EventServer::NotifyCalibrationUpdate()
+{
+    SIMPLE_NOTIFY("CalibrationUpdate");
+}
+
 void EventServer::NotifyCalibrationFailed(const Mount *mount, const wxString& msg)
 {
     wxMutexLocker lck(m_clientsLock);

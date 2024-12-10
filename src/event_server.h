@@ -58,6 +58,7 @@ public:
 
     void NotifyStartCalibration(const Mount *mount);
     void NotifyCalibrationStep(const CalibrationStepInfo& info);
+    void NotifyCalibrationUpdate();
     void NotifyCalibrationFailed(const Mount *mount, const wxString& msg);
     void NotifyCalibrationComplete(const Mount *mount, CalibrationIssueType issue);
     void NotifyCalibrationDataFlipped(const Mount *mount);
