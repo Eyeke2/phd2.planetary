@@ -1,4 +1,5 @@
-Welcome to PHD2 Version @VERSION@
+Welcome to PHD2 Version @VERSION@ with extensions for
+solar, lunar and planetery guiding.
 
 PHD2 is guiding software inspired by the original PHD Guiding
 application from Stark Labs. PHD2 is both free of cost and open
@@ -17,5 +18,9 @@ or for bug reports, feature requests, and questions about PHD2
 development, please join the Open PHD Guiding forum
 
    https://groups.google.com/forum/#!forum/open-phd-guiding
+
+For information specific to planetary extensions, please visit
+
+   https://github.com/Eyeke2/phd2.planetary/wiki
 
 The PHD2 Developers
