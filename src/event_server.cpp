@@ -2722,6 +2722,9 @@ void EventServer::NotifyStarLost(const FrameDroppedInfo& info)
     if (!info.status.IsEmpty())
         ev << NV("Status", info.status);
 
+    if (!info.state.IsEmpty())
+        ev << NV("State", info.state);
+
     do_notify(m_eventServerClients, ev);
 }
 
