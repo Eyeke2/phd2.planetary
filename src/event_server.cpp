@@ -480,20 +480,22 @@ static void do_notify(const EventServer::CliSockSet& cli, const JObj& jj)
     }
 }
 
-inline static void simple_notify(const EventServer::CliSockSet& cli, const wxString& ev)
+inline static void simple_notify(wxMutex& lock, const EventServer::CliSockSet& cli, const wxString& ev)
 {
+    wxMutexLocker lck(lock);
     if (!cli.empty())
         do_notify(cli, Ev(ev));
 }
 
-inline static void simple_notify_ev(const EventServer::CliSockSet& cli, const Ev& ev)
+inline static void simple_notify_ev(wxMutex& lock, const EventServer::CliSockSet& cli, const Ev& ev)
 {
+    wxMutexLocker lck(lock);
     if (!cli.empty())
         do_notify(cli, ev);
 }
 
-#define SIMPLE_NOTIFY(s) simple_notify(m_eventServerClients, s)
-#define SIMPLE_NOTIFY_EV(ev) simple_notify_ev(m_eventServerClients, ev)
+#define SIMPLE_NOTIFY(s) simple_notify(m_clientsLock, m_eventServerClients, s)
+#define SIMPLE_NOTIFY_EV(ev) simple_notify_ev(m_clientsLock, m_eventServerClients, ev)
 
 static void send_catchup_events(wxSocketClient *cli)
 {
@@ -2634,6 +2636,7 @@ bool EventServer::EventServerStart(unsigned int instanceId)
 
 void EventServer::EventServerStop()
 {
+    wxMutexLocker lck(m_clientsLock);
     if (!m_serverSocket)
         return;
 
@@ -2674,6 +2677,7 @@ void EventServer::OnEventServerEvent(wxSocketEvent& event)
 
     send_catchup_events(client);
 
+    wxMutexLocker lck(m_clientsLock);
     m_eventServerClients.insert(client);
 }
 
@@ -2685,6 +2689,7 @@ void EventServer::OnEventServerClientEvent(wxSocketEvent& event)
     {
         Debug.Write(wxString::Format("evsrv: cli %p disconnect\n", cli));
 
+        wxMutexLocker lck(m_clientsLock);
         unsigned int const n = m_eventServerClients.erase(cli);
         if (n != 1)
             Debug.AddLine("client disconnected but not present in client set!");
@@ -2708,6 +2713,7 @@ void EventServer::NotifyStartCalibration(const Mount *mount)
 
 void EventServer::NotifyCalibrationStep(const CalibrationStepInfo& info)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2724,6 +2730,7 @@ void EventServer::NotifyCalibrationStep(const CalibrationStepInfo& info)
 
 void EventServer::NotifyCalibrationFailed(const Mount *mount, const wxString& msg)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2735,6 +2742,7 @@ void EventServer::NotifyCalibrationFailed(const Mount *mount, const wxString& ms
 
 void EventServer::NotifyCalibrationComplete(const Mount *mount)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2743,6 +2751,7 @@ void EventServer::NotifyCalibrationComplete(const Mount *mount)
 
 void EventServer::NotifyCalibrationDataFlipped(const Mount *mount)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2754,6 +2763,7 @@ void EventServer::NotifyCalibrationDataFlipped(const Mount *mount)
 
 void EventServer::NotifyLooping(unsigned int exposure, const Star *star, const FrameDroppedInfo *info)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2809,6 +2819,7 @@ void EventServer::NotifyStarSelected(const PHD_Point& pt)
 
 void EventServer::NotifyStarLost(const FrameDroppedInfo& info)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2848,6 +2859,7 @@ void EventServer::NotifyResumed()
 
 void EventServer::NotifyGuideStep(const GuideStepInfo& step)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2892,6 +2904,7 @@ void EventServer::NotifyGuideStep(const GuideStepInfo& step)
 
 void EventServer::NotifyGuidingDithered(double dx, double dy)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2903,6 +2916,7 @@ void EventServer::NotifyGuidingDithered(double dx, double dy)
 
 void EventServer::NotifySetLockPosition(const PHD_Point& xy)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2921,6 +2935,7 @@ void EventServer::NotifyLockShiftLimitReached()
 
 void EventServer::NotifyAppState()
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2934,6 +2949,7 @@ void EventServer::NotifySettleBegin()
 
 void EventServer::NotifySettling(double distance, double time, double settleTime, bool starLocked)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2946,6 +2962,7 @@ void EventServer::NotifySettling(double distance, double time, double settleTime
 
 void EventServer::NotifySettleDone(const wxString& errorMsg, int settleFrames, int droppedFrames)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2958,6 +2975,7 @@ void EventServer::NotifySettleDone(const wxString& errorMsg, int settleFrames, i
 
 void EventServer::NotifyAlert(const wxString& msg, int type)
 {
+    wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
@@ -2988,8 +3006,9 @@ void EventServer::NotifyAlert(const wxString& msg, int type)
 }
 
 template<typename T>
-static void NotifyGuidingParam(const EventServer::CliSockSet& clients, const wxString& name, T val)
+static void NotifyGuidingParam(wxMutex& lock, const EventServer::CliSockSet& clients, const wxString& name, T val)
 {
+    wxMutexLocker lck(lock);
     if (clients.empty())
         return;
 
@@ -3002,22 +3021,22 @@ static void NotifyGuidingParam(const EventServer::CliSockSet& clients, const wxS
 
 void EventServer::NotifyGuidingParam(const wxString& name, double val)
 {
-    ::NotifyGuidingParam(m_eventServerClients, name, val);
+    ::NotifyGuidingParam(m_clientsLock, m_eventServerClients, name, val);
 }
 
 void EventServer::NotifyGuidingParam(const wxString& name, int val)
 {
-    ::NotifyGuidingParam(m_eventServerClients, name, val);
+    ::NotifyGuidingParam(m_clientsLock, m_eventServerClients, name, val);
 }
 
 void EventServer::NotifyGuidingParam(const wxString& name, bool val)
 {
-    ::NotifyGuidingParam(m_eventServerClients, name, val);
+    ::NotifyGuidingParam(m_clientsLock, m_eventServerClients, name, val);
 }
 
 void EventServer::NotifyGuidingParam(const wxString& name, const wxString& val)
 {
-    ::NotifyGuidingParam(m_eventServerClients, name, val);
+    ::NotifyGuidingParam(m_clientsLock, m_eventServerClients, name, val);
 }
 
 void EventServer::NotifyConfigurationChange()
@@ -3025,6 +3044,7 @@ void EventServer::NotifyConfigurationChange()
     if (m_configEventDebouncer == nullptr || m_configEventDebouncer->IsRunning())
         return;
 
+    wxMutexLocker lck(m_clientsLock);
     Ev ev("ConfigurationChange");
     do_notify(m_eventServerClients, ev);
     m_configEventDebouncer->StartOnce(0);

@@ -45,6 +45,7 @@ public:
 
 private:
     wxSocketServer *m_serverSocket;
+    wxMutex m_clientsLock;
     CliSockSet m_eventServerClients;
     wxTimer *m_configEventDebouncer;
 
