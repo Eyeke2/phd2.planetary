@@ -1327,6 +1327,9 @@ void MyFrame::OnAlertHelp(wxCommandEvent& evt)
 
 void MyFrame::OnAlertSize(wxSizeEvent& evt)
 {
+    // Detect and notify about hidden alert window
+    if (!m_infoBar->IsShown())
+        EvtServer.NotifyClearAlert();
     evt.Skip();
 }
 

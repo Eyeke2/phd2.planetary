@@ -2896,6 +2896,11 @@ void EventServer::NotifyAlert(const wxString& msg, int type)
     do_notify(m_eventServerClients, ev);
 }
 
+void EventServer::NotifyClearAlert()
+{
+    SIMPLE_NOTIFY("ClearAlert");
+}
+
 template<typename T>
 static void NotifyGuidingParam(wxMutex& lock, const EventServer::CliSockSet& clients, const wxString& name, T val)
 {

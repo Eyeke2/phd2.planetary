@@ -80,6 +80,7 @@ public:
     void NotifySettling(double distance, double time, double settleTime, bool starLocked);
     void NotifySettleDone(const wxString& errorMsg, int settleFrames, int droppedFrames);
     void NotifyAlert(const wxString& msg, int type);
+    void NotifyClearAlert();
     void NotifyGuidingParam(const wxString& name, double val);
     void NotifyGuidingParam(const wxString& name, int val);
     void NotifyGuidingParam(const wxString& name, bool val);
