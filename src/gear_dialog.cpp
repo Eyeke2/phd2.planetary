@@ -1173,6 +1173,7 @@ bool GearDialog::DoConnectCamera(bool autoReconnecting)
 
         // Notify solar/planetary module of camera connect
         pFrame->pGuider->m_SolarSystemObject.NotifyCameraConnect(true);
+        EvtServer.NotifyGearChange();
 
         // See if the profile was created with a binning level that isn't supported by the camera (user mistake) - if so, reset
         // binning to 1 Must be done here because orig binning level is not saved
@@ -1274,6 +1275,7 @@ void GearDialog::OnButtonDisconnectCamera(wxCommandEvent& event)
 
         // Notify solar/planetary module of camera disconnect
         pFrame->pGuider->m_SolarSystemObject.NotifyCameraConnect(false);
+        EvtServer.NotifyGearChange();
 
         if (m_pScope && m_pScope->RequiresCamera() && m_pScope->IsConnected())
         {
@@ -1436,6 +1438,7 @@ void GearDialog::OnButtonConnectScope(wxCommandEvent& event)
 
             pFrame->StatusMsg(_("Mount Connected"));
             pFrame->UpdateStatusBarStateLabels();
+            EvtServer.NotifyGearChange();
         }
         else
         {
@@ -1479,6 +1482,7 @@ void GearDialog::OnButtonConnectAuxScope(wxCommandEvent& event)
             }
 
             pFrame->StatusMsg(_("Aux Mount Connected"));
+            EvtServer.NotifyGearChange();
         }
 
         Debug.AddLine("Connected AuxScope:" + (m_pAuxScope ? m_pAuxScope->Name() : "None"));
@@ -1512,6 +1516,7 @@ void GearDialog::OnButtonDisconnectScope(wxCommandEvent& event)
 
         pFrame->StatusMsg(_("Mount Disconnected"));
         pFrame->UpdateStatusBarStateLabels();
+        EvtServer.NotifyGearChange();
 
         if (pFrame->pManualGuide)
         {
@@ -1544,6 +1549,7 @@ void GearDialog::OnButtonDisconnectAuxScope(wxCommandEvent& event)
 
         m_pAuxScope->Disconnect();
         pFrame->StatusMsg(_("Aux Mount Disconnected"));
+        EvtServer.NotifyGearChange();
     }
     catch (const wxString& Msg)
     {
@@ -1657,6 +1663,7 @@ void GearDialog::OnButtonConnectStepGuider(wxCommandEvent& event)
         {
             pFrame->StatusMsg(_("AO Connected"));
             pFrame->UpdateStatusBarStateLabels();
+            EvtServer.NotifyGearChange();
         }
         else
         {
@@ -1701,6 +1708,7 @@ void GearDialog::OnButtonDisconnectStepGuider(wxCommandEvent& event)
 
         pFrame->StatusMsg(_("AO Disconnected"));
         pFrame->UpdateStatusBarStateLabels();
+        EvtServer.NotifyGearChange();
 
         if (pFrame->pManualGuide)
         {
@@ -1788,6 +1796,7 @@ void GearDialog::OnButtonConnectRotator(wxCommandEvent& event)
         {
             pFrame->StatusMsg(_("Rotator Connected"));
             pFrame->UpdateStatusBarStateLabels();
+            EvtServer.NotifyGearChange();
         }
         else
         {
@@ -1826,6 +1835,7 @@ void GearDialog::OnButtonDisconnectRotator(wxCommandEvent& event)
 
         pFrame->StatusMsg(_("Rotator Disconnected"));
         pFrame->UpdateStatusBarStateLabels();
+        EvtServer.NotifyGearChange();
     }
     catch (const wxString& Msg)
     {
