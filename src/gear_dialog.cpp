@@ -1265,6 +1265,11 @@ void GearDialog::OnButtonDisconnectCamera(wxCommandEvent& event)
             throw THROW_INFO("OnButtonDisconnectCamera: called when not connected");
         }
 
+        if (pFrame->CaptureActive)
+        {
+            Debug.Write("OnButtonDisconnectCamera: aborting exposure on camera disconnect\n");
+            pFrame->StopCapturing();
+        }
         m_pCamera->Disconnect();
 
         // Notify solar/planetary module of camera disconnect
