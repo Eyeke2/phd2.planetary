@@ -85,6 +85,7 @@ public:
     void NotifyGuidingParam(const wxString& name, bool val);
     void NotifyGuidingParam(const wxString& name, const wxString& val);
     void NotifyConfigurationChange();
+    void NotifyPlanetMetrics(double snr, double mass, int peak);
 
 private:
     void OnEventServerEvent(wxSocketEvent& evt);

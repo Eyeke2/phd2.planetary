@@ -2937,3 +2937,13 @@ void EventServer::NotifyConfigurationChange()
     do_notify(m_eventServerClients, ev);
     m_configEventDebouncer->StartOnce(0);
 }
+
+void EventServer::NotifyPlanetMetrics(double snr, double mass, int peak)
+{
+    wxMutexLocker lck(m_clientsLock);
+    Ev ev("PlanetMetrics");
+    ev << NV("snr", snr);
+    ev << NV("mass", mass);
+    ev << NV("peak", peak);
+    do_notify(m_eventServerClients, ev);
+}

@@ -429,6 +429,8 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
                 SNR = CalcPlanetMetrics(pImg, newX, newY, searchRegion, 15);
             }
 
+            EvtServer.NotifyPlanetMetrics(SNR, Mass, PeakVal);
+
             HFD = planet->GetHFD();
             goto done;
         }
