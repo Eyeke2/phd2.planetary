@@ -1511,6 +1511,9 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
         int height = sim.height / Binning;
         FullSize = wxSize(width, height);
 
+        // Not a file-based simulation
+        pFrame->SetGuideFramePath(wxEmptyString);
+
         bool usingSubframe = UseSubframes;
         if (subframe.width <= 0 || subframe.height <= 0 || subframe.GetRight() >= width || subframe.GetBottom() >= height)
             usingSubframe = false;
@@ -1630,6 +1633,7 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
                 subframe = wxRect(0, 0, FullSize.x, FullSize.y);
             render_clouds(img, subframe, duration, 30, 100);
         }
+        pFrame->SetGuideFramePath(filename);
         Debug.Write(wxString::Format("Simulator: loaded image file: %s\n", filename));
         break;
     }
@@ -1668,6 +1672,7 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
             pFrame->Alert(_("Cannot find/open FIT file"));
             return true;
         }
+        pFrame->SetGuideFramePath(filename);
         Debug.Write(wxString::Format("Simulator: loaded image file: %s\n", filename));
 
         FullSize = img.Size;
