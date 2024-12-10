@@ -252,6 +252,14 @@ private:
     bool m_continueCapturing; // should another image be captured?
     SingleExposure m_singleExposure;
 
+    // Frame monitor stuff
+    wxMutex m_cameraFrameMonLock;
+    wxCondition m_cameraFrameMonSync;
+    bool m_cameraFrameMonReady;
+    wxString m_cameraFrameMonPath;
+    wxString m_cameraFramePhysName;
+    uint16_t m_imgPort;
+
 public:
     MyFrame();
     virtual ~MyFrame();
@@ -449,6 +457,13 @@ public:
     bool GetBeepForLostStar();
     void SetBeepForLostStar(bool beep);
     int GetGuidingPeriod(int *exposure = nullptr, int *timeLapse = nullptr) const;
+    void SetGuideFramePath(char *path, bool broadcast = false);
+    void SetGuideFramePath(wxString path, bool broadcast = false);
+    wxString GetGuideFramePath(int timeout = 0);
+    wxString GetFrameMonitorPhysName();
+    uint16_t GetGuideFramePort();
+    void SetIFLink(int port);
+    void SetIFLinkCam(char *name);
 
     MyFrameConfigDialogPane *GetConfigDialogPane(wxWindow *pParent);
     MyFrameConfigDialogCtrlSet *GetConfigDlgCtrlSet(MyFrame *pFrame, AdvancedDialog *pAdvancedDialog, BrainCtrlIdMap& CtrlMap);

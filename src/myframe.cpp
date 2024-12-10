@@ -220,7 +220,7 @@ struct FileDropTarget : public wxFileDropTarget
 // frame constructor
 MyFrame::MyFrame()
     : wxFrame(nullptr, wxID_ANY, wxEmptyString), pGuider(nullptr), pPlanetTool(nullptr), m_showBookmarksAccel(0),
-      m_bookmarkLockPosAccel(0), pStatsWin(nullptr)
+      m_bookmarkLockPosAccel(0), pStatsWin(nullptr), m_cameraFrameMonSync(m_cameraFrameMonLock)
 {
     m_mgr.SetManagedWindow(this);
 
@@ -242,6 +242,12 @@ MyFrame::MyFrame()
     // Alert messages
     m_prevAlertMsg = wxEmptyString;
     m_currentAlertMsg = wxEmptyString;
+
+    // Image frame monitor
+    m_cameraFrameMonPath = wxEmptyString;
+    m_cameraFramePhysName = wxEmptyString;
+    m_cameraFrameMonReady = false;
+    m_imgPort = 0;
 
 #include "icons/phd2_128.png.h"
     wxBitmap phd2(wxBITMAP_PNG_FROM_DATA(phd2_128));
@@ -3667,10 +3673,82 @@ void MyFrame::NotifyGuidingParam(const wxString& name, const wxString& val, bool
     EvtServer.NotifyGuidingParam(name, val);
 }
 
+void MyFrame::SetIFLink(int port)
+{
+    m_imgPort = port;
+    if (pCamera && pCamera->Name == _T("Virtual Planetary Camera") && pCamera->Connected)
+    {
+        pCamera->InitCapture();
+        pFrame->ClearAlert();
+    }
+}
+
+void MyFrame::SetIFLinkCam(char *name)
+{
+    if (pCamera && pCamera->Name == _T("Virtual Planetary Camera") && pCamera->Connected)
+        m_cameraFramePhysName = wxString(name);
+}
+
+void MyFrame::SetGuideFramePath(char *path, bool broadcast)
+{
+    wxMutexLocker lck(m_cameraFrameMonLock);
+    m_cameraFrameMonPath = path;
+    if (broadcast)
+    {
+        m_cameraFrameMonReady = true;
+        pFrame->m_cameraFrameMonSync.Broadcast();
+    }
+}
+
+void MyFrame::SetGuideFramePath(wxString str, bool broadcast)
+{
+    wxMutexLocker lck(m_cameraFrameMonLock);
+    m_cameraFrameMonPath = str;
+    if (broadcast)
+    {
+        m_cameraFrameMonReady = true;
+        pFrame->m_cameraFrameMonSync.Broadcast();
+    }
+}
+
 bool MyFrame::IsCaptureActive(bool& paused) const
 {
     if (WorkerThread::InterruptRequested())
         return false;
     paused = pFrame->pGuider->IsPaused();
     return m_continueCapturing && !paused;
+}
+
+wxString MyFrame::GetGuideFramePath(int timeout)
+{
+    wxStopWatch swatch;
+    bool paused;
+    const int fragTimeout = 100;
+    if (timeout)
+        EvtServer.NotifyStartCapture();
+    wxMutexLocker lck(m_cameraFrameMonLock);
+    while (!m_cameraFrameMonReady && timeout > 0 && IsCaptureActive(paused))
+    {
+        if (pFrame->m_cameraFrameMonSync.WaitTimeout(fragTimeout) == wxCOND_TIMEOUT)
+        {
+            timeout -= fragTimeout;
+            if (swatch.Time() > wxMax(1000, GetGuidingPeriod()))
+            {
+                swatch.Start();
+                EvtServer.NotifyStartCapture();
+            }
+        }
+    }
+    m_cameraFrameMonReady = false;
+    return m_cameraFrameMonPath;
+}
+
+wxString MyFrame::GetFrameMonitorPhysName()
+{
+    return m_cameraFramePhysName;
+}
+
+uint16_t MyFrame::GetGuideFramePort()
+{
+    return m_imgPort;
 }
