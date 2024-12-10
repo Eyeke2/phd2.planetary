@@ -96,6 +96,7 @@ struct FrameDroppedInfo
     double avgDist;
     int starError;
     wxString status;
+    wxString state;
 };
 
 struct GuideLogSummaryInfo

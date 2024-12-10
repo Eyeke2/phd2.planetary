@@ -1321,6 +1321,7 @@ void Guider::UpdateGuideState(usImage *pImage, bool bStopping)
 
         GuiderOffset ofs;
         FrameDroppedInfo info;
+        info.state = wxEmptyString;
 
         if (UpdateCurrentPosition(pImage, &ofs, &info)) // true means error
         {
@@ -1337,6 +1338,7 @@ void Guider::UpdateGuideState(usImage *pImage, bool bStopping)
             case STATE_SELECTED:
                 // we had a current position and lost it
                 EvtServer.NotifyLooping(pImage->FrameNum, nullptr, &info);
+                info.state = "Looping";
                 if (!m_ignoreLostStarLooping)
                 {
                     SetState(STATE_UNINITIALIZED);
@@ -1348,12 +1350,14 @@ void Guider::UpdateGuideState(usImage *pImage, bool bStopping)
             case STATE_CALIBRATING_SECONDARY:
                 GuideLog.CalibrationFrameDropped(info);
                 Debug.Write("Star lost during calibration... blundering on\n");
+                info.state = "Calibrating";
                 EvtServer.NotifyStarLost(info);
                 pFrame->StatusMsg(_("star lost"));
                 break;
             case STATE_GUIDING:
             {
                 GuideLog.FrameDropped(info);
+                info.state = "Guiding";
                 EvtServer.NotifyStarLost(info);
                 GuidingAssistant::NotifyFrameDropped(info);
                 pFrame->pGraphLog->AppendData(info);
