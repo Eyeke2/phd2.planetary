@@ -743,6 +743,15 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
                 dc.DrawText(framePath, 10, YWinSize - 25);
             }
         }
+        else if (pCamera && pCamera->Name == _T("Simulator") && pCamera->Connected)
+        {
+            wxFileName fileName(pFrame->GetGuideFramePath());
+            if (fileName != wxEmptyString)
+            {
+                dc.SetTextForeground(*wxYELLOW);
+                dc.DrawText(wxString::Format("%s", fileName.GetFullName()), 10, YWinSize - 25);
+            }
+        }
     }
     catch (const wxString& Msg)
     {
