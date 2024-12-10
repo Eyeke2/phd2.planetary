@@ -171,6 +171,7 @@ class Mount : public wxMessageBoxProxy
 
     bool m_calibrated;
     Calibration m_cal;
+    CalibrationIssueType m_calIssue;
     double m_xRate; // rate adjusted for declination
     double m_yAngleError; // orthogonality error
 
@@ -375,6 +376,9 @@ public:
 
     bool MountIsCalibrated() const { return m_calibrated; }
     const Calibration& MountCal() const { return m_cal; }
+
+    CalibrationIssueType GetCalIssue() const { return m_calIssue; }
+    void SetCalIssue(CalibrationIssueType issue) { m_calIssue = issue; }
 };
 
 inline double Mount::xRate() const

@@ -1761,11 +1761,15 @@ bool Scope::UpdateCalibrationState(const PHD_Point& currentLocation)
             m_calibrationDetails.raStepCount = m_raSteps;
             m_calibrationDetails.decStepCount = m_decSteps;
             SetCalibrationDetails(m_calibrationDetails, m_calibration.xAngle, m_calibration.yAngle, pCamera->Binning);
+            SetCalIssue(CI_None);
             if (SANITY_CHECKING_ACTIVE)
+            {
                 SanityCheckCalibration(m_prevCalibration, m_prevCalibrationDetails); // method gets "new" info itself
+                SetCalIssue(m_lastCalibrationIssue);
+            }
             pFrame->StatusMsg(_("Calibration complete"));
             GuideLog.CalibrationComplete(this);
-            EvtServer.NotifyCalibrationComplete(this);
+            EvtServer.NotifyCalibrationComplete(this, GetCalIssue());
             Debug.Write("Calibration Complete\n");
             pConfig->Flush();
             break;
