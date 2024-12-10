@@ -448,6 +448,7 @@ public:
     static void PlaceWindowOnScreen(wxWindow *window, int x, int y);
     bool GetBeepForLostStar();
     void SetBeepForLostStar(bool beep);
+    int GetGuidingPeriod(int *exposure = nullptr, int *timeLapse = nullptr) const;
 
     MyFrameConfigDialogPane *GetConfigDialogPane(wxWindow *pParent);
     MyFrameConfigDialogCtrlSet *GetConfigDlgCtrlSet(MyFrame *pFrame, AdvancedDialog *pAdvancedDialog, BrainCtrlIdMap& CtrlMap);
@@ -842,6 +843,15 @@ inline int MyFrame::GetTimeLapse() const
 inline int MyFrame::GetFocalLength() const
 {
     return m_focalLength;
+}
+
+inline int MyFrame::GetGuidingPeriod(int *exposure, int *timeLapse) const
+{
+    if (exposure)
+        *exposure = m_exposureDuration;
+    if (timeLapse)
+        *timeLapse = m_timeLapse;
+    return m_timeLapse + m_exposureDuration;
 }
 
 #endif /* MYFRAME_H_INCLUDED */
