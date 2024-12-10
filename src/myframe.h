@@ -305,6 +305,7 @@ public:
     wxDialog *pCalSanityCheckDlg;
     wxDialog *pCalReviewDlg;
     wxDialog *pCalibrationAssistant;
+    wxMutex planetLock;
     bool CaptureActive; // Is camera looping captures?
     bool m_exposurePending; // exposure scheduled and not completed
     double Stretch_gamma;
@@ -481,6 +482,7 @@ public:
 
     void NotifyUpdateButtonsStatus(); // can be called from any thread
     void UpdateButtonsStatus();
+    void UpdateCameraSettings();
 
     static double GetPixelScale(double pixelSizeMicrons, int focalLengthMm, int binning);
     double GetCameraPixelScale() const;
