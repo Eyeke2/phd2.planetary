@@ -85,6 +85,8 @@ public:
     void NotifyGuidingParam(const wxString& name, bool val);
     void NotifyGuidingParam(const wxString& name, const wxString& val);
     void NotifyConfigurationChange();
+    void NotifySurfaceDetection(bool detected, int features, double variance, double quality, double sharpness, bool isRef);
+    void NotifyPlanetaryDetection(bool detected, int points, double score, int radius);
     void NotifyPlanetMetrics(double snr, double mass, int peak);
 
 private:

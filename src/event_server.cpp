@@ -2938,6 +2938,31 @@ void EventServer::NotifyConfigurationChange()
     m_configEventDebouncer->StartOnce(0);
 }
 
+void EventServer::NotifySurfaceDetection(bool detected, int features, double variance, double quality, double sharpness,
+                                         bool isRef)
+{
+    wxMutexLocker lck(m_clientsLock);
+    Ev ev("SurfaceDetection");
+    ev << NV("detect", detected);
+    ev << NV("features", features);
+    ev << NV("variance", variance);
+    ev << NV("quality", quality);
+    ev << NV("sharpness", sharpness);
+    ev << NV("ref", isRef);
+    do_notify(m_eventServerClients, ev);
+}
+
+void EventServer::NotifyPlanetaryDetection(bool detected, int points, double score, int radius)
+{
+    wxMutexLocker lck(m_clientsLock);
+    Ev ev("PlanetaryDetection");
+    ev << NV("detect", detected);
+    ev << NV("points", points);
+    ev << NV("score", score);
+    ev << NV("radius", radius);
+    do_notify(m_eventServerClients, ev);
+}
+
 void EventServer::NotifyPlanetMetrics(double snr, double mass, int peak)
 {
     wxMutexLocker lck(m_clientsLock);
