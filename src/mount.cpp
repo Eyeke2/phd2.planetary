@@ -1535,6 +1535,7 @@ bool Mount::IsCalibrated() const
 void Mount::ClearCalibration()
 {
     m_calibrated = false;
+    m_calIssue = CI_None;
     if (pFrame)
         pFrame->UpdateStatusBarCalibrationStatus();
 }

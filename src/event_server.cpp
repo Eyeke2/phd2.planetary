@@ -300,7 +300,7 @@ static Ev ev_set_lock_position(const PHD_Point& xy)
     return ev;
 }
 
-static Ev ev_calibration_complete(const Mount *mount)
+static Ev ev_calibration_complete(const Mount *mount, CalibrationIssueType issue)
 {
     Ev ev("CalibrationComplete");
     ev << NVMount(mount);
@@ -309,6 +309,27 @@ static Ev ev_calibration_complete(const Mount *mount)
     {
         ev << NV("Limit", mount->GetAoMaxPos());
     }
+
+    wxString issueStr;
+    switch (issue)
+    {
+    case CI_Steps:
+        issueStr = "Steps";
+        break;
+    case CI_Angle:
+        issueStr = "Angle";
+        break;
+    case CI_Rates:
+        issueStr = "Rates";
+        break;
+    case CI_Different:
+        issueStr = "Different";
+        break;
+    default:
+        issueStr = "None";
+        break;
+    }
+    ev << NV("Issue", issueStr);
 
     return ev;
 }
@@ -513,10 +534,10 @@ static void send_catchup_events(wxSocketClient *cli)
     }
 
     if (pMount && pMount->IsCalibrated())
-        do_notify1(cli, ev_calibration_complete(pMount));
+        do_notify1(cli, ev_calibration_complete(pMount, pMount->GetCalIssue()));
 
     if (pSecondaryMount && pSecondaryMount->IsCalibrated())
-        do_notify1(cli, ev_calibration_complete(pSecondaryMount));
+        do_notify1(cli, ev_calibration_complete(pSecondaryMount, pSecondaryMount->GetCalIssue()));
 
     if (st == EXPOSED_STATE_GUIDING_LOCKED)
     {
@@ -2590,13 +2611,13 @@ void EventServer::NotifyCalibrationFailed(const Mount *mount, const wxString& ms
     do_notify(m_eventServerClients, ev);
 }
 
-void EventServer::NotifyCalibrationComplete(const Mount *mount)
+void EventServer::NotifyCalibrationComplete(const Mount *mount, CalibrationIssueType issue)
 {
     wxMutexLocker lck(m_clientsLock);
     if (m_eventServerClients.empty())
         return;
 
-    do_notify(m_eventServerClients, ev_calibration_complete(mount));
+    do_notify(m_eventServerClients, ev_calibration_complete(mount, issue));
 }
 
 void EventServer::NotifyCalibrationDataFlipped(const Mount *mount)
