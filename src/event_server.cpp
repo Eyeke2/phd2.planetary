@@ -2938,6 +2938,13 @@ void EventServer::NotifyConfigurationChange()
     m_configEventDebouncer->StartOnce(0);
 }
 
+void EventServer::NotifyGearChange()
+{
+    wxMutexLocker lck(m_clientsLock);
+    Ev ev("GearChange");
+    do_notify(m_eventServerClients, ev);
+}
+
 void EventServer::NotifySurfaceDetection(bool detected, int features, double variance, double quality, double sharpness,
                                          bool isRef)
 {
