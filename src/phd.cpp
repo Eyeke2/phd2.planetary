@@ -516,6 +516,12 @@ bool PhdApp::OnInit()
         return false;
     }
 
+#if defined(FRAME_MONITOR_CAMERA)
+    // Currently supported only on Windows
+    wxString eventName = wxString::Format("phd2-solar.%d", m_instanceNumber);
+    m_hEvent = CreateEvent(NULL, TRUE, FALSE, eventName.t_str());
+#endif
+
 #ifndef DEBUG
 # if (wxMAJOR_VERSION > 2 || wxMINOR_VERSION > 8)
     wxDisableAsserts();
@@ -645,6 +651,11 @@ int PhdApp::OnExit()
 
     delete m_instanceChecker;
     m_instanceChecker = nullptr;
+
+#if defined(FRAME_MONITOR_CAMERA)
+    SetEvent(m_hEvent);
+    CloseHandle(m_hEvent);
+#endif
 
     return wxApp::OnExit();
 }

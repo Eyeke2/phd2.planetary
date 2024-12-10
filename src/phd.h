@@ -79,8 +79,12 @@
 
 #define APPNAME _T("PHD2 Guiding")
 #define PHDVERSION _T("2.6.13")
-#define PHDSUBVER _T("dev5")
-#define FULLVER PHDVERSION PHDSUBVER
+#define PHDSUBVER _T("dev5-solar.rc1")
+#ifdef DEVELOPER_MODE
+# define FULLVER PHDVERSION PHDSUBVER _T(" (Developer mode)")
+#else
+# define FULLVER PHDVERSION PHDSUBVER
+#endif
 
 #if defined(__WINDOWS__)
 # pragma warning(disable : 4189)
@@ -219,6 +223,11 @@ class PhdApp : public wxApp
     bool m_resetConfig;
     wxString m_resourcesDir;
     wxDateTime m_logFileTime;
+
+#if defined(FRAME_MONITOR_CAMERA)
+    // Currently supported only on Windows
+    HANDLE m_hEvent;
+#endif
 
 protected:
     wxLocale m_locale;
