@@ -50,6 +50,7 @@ public:
     bool HasNonGuiCapture() override { return true; }
     wxByte BitsPerPixel() override;
     void InitCapture() override;
+    const wxSize& DarkFrameSize() override { return UNDEFINED_FRAME_SIZE; }
 
 private:
     wxString m_cameraConnectAlertMsg;
