@@ -342,7 +342,7 @@ wxArrayString GuideCamera::GuideCameraList()
     CameraList.Add(_T("The Imaging Source (DCAM Firewire)"));
 #endif
 #if defined(FRAME_MONITOR_CAMERA)
-    CameraList.Add(_T("Virtual Planetary Camera"));
+    CameraList.Add(FRAME_MONITOR_CAMERA);
 #endif
 #if defined(OGMA_CAMERA)
     CameraList.Add(_T("OGMA Camera"));
@@ -507,7 +507,7 @@ GuideCamera *GuideCamera::Factory(const wxString& choice)
             pReturn = SVBCameraFactory::MakeSVBCamera();
 #endif
 #if defined(FRAME_MONITOR_CAMERA)
-        else if (choice == _T("Virtual Planetary Camera"))
+        else if (choice == FRAME_MONITOR_CAMERA)
             pReturn = new CameraFrameMonitor();
 #endif
 #if defined(OGMA_CAMERA)

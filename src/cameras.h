@@ -67,7 +67,7 @@
 #  define TOUPTEK_CAMERA
 #  define WDM_CAMERA
 #  define ZWO_ASI
-#  define FRAME_MONITOR_CAMERA
+#  define FRAME_MONITOR_CAMERA _T("Virtual Planetary Camera")
 
 // # define OS_PL130  // the Opticstar library is not yet included
 // # define FIREWIRE_CAMERA // the The Imaging Source library is not yet included
