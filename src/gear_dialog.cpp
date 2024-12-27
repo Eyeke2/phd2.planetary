@@ -883,6 +883,27 @@ void GearDialog::OnButtonConnectAll(wxCommandEvent& event)
 {
     Debug.Write("gear_dialog: OnButtonConnectAll\n");
 
+#if defined(FRAME_MONITOR_CAMERA)
+    // A workaround for cases where the frame monitor camera was previously selected but later removed
+    // from the equipment profile by the standard PHD2 version.
+    if (m_pCamera)
+    {
+        pConfig->Profile.SetString("/camera/LastKnownGood", m_pCamera->Name);
+    }
+    else
+    {
+        wxString cameraName = pConfig->Profile.GetString("/camera/LastKnownGood", FRAME_MONITOR_CAMERA);
+        if (cameraName == FRAME_MONITOR_CAMERA)
+        {
+            pConfig->Profile.SetString("/camera/LastMenuChoice", cameraName);
+            Debug.Write(wxString::Format("gear_dialog: OnButtonConnectAll: restore camera '%s' in current profile\n", cameraName));
+            pCamera = m_pCamera = GuideCamera::Factory(cameraName);
+            SetMatchingSelection(m_pCameras, cameraName);
+            m_cameraUpdated = true;
+        }
+    }
+#endif
+
     bool canceled = DoConnectCamera(false);
     if (canceled)
         return;
