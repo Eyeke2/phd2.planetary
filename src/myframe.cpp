@@ -2718,8 +2718,14 @@ bool MyFrame::DarkLibExists(int profileId, bool showAlert)
 // surprise changes in binning
 void MyFrame::CheckDarkFrameGeometry()
 {
-    bool haveDefectMap = DefectMap::DefectMapExists(pConfig->GetCurrentProfileId(), m_useDefectMapMenuItem->IsEnabled());
-    bool haveDarkLib = DarkLibExists(pConfig->GetCurrentProfileId(), m_useDarksMenuItem->IsEnabled());
+    bool enableDarksFeature = true;
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera && pCamera->Name == FRAME_MONITOR_CAMERA)
+        enableDarksFeature = false;
+#endif
+
+    bool haveDefectMap = enableDarksFeature && DefectMap::DefectMapExists(pConfig->GetCurrentProfileId(), m_useDefectMapMenuItem->IsEnabled());
+    bool haveDarkLib = enableDarksFeature && DarkLibExists(pConfig->GetCurrentProfileId(), m_useDarksMenuItem->IsEnabled());
     bool defectMapOk = true;
 
     if (m_useDefectMapMenuItem->IsEnabled())
@@ -2762,11 +2768,17 @@ void MyFrame::CheckDarkFrameGeometry()
 
 void MyFrame::SetDarkMenuState()
 {
-    bool haveDarkLib = DarkLibExists(pConfig->GetCurrentProfileId(), true);
+    bool enableDarksFeature = true;
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera && pCamera->Name == FRAME_MONITOR_CAMERA)
+        enableDarksFeature = false;
+#endif
+
+    bool haveDarkLib = enableDarksFeature && DarkLibExists(pConfig->GetCurrentProfileId(), true);
     m_useDarksMenuItem->Enable(haveDarkLib);
     if (!haveDarkLib)
         m_useDarksMenuItem->Check(false);
-    bool haveDefectMap = DefectMap::DefectMapExists(pConfig->GetCurrentProfileId(), true);
+    bool haveDefectMap = enableDarksFeature && DefectMap::DefectMapExists(pConfig->GetCurrentProfileId(), true);
     m_useDefectMapMenuItem->Enable(haveDefectMap);
     if (!haveDefectMap)
         m_useDefectMapMenuItem->Check(false);

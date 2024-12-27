@@ -301,6 +301,14 @@ void RefineDefMap::LoadFromProfile()
 
 bool RefineDefMap::RebuildMasterDarks()
 {
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera && pCamera->Name == FRAME_MONITOR_CAMERA)
+    {
+        wxMessageBox(_(FRAME_MONITOR_CAMERA " does not support the Bad Pixel Map feature"), _("Info"));
+        return false;
+    }
+#endif
+
     bool rslt = false;
     DarksDialog dlg(this, false);
 

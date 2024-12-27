@@ -1120,10 +1120,18 @@ bool GearDialog::DoConnectCamera(bool autoReconnecting)
         Debug.Write(wxString::Format("DoConnectCamera: reconnecting=%d warningIssued=%d lastCam=[%s] scaleRatio=%.3f\n",
                                      autoReconnecting, m_camWarningIssued, m_lastCamera, m_imageScaleRatio));
 
+        bool enableDarksFeature = true;
+#if defined(FRAME_MONITOR_CAMERA)
+        if (m_pCamera->Name == FRAME_MONITOR_CAMERA)
+        {
+            enableDarksFeature = false;
+        }
+#endif
+
         // No very reliable way to know if cam selection has changed - id's and name strings may be the same for different cams
         // from same mfr so do what we can here including consideration of image scale change Purpose is to warn user of
         // potential loss of dark/bpm files and later, to adjust guide params as best we can
-        if (!m_camWarningIssued && !autoReconnecting)
+        if (!m_camWarningIssued && !autoReconnecting && enableDarksFeature)
         {
             if ((m_lastCamera != _("None") && newCam != _("None") && !DeviceSelectionMatches(m_lastCamera, newCam)) ||
                 (fabs(m_imageScaleRatio - 1.0) >= 0.01))

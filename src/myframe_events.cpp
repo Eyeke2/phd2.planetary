@@ -644,6 +644,14 @@ void MyFrame::OnDark(wxCommandEvent& WXUNUSED(event))
         return;
     }
 
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera->Name == FRAME_MONITOR_CAMERA)
+    {
+        wxMessageBox(_(FRAME_MONITOR_CAMERA " does not support the Dark Library feature"), _("Info"));
+        return;
+    }
+#endif
+
     DarksDialog dlg(this, true);
     dlg.ShowModal();
 
@@ -659,6 +667,16 @@ bool MyFrame::LoadDarkHandler(bool checkIt)
         m_useDarksMenuItem->Check(false);
         return false;
     }
+
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera->Name == FRAME_MONITOR_CAMERA)
+    {
+        Debug.Write(_("LoadDarkHandler: " FRAME_MONITOR_CAMERA " does not support the Dark Library feature\n"));
+        m_useDarksMenuItem->Check(false);
+        return false;
+    }
+#endif
+
     pConfig->Profile.SetBoolean("/camera/AutoLoadDarks", checkIt);
     if (checkIt) // enable it
     {
@@ -702,6 +720,16 @@ void MyFrame::LoadDefectMapHandler(bool checkIt)
         darks_menu->FindItem(MENU_LOADDEFECTMAP)->Check(false);
         return;
     }
+
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera->Name == FRAME_MONITOR_CAMERA)
+    {
+        Debug.Write(_("LoadDefectMapHandler: " FRAME_MONITOR_CAMERA " does not support the Defect Map feature\n"));
+        darks_menu->FindItem(MENU_LOADDEFECTMAP)->Check(false);
+        return;
+    }
+#endif
+
     pConfig->Profile.SetBoolean("/camera/AutoLoadDefectMap", checkIt);
     if (checkIt)
     {
@@ -747,6 +775,14 @@ void MyFrame::OnRefineDefMap(wxCommandEvent& evt)
         return;
     }
 
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera->Name == FRAME_MONITOR_CAMERA)
+    {
+        wxMessageBox(_(FRAME_MONITOR_CAMERA " does not support the Bad Pixel Map feature"), _("Info"));
+        return;
+    }
+#endif
+
     if (!pRefineDefMap)
         pRefineDefMap = new RefineDefMap(this);
 
@@ -770,6 +806,14 @@ void MyFrame::OnImportCamCal(wxCommandEvent& evt)
         wxMessageBox(_("Please connect a camera first."));
         return;
     }
+
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera->Name == FRAME_MONITOR_CAMERA)
+    {
+        wxMessageBox(_(FRAME_MONITOR_CAMERA " does not support the Dark Library feature"), _("Info"));
+        return;
+    }
+#endif
 
     CamCalImportDialog dlg(this);
 
