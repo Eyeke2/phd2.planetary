@@ -54,11 +54,11 @@ class CameraConfigDialogPane : public ConfigDialogPane
 {
 public:
     CameraConfigDialogPane(wxWindow *pParent, GuideCamera *pCamera);
-    virtual ~CameraConfigDialogPane() {};
+    virtual ~CameraConfigDialogPane() { };
 
     void LayoutControls(GuideCamera *pCamera, BrainCtrlIdMap& CtrlMap);
-    virtual void LoadValues() {};
-    virtual void UnloadValues() {};
+    virtual void LoadValues() { };
+    virtual void UnloadValues() { };
 };
 
 class CameraConfigDialogCtrlSet : public ConfigDialogCtrlSet
@@ -83,7 +83,7 @@ class CameraConfigDialogCtrlSet : public ConfigDialogCtrlSet
 public:
     CameraConfigDialogCtrlSet(wxWindow *pParent, GuideCamera *pCamera, AdvancedDialog *pAdvancedDialog,
                               BrainCtrlIdMap& CtrlMap);
-    virtual ~CameraConfigDialogCtrlSet() {};
+    virtual ~CameraConfigDialogCtrlSet() { };
     virtual void LoadValues();
     virtual void UnloadValues();
 

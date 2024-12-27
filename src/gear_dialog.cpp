@@ -896,7 +896,8 @@ void GearDialog::OnButtonConnectAll(wxCommandEvent& event)
         if (cameraName == FRAME_MONITOR_CAMERA)
         {
             pConfig->Profile.SetString("/camera/LastMenuChoice", cameraName);
-            Debug.Write(wxString::Format("gear_dialog: OnButtonConnectAll: restore camera '%s' in current profile\n", cameraName));
+            Debug.Write(
+                wxString::Format("gear_dialog: OnButtonConnectAll: restore camera '%s' in current profile\n", cameraName));
             pCamera = m_pCamera = GuideCamera::Factory(cameraName);
             SetMatchingSelection(m_pCameras, cameraName);
             m_cameraUpdated = true;
