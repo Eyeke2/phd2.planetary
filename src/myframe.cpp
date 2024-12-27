@@ -3675,18 +3675,22 @@ void MyFrame::NotifyGuidingParam(const wxString& name, const wxString& val, bool
 
 void MyFrame::SetIFLink(int port)
 {
+#if defined(FRAME_MONITOR_CAMERA)
     m_imgPort = port;
-    if (pCamera && pCamera->Name == _T("Virtual Planetary Camera") && pCamera->Connected)
+    if (pCamera && pCamera->Name == FRAME_MONITOR_CAMERA && pCamera->Connected)
     {
         pCamera->InitCapture();
         pFrame->ClearAlert();
     }
+#endif
 }
 
 void MyFrame::SetIFLinkCam(char *name)
 {
-    if (pCamera && pCamera->Name == _T("Virtual Planetary Camera") && pCamera->Connected)
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera && pCamera->Name == FRAME_MONITOR_CAMERA && pCamera->Connected)
         m_cameraFramePhysName = wxString(name);
+#endif
 }
 
 void MyFrame::SetGuideFramePath(char *path, bool broadcast)

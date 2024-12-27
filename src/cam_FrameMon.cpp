@@ -34,7 +34,7 @@
 
 #include "phd.h"
 
-#ifdef FRAME_MONITOR_CAMERA
+#if defined(FRAME_MONITOR_CAMERA)
 
 # include "opencv2/opencv.hpp"
 # include "cam_FrameMon.h"
@@ -200,7 +200,7 @@ void ImageFrameClientHandler::ReadFrame()
 
             if ((hdr.dataLength > sizeof(imgBuffer)) || (hdr.magic != IFLINK_MAGIC))
             {
-                Debug.Write("Virtual Planetary Camera: invalid frame\n");
+                Debug.Write(FRAME_MONITOR_CAMERA ": invalid frame\n");
                 imgServer->StopClient(true);
                 break;
             }
@@ -256,7 +256,7 @@ bool ImageFrameServer::StartServer()
         thread = new ImageServerThread(this);
         if (thread->Create() != wxTHREAD_NO_ERROR)
         {
-            Debug.Write("Virtual Planetary Camera: failed to create thread!");
+            Debug.Write(FRAME_MONITOR_CAMERA ": failed to create thread!");
             delete thread;
             thread = nullptr;
             return false;
@@ -331,7 +331,7 @@ void ImageFrameServer::AddFrame(int height, int width, int binning, char *buf)
     }
     catch (const cv::Exception& e)
     {
-        Debug.Write(wxString::Format("Virtual Planetary Camera: exception: %s\n", e.what()));
+        Debug.Write(wxString::Format(FRAME_MONITOR_CAMERA ": exception: %s\n", e.what()));
     }
 }
 
@@ -352,7 +352,7 @@ bool ImageFrameServer::GetFrame(cv::Mat& frame, bool flush)
     }
     catch (const cv::Exception& e)
     {
-        Debug.Write(wxString::Format("Virtual Planetary Camera: exception: %s\n", e.what()));
+        Debug.Write(wxString::Format(FRAME_MONITOR_CAMERA ": exception: %s\n", e.what()));
         frame = cv::Mat();
         return false;
     }
@@ -476,7 +476,7 @@ wxString GetFrameMonitorLabel()
 CameraFrameMonitor::CameraFrameMonitor() : m_serverCond(m_serverMutex), m_useCount(0)
 {
     Connected = false;
-    Name = _T("Virtual Planetary Camera");
+    Name = FRAME_MONITOR_CAMERA;
     m_lastKnownGoodFilename = wxEmptyString;
     m_cameraConnectAlertMsg = _("Lost camera feed, waiting for reconnection ...");
     FullSize = wxSize(640, 480);
@@ -545,8 +545,8 @@ void CameraFrameMonitor::StartImageServer()
     ImageFrameServer *server = new ImageFrameServer(imgPort);
     if (!server->StartServer())
     {
-        pFrame->Alert(_("Virtual Planetary Camera: failed to establish image link!"));
-        Debug.Write(wxString::Format("Virtual Planetary Camera: failed to establish image link on port %d\n", imgPort));
+        pFrame->Alert(_(FRAME_MONITOR_CAMERA ": failed to establish image link!"));
+        Debug.Write(wxString::Format(FRAME_MONITOR_CAMERA ": failed to establish image link on port %d\n", imgPort));
         delete server;
     }
     else
@@ -605,7 +605,7 @@ bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const 
         bool paused;
         int timeout = pFrame->IsCaptureActive(paused) ? FRAME_MONITOR_TIMEOUT_MS + duration : 0;
         wxString filename = pFrame->GetGuideFramePath(timeout);
-        Debug.Write(wxString::Format("Virtual Planetary Camera: latency %d ms (to:%d)\n", swatch.Time(), timeout));
+        Debug.Write(wxString::Format(FRAME_MONITOR_CAMERA ": latency %d ms (to:%d)\n", swatch.Time(), timeout));
 
         if (filename == wxString("NUL"))
             filename = m_lastKnownGoodFilename;
@@ -670,7 +670,7 @@ bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const 
     }
     catch (const cv::Exception& ex)
     {
-        Debug.Write(wxString::Format("Virtual Planetary Camera: OpenCV exception %s\n", ex.what()));
+        Debug.Write(wxString::Format(FRAME_MONITOR_CAMERA ": OpenCV exception %s\n", ex.what()));
         bError = true;
     }
 
