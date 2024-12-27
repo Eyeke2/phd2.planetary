@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+
+usage () {
+    cat <<EOF
+usage: build-win [OPTIONS]
+Options:
+  -b branch  branch to build (default: current branch)
+  -c         cleanup worktree
+  -w NAME    use worktree NAME
+  -h         display this help
+
+Build installer from current directory
+  build-win
+
+Build installer for a specific branch/tag in a worktree
+  build-win -b BRANCH -w NAME
+
+Cleanup worktree
+  build-win -c -w NAME
+EOF
+    exit
+}
+
+do_cleanup=
+branch=
+use_worktree=
+
+while getopts "b:chw:" o; do
+    case "${o}" in
+        b) branch=$OPTARG ;;
+        c) do_cleanup=1 ;;
+        h) usage ;;
+        w) use_worktree=$OPTARG ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+if [[ $do_cleanup ]]; then
+     if [[ ! $use_worktree ]]; then
+         echo "a worktree is required to cleanup" >&2
+         exit 1
+     fi
+else
+    if [[ $use_worktree && ! $branch ]]; then
+        echo "a branch is required to use a worktree" >&2
+        exit 1
+    fi
+fi
+
+set -x
+set -e
+
+SCRIPT_DIR=$(cd $(dirname "$0"); /bin/pwd)
+cd "$SCRIPT_DIR"/..
+
+if [[ $use_worktree ]]; then
+    worktree=../$use_worktree
+    if [[ $do_cleanup ]]; then
+        git worktree remove --force "$worktree"
+        exit
+    fi
+    git fetch -q
+    git worktree add --force "$worktree" "$branch"
+    cd "$worktree"
+fi
+
+CMD="/c/Windows/System32/cmd.exe"
+CMAKE='/c/Program Files/CMake/bin/cmake.exe'
+CTEST='/c/Program Files/CMake/bin/ctest.exe'
+ISCC="/c/Program Files (x86)/Inno Setup 5/ISCC.exe"
+
+CMAKE_W=$(cygpath -w "$CMAKE")
+
+V=$(perl -ne '
+ /^\s*#\s*define\s+PHDVERSION[^"]+"([^"]*)/ && do { $v = $1; next LINE };
+ /^\s*#\s*define\s+PHDSUBVER[^"]+"([^"]*)/ && do { $s = $1; print "$v$s"; exit }' src/phd.h)
+
+INSTALLER=phd2-${V}-installer
+
+vcpkg_args=()
+if [[ $VCPKG_ROOT ]]; then
+    vcpkg_args+=(-DVCPKG_ROOT=$VCPKG_ROOT)
+fi
+
+mkdir -p tmp
+cd tmp
+
+cat >run_cmake.bat <<EOF
+"$CMAKE_W" -Wno-dev -G "Visual Studio 17" -A Win32 ${vcpkg_args[@]} "-DwxWidgets_PREFIX_DIRECTORY=%WXWIN%" ..
+EOF
+# "$CMD" /c run_cmake.bat
+
+# generate phd2.iss and README.txt in tmp, one level up from Release/
+sed -e "s/@VERSION@/$V/g" ../phd2.iss.in >phd2.iss
+sed -e "s/@VERSION@/$V/g" ../README-PHD2.txt.in >README-PHD2.txt
+
+"$CMAKE" --build . --config Release
+
+"$CTEST" --build-config Release
+
+# "$ISCC" phd2.iss /F"${INSTALLER}"
+"$ISCC" phd2.iss
