@@ -822,6 +822,13 @@ void ProfileWizard::UpdateState(const int change)
             }
             break;
         case STATE_WRAPUP:
+#if defined(FRAME_MONITOR_CAMERA)
+            if (m_SelectedCamera == FRAME_MONITOR_CAMERA)
+            {
+                m_launchDarks = false;
+                m_pLaunchDarks->Enable(false);
+            }
+#endif
             SetTitle(TitlePrefix + _("Finish Creating Your New Profile"));
             m_pGearGrid->Show(false);
             m_pWrapUp->Show(true);
