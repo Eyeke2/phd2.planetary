@@ -41,7 +41,7 @@
 # include <wx/socket.h>
 
 # define FRAME_MONITOR_TIMEOUT_MS 10000
-# define FRAME_IMAGE_BUFFER_SIZE 0x800000
+# define FRAME_IMAGE_BUFFER_SIZE (2048 * 2048 * 2)
 # define IMAGE_LINK_ID ":if:"
 
 class ImageFrameServer;
@@ -62,15 +62,18 @@ private:
     // Image frame header (should be multiple of 4 bytes)
     struct imageFrameHeader
     {
-# define IFLINK_MAGIC 0x4649
-        uint16_t magic;
-        uint16_t binning;
+# define IFLINK_MAGIC 0x46C9A3D0
+# define IFLINK_VERSION 1
+        volatile uint32_t magic;
+        volatile uint16_t version;
+        volatile uint16_t hdrLength;
+        volatile uint32_t dataLength;
         uint16_t width;
         uint16_t height;
-        uint32_t dataLength;
+        double pixelSize;
     } hdr;
 
-    char imgBuffer[FRAME_IMAGE_BUFFER_SIZE];
+    char *imgBuffer;
     uint32_t bytesReceived;
     bool headerReceived;
 
@@ -95,8 +98,8 @@ public:
     bool IsConnected();
     bool IsClientStopping();
     bool IsServerStopping() { return stop_flag; }
-    void AddFrame(int height, int width, int binning, char *buf);
-    bool GetFrame(cv::Mat& frame, bool flush);
+    void AddImageFrame(int height, int width, double pixelSize, char *buf);
+    bool GetImageFrame(cv::Mat& frame, bool flush, double& pixelSize);
 
 private:
     friend class ImageServerThread;
@@ -117,6 +120,7 @@ private:
 
     wxCriticalSection imgLock;
     cv::Mat imgMat;
+    double imgPixelSize;
 
     wxDECLARE_EVENT_TABLE();
 };
@@ -137,9 +141,11 @@ private:
 wxBEGIN_EVENT_TABLE(ImageFrameClientHandler, wxEvtHandler) EVT_SOCKET(wxID_ANY, ImageFrameClientHandler::OnSocketEvent)
     wxEND_EVENT_TABLE()
 
-        ImageFrameClientHandler::ImageFrameClientHandler(wxSocketBase *sock, ImageFrameServer *server)
+ImageFrameClientHandler::ImageFrameClientHandler(wxSocketBase *sock, ImageFrameServer *server)
     : imgSock(sock), imgServer(server)
 {
+    imgBuffer = new char[FRAME_IMAGE_BUFFER_SIZE];
+    assert(imgBuffer);
     imgSock->SetEventHandler(*this, wxID_ANY);
     imgSock->SetNotify(wxSOCKET_LOST_FLAG);
     imgSock->Notify(true);
@@ -156,6 +162,7 @@ ImageFrameClientHandler::~ImageFrameClientHandler()
         imgSock->Destroy();
     }
     imgServer->RemoveClient(this);
+    delete[] imgBuffer;
 }
 
 void ImageFrameClientHandler::ResetState()
@@ -167,7 +174,7 @@ void ImageFrameClientHandler::ResetState()
 
 void ImageFrameClientHandler::ProcessImage()
 {
-    imgServer->AddFrame(hdr.height, hdr.width, hdr.binning, imgBuffer);
+    imgServer->AddImageFrame(hdr.height, hdr.width, hdr.pixelSize, imgBuffer);
     wxDateTime now = wxDateTime::UNow();
     wxString ts = IMAGE_LINK_ID + pFrame->GetFrameMonitorPhysName() + _(": ");
     ts += now.Format(wxT("%H:%M:%S")) + wxString::Format(".%02d", now.GetMillisecond() / 10);
@@ -197,10 +204,13 @@ void ImageFrameClientHandler::ReadFrame()
 
             if (bytesReceived < sizeof(hdr))
                 continue;
+            if (bytesReceived < hdr.hdrLength)
+                continue;
 
-            if ((hdr.dataLength > sizeof(imgBuffer)) || (hdr.magic != IFLINK_MAGIC))
+            if ((hdr.magic != IFLINK_MAGIC) || (hdr.version < IFLINK_VERSION) ||
+                (hdr.hdrLength < sizeof(hdr)) || (hdr.dataLength > FRAME_IMAGE_BUFFER_SIZE))
             {
-                Debug.Write(FRAME_MONITOR_CAMERA ": invalid frame\n");
+                Debug.Write(wxString::Format(FRAME_MONITOR_CAMERA ": invalid frame: magic=%x, v=%x, l=%d\n", hdr.magic, hdr.version, hdr.dataLength));
                 imgServer->StopClient(true);
                 break;
             }
@@ -210,7 +220,7 @@ void ImageFrameClientHandler::ReadFrame()
             continue;
         }
 
-        uint32_t limit = wxMin(sizeof(imgBuffer), hdr.dataLength);
+        uint32_t limit = wxMin(FRAME_IMAGE_BUFFER_SIZE, hdr.dataLength);
         if (bytesReceived < limit)
         {
             imgSock->Read(imgBuffer + bytesReceived, limit - bytesReceived);
@@ -238,9 +248,9 @@ void ImageFrameClientHandler::OnSocketEvent(wxSocketEvent& event)
 wxBEGIN_EVENT_TABLE(ImageFrameServer, wxEvtHandler) EVT_SOCKET(FRAME_MONITOR_ID, ImageFrameServer::OnServerEvent)
     wxEND_EVENT_TABLE()
 
-        ImageFrameServer::ImageFrameServer(unsigned short port)
+ImageFrameServer::ImageFrameServer(unsigned short port)
     : imgPort(port), serverSocket(nullptr), thread(nullptr), stop_flag(false), connected_flag(false), client(nullptr),
-      clientSock(nullptr), clientStopping(false), stopCond(stopMutex)
+      clientSock(nullptr), clientStopping(false), stopCond(stopMutex), imgPixelSize(GuideCamera::UnknownPixelSize)
 {
 }
 
@@ -318,16 +328,14 @@ bool ImageFrameServer::WaitClientStopped(int msecTimeout)
     return clientStopping;
 }
 
-void ImageFrameServer::AddFrame(int height, int width, int binning, char *buf)
+void ImageFrameServer::AddImageFrame(int height, int width, double pixelSize, char *buf)
 {
-    if (pCamera && (pCamera->Binning != binning))
-        pCamera->SetBinning(binning);
-
     try
     {
         cv::Mat tmp(height, width, CV_16UC(1), buf);
         wxCriticalSectionLocker locker(imgLock);
         imgMat = tmp.clone();
+        imgPixelSize = pixelSize;
     }
     catch (const cv::Exception& e)
     {
@@ -335,8 +343,9 @@ void ImageFrameServer::AddFrame(int height, int width, int binning, char *buf)
     }
 }
 
-bool ImageFrameServer::GetFrame(cv::Mat& frame, bool flush)
+bool ImageFrameServer::GetImageFrame(cv::Mat& frame, bool flush, double& pixelSize)
 {
+    pixelSize = GuideCamera::UnknownPixelSize;
     wxCriticalSectionLocker locker(imgLock);
     try
     {
@@ -346,6 +355,7 @@ bool ImageFrameServer::GetFrame(cv::Mat& frame, bool flush)
             return false;
         }
         frame = imgMat.clone();
+        pixelSize = imgPixelSize;
         if (flush)
             imgMat = cv::Mat();
         return true;
@@ -616,7 +626,12 @@ bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const 
             if (GetServer())
             {
                 connected = m_imageServer->IsConnected();
-                m_imageServer->GetFrame(image, !paused);
+                double newPixelSize, oldPixelSize = pCamera ? pCamera->GetCameraPixelSize() : 0;
+                if (m_imageServer->GetImageFrame(image, !paused, newPixelSize))
+                {
+                    if (pCamera && newPixelSize != oldPixelSize && newPixelSize != UnknownPixelSize)
+                        pCamera->SetCameraPixelSize(newPixelSize);
+                }
                 PutServer();
             }
             else
