@@ -419,7 +419,7 @@ double SolarSystemObject::CalcSharpness(Mat& FullFrame, Point2f& clickedPoint, b
     else
     {
         // Compute scaling factor to normalize the signal
-        meanSignal = cv::mean(focusRoi);
+        meanSignal = cv::mean(FullFrame);
         scaleFactor = meanSignal[0] ? (65536.0 / 256) / meanSignal[0] : 1.0;
 
         // For failed auto selected star use entire frame for sharpness calculation
