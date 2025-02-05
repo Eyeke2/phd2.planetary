@@ -74,9 +74,6 @@ public:
     double HFD;
     unsigned short PeakVal;
 
-    // Calcular SNR, peak value and mass of a solar system object
-    double CalcPlanetMetrics(const usImage *pImg, int center_x, int center_y, int radius, int annulusWidth);
-
     Star();
 
     /*

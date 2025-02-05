@@ -490,9 +490,113 @@ void SolarSystemObject::CalcSurfaceMetrics(const usImage *pImg)
     m_mass = meanSignal[0];
     double meanValue = meanSignal[0];
     double localMin = wxMax(minVal, pImg->FiltMin);
-    m_noiseVariance = stdDevNoise[0];
-    m_snr = (m_noiseVariance > 0.5) ? (meanValue - localMin) / m_noiseVariance : 0.0;
-    Debug.Write(wxString::Format("CalcSurfaceMetrics: Mass=%.1f, stdDevNoise=%.1f, SNR=%.1f\n", m_mass, m_noiseVariance, m_snr));
+    m_noiseStdDev = stdDevNoise[0];
+    m_snr = (m_noiseStdDev > 0.5) ? (meanValue - localMin) / m_noiseStdDev : 0.0;
+    Debug.Write(wxString::Format("CalcSurfaceMetrics: Mass=%.1f, stdDevNoise=%.1f, SNR=%.1f\n", m_mass, m_noiseStdDev, m_snr));
+}
+
+// Calculate metrics in disk mode
+void SolarSystemObject::CalcPlanetMetrics(const usImage *pImg, int annulusWidth)
+{
+    int center_x = m_center_x;
+    int center_y = m_center_y;
+    int r = m_radius;
+
+    const double sigma_factor = 1.0;
+    int scopeOuter = r + annulusWidth * 3;
+    int scopeInner = r + annulusWidth;
+    int scopeOuter2 = scopeOuter * scopeOuter;
+    int scopeInner2 = scopeInner * scopeInner;
+    int start_x = wxMax(0, center_x - scopeOuter);
+    int end_x = wxMin(center_x + scopeOuter, pImg->Size.GetWidth() - 1);
+    int start_y = wxMax(0, center_y - scopeOuter);
+    int end_y = wxMin(center_y + scopeOuter, pImg->Size.GetHeight() - 1);
+
+    const unsigned short *imgdata = pImg->ImageData;
+    const int rowsize = pImg->Size.GetWidth();
+
+    // Calculate the statistics within the larger annulus
+    m_snr = 0.0;
+    m_mass = 0;
+    double sum = 0.0;
+    double sq_sum = 0.0;
+    int count = 0;
+    const unsigned short *row = imgdata + rowsize * start_y;
+    for (int y = start_y; y <= end_y; y++, row += rowsize)
+    {
+        for (int x = start_x; x <= end_x; x++)
+        {
+            int r2 = (x - center_x) * (x - center_x) + (y - center_y) * (y - center_y);
+            if ((r2 < scopeOuter2) && (r2 > scopeInner2))
+            {
+                double pixel = (double) row[x];
+                sum += pixel;
+                sq_sum += pixel * pixel;
+                count++;
+            }
+        }
+    }
+
+    // Calculate mean, variance and standard deviation in the annulus
+    double mean = (count > 0) ? sum / count : 0.0;
+    double variance = (count > 0) ? (sq_sum / count) - (mean * mean) : 0.0;
+    double stdDev = sqrt(variance);
+    int signalThreshold = mean + stdDev * sigma_factor;
+
+    // Calculate signal and noise within the circle
+    unsigned short peak_val = 0;
+    double meanSignal = 0.0;
+    int signalCount = 0;
+    double meanNoise = 0.0;
+    int noiseCount = 0;
+    double noiseVariance = 0.0;
+    row = imgdata + rowsize * start_y;
+    for (int y = start_y; y <= end_y; y++, row += rowsize)
+    {
+        for (int x = start_x; x <= end_x; x++)
+        {
+            int r2 = (x - center_x) * (x - center_x) + (y - center_y) * (y - center_y);
+            if (r2 < scopeInner2)
+            {
+                double pixel = (double) row[x];
+                if (pixel > peak_val)
+                    peak_val = pixel;
+                if (pixel > signalThreshold)
+                {
+                    meanSignal += pixel;
+                    signalCount++;
+                }
+            }
+            else if (r2 < scopeOuter2)
+            {
+                double pixel = (double) row[x];
+                if (pixel <= signalThreshold)
+                {
+                    meanNoise += pixel;
+                    noiseVariance += pixel * pixel;
+                    noiseCount++;
+                }
+            }
+        }
+    }
+
+    // Use sum of all pixels considered as signal as the mass metric
+    m_mass = meanSignal;
+    meanSignal = (signalCount > 0) ? meanSignal / signalCount : 0.0;
+
+    double noiseStdDev = 0.0;
+    if (noiseCount > 0)
+    {
+        meanNoise /= noiseCount;
+        noiseVariance = noiseVariance / noiseCount - meanNoise * meanNoise;
+        noiseStdDev = sqrt(noiseVariance);
+        m_snr = (noiseStdDev > 1) ? (meanSignal - meanNoise) / noiseStdDev : 0.0;
+    }
+
+    m_peak = peak_val;
+    Debug.Write(wxString::Format(
+        "CalcPlanetMetrics: signalThreshold=%d, meanSignal=%.1f, meanNoise=%.1f (stddev=%.1f), SNR=%.1f\n",
+        signalThreshold, meanSignal, meanNoise, noiseStdDev, m_snr));
 }
 
 // Get planetary metrics
@@ -2102,16 +2206,20 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
         SetMetricsRegion(FullFrame, clickedPoint, detectionResult);
 
         // Compute image data metrics (snr, peak and mass)
-        switch (GetPlanetDetectMode())
+        if (detectionResult)
         {
-        case DETECTION_MODE_SURFACE:
-            CalcSurfaceMetrics(pImage);
-            break;
-        case DETECTION_MODE_DISK:
-            break;
+            switch (GetPlanetDetectMode())
+            {
+            case DETECTION_MODE_SURFACE:
+                CalcSurfaceMetrics(pImage);
+                break;
+            case DETECTION_MODE_DISK:
+                CalcPlanetMetrics(pImage, 15);
+                break;
+            }
         }
 
-        // Calculate sharpness of the image
+        // Calculate sharpness of the image regardless of detection
         if (m_measuringSharpnessMode)
         {
             m_focusSharpness = CalcSharpness(FullFrame);

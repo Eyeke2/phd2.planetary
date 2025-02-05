@@ -90,7 +90,7 @@ private:
     int m_peak;
     double m_snr;
     double m_mass;
-    double m_noiseVariance;
+    double m_noiseStdDev;
 
     std::vector<cv::Point2f> m_diskContour;
     int m_centoid_x;
@@ -303,6 +303,7 @@ private:
     void SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool roiActive, int bppFactor);
     void SetMetricsRegion(cv::Mat& FullFrame, cv::Point2f& clickedPoint, bool detectionResult);
     void CalcSurfaceMetrics(const usImage *pImg);
+    void CalcPlanetMetrics(const usImage *pImg, int annulusWidth);
     double ComputeSobelSharpness(const cv::Mat& img);
     double CalcSharpness(cv::Mat& FullFrame);
     void CalcLineParams(CircleDescriptor p1, CircleDescriptor p2);
