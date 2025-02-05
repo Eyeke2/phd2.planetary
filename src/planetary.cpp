@@ -397,49 +397,65 @@ double SolarSystemObject::ComputeSobelSharpness(const Mat& img)
     return sharpness;
 }
 
-// Calculate focus metrics around the updated tracked position
-double SolarSystemObject::CalcSharpness(Mat& FullFrame, Point2f& clickedPoint, bool detectionResult)
+// Set sub-region for calculating object metrics
+void SolarSystemObject::SetMetricsRegion(Mat& FullFrame, Point2f& clickedPoint, bool detectionResult)
 {
-    double scaleFactor;
-    cv::Scalar meanSignal;
-    Mat focusRoi;
-    int focusX;
-    int focusY;
+    int x, y;
 
     if (detectionResult)
     {
-        focusX = m_center_x;
-        focusY = m_center_y;
+        // Use the tracked position if it's valid
+        x = m_center_x;
+        y = m_center_y;
     }
     else if (norm(clickedPoint))
     {
-        focusX = clickedPoint.x;
-        focusY = clickedPoint.y;
+        // Use the clicked point if it's valid
+        x = clickedPoint.x;
+        y = clickedPoint.y;
     }
     else
     {
-        // Compute scaling factor to normalize the signal
-        meanSignal = cv::mean(FullFrame);
-        scaleFactor = meanSignal[0] ? (65536.0 / 256) / meanSignal[0] : 1.0;
-
-        // For failed auto selected star use entire frame for sharpness calculation
-        FullFrame.convertTo(focusRoi, CV_32F, scaleFactor);
-        return ComputeSobelSharpness(focusRoi);
+        // Use entire frame if no valid point
+        m_metricsRoi = FullFrame;
+        return;
     }
 
-    const int focusSize = (GetPlanetDetectMode() == DETECTION_MODE_SURFACE) ? 200 : m_paramMaxRadius * 3 / 2.0;
-    focusX = wxMax(0, focusX - focusSize / 2);
-    focusX = wxMax(0, wxMin(focusX, m_frameWidth - focusSize));
-    focusY = wxMax(0, focusY - focusSize / 2);
-    focusY = wxMax(0, wxMin(focusY, m_frameHeight - focusSize));
-    Rect focusSubFrame = Rect(focusX, focusY, focusSize, focusSize);
-    focusRoi = FullFrame(focusSubFrame);
+    const int diameter = (GetPlanetDetectMode() == DETECTION_MODE_SURFACE) ? 256 : (m_paramMaxRadius * 2.5);
+    const int radius = diameter / 2;
+    int start_x = wxMax(x - radius, 0);
+    int end_x   = wxMin(x + radius, m_frameWidth - 1);
+    int start_y = wxMax(y - radius, 0);
+    int end_y   = wxMin(y + radius, m_frameHeight - 1);
 
-    meanSignal = cv::mean(focusRoi);
-    scaleFactor = meanSignal[0] ? (65536.0 / 256) / meanSignal[0] : 1.0;
+    // Adjust clipped roi to max possible size
+    if (end_x - start_x < diameter)
+    {
+        if (end_x == m_frameWidth - 1)
+            start_x = wxMax(end_x - diameter, 0);
+        else
+            end_x = wxMin(start_x + diameter, m_frameWidth - 1);
+    }
+    if (end_y - start_y < diameter)
+    {
+        if (end_y == m_frameHeight - 1)
+            start_y = wxMax(end_y - diameter, 0);
+        else
+            end_y = wxMin(start_y + diameter, m_frameHeight);
+    }
+    cv::Rect roi(start_x, start_y, end_x - start_x, end_y - start_y);
+    m_metricsRoi = FullFrame(roi);
+}
 
-    focusRoi.convertTo(focusRoi, CV_32F, scaleFactor);
-    return ComputeSobelSharpness(focusRoi);
+// Calculate focus metrics around the updated tracked position
+double SolarSystemObject::CalcSharpness(Mat& FullFrame)
+{
+    cv::Mat normalized;
+    cv::Scalar meanSignal = cv::mean(m_metricsRoi);
+    double meanValue = meanSignal[0];
+    double scaleFactor = meanValue ? 256.0 / meanValue : 1.0;
+    m_metricsRoi.convertTo(normalized, CV_32F, scaleFactor);
+    return ComputeSobelSharpness(normalized);
 }
 
 // Get current detection status
@@ -2037,10 +2053,13 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
             break;
         }
 
+        // Set sub-region for metrics calculation
+        SetMetricsRegion(FullFrame, clickedPoint, detectionResult);
+
         // Calculate sharpness of the image
         if (m_measuringSharpnessMode)
         {
-            m_focusSharpness = CalcSharpness(FullFrame, clickedPoint, detectionResult);
+            m_focusSharpness = CalcSharpness(FullFrame);
             Debug.Write(wxString::Format("Find solar system object: sharpness=%.1f\n", m_focusSharpness));
         }
 

@@ -86,6 +86,7 @@ private:
     wxMutex m_syncLock;
     cv::Point2f m_prevClickedPoint;
 
+    cv::Mat m_metricsRoi;
     std::vector<cv::Point2f> m_diskContour;
     int m_centoid_x;
     int m_centoid_y;
@@ -294,8 +295,9 @@ private:
 
 private:
     void SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool roiActive, int bppFactor);
+    void SetMetricsRegion(cv::Mat& FullFrame, cv::Point2f& clickedPoint, bool detectionResult);
     double ComputeSobelSharpness(const cv::Mat& img);
-    double CalcSharpness(cv::Mat& FullFrame, cv::Point2f& clickedPoint, bool detectionResult);
+    double CalcSharpness(cv::Mat& FullFrame);
     void CalcLineParams(CircleDescriptor p1, CircleDescriptor p2);
     int RefineDiskCenter(float& bestScore, CircleDescriptor& diskCenter, std::vector<cv::Point2f>& diskContour, int minRadius,
                          int maxRadius, float searchRadius, float resolution = 1.0);
