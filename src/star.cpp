@@ -225,50 +225,6 @@ double Star::CalcPlanetMetrics(const usImage *pImg, int center_x, int center_y, 
     return snr;
 }
 
-// A method for measuring SNR within the ROI
-double Star::CalcSurfaceMetrics(const usImage *pImg, int start_x, int end_x, int start_y, int end_y)
-{
-    const unsigned short *imgdata = pImg->ImageData;
-    const int rowsize = pImg->Size.GetWidth();
-
-    cv::Mat image;
-    cv::Mat FullFrame(pImg->Size.GetHeight(), pImg->Size.GetWidth(), CV_16UC1, pImg->ImageData);
-    cv::Rect roi(start_x, start_y, end_x - start_x + 1, end_y - start_y + 1);
-    cv::Mat subFrame = FullFrame(roi);
-
-    // Find the peak value within the given region of interest (subframe)
-    double minVal, maxVal;
-    cv::minMaxLoc(subFrame, &minVal, &maxVal);
-    PeakVal = round(maxVal);
-
-    // Enhance separation of noise from signal, keep refined noise in 'image'
-    subFrame.convertTo(image, CV_32F, 1.0);
-    cv::Scalar meanSignal;
-    for (int iter = 0; iter < 3; iter++)
-    {
-        cv::Mat blurredImage;
-        cv::GaussianBlur(image, blurredImage, cv::Size(3, 3), 1.25);
-        cv::subtract(image, blurredImage, image);
-        if (iter == 0)
-        {
-            // Calculate the mean of the blurred (signal) image
-            meanSignal = cv::mean(blurredImage);
-        }
-    }
-
-    // Calculate the standard deviation of the noise
-    cv::Scalar meanNoise, stdDevNoise;
-    cv::meanStdDev(image, meanNoise, stdDevNoise);
-
-    // Calculate SNR
-    Mass = meanSignal[0];
-    double snr = (stdDevNoise[0] > 0.5) ? (meanSignal[0] - pImg->FiltMin) / stdDevNoise[0] : 0.0;
-    Debug.Write(
-        wxString::Format("Star::CalcSurfaceMetrics: Mass=%.1f, stdDevNoise=%.1f, SNR=%.1f\n", Mass, stdDevNoise[0], snr));
-
-    return snr;
-}
-
 bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double base_y, FindMode mode, double minHFD,
                 double maxHFD, unsigned short maxADU, StarFindLogType loggingControl, bool autoFound)
 {
@@ -328,28 +284,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
 
             if (planet->GetPlanetDetectMode() == SolarSystemObject::DETECTION_MODE_SURFACE)
             {
-                start_x = wxMax(newX - searchRegion, 0);
-                end_x = wxMin(newX + searchRegion, maxx);
-                start_y = wxMax(newY - searchRegion, 0);
-                end_y = wxMin(newY + searchRegion, maxy);
-
-                // Adjust roi if it gets clipped
-                if (end_x - start_x < searchRegion * 2)
-                {
-                    if (end_x == maxx)
-                        start_x = wxMax(end_x - searchRegion * 2, 0);
-                    else
-                        end_x = wxMin(start_x + searchRegion * 2, maxx);
-                }
-                if (end_y - start_y < searchRegion * 2)
-                {
-                    if (end_y == maxy)
-                        start_y = wxMax(end_y - searchRegion * 2, 0);
-                    else
-                        end_y = wxMin(start_y + searchRegion * 2, maxy);
-                }
-
-                SNR = CalcSurfaceMetrics(pImg, start_x, end_x, start_y, end_y);
+                planet->GetPlanetMetrics(SNR, Mass, PeakVal);
             }
             else
             {

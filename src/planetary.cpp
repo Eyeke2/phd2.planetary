@@ -458,6 +458,51 @@ double SolarSystemObject::CalcSharpness(Mat& FullFrame)
     return ComputeSobelSharpness(normalized);
 }
 
+// Measure image metrics within previously computed sub-region
+void SolarSystemObject::CalcSurfaceMetrics(const usImage *pImg)
+{
+    // Find the peak value within the given region of interest (subframe)
+    double minVal, maxVal;
+    cv::minMaxLoc(m_metricsRoi, &minVal, &maxVal);
+    m_peak = round(maxVal);
+
+    // Enhance separation of noise from signal, keep refined noise in 'image'
+    cv::Mat image;
+    m_metricsRoi.convertTo(image, CV_32F, 1.0);
+    cv::Scalar meanSignal;
+    for (int iter = 0; iter < 3; iter++)
+    {
+        cv::Mat blurredImage;
+        cv::GaussianBlur(image, blurredImage, cv::Size(3, 3), 1.25);
+        cv::subtract(image, blurredImage, image);
+        if (iter == 0)
+        {
+            // Calculate the mean of the blurred (signal) image
+            meanSignal = cv::mean(blurredImage);
+        }
+    }
+
+    // Calculate the standard deviation of the noise
+    cv::Scalar meanNoise, stdDevNoise;
+    cv::meanStdDev(image, meanNoise, stdDevNoise);
+
+    // Calculate SNR
+    m_mass = meanSignal[0];
+    double meanValue = meanSignal[0];
+    double localMin = wxMax(minVal, pImg->FiltMin);
+    m_noiseVariance = stdDevNoise[0];
+    m_snr = (m_noiseVariance > 0.5) ? (meanValue - localMin) / m_noiseVariance : 0.0;
+    Debug.Write(wxString::Format("CalcSurfaceMetrics: Mass=%.1f, stdDevNoise=%.1f, SNR=%.1f\n", m_mass, m_noiseVariance, m_snr));
+}
+
+// Get planetary metrics
+void SolarSystemObject::GetPlanetMetrics(double& snr, double& mass, unsigned short& peak)
+{
+    snr = m_snr;
+    mass = m_mass;
+    peak = m_peak;
+}
+
 // Get current detection status
 void SolarSystemObject::GetDetectionStatus(wxString& statusMsg)
 {
@@ -2055,6 +2100,16 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
 
         // Set sub-region for metrics calculation
         SetMetricsRegion(FullFrame, clickedPoint, detectionResult);
+
+        // Compute image data metrics (snr, peak and mass)
+        switch (GetPlanetDetectMode())
+        {
+        case DETECTION_MODE_SURFACE:
+            CalcSurfaceMetrics(pImage);
+            break;
+        case DETECTION_MODE_DISK:
+            break;
+        }
 
         // Calculate sharpness of the image
         if (m_measuringSharpnessMode)

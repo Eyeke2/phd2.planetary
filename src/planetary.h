@@ -87,6 +87,11 @@ private:
     cv::Point2f m_prevClickedPoint;
 
     cv::Mat m_metricsRoi;
+    int m_peak;
+    double m_snr;
+    double m_mass;
+    double m_noiseVariance;
+
     std::vector<cv::Point2f> m_diskContour;
     int m_centoid_x;
     int m_centoid_y;
@@ -198,6 +203,7 @@ public:
     void ZoomStarProfile(int rotation);
     void ToggleSharpness();
     void GetDetectionStatus(wxString& statusMsg);
+    void GetPlanetMetrics(double& snr, double& mass, unsigned short& peak);
     void NotifyCameraConnect(bool connected);
     bool UpdateCaptureState(bool CaptureActive);
     void SaveCameraSimulationMove(double rx, double ry);
@@ -296,6 +302,7 @@ private:
 private:
     void SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool roiActive, int bppFactor);
     void SetMetricsRegion(cv::Mat& FullFrame, cv::Point2f& clickedPoint, bool detectionResult);
+    void CalcSurfaceMetrics(const usImage *pImg);
     double ComputeSobelSharpness(const cv::Mat& img);
     double CalcSharpness(cv::Mat& FullFrame);
     void CalcLineParams(CircleDescriptor p1, CircleDescriptor p2);
