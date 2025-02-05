@@ -225,34 +225,24 @@ double Star::CalcPlanetMetrics(const usImage *pImg, int center_x, int center_y, 
     return snr;
 }
 
-// A method to determine the SNR of entire image
+// A method for measuring SNR within the ROI
 double Star::CalcSurfaceMetrics(const usImage *pImg, int start_x, int end_x, int start_y, int end_y)
 {
     const unsigned short *imgdata = pImg->ImageData;
     const int rowsize = pImg->Size.GetWidth();
 
-    // Find the peak value within the given region of interest (subframe)
-    int peak_val = 0;
-    for (int y = start_y; y <= end_y; y++)
-    {
-        for (int x = start_x; x <= end_x; x++)
-        {
-            unsigned short val = imgdata[y * rowsize + x];
-            if (val > peak_val)
-            {
-                peak_val = val;
-            }
-        }
-    }
-    PeakVal = peak_val;
-
     cv::Mat image;
     cv::Mat FullFrame(pImg->Size.GetHeight(), pImg->Size.GetWidth(), CV_16UC1, pImg->ImageData);
     cv::Rect roi(start_x, start_y, end_x - start_x + 1, end_y - start_y + 1);
     cv::Mat subFrame = FullFrame(roi);
-    subFrame.convertTo(image, CV_32F, 1.0);
+
+    // Find the peak value within the given region of interest (subframe)
+    double minVal, maxVal;
+    cv::minMaxLoc(subFrame, &minVal, &maxVal);
+    PeakVal = round(maxVal);
 
     // Enhance separation of noise from signal, keep refined noise in 'image'
+    subFrame.convertTo(image, CV_32F, 1.0);
     cv::Scalar meanSignal;
     for (int iter = 0; iter < 3; iter++)
     {
