@@ -285,7 +285,8 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
 
         int minx, miny, maxx, maxy;
 
-        if (pImg->Subframe.IsEmpty())
+        // Planetary mode doesn't use subframes
+        if (pImg->Subframe.IsEmpty() || (mode == FIND_PLANET))
         {
             minx = miny = 0;
             maxx = pImg->Size.GetWidth() - 1;
@@ -301,17 +302,64 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
 
         // search region bounds
         int start_x, end_x, start_y, end_y;
-        if (mode != FIND_PLANET)
-        {
-            start_x = wxMax(base_x - searchRegion, minx);
-            end_x = wxMin(base_x + searchRegion, maxx);
-            start_y = wxMax(base_y - searchRegion, miny);
-            end_y = wxMin(base_y + searchRegion, maxy);
+        start_x = wxMax(base_x - searchRegion, minx);
+        end_x = wxMin(base_x + searchRegion, maxx);
+        start_y = wxMax(base_y - searchRegion, miny);
+        end_y = wxMin(base_y + searchRegion, maxy);
 
-            if (end_x <= start_x || end_y <= start_y)
+        if (end_x <= start_x || end_y <= start_y)
+        {
+            throw ERROR_INFO("coordinates are invalid");
+        }
+
+        if (mode == FIND_PLANET)
+        {
+            SolarSystemObject *planet = &pFrame->pGuider->m_SolarSystemObject;
+            if (!autoFound && !planet->FindSolarSystemObject(pImg))
             {
-                throw ERROR_INFO("coordinates are invalid");
+                Result = STAR_ERROR;
+                goto done;
             }
+
+            // Use detected center of the Sun, Moon or planet for guiding
+            searchRegion = planet->m_searchRegion;
+            newX = planet->m_center_x;
+            newY = planet->m_center_y;
+
+            if (planet->GetPlanetDetectMode() == SolarSystemObject::DETECTION_MODE_SURFACE)
+            {
+                start_x = wxMax(newX - searchRegion, 0);
+                end_x = wxMin(newX + searchRegion, maxx);
+                start_y = wxMax(newY - searchRegion, 0);
+                end_y = wxMin(newY + searchRegion, maxy);
+
+                // Adjust roi if it gets clipped
+                if (end_x - start_x < searchRegion * 2)
+                {
+                    if (end_x == maxx)
+                        start_x = wxMax(end_x - searchRegion * 2, 0);
+                    else
+                        end_x = wxMin(start_x + searchRegion * 2, maxx);
+                }
+                if (end_y - start_y < searchRegion * 2)
+                {
+                    if (end_y == maxy)
+                        start_y = wxMax(end_y - searchRegion * 2, 0);
+                    else
+                        end_y = wxMin(start_y + searchRegion * 2, maxy);
+                }
+
+                SNR = CalcSurfaceMetrics(pImg, start_x, end_x, start_y, end_y);
+            }
+            else
+            {
+                SNR = CalcPlanetMetrics(pImg, newX, newY, searchRegion, 15);
+            }
+
+            EvtServer.NotifyPlanetMetrics(SNR, Mass, PeakVal);
+
+            HFD = planet->GetHFD();
+            goto done;
         }
 
         const unsigned short *imgdata = pImg->ImageData;
@@ -374,55 +422,6 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
 
             PeakVal = max3[0]; // raw peak val
             peak_val /= 16; // smoothed peak value
-        }
-        else // FIND_PLANET
-        {
-            SolarSystemObject *planet = &pFrame->pGuider->m_SolarSystemObject;
-            if (!autoFound && !planet->FindSolarSystemObject(pImg))
-            {
-                Result = STAR_ERROR;
-                goto done;
-            }
-
-            // Use detected center of the Sun, Moon or planet for guiding
-            searchRegion = planet->m_searchRegion;
-            newX = planet->m_center_x;
-            newY = planet->m_center_y;
-
-            if (planet->GetPlanetDetectMode() == SolarSystemObject::DETECTION_MODE_SURFACE)
-            {
-                start_x = wxMax(newX - searchRegion, minx);
-                end_x = wxMin(newX + searchRegion, maxx);
-                start_y = wxMax(newY - searchRegion, miny);
-                end_y = wxMin(newY + searchRegion, maxy);
-
-                // Adjust roi if it gets clipped
-                if (end_x - start_x < searchRegion * 2)
-                {
-                    if (end_x == maxx)
-                        start_x = wxMax(end_x - searchRegion * 2, minx);
-                    else
-                        end_x = wxMin(start_x + searchRegion * 2, maxx);
-                }
-                if (end_y - start_y < searchRegion * 2)
-                {
-                    if (end_y == maxy)
-                        start_y = wxMax(end_y - searchRegion * 2, miny);
-                    else
-                        end_y = wxMin(start_y + searchRegion * 2, maxy);
-                }
-
-                SNR = CalcSurfaceMetrics(pImg, start_x, end_x, start_y, end_y);
-            }
-            else
-            {
-                SNR = CalcPlanetMetrics(pImg, newX, newY, searchRegion, 15);
-            }
-
-            EvtServer.NotifyPlanetMetrics(SNR, Mass, PeakVal);
-
-            HFD = planet->GetHFD();
-            goto done;
         }
 
         // measure noise in the annulus with inner radius A and outer radius B
