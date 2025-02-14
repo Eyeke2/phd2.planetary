@@ -203,7 +203,7 @@ public:
     void ZoomStarProfile(int rotation);
     void ToggleSharpness();
     void GetDetectionStatus(wxString& statusMsg);
-    void GetPlanetMetrics(double& snr, double& mass, unsigned short& peak);
+    void GetPlanetMetrics(double& snr, double& mass, double& hfd, unsigned short& peak);
     void NotifyCameraConnect(bool connected);
     bool UpdateCaptureState(bool CaptureActive);
     void SaveCameraSimulationMove(double rx, double ry);
@@ -305,7 +305,7 @@ private:
     void CalcSurfaceMetrics(const usImage *pImg);
     void CalcPlanetMetrics(const usImage *pImg, int annulusWidth);
     double ComputeSobelSharpness(const cv::Mat& img);
-    double CalcSharpness(cv::Mat& FullFrame);
+    double CalcSharpness();
     void CalcLineParams(CircleDescriptor p1, CircleDescriptor p2);
     int RefineDiskCenter(float& bestScore, CircleDescriptor& diskCenter, std::vector<cv::Point2f>& diskContour, int minRadius,
                          int maxRadius, float searchRadius, float resolution = 1.0);

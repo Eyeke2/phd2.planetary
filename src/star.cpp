@@ -169,22 +169,21 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
         if (mode == FIND_PLANET)
         {
             SolarSystemObject *planet = &pFrame->pGuider->m_SolarSystemObject;
-            if (!autoFound && !planet->FindSolarSystemObject(pImg))
+            bool found = autoFound || planet->FindSolarSystemObject(pImg);
+            if (found)
+            {
+                // Use detected center of the Sun, Moon or planet for guiding
+                newX = planet->m_center_x;
+                newY = planet->m_center_y;
+
+                // Collect metrics computed by FindSolarSystemObject()
+                planet->GetPlanetMetrics(SNR, Mass, HFD, PeakVal);
+                EvtServer.NotifyPlanetMetrics(SNR, Mass, PeakVal);
+            }
+            else
             {
                 Result = STAR_ERROR;
-                goto done;
             }
-
-            // Use detected center of the Sun, Moon or planet for guiding
-            searchRegion = planet->m_searchRegion;
-            newX = planet->m_center_x;
-            newY = planet->m_center_y;
-
-            // Metrics is computed by FindSolarSystemObject()
-            planet->GetPlanetMetrics(SNR, Mass, PeakVal);
-            EvtServer.NotifyPlanetMetrics(SNR, Mass, PeakVal);
-
-            HFD = planet->GetHFD();
             goto done;
         }
 

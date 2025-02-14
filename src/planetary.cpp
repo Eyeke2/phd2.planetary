@@ -174,11 +174,7 @@ SolarSystemObject::SolarSystemObject()
 
     // Remove the alert dialog setting for pausing solar/planetary detection
     pConfig->Global.DeleteEntry(PausePlanetDetectionAlertEnabledKey());
-
-    // Initialize non-free OpenCV components
-    // Note: this may cause a small and limited memory leak.
     bool nonfreeInit = initModule_nonfree();
-    Debug.Write(wxString::Format("OpenCV nonfree module initialization status: %d\n", nonfreeInit));
     assert(nonfreeInit);
 }
 
@@ -381,22 +377,6 @@ void SolarSystemObject::ToggleSharpness()
     }
 }
 
-// The Sobel operator can be used to detect edges in an image, which are more pronounced in
-// focused images. You can apply the Sobel operator to the image and calculate the sum or mean
-// of the absolute values of the gradients.
-double SolarSystemObject::ComputeSobelSharpness(const Mat& img)
-{
-    Mat grad_x, grad_y;
-    Sobel(img, grad_x, CV_32F, 1, 0);
-    Sobel(img, grad_y, CV_32F, 0, 1);
-
-    Mat grad;
-    magnitude(grad_x, grad_y, grad);
-
-    double sharpness = cv::mean(grad)[0];
-    return sharpness;
-}
-
 // Set sub-region for calculating object metrics
 void SolarSystemObject::SetMetricsRegion(Mat& FullFrame, Point2f& clickedPoint, bool detectionResult)
 {
@@ -447,8 +427,21 @@ void SolarSystemObject::SetMetricsRegion(Mat& FullFrame, Point2f& clickedPoint, 
     m_metricsRoi = FullFrame(roi);
 }
 
+// The Sobel operator can be used to detect edges in an image, which are more pronounced in
+// focused images. You can apply the Sobel operator to the image and calculate the sum or mean
+// of the absolute values of the gradients.
+double SolarSystemObject::ComputeSobelSharpness(const Mat& img)
+{
+    Mat grad_x, grad_y, grad;
+    Sobel(img, grad_x, CV_32F, 1, 0);
+    Sobel(img, grad_y, CV_32F, 0, 1);
+    magnitude(grad_x, grad_y, grad);
+    double sharpness = cv::mean(grad)[0];
+    return sharpness;
+}
+
 // Calculate focus metrics around the updated tracked position
-double SolarSystemObject::CalcSharpness(Mat& FullFrame)
+double SolarSystemObject::CalcSharpness()
 {
     cv::Mat normalized;
     cv::Scalar meanSignal = cv::mean(m_metricsRoi);
@@ -516,8 +509,6 @@ void SolarSystemObject::CalcPlanetMetrics(const usImage *pImg, int annulusWidth)
     const int rowsize = pImg->Size.GetWidth();
 
     // Calculate the statistics within the larger annulus
-    m_snr = 0.0;
-    m_mass = 0;
     double sum = 0.0;
     double sq_sum = 0.0;
     int count = 0;
@@ -584,6 +575,7 @@ void SolarSystemObject::CalcPlanetMetrics(const usImage *pImg, int annulusWidth)
     m_mass = meanSignal;
     meanSignal = (signalCount > 0) ? meanSignal / signalCount : 0.0;
 
+    m_snr = 0.0;
     double noiseStdDev = 0.0;
     if (noiseCount > 0)
     {
@@ -600,10 +592,11 @@ void SolarSystemObject::CalcPlanetMetrics(const usImage *pImg, int annulusWidth)
 }
 
 // Get planetary metrics
-void SolarSystemObject::GetPlanetMetrics(double& snr, double& mass, unsigned short& peak)
+void SolarSystemObject::GetPlanetMetrics(double& snr, double& mass, double& hfd, unsigned short& peak)
 {
     snr = m_snr;
     mass = m_mass;
+    hfd = GetHFD();
     peak = m_peak;
 }
 
@@ -2222,7 +2215,7 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
         // Calculate sharpness of the image regardless of detection
         if (m_measuringSharpnessMode)
         {
-            m_focusSharpness = CalcSharpness(FullFrame);
+            m_focusSharpness = CalcSharpness();
             Debug.Write(wxString::Format("Find solar system object: sharpness=%.1f\n", m_focusSharpness));
         }
 
