@@ -88,6 +88,7 @@ private:
 
     cv::Mat m_metricsRoi;
     int m_peak;
+    double m_snrThreshold;
     double m_snr;
     double m_mass;
     double m_noiseStdDev;

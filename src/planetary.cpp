@@ -443,48 +443,74 @@ double SolarSystemObject::ComputeSobelSharpness(const Mat& img)
 // Calculate focus metrics around the updated tracked position
 double SolarSystemObject::CalcSharpness()
 {
+    cv::Mat filtered;
     cv::Mat normalized;
-    cv::Scalar meanSignal = cv::mean(m_metricsRoi);
+    GaussianBlur(m_metricsRoi, filtered, cv::Size(3, 3), 1.5);
+
+    cv::Scalar meanSignal = cv::mean(filtered);
     double meanValue = meanSignal[0];
+
+    // Normalize by signal mean value
     double scaleFactor = meanValue ? 256.0 / meanValue : 1.0;
-    m_metricsRoi.convertTo(normalized, CV_32F, scaleFactor);
-    return ComputeSobelSharpness(normalized);
+    filtered.convertTo(normalized, CV_32F, scaleFactor);
+    double sharpness = ComputeSobelSharpness(normalized);
+
+    // Scale by a weight factor to account for low SNR
+    if (m_snrThreshold < 1.0)
+        m_snrThreshold = 50.0;
+    double snrWeight = m_snr < m_snrThreshold ? m_snr / m_snrThreshold : 1.0;
+    return sharpness * snrWeight;
+}
+
+// Helper function to compute the median of a single-channel floating point image
+static double computeMedian(cv::Mat channel)
+{
+    std::vector<float> vec;
+    vec.assign((float *) channel.datastart, (float *) channel.dataend);
+    size_t n = vec.size() / 2;
+    std::nth_element(vec.begin(), vec.begin() + n, vec.end());
+    double median = vec[n];
+    return median;
+}
+
+// Compute noise estimation : sigma = sqrt(variance)
+static double estimateNoiseStd(const cv::Mat& image, double& meanValue)
+{
+    cv::Mat imgFloat;
+    if (image.type() != CV_32F)
+        image.convertTo(imgFloat, CV_32F);
+    else
+        imgFloat = image;
+
+    cv::Mat lap;
+    cv::Laplacian(imgFloat, lap, CV_32F);
+    cv::Mat absLap = cv::abs(lap);
+
+    double med = computeMedian(absLap);
+    double noiseStd = med / 0.6745;
+
+    cv::Scalar meanSignal = cv::mean(imgFloat);
+    meanValue = meanSignal[0];
+
+    return noiseStd;
 }
 
 // Measure image metrics within previously computed sub-region
 void SolarSystemObject::CalcSurfaceMetrics(const usImage *pImg)
 {
     // Find the peak value within the given region of interest (subframe)
-    double minVal, maxVal;
+    double minVal, maxVal, meanValue;
     cv::minMaxLoc(m_metricsRoi, &minVal, &maxVal);
     m_peak = round(maxVal);
 
-    // Enhance separation of noise from signal, keep refined noise in 'image'
-    cv::Mat image;
-    m_metricsRoi.convertTo(image, CV_32F, 1.0);
-    cv::Scalar meanSignal;
-    for (int iter = 0; iter < 3; iter++)
-    {
-        cv::Mat blurredImage;
-        cv::GaussianBlur(image, blurredImage, cv::Size(3, 3), 1.25);
-        cv::subtract(image, blurredImage, image);
-        if (iter == 0)
-        {
-            // Calculate the mean of the blurred (signal) image
-            meanSignal = cv::mean(blurredImage);
-        }
-    }
+    // Estimate standard noise deviation based on MAD (median absolute deviation)
+    double sigma = estimateNoiseStd(m_metricsRoi, meanValue);
+    m_noiseStdDev = sigma;
 
-    // Calculate the standard deviation of the noise
-    cv::Scalar meanNoise, stdDevNoise;
-    cv::meanStdDev(image, meanNoise, stdDevNoise);
-
-    // Calculate SNR
-    m_mass = meanSignal[0];
-    double meanValue = meanSignal[0];
     double localMin = wxMax(minVal, pImg->FiltMin);
-    m_noiseStdDev = stdDevNoise[0];
+    m_mass = meanValue;
     m_snr = (m_noiseStdDev > 0.5) ? (meanValue - localMin) / m_noiseStdDev : 0.0;
+    m_snrThreshold = 20.0;
     Debug.Write(wxString::Format("CalcSurfaceMetrics: Mass=%.1f, stdDevNoise=%.1f, SNR=%.1f\n", m_mass, m_noiseStdDev, m_snr));
 }
 
@@ -576,19 +602,24 @@ void SolarSystemObject::CalcPlanetMetrics(const usImage *pImg, int annulusWidth)
     meanSignal = (signalCount > 0) ? meanSignal / signalCount : 0.0;
 
     m_snr = 0.0;
-    double noiseStdDev = 0.0;
+    m_noiseStdDev = 0.0;
     if (noiseCount > 0)
     {
         meanNoise /= noiseCount;
         noiseVariance = noiseVariance / noiseCount - meanNoise * meanNoise;
-        noiseStdDev = sqrt(noiseVariance);
-        m_snr = (noiseStdDev > 1) ? (meanSignal - meanNoise) / noiseStdDev : 0.0;
+        m_noiseStdDev = sqrt(noiseVariance);
+    }
+    if (m_noiseStdDev > 1)
+    {
+        double snr = (meanSignal - meanNoise) / m_noiseStdDev;
+        m_snr = 20 * log10(snr);
     }
 
     m_peak = peak_val;
+    m_snrThreshold = 50.0;
     Debug.Write(wxString::Format(
         "CalcPlanetMetrics: signalThreshold=%d, meanSignal=%.1f, meanNoise=%.1f (stddev=%.1f), SNR=%.1f\n",
-        signalThreshold, meanSignal, meanNoise, noiseStdDev, m_snr));
+        signalThreshold, meanSignal, meanNoise, m_noiseStdDev, m_snr));
 }
 
 // Get planetary metrics
