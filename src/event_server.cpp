@@ -1985,7 +1985,8 @@ static void set_pixel_size(JObj& response, const json_value *params)
         response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected pixel size param");
         return;
     }
-    pCamera->SetCameraPixelSize(pixelSize);
+    if (pCamera)
+        pCamera->SetCameraPixelSize(pixelSize);
     response << jrpc_result(0);
 }
 
@@ -2033,7 +2034,8 @@ static void set_guide_frame(JObj& response, const json_value *params)
         response << jrpc_error(1, "expected path string");
         return;
     }
-    pFrame->SetGuideFramePath(path->string_value, true);
+    if (pCamera)
+        pCamera->SetProperty("path_broadcast", path->string_value);
 }
 
 static void get_cal_settings(JObj& response, const json_value *params)
@@ -2294,8 +2296,8 @@ static void set_iflink(JObj& response, const json_value *params)
         response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected port number");
         return;
     }
-    int port = val->int_value;
-    pFrame->SetIFLink(port);
+    if (pCamera)
+        pCamera->SetProperty("port", val->int_value);
     response << jrpc_result(0);
 }
 
@@ -2308,7 +2310,8 @@ static void set_iflink_cam(JObj& response, const json_value *params)
         response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected name");
         return;
     }
-    pFrame->SetIFLinkCam(val->string_value);
+    if (pCamera)
+        pCamera->SetProperty("name", val->string_value);
     response << jrpc_result(0);
 }
 

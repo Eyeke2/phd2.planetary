@@ -51,9 +51,19 @@ public:
     bool HasNonGuiCapture() override { return true; }
     wxByte BitsPerPixel() override;
     void InitCapture() override;
+    void SetProperty(const wxString prop, wxString value) override;
+    void SetProperty(const wxString prop, int value) override;
+    wxString GetStrProperty(const wxString prop, int timeout = 0) override;
     const wxSize& DarkFrameSize() override { return UNDEFINED_FRAME_SIZE; }
 
 private:
+    wxMutex m_lock;
+    wxCondition m_sync;
+    bool m_ready;
+    wxString m_path;
+    wxString m_physName;
+    uint16_t m_imgPort;
+
     wxString m_cameraConnectAlertMsg;
     wxSize m_frameSize;
     wxString m_lastKnownGoodFilename;

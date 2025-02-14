@@ -177,9 +177,11 @@ void ImageFrameClientHandler::ProcessImage()
 {
     imgServer->AddImageFrame(hdr.height, hdr.width, hdr.pixelSize, imgBuffer);
     wxDateTime now = wxDateTime::UNow();
-    wxString ts = IMAGE_LINK_ID + pFrame->GetFrameMonitorPhysName() + _(": ");
+    wxString cameraName = pCamera ? pCamera->GetStrProperty("name") : wxEmptyString;
+    wxString ts = IMAGE_LINK_ID + cameraName + _(": ");
     ts += now.Format(wxT("%H:%M:%S")) + wxString::Format(".%02d", now.GetMillisecond() / 10);
-    pFrame->SetGuideFramePath(ts, true);
+    if (pCamera)
+        pCamera->SetProperty("path_broadcast", ts);
 }
 
 void ImageFrameClientHandler::SetSocketOptions()
@@ -470,7 +472,7 @@ wxThread::ExitCode ImageServerThread::Entry()
 
 wxString GetFrameMonitorLabel()
 {
-    wxString framePath = pFrame->GetGuideFramePath();
+    wxString framePath = pCamera ? pCamera->GetStrProperty("path") : wxEmptyString;
     if (framePath.StartsWith(IMAGE_LINK_ID))
     {
         return framePath.Mid(strlen(IMAGE_LINK_ID));
@@ -484,7 +486,7 @@ wxString GetFrameMonitorLabel()
 
 // ======================================================================
 
-CameraFrameMonitor::CameraFrameMonitor() : m_serverCond(m_serverMutex), m_useCount(0)
+CameraFrameMonitor::CameraFrameMonitor() : m_serverCond(m_serverMutex), m_useCount(0), m_sync(m_lock)
 {
     Connected = false;
     Name = FRAME_MONITOR_CAMERA;
@@ -495,6 +497,11 @@ CameraFrameMonitor::CameraFrameMonitor() : m_serverCond(m_serverMutex), m_useCou
     m_hasGuideOutput = false;
     m_imageServer = nullptr;
     m_lastKnownImage = cv::Mat::zeros(m_frameSize.y, m_frameSize.x, CV_16UC1);
+
+    m_imgPort = 0;
+    m_ready = false;
+    m_path = wxEmptyString;
+    m_physName = wxEmptyString;
 }
 
 CameraFrameMonitor::~CameraFrameMonitor(void)
@@ -543,7 +550,7 @@ wxByte CameraFrameMonitor::BitsPerPixel()
 
 void CameraFrameMonitor::StartImageServer()
 {
-    uint16_t imgPort = pFrame->GetGuideFramePort();
+    uint16_t imgPort = m_imgPort;
     if (imgPort == 0)
         return;
 
@@ -576,7 +583,7 @@ void CameraFrameMonitor::InitCapture()
 bool CameraFrameMonitor::Connect(const wxString& camId)
 {
     bool bError = false;
-    pFrame->SetGuideFramePath(wxEmptyString);
+    SetProperty("path", wxEmptyString);
     Connected = true;
     StartImageServer();
     return bError;
@@ -615,7 +622,7 @@ bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const 
         cv::Mat image;
         bool paused;
         int timeout = pFrame->IsCaptureActive(paused) ? FRAME_MONITOR_TIMEOUT_MS + duration : 0;
-        wxString filename = pFrame->GetGuideFramePath(timeout);
+        wxString filename = GetStrProperty("path", timeout);
         Debug.Write(wxString::Format(FRAME_MONITOR_CAMERA ": latency %d ms (to:%d)\n", swatch.Time(), timeout));
 
         if (filename == wxString("NUL"))
@@ -691,6 +698,69 @@ bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const 
     }
 
     return bError;
+}
+
+void CameraFrameMonitor::SetProperty(const wxString prop, wxString value)
+{
+    if (prop == "path_broadcast")
+    {
+        wxMutexLocker lck(m_lock);
+        m_path = value;
+        m_ready = true;
+        m_sync.Broadcast();
+    }
+    else if (prop == "path")
+    {
+        wxMutexLocker lck(m_lock);
+        m_path = value;
+    }
+    else if (prop == "name")
+    {
+        m_physName = value;
+    }
+}
+
+void CameraFrameMonitor::SetProperty(const wxString prop, int value)
+{
+    if (prop == "port")
+    {
+        m_imgPort = value;
+        if (Connected)
+        {
+            InitCapture();
+            pFrame->ClearAlert();
+        }
+    }
+}
+
+wxString CameraFrameMonitor::GetStrProperty(const wxString prop, int timeout)
+{
+    if (prop == "name")
+        return m_physName;
+    if (prop == "path")
+    {
+        wxStopWatch swatch;
+        bool paused;
+        const int fragTimeout = 100;
+        if (timeout)
+            EvtServer.NotifyStartCapture();
+        wxMutexLocker lck(m_lock);
+        while (!m_ready && timeout > 0 && pFrame->IsCaptureActive(paused))
+        {
+            if (m_sync.WaitTimeout(fragTimeout) == wxCOND_TIMEOUT)
+            {
+                timeout -= fragTimeout;
+                if (swatch.Time() > wxMax(1000, pFrame->GetGuidingPeriod()))
+                {
+                    swatch.Start();
+                    EvtServer.NotifyStartCapture();
+                }
+            }
+        }
+        m_ready = false;
+        return m_path;
+    }
+    return wxEmptyString;
 }
 
 #else

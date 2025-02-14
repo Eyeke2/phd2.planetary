@@ -216,6 +216,10 @@ public:
 
     virtual bool Capture(int duration, usImage& img, int captureOptions, const wxRect& subframe) = 0;
 
+    virtual void SetProperty(const wxString prop, wxString value) {};
+    virtual void SetProperty(const wxString prop, int value) {};
+    virtual wxString GetStrProperty(const wxString prop, int timeout = 0) { return wxEmptyString; }
+
 protected:
     int GetTimeoutMs() const;
     void SetTimeoutMs(int timeoutMs);

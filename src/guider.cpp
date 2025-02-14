@@ -747,7 +747,7 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
 #endif
         else if (pCamera && pCamera->Name == _T("Simulator") && pCamera->Connected)
         {
-            wxFileName fileName(pFrame->GetGuideFramePath());
+            wxFileName fileName(pCamera->GetStrProperty("path"));
             if (fileName != wxEmptyString)
             {
                 dc.SetTextForeground(*wxYELLOW);
