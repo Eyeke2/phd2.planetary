@@ -99,8 +99,8 @@ public:
     bool IsConnected();
     bool IsClientStopping();
     bool IsServerStopping() { return stop_flag; }
-    void AddImageFrame(int height, int width, double pixelSize, char *buf);
-    bool GetImageFrame(cv::Mat& frame, bool flush, double& pixelSize);
+    void AddImageFrame(char *buf, int height, int width, double pixelSize);
+    bool GetImageFrame(cv::Mat& frame, bool flush, frameDesc& desc);
 
 private:
     friend class ImageServerThread;
@@ -121,7 +121,7 @@ private:
 
     wxCriticalSection imgLock;
     cv::Mat imgMat;
-    double imgPixelSize;
+    frameDesc imgDesc;
 
     wxDECLARE_EVENT_TABLE();
 };
@@ -175,7 +175,7 @@ void ImageFrameClientHandler::ResetState()
 
 void ImageFrameClientHandler::ProcessImage()
 {
-    imgServer->AddImageFrame(hdr.height, hdr.width, hdr.pixelSize, imgBuffer);
+    imgServer->AddImageFrame(imgBuffer, hdr.height, hdr.width, hdr.pixelSize);
     wxDateTime now = wxDateTime::UNow();
     wxString cameraName = pCamera ? pCamera->GetStrProperty("name") : wxEmptyString;
     wxString ts = IMAGE_LINK_ID + cameraName + _(": ");
@@ -260,7 +260,7 @@ wxBEGIN_EVENT_TABLE(ImageFrameServer, wxEvtHandler) EVT_SOCKET(FRAME_MONITOR_ID,
 
 ImageFrameServer::ImageFrameServer(unsigned short port)
     : imgPort(port), serverSocket(nullptr), thread(nullptr), stop_flag(false), connected_flag(false), client(nullptr),
-      clientSock(nullptr), clientStopping(false), stopCond(stopMutex), imgPixelSize(GuideCamera::UnknownPixelSize)
+      clientSock(nullptr), clientStopping(false), stopCond(stopMutex)
 {
 }
 
@@ -338,14 +338,14 @@ bool ImageFrameServer::WaitClientStopped(int msecTimeout)
     return clientStopping;
 }
 
-void ImageFrameServer::AddImageFrame(int height, int width, double pixelSize, char *buf)
+void ImageFrameServer::AddImageFrame(char *buf, int height, int width, double pixelSize)
 {
     try
     {
         cv::Mat tmp(height, width, CV_16UC(1), buf);
         wxCriticalSectionLocker locker(imgLock);
         imgMat = tmp.clone();
-        imgPixelSize = pixelSize;
+        imgDesc.pixelSize = pixelSize;
     }
     catch (const cv::Exception& e)
     {
@@ -353,19 +353,19 @@ void ImageFrameServer::AddImageFrame(int height, int width, double pixelSize, ch
     }
 }
 
-bool ImageFrameServer::GetImageFrame(cv::Mat& frame, bool flush, double& pixelSize)
+bool ImageFrameServer::GetImageFrame(cv::Mat& frame, bool flush, frameDesc& desc)
 {
-    pixelSize = GuideCamera::UnknownPixelSize;
     wxCriticalSectionLocker locker(imgLock);
     try
     {
         if (imgMat.empty())
         {
             frame = cv::Mat();
+            desc = frameDesc();
             return false;
         }
         frame = imgMat.clone();
-        pixelSize = imgPixelSize;
+        desc = imgDesc;
         if (flush)
             imgMat = cv::Mat();
         return true;
@@ -374,6 +374,7 @@ bool ImageFrameServer::GetImageFrame(cv::Mat& frame, bool flush, double& pixelSi
     {
         Debug.Write(wxString::Format(FRAME_MONITOR_CAMERA ": exception: %s\n", e.what()));
         frame = cv::Mat();
+        desc = frameDesc();
         return false;
     }
 }
@@ -624,6 +625,7 @@ bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const 
     bool bError = false;
     wxStopWatch swatch;
 
+    m_imgDesc = frameDesc();
     try
     {
         cv::Mat image;
@@ -641,11 +643,11 @@ bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const 
             if (GetServer())
             {
                 connected = m_imageServer->IsConnected();
-                double newPixelSize, oldPixelSize = pCamera ? pCamera->GetCameraPixelSize() : 0;
-                if (m_imageServer->GetImageFrame(image, !paused, newPixelSize))
+                double oldPixelSize = pCamera ? pCamera->GetCameraPixelSize() : 0;
+                if (m_imageServer->GetImageFrame(image, !paused, m_imgDesc))
                 {
-                    if (pCamera && newPixelSize != oldPixelSize && newPixelSize != UnknownPixelSize)
-                        pCamera->SetCameraPixelSize(newPixelSize);
+                    if (pCamera && m_imgDesc.pixelSize != oldPixelSize && m_imgDesc.pixelSize != UnknownPixelSize)
+                        pCamera->SetCameraPixelSize(m_imgDesc.pixelSize);
                 }
                 PutServer();
             }

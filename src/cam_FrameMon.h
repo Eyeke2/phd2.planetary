@@ -35,6 +35,17 @@
 
 #pragma once
 
+struct frameDesc
+{
+public:
+    frameDesc()
+    {
+        pixelSize = GuideCamera::UnknownPixelSize;
+    };
+
+    double pixelSize;
+};
+
 class ImageFrameServer;
 
 class CameraFrameMonitor : public GuideCamera
@@ -68,6 +79,7 @@ private:
     wxSize m_frameSize;
     wxString m_lastKnownGoodFilename;
     cv::Mat m_lastKnownImage;
+    frameDesc m_imgDesc;
 
     wxMutex m_serverMutex;
     wxCondition m_serverCond;
