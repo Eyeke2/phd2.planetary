@@ -194,6 +194,9 @@ void ImageFrameClientHandler::SetSocketOptions()
 
 void ImageFrameClientHandler::ReadFrame()
 {
+    char *header = reinterpret_cast<char *>(&hdr);
+    int headerSize = sizeof(hdr);
+    char temp[1024];
     do
     {
         if (imgServer->IsServerStopping() || imgServer->IsClientStopping())
@@ -201,12 +204,16 @@ void ImageFrameClientHandler::ReadFrame()
 
         if (!headerReceived)
         {
-            char *header = reinterpret_cast<char *>(&hdr);
-            imgSock->Read(header + bytesReceived, sizeof(hdr) - bytesReceived);
+            imgSock->Read(header + bytesReceived, headerSize - bytesReceived);
             bytesReceived += imgSock->LastReadCount();
 
             if (bytesReceived < sizeof(hdr))
                 continue;
+            if (hdr.hdrLength < 1024)
+            {
+                headerSize = hdr.hdrLength;
+                header = temp;
+            }
             if (bytesReceived < hdr.hdrLength)
                 continue;
 
