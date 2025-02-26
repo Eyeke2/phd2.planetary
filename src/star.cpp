@@ -137,10 +137,31 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
                                          searchRegion, base_x, base_y, mode, pImg->Subframe.x, pImg->Subframe.y,
                                          pImg->Subframe.width, pImg->Subframe.height, minHFD, maxHFD, maxADU, pImg->FrameNum));
 
+        if (mode == FIND_PLANET)
+        {
+            SolarSystemObject *planet = &pFrame->pGuider->m_SolarSystemObject;
+            bool found = autoFound || planet->FindSolarSystemObject(pImg);
+            if (found)
+            {
+                // Use detected center of the Sun, Moon or planet for guiding
+                newX = planet->m_center_x;
+                newY = planet->m_center_y;
+
+                // Collect metrics computed by FindSolarSystemObject()
+                planet->GetPlanetMetrics(SNR, Mass, HFD, PeakVal);
+                EvtServer.NotifyPlanetMetrics(SNR, Mass, PeakVal);
+            }
+            else
+            {
+                Result = STAR_ERROR;
+            }
+            goto done;
+        }
+
         int minx, miny, maxx, maxy;
 
         // Planetary mode doesn't use subframes
-        if (pImg->Subframe.IsEmpty() || (mode == FIND_PLANET))
+        if (pImg->Subframe.IsEmpty())
         {
             minx = miny = 0;
             maxx = pImg->Size.GetWidth() - 1;
@@ -164,27 +185,6 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
         if (end_x <= start_x || end_y <= start_y)
         {
             throw ERROR_INFO("coordinates are invalid");
-        }
-
-        if (mode == FIND_PLANET)
-        {
-            SolarSystemObject *planet = &pFrame->pGuider->m_SolarSystemObject;
-            bool found = autoFound || planet->FindSolarSystemObject(pImg);
-            if (found)
-            {
-                // Use detected center of the Sun, Moon or planet for guiding
-                newX = planet->m_center_x;
-                newY = planet->m_center_y;
-
-                // Collect metrics computed by FindSolarSystemObject()
-                planet->GetPlanetMetrics(SNR, Mass, HFD, PeakVal);
-                EvtServer.NotifyPlanetMetrics(SNR, Mass, PeakVal);
-            }
-            else
-            {
-                Result = STAR_ERROR;
-            }
-            goto done;
         }
 
         const unsigned short *imgdata = pImg->ImageData;

@@ -88,9 +88,10 @@ public:
     void NotifyConfigurationChange();
     void NotifyGearChange();
     void NotifyStartCapture();
-    void NotifySurfaceDetection(bool detected, int features, double variance, double quality, double sharpness, bool isRef);
     void NotifyPlanetaryDetection(bool detected, int points, double score, int radius);
     void NotifyPlanetMetrics(double snr, double mass, int peak);
+    void NotifyMouseClick(PHD_Point& point);
+    void NotifyAutoSelect();
 
 private:
     void OnEventServerEvent(wxSocketEvent& evt);

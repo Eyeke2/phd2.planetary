@@ -79,6 +79,7 @@ struct GuideStepInfo
     int directionRA;
     int directionDec;
     wxPoint aoPos;
+    PHD_Point starPos;
     double starMass;
     double starSNR;
     double starHFD;

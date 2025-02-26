@@ -725,13 +725,17 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
 
         if (IsPaused())
         {
+            wxString label = _("PAUSED");
+            wxSize textSize = dc.GetTextExtent(label);
             dc.SetTextForeground(*wxYELLOW);
-            dc.DrawText(_("PAUSED"), 10, YWinSize - 20);
+            dc.DrawText(label, 10, YWinSize - textSize.GetHeight() - 5);
         }
         else if (pMount && !pMount->GetGuidingEnabled())
         {
+            wxString label = _("Guide output DISABLED");
+            wxSize textSize = dc.GetTextExtent(label);
             dc.SetTextForeground(*wxYELLOW);
-            dc.DrawText(_("Guide output DISABLED"), 10, YWinSize - 20);
+            dc.DrawText(label, 10, YWinSize - textSize.GetHeight() - 5);
         }
 #if defined(FRAME_MONITOR_CAMERA)
         else if (pCamera && pCamera->Name == FRAME_MONITOR_CAMERA && pCamera->Connected)
@@ -740,8 +744,9 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
             wxString framePath = GetFrameMonitorLabel();
             if (!framePath.IsEmpty())
             {
+                wxSize textSize = dc.GetTextExtent(framePath);
                 dc.SetTextForeground(*wxYELLOW);
-                dc.DrawText(framePath, 10, YWinSize - 25);
+                dc.DrawText(framePath, 10, YWinSize - textSize.GetHeight() - 5);
             }
         }
 #endif

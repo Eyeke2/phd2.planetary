@@ -49,19 +49,15 @@ struct PlanetToolWin : public wxDialog
 
     wxTimer m_planetaryTimer;
 
-    wxNotebook *m_tabs;
-    wxPanel *m_planetTab;
-    wxPanel *m_featuresTab;
+    bool m_panelVisible;
+    wxPanel *m_planetPanel;
     wxCheckBox *m_enableCheckBox;
-    wxCheckBox *m_featureTrackingCheckBox;
     wxCheckBox *m_saveVideoLogCheckBox;
 
     wxSpinCtrlDouble *m_minRadius;
     wxSpinCtrlDouble *m_maxRadius;
 
     wxSlider *m_thresholdSlider;
-    wxSlider *m_minHessianSlider;
-    wxSlider *m_maxFeaturesSlider;
 
     // Controls for camera settings, duplicating the ones from camera setup dialog and exposure time dropdown.
     // Used for streamlining the solar/planetary mode guiding user experience.
@@ -99,9 +95,6 @@ struct PlanetToolWin : public wxDialog
     void OnMouseEnterCloseBtn(wxMouseEvent& event);
     void OnMouseLeaveCloseBtn(wxMouseEvent& event);
     void OnThresholdChanged(wxCommandEvent& event);
-    void OnMinHessianChanged(wxCommandEvent& event);
-    void OnMaxFeaturesChanged(wxCommandEvent& event);
-    void OnSurfaceTrackingClick(wxCommandEvent& event);
 
     void OnEnableToggled(wxCommandEvent& event);
     void OnSpinCtrl_minRadius(wxSpinDoubleEvent& event);
@@ -178,17 +171,10 @@ PlanetToolWin::PlanetToolWin()
     // Set custom duration of tooltip display to 10 seconds
     wxToolTip::SetAutoPop(10000);
 
-    m_tabs = new wxNotebook(this, wxID_ANY);
-    m_planetTab = new wxPanel(m_tabs, wxID_ANY);
-    m_tabs->AddPage(m_planetTab, "Full disk guiding", true);
-
-    m_featuresTab = new wxPanel(m_tabs, wxID_ANY);
-    m_tabs->AddPage(m_featuresTab, "Surface features tracking", false);
+    m_panelVisible = true;
+    m_planetPanel = new wxPanel(this, wxID_ANY);
     m_enableCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable planetary and solar guiding"));
     m_enableCheckBox->SetToolTip(_("Toggle between star and solar/lunar/planetary guiding modes"));
-
-    m_featureTrackingCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable surface features detection/guiding"));
-    m_featureTrackingCheckBox->SetToolTip(_("Enable surface feature detection/guiding mode for imaging at high magnification"));
 
 #ifdef DEVELOPER_MODE
     // Experimental noise filter
@@ -213,15 +199,16 @@ PlanetToolWin::PlanetToolWin()
         }
     }
 
-    wxStaticText *minRadius_Label = new wxStaticText(m_planetTab, wxID_ANY, _("min radius:"));
-    m_minRadius = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS,
-                                       PT_RADIUS_MIN, PT_RADIUS_MAX, PT_MIN_RADIUS_DEFAULT);
+    wxSize spinSize = wxSize(StringWidth(this, _T("0000")), -1);
+    wxStaticText *minRadius_Label = new wxStaticText(m_planetPanel, wxID_ANY, _("Min radius:"));
+    m_minRadius = pFrame->MakeSpinCtrlDouble(m_planetPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, spinSize,
+                                             wxSP_ARROW_KEYS, PT_RADIUS_MIN, PT_RADIUS_MAX, PT_MIN_RADIUS_DEFAULT);
     minRadius_Label->SetToolTip(
         _("Minimum planet radius (in pixels). Set this a few pixels lower than the actual planet radius. ") + radiusTooltip);
 
-    wxStaticText *maxRadius_Label = new wxStaticText(m_planetTab, wxID_ANY, _("max radius:"));
-    m_maxRadius = new wxSpinCtrlDouble(m_planetTab, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS,
-                                       PT_RADIUS_MIN, PT_RADIUS_MAX, PT_MAX_RADIUS_DEFAULT);
+    wxStaticText *maxRadius_Label = new wxStaticText(m_planetPanel, wxID_ANY, _("Max radius:"));
+    m_maxRadius = pFrame->MakeSpinCtrlDouble(m_planetPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, spinSize,
+                                             wxSP_ARROW_KEYS, PT_RADIUS_MIN, PT_RADIUS_MAX, PT_MAX_RADIUS_DEFAULT);
     maxRadius_Label->SetToolTip(
         _("Maximum planet radius (in pixels). Set this a few pixels higher than the actual planet radius. ") + radiusTooltip);
 
@@ -236,58 +223,35 @@ PlanetToolWin::PlanetToolWin()
 
     // Planetary disk detection stuff
     wxStaticText *ThresholdLabel =
-        new wxStaticText(m_planetTab, wxID_ANY, _("Edge Detection Threshold:"), wxDefaultPosition, wxDefaultSize, 0);
-    m_thresholdSlider = new wxSlider(m_planetTab, wxID_ANY, PT_HIGH_THRESHOLD_DEFAULT, PT_THRESHOLD_MIN, PT_HIGH_THRESHOLD_MAX,
-                                     wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
+        new wxStaticText(m_planetPanel, wxID_ANY, _("Edge Detection Threshold:"), wxDefaultPosition, wxDefaultSize, 0);
+    m_thresholdSlider = new wxSlider(m_planetPanel, wxID_ANY, PT_HIGH_THRESHOLD_DEFAULT, PT_THRESHOLD_MIN, PT_HIGH_THRESHOLD_MAX,
+                                     wxDefaultPosition, wxDefaultSize, wxSL_HORIZONTAL | wxSL_LABELS);
     ThresholdLabel->SetToolTip(_("Higher values reduce sensitivity to weaker edges, resulting in cleaner contour. This is "
                                  "displayed in red when the display of internal contour edges is enabled."));
     m_thresholdSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnThresholdChanged, this);
-    m_RoiCheckBox = new wxCheckBox(m_planetTab, wxID_ANY, _("Enable ROI"));
+    m_RoiCheckBox = new wxCheckBox(m_planetPanel, wxID_ANY, _("Enable ROI"));
     m_RoiCheckBox->SetToolTip(
         _("Enable automatically selected Region Of Interest (ROI) for improved processing speed and reduced CPU usage."));
 
+    // Show/hide detected elements
+    m_ShowElements = new wxCheckBox(m_planetPanel, wxID_ANY, _("Display internal edges"));
+    m_ShowElements->SetToolTip(_("Toggle the visibility of internally detected edges and tune detection parameters "
+                                 "to maintain a manageable number of these features while keeping them as close as possible to "
+                                 "the object limb in the solar system object guiding mode."));
+
     // Add all solar system object tab elements
-    wxStaticBoxSizer *planetSizer = new wxStaticBoxSizer(new wxStaticBox(m_planetTab, wxID_ANY, _T("")), wxVERTICAL);
+    wxStaticBoxSizer *planetSizer = new wxStaticBoxSizer(new wxStaticBox(m_planetPanel, wxID_ANY, _T("Detection Settings")), wxVERTICAL);
     planetSizer->AddSpacer(10);
     planetSizer->Add(m_RoiCheckBox, 0, wxLEFT | wxALIGN_LEFT, 10);
     planetSizer->AddSpacer(10);
+    planetSizer->Add(m_ShowElements, 0, wxLEFT | wxALIGN_LEFT, 10);
+    planetSizer->AddSpacer(20);
     planetSizer->Add(x_radii, 0, wxEXPAND, 5);
     planetSizer->AddSpacer(10);
     planetSizer->Add(ThresholdLabel, 0, wxLEFT | wxTOP, 10);
-    planetSizer->Add(m_thresholdSlider, 0, wxALL, 10);
-    m_planetTab->SetSizer(planetSizer);
-    m_planetTab->Layout();
-
-    // Surface tracking elements
-    wxStaticText *minHessianLabel =
-        new wxStaticText(m_featuresTab, wxID_ANY, _("Detection Sensitivity:"), wxDefaultPosition, wxDefaultSize, 0);
-    m_minHessianSlider = new wxSlider(m_featuresTab, wxID_ANY, PT_MIN_HESSIAN_UI_DEFAULT, PT_MIN_HESSIAN_UI_MIN,
-                                      PT_MIN_HESSIAN_UI_MAX, wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
-    minHessianLabel->SetToolTip(
-        _("Adjusts the sensitivity of feature detection. A lower value detects fewer but more robust features. "
-          "Higher values increase the number of detected features but may include more noise. "
-          "Ideal value depends on image content and quality"));
-    wxStaticText *maxFeaturesLabel = new wxStaticText(m_featuresTab, wxID_ANY, _("Maximum number of surface features:"),
-                                                      wxDefaultPosition, wxDefaultSize, 0);
-    m_maxFeaturesSlider = new wxSlider(m_featuresTab, wxID_ANY, PT_MAX_SURFACE_FEATURES, 5, PT_MAX_SURFACE_FEATURES,
-                                       wxPoint(20, 20), wxSize(400, -1), wxSL_HORIZONTAL | wxSL_LABELS);
-    maxFeaturesLabel->SetToolTip(_("Limits maximum number of features used for tracking."));
-    m_minHessianSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnMinHessianChanged, this);
-    m_maxFeaturesSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnMaxFeaturesChanged, this);
-    wxStaticBoxSizer *surfaceSizer = new wxStaticBoxSizer(new wxStaticBox(m_featuresTab, wxID_ANY, _T("")), wxVERTICAL);
-    surfaceSizer->Add(minHessianLabel, 0, wxLEFT | wxTOP, 10);
-    surfaceSizer->Add(m_minHessianSlider, 0, wxALL, 10);
-    surfaceSizer->Add(maxFeaturesLabel, 0, wxLEFT | wxTOP, 10);
-    surfaceSizer->Add(m_maxFeaturesSlider, 0, wxALL, 10);
-
-    m_featuresTab->SetSizer(surfaceSizer);
-    m_featuresTab->Layout();
-
-    // Show/hide detected elements
-    m_ShowElements = new wxCheckBox(this, wxID_ANY, _("Display internal edges/features"));
-    m_ShowElements->SetToolTip(_("Toggle the visibility of internally detected edges/features and tune detection parameters "
-                                 "to maintain a manageable number of these features while keeping them as close as possible to "
-                                 "the object limb in the solar system object guiding mode."));
+    planetSizer->Add(m_thresholdSlider, 1, wxALL | wxEXPAND, 10);
+    m_planetPanel->SetSizer(planetSizer);
+    m_planetPanel->Layout();
 
     // Mount settings group
     wxStaticBoxSizer *pMountGroup = new wxStaticBoxSizer(wxHORIZONTAL, this, _("Mount settings"));
@@ -355,17 +319,13 @@ PlanetToolWin::PlanetToolWin()
     wxBoxSizer *topSizer = new wxBoxSizer(wxVERTICAL);
     topSizer->AddSpacer(10);
     topSizer->Add(m_enableCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
-    topSizer->AddSpacer(5);
-    topSizer->Add(m_featureTrackingCheckBox, 0, wxLEFT | wxALIGN_LEFT, 20);
-    topSizer->AddSpacer(5);
+    topSizer->AddSpacer(10);
 #ifdef DEVELOPER_MODE
     topSizer->Add(m_NoiseFilter, 0, wxLEFT | wxALIGN_LEFT, 20);
-    topSizer->AddSpacer(5);
+    topSizer->AddSpacer(10);
 #endif
-    topSizer->Add(m_tabs, 0, wxEXPAND | wxALL, 5);
-    topSizer->AddSpacer(5);
-    topSizer->Add(m_ShowElements, 0, wxLEFT | wxALIGN_LEFT, 20);
-    topSizer->AddSpacer(5);
+    topSizer->Add(m_planetPanel, 0, wxEXPAND | wxALL, 5);
+    topSizer->AddSpacer(10);
     topSizer->Add(pMountGroup, 0, wxEXPAND | wxALL, 5);
     topSizer->Add(pCamGroup, 0, wxEXPAND | wxALL, 5);
     topSizer->Add(ButtonSizer, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
@@ -377,7 +337,6 @@ PlanetToolWin::PlanetToolWin()
     // Connect Events
     Bind(wxEVT_TIMER, &PlanetToolWin::OnPlanetaryTimer, this, wxID_ANY);
     m_enableCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnEnableToggled, this);
-    m_featureTrackingCheckBox->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnSurfaceTrackingClick, this);
     m_CloseButton->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &PlanetToolWin::OnCloseButton, this);
     m_CloseButton->Bind(wxEVT_KEY_DOWN, &PlanetToolWin::OnKeyDown, this);
     m_CloseButton->Bind(wxEVT_KEY_UP, &PlanetToolWin::OnKeyUp, this);
@@ -400,9 +359,6 @@ PlanetToolWin::PlanetToolWin()
     m_minRadius->SetValue(pSolarSystemObj->Get_minRadius());
     m_maxRadius->SetValue(pSolarSystemObj->Get_maxRadius());
     m_thresholdSlider->SetValue(pSolarSystemObj->Get_highThreshold());
-    m_minHessianSlider->SetValue(pSolarSystemObj->Get_minHessian());
-    m_maxFeaturesSlider->SetValue(pSolarSystemObj->Get_maxFeatures());
-    m_featureTrackingCheckBox->SetValue(pSolarSystemObj->GetSurfaceTrackingState());
     m_RoiCheckBox->SetValue(pSolarSystemObj->GetRoiEnableState());
 #ifdef DEVELOPER_MODE
     m_NoiseFilter->SetValue(pSolarSystemObj->GetNoiseFilterState());
@@ -411,8 +367,6 @@ PlanetToolWin::PlanetToolWin()
     m_BinningCtrl->Select(pCamera ? pCamera->Binning - 1 : 0);
     m_saveVideoLogCheckBox->SetValue(pSolarSystemObj->GetVideoLogging());
     SetEnabledState(this, pSolarSystemObj->Get_SolarSystemObjMode());
-
-    m_tabs->SetSelection(pSolarSystemObj->GetSurfaceTrackingState() ? 1 : 0);
 
     // Set the initial state of the pause button
     m_PauseButton->SetLabel(pSolarSystemObj->GetDetectionPausedState() ? _("Resume") : _("Pause"));
@@ -469,21 +423,8 @@ void PlanetToolWin::OnEnableToggled(wxCommandEvent& event)
     }
 
     // Update elements display state
-    m_tabs->SetSelection(pSolarSystemObj->GetSurfaceTrackingState() ? 1 : 0);
     pFrame->NotifyGuidingParam("Planet Mode", enabled);
     OnShowElementsClick(event);
-}
-
-// Toggle surface features detection/tracking mode
-void PlanetToolWin::OnSurfaceTrackingClick(wxCommandEvent& event)
-{
-    bool featureTracking = m_featureTrackingCheckBox->IsChecked();
-    pSolarSystemObj->SetSurfaceTrackingState(featureTracking);
-    m_tabs->SetSelection(featureTracking ? 1 : 0);
-    pFrame->NotifyGuidingParam("Surface Detection", featureTracking);
-    UpdateStatus();
-    pSolarSystemObj->RestartSimulatorErrorDetection();
-    Debug.Write(wxString::Format("Solar/planetary: surface features mode %s\n", featureTracking ? "enabled" : "disabled"));
 }
 
 void PlanetToolWin::OnSpinCtrl_minRadius(wxSpinDoubleEvent& event)
@@ -569,15 +510,6 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
     {
         pSolarSystemObj->SetPlanetaryModeUpdate(false);
         m_enableCheckBox->SetValue(pSolarSystemObj->Get_SolarSystemObjMode());
-        m_minHessianSlider->SetValue(pSolarSystemObj->Get_minHessian());
-        m_maxFeaturesSlider->SetValue(pSolarSystemObj->Get_maxFeatures());
-    }
-
-    // Update surface features detection mode (can be changed via event server)
-    if (pSolarSystemObj->GetSurfaceModeUpdate())
-    {
-        pSolarSystemObj->SetSurfaceModeUpdate(false);
-        m_featureTrackingCheckBox->SetValue(pSolarSystemObj->GetSurfaceTrackingState());
     }
 
     // Update pause button state to sync with guiding state
@@ -692,6 +624,13 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
         }
     }
 
+    // Update min/max radius updated by the PHD2 client - in disk detection mode
+    if (pSolarSystemObj->GetMinMaxDiametersUpdate() && !pSolarSystemObj->GetSurfaceTrackingState())
+    {
+        m_minRadius->SetValue(pSolarSystemObj->Get_minRadius());
+        m_maxRadius->SetValue(pSolarSystemObj->Get_maxRadius());
+    }
+
     // Check 500 msec rule
     CheckMinExposureDuration();
 }
@@ -793,26 +732,34 @@ void PlanetToolWin::UpdateStatus()
 {
     bool enabled = pSolarSystemObj->Get_SolarSystemObjMode();
     bool surfaceTracking = pSolarSystemObj->GetSurfaceTrackingState();
+    bool enableLocalControls = true;
 
     // Update solar/planetary mode detection controls
-    m_featureTrackingCheckBox->Enable(enabled);
     m_minRadius->Enable(enabled && !surfaceTracking);
     m_maxRadius->Enable(enabled && !surfaceTracking);
+
+#if defined(FRAME_MONITOR_CAMERA)
+    if (pCamera && pCamera->Name == FRAME_MONITOR_CAMERA)
+    {
+        m_RoiCheckBox->SetValue(false);
+        m_ShowElements->SetValue(false);
+        pSolarSystemObj->SetRoiEnableState(false);
+        pSolarSystemObj->ShowVisualElements(false);
+        enableLocalControls = false;
+    }
+#endif
+
+    m_enableCheckBox->Show(enableLocalControls);
+    m_planetPanel->Show(enableLocalControls);
     m_RoiCheckBox->Enable(enabled && !surfaceTracking);
-    m_ShowElements->Enable(enabled);
+    m_ShowElements->Enable(enabled && !surfaceTracking);
 #ifdef DEVELOPER_MODE
     m_NoiseFilter->Enable(enabled);
 #endif
     m_saveVideoLogCheckBox->Enable(enabled);
 
     // Update slider states
-    m_thresholdSlider->Enable(enabled && !surfaceTracking);
-    m_minHessianSlider->Enable(enabled && surfaceTracking);
-    m_maxFeaturesSlider->Enable(enabled && surfaceTracking);
-
-    // Update tabs state
-    m_featuresTab->Enable(surfaceTracking);
-    m_planetTab->Enable(!surfaceTracking);
+    m_thresholdSlider->Enable(enabled && enableLocalControls && !surfaceTracking);
 
     // Update checkmark state in tools menu
     pFrame->m_PlanetaryMenuItem->Check(enabled);
@@ -822,6 +769,14 @@ void PlanetToolWin::UpdateStatus()
 
     // Pause solar system object guiding can be enabled only when guiding is still active
     m_PauseButton->Enable(enabled && pFrame->pGuider->IsGuiding());
+
+    // Update dialog layout
+    if (m_panelVisible != enableLocalControls)
+    {
+        Layout();
+        SetSizerAndFit(GetSizer());
+        m_panelVisible = enableLocalControls;
+    }
 }
 
 void PlanetToolWin::OnKeyDown(wxKeyEvent& event)
@@ -864,20 +819,6 @@ void PlanetToolWin::OnThresholdChanged(wxCommandEvent& event)
     int lowThreshold = wxMax(highThreshold / 2, PT_THRESHOLD_MIN);
     pSolarSystemObj->Set_lowThreshold(lowThreshold);
     pSolarSystemObj->Set_highThreshold(highThreshold);
-    pSolarSystemObj->RestartSimulatorErrorDetection();
-}
-
-void PlanetToolWin::OnMinHessianChanged(wxCommandEvent& event)
-{
-    int value = event.GetInt();
-    pSolarSystemObj->Set_minHessian(value);
-    pSolarSystemObj->RestartSimulatorErrorDetection();
-}
-
-void PlanetToolWin::OnMaxFeaturesChanged(wxCommandEvent& event)
-{
-    int value = event.GetInt();
-    pSolarSystemObj->Set_maxFeatures(value);
     pSolarSystemObj->RestartSimulatorErrorDetection();
 }
 
@@ -936,8 +877,6 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         pSolarSystemObj->Set_maxRadius(PT_MAX_RADIUS_DEFAULT);
         pSolarSystemObj->Set_lowThreshold(PT_HIGH_THRESHOLD_DEFAULT / 2);
         pSolarSystemObj->Set_highThreshold(PT_HIGH_THRESHOLD_DEFAULT);
-        pSolarSystemObj->Set_minHessian(PT_MIN_HESSIAN_UI_DEFAULT);
-        pSolarSystemObj->Set_maxFeatures(PT_MAX_SURFACE_FEATURES);
 #ifdef DEVELOPER_MODE
         pSolarSystemObj->SetNoiseFilterState(false);
 #endif
@@ -945,8 +884,6 @@ void PlanetToolWin::OnCloseButton(wxCommandEvent& event)
         m_minRadius->SetValue(pSolarSystemObj->Get_minRadius());
         m_maxRadius->SetValue(pSolarSystemObj->Get_maxRadius());
         m_thresholdSlider->SetValue(pSolarSystemObj->Get_highThreshold());
-        m_minHessianSlider->SetValue(pSolarSystemObj->Get_minHessian());
-        m_maxFeaturesSlider->SetValue(pSolarSystemObj->Get_maxFeatures());
 #ifdef DEVELOPER_MODE
         m_NoiseFilter->SetValue(pSolarSystemObj->GetNoiseFilterState());
 #endif

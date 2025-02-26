@@ -86,12 +86,14 @@ private:
     wxMutex m_syncLock;
     cv::Point2f m_prevClickedPoint;
 
-    cv::Mat m_metricsRoi;
     int m_peak;
-    double m_snrThreshold;
     double m_snr;
     double m_mass;
     double m_noiseStdDev;
+    double m_detectionTime;
+    bool m_remoteData;
+
+    std::atomic<bool> m_updateDiameters;
 
     std::vector<cv::Point2f> m_diskContour;
     int m_centoid_x;
@@ -106,36 +108,9 @@ private:
     cv::Point2f m_cameraSimulationRefPoint;
 
     // Surface tracking state
-    bool m_requestSurfModeUpdate;
     int m_detectedFeatures;
-    bool m_surfaceDetectionParamsChanging;
-    bool m_forceReferenceFrameSwitch;
     struct SurfaceDetectionState
     {
-        // Algorithmic objects
-        cv::Ptr<cv::CLAHE> clahe;
-        cv::SurfFeatureDetector surfDetector;
-        cv::SurfDescriptorExtractor extractor;
-
-        cv::Mat equalized;
-        cv::Mat descriptors;
-        std::vector<cv::KeyPoint> filteredKeypoints;
-
-        std::vector<cv::KeyPoint> referenceKeypoints;
-        cv::Mat referenceDescriptors;
-
-        // Reference frame point for surface feature guiding
-        cv::Point2f referencePoint;
-
-        // Virtual anchor point for for surface feature guiding
-        cv::Point2f surfaceFixationPoint;
-        cv::Point2f guidingFixationPoint;
-        bool guidingFixationPointValid;
-        bool isReferenceFrame;
-
-        // Matched inliers for visualizing detected surface features
-        std::vector<cv::Point2f> inlierPoints;
-
         double variance;
         double trackingQuality;
     } m_surf;
@@ -211,7 +186,6 @@ public:
     bool Get_SolarSystemObjMode();
     void Set_SolarSystemObjMode(bool enabled);
     void Set_SurfaceDetectionMode(bool enabled);
-    void Set_SurfaceDetectionParams(int minHessian, int maxFeatures);
 
     bool GetDetectionPausedState() { return m_paramDetectionPaused; }
     void SetDetectionPausedState(bool paused) { m_paramDetectionPaused = paused; }
@@ -222,11 +196,12 @@ public:
         m_measuringSharpnessMode = enabled;
         m_unknownHFD = true;
     }
-    bool GetSurfaceModeUpdate() { return m_requestSurfModeUpdate; }
-    void SetSurfaceModeUpdate(bool state) { m_requestSurfModeUpdate = state; }
 
     bool GetPlanetaryModeUpdate() { return m_requestPlanetaryModeUpdate; }
     void SetPlanetaryModeUpdate(bool state) { m_requestPlanetaryModeUpdate = state; }
+
+    bool GetMinMaxDiametersUpdate() { return m_updateDiameters.exchange(false); }
+    void SetMinMaxDiametersUpdate() { m_updateDiameters = true; }
 
     void Set_minRadius(double val) { m_paramMinRadius = val; }
     double Get_minRadius() { return m_paramMinRadius; }
@@ -238,12 +213,8 @@ public:
     int Get_lowThreshold() { return m_paramLowThreshold; }
     void Set_highThreshold(int value) { m_paramHighThreshold = value; }
     int Get_highThreshold() { return m_paramHighThreshold; }
+    bool SetLimits(int minRadius, int maxRadius);
 
-    void Set_minHessian(int value);
-    int Get_minHessian();
-    int Get_minHessianPhysical();
-    void Set_maxFeatures(int value);
-    int Get_maxFeatures() { return m_paramMaxFeatures; }
     bool GetMountTrackingState(bool& trackingValid, bool& tracking, wxString& rate);
     bool SetMountTrackingRate(const wxString& rate);
 
@@ -301,28 +272,21 @@ private:
     Star::FindMode m_StarFindMode_Saved;
 
 private:
-    void SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool roiActive, int bppFactor);
-    void SetMetricsRegion(cv::Mat& FullFrame, cv::Point2f& clickedPoint, bool detectionResult);
-    void CalcSurfaceMetrics(const usImage *pImg);
-    void CalcPlanetMetrics(const usImage *pImg, int annulusWidth);
-    double ComputeSobelSharpness(const cv::Mat& img);
-    double CalcSharpness();
+    void SaveVideoFrame(const cv::Mat& src, int bppFactor);
+    void CalcPlanetMetrics(const cv::Mat& image, int centerX, int centerY, int r, int annulusWidth, double& mass,
+                           double& snr, int& peak);
+    double CalcSharpness(const cv::Mat& src, int filtMin, int filtMax);
     void CalcLineParams(CircleDescriptor p1, CircleDescriptor p2);
     int RefineDiskCenter(float& bestScore, CircleDescriptor& diskCenter, std::vector<cv::Point2f>& diskContour, int minRadius,
                          int maxRadius, float searchRadius, float resolution = 1.0);
     float FindContourCenter(CircleDescriptor& diskCenter, CircleDescriptor& smallestCircle,
                             std::vector<cv::Point2f>& bestContourVector, cv::Moments& mu, int minRadius, int maxRadius);
-    void FindCenters(cv::Mat image, const std::vector<cv::Point>& contour, CircleDescriptor& bestCentroid,
+    void FindCenters(const cv::Mat& image, const std::vector<cv::Point>& contour, CircleDescriptor& bestCentroid,
                      CircleDescriptor& smallestCircle, std::vector<cv::Point2f>& bestContour, cv::Moments& mu, int minRadius,
                      int maxRadius);
-    bool FindOrbisCenter(cv::Mat img8, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint,
+    bool FindOrbisCenter(const cv::Mat& src, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint,
                          cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
-
-    cv::Point2f calculateCentroid(const std::vector<cv::KeyPoint>& keypoints, cv::Point2f& clickedPoint);
-    bool areCollinear(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::KeyPoint& kp3);
-    bool validateAndFilterKeypoints(std::vector<cv::KeyPoint>& keypoints, std::vector<cv::KeyPoint>& filteredKeypoints,
-                                    int maxKeypoints);
-    bool DetectSurfaceFeatures(cv::Mat image, cv::Point2f& clickedPoint, bool autoSelect);
+    bool GetSurfaceFeatures();
     void UpdateDetectionErrorInSimulator(cv::Point2f& clickedPoint);
     void CheckMountTrackingState();
 };
@@ -333,9 +297,6 @@ struct SolarPlanetaryMessage
     enum PLANETARY_MESSAGE_TYPE
     {
         PLANETARY_MODE_CHANGE = 1,
-        SURFACE_PARAMS_CHANGE = 2,
     } type;
     bool enabled;
-    int minHessian;
-    int maxFeatures;
 };

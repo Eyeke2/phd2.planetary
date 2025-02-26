@@ -240,7 +240,7 @@ static unsigned char *buildGammaLookupTable(int blevel, int wlevel, double power
 
     memset(result, 0, blevel + 1);
 
-    float range = wlevel - blevel;
+    float range = wxMax(wlevel - blevel, 1);
     for (int i = blevel + 1; i < wlevel; ++i)
     {
         float d = (i - blevel) / range;
@@ -248,7 +248,7 @@ static unsigned char *buildGammaLookupTable(int blevel, int wlevel, double power
     }
 
     if (wlevel < 0x10000)
-        memset(result + wlevel, 255, 0x10000 - wlevel);
+        memset(result + wlevel, wlevel < 1 ? 0 : 255, 0x10000 - wlevel);
 
     return result;
 }

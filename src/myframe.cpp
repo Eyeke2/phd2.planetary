@@ -1708,9 +1708,6 @@ void MyFrame::OnSolarSystemModeEvent(wxThreadEvent& evt)
     case SolarPlanetaryMessage::PLANETARY_MODE_CHANGE:
         pGuider->m_SolarSystemObject.Set_SolarSystemObjMode(msg->enabled);
         break;
-    case SolarPlanetaryMessage::SURFACE_PARAMS_CHANGE:
-        pGuider->m_SolarSystemObject.Set_SurfaceDetectionParams(msg->minHessian, msg->maxFeatures);
-        break;
     }
     delete msg;
 }

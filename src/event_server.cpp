@@ -53,6 +53,8 @@ enum
     MSG_PROTOCOL_VERSION = 1,
 };
 
+#define MSG_EXTENTED_PROTOCOL_VERSION "solar.1"
+
 static const wxString literal_null("null");
 static const wxString literal_true("true");
 static const wxString literal_false("false");
@@ -289,7 +291,7 @@ static Ev ev_message_version()
 {
     Ev ev("Version");
     ev << NV("PHDVersion", PHDVERSION) << NV("PHDSubver", PHDSUBVER) << NV("OverlapSupport", true)
-       << NV("MsgVersion", MSG_PROTOCOL_VERSION);
+       << NV("MsgVersion", MSG_PROTOCOL_VERSION) << NV("MsgExtVersion", MSG_EXTENTED_PROTOCOL_VERSION);
     return ev;
 }
 
@@ -1990,6 +1992,12 @@ static void set_pixel_size(JObj& response, const json_value *params)
     response << jrpc_result(0);
 }
 
+static void get_focal_length(JObj& response, const json_value *params)
+{
+    int focalLength = pFrame->GetFocalLength();
+    response << jrpc_result(focalLength);
+}
+
 static void set_focal_length(JObj& response, const json_value *params)
 {
     Params p("length", params);
@@ -2038,6 +2046,38 @@ static void set_guide_frame(JObj& response, const json_value *params)
         pCamera->SetProperty("path_broadcast", path->string_value);
 }
 
+static void get_guide_frame(JObj& response, const json_value *params)
+{
+    VERIFY_GUIDER(response);
+
+    Guider *guider = pFrame->pGuider;
+    const usImage *img = guider->CurrentImage();
+
+    if (!img->ImageData)
+    {
+        response << jrpc_error(2, "no image available");
+        return;
+    }
+
+    if (img->NPixels > 2048 * 2048)
+    {
+        response << jrpc_error(3, "image too large");
+        return;
+    }
+
+    B64Encode enc;
+    for (int y = 0; y < img->Size.GetHeight(); y++)
+    {
+        const unsigned short *p = img->ImageData + y * img->Size.GetWidth();
+        enc.append(p, img->Size.GetWidth() * sizeof(unsigned short));
+    }
+
+    JObj rslt;
+    rslt << NV("frame", img->FrameNum) << NV("width", img->Size.GetWidth()) << NV("height", img->Size.GetHeight()) << NV("pixels", enc.finish());
+
+    response << jrpc_result(rslt);
+}
+
 static void get_cal_settings(JObj& response, const json_value *params)
 {
     JObj rslt;
@@ -2073,49 +2113,40 @@ static void get_surf_mode(JObj& response, const json_value *params)
         response << jrpc_error(1, "guider not connected");
 }
 
-static void set_surf_params(JObj& response, const json_value *params)
+static void get_process_id(JObj& response, const json_value *params)
 {
-    Params p("params", params);
-
-    const json_value *sens = p.param("sensitivity");
-    if (!sens || sens->type != JSON_INT)
-    {
-        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected sensitivity param");
-        return;
-    }
-    int minHessian = sens->int_value;
-
-    const json_value *limit = p.param("limit");
-    if (!limit || limit->type != JSON_INT)
-    {
-        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected limit param");
-        return;
-    }
-    int maxFeatures = limit->int_value;
-
-    if (pFrame->pGuider)
-    {
-        pFrame->pGuider->m_SolarSystemObject.Set_SurfaceDetectionParams(minHessian, maxFeatures);
-        response << jrpc_result(0);
-    }
-    else
-        response << jrpc_error(1, "guider not connected");
+    // Return the process ID of the server
+    response << jrpc_result((int) wxGetProcessId());
 }
 
-static void get_surf_params(JObj& response, const json_value *params)
+static void set_planet_size(JObj& response, const json_value *params)
 {
-    JObj rslt;
+    Params p("radii", params);
+    const json_value *val = p.param("MinRadius");
+    if (!val || val->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected min radius");
+        return;
+    }
+    int minRadius = val->int_value;
+
+    val = p.param("MaxRadius");
+    if (!val || val->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected max radius");
+        return;
+    }
+    int maxRadius = val->int_value;
+
     if (pFrame->pGuider)
     {
-        int minHessian = pFrame->pGuider->m_SolarSystemObject.Get_minHessian();
-        int maxFeatures = pFrame->pGuider->m_SolarSystemObject.Get_maxFeatures();
-        rslt << NV("sensitivity", minHessian) << NV("limit", maxFeatures);
-        response << jrpc_result(rslt);
+        if (!pFrame->pGuider->m_SolarSystemObject.SetLimits(minRadius, maxRadius))
+        {
+            response << jrpc_error(1, "invalid data");
+            return;
+        }
     }
-    else
-    {
-        response << jrpc_error(1, "guider not connected");
-    }
+    response << jrpc_result(0);
 }
 
 static void get_mount_coords(JObj& response, const json_value *params)
@@ -2710,11 +2741,15 @@ static bool handle_request(JRpcCall& call)
                     { "export_config_settings", &export_config_settings },
                     { "get_variable_delay_settings", &get_variable_delay_settings },
                     { "set_variable_delay_settings", &set_variable_delay_settings },
+
+                    // PHD2 extensions
                     { "get_guiding_period", &get_guiding_period },
                     { "set_time_lapse", &set_time_lapse },
                     { "set_guide_frame", &set_guide_frame },
+                    { "get_guide_frame", &get_guide_frame },
                     { "get_pixel_size", &get_pixel_size },
                     { "set_pixel_size", &set_pixel_size },
+                    { "get_focal_length", &get_focal_length },
                     { "set_focal_length", &set_focal_length },
                     { "set_planetary_mode", &set_planetary_mode },
                     { "get_cal_settings", &get_cal_settings },
@@ -2723,8 +2758,8 @@ static bool handle_request(JRpcCall& call)
                     { "set_mount_tracking", &set_mount_tracking },
                     { "set_surf_mode", &set_surf_mode },
                     { "get_surf_mode", &get_surf_mode },
-                    { "set_surf_params", &set_surf_params },
-                    { "get_surf_params", &get_surf_params },
+                    { "get_process_id", &get_process_id },
+                    { "set_planet_size", &set_planet_size},
                     { "set_cal_step", &set_cal_step },
                     { "set_iflink", &set_iflink },
                     { "set_iflink_cam", &set_iflink_cam },
@@ -3077,6 +3112,12 @@ void EventServer::NotifyLooping(unsigned int exposure, const Star *star, const F
     if (!status.IsEmpty())
         ev << NV("Status", status);
 
+    if (star && star->IsValid())
+    {
+        PHD_Point pos(star->X, star->Y);
+        ev << NV("StarPos", pos);
+    }
+
     do_notify(m_eventServerClients, ev);
 }
 
@@ -3174,6 +3215,11 @@ void EventServer::NotifyGuideStep(const GuideStepInfo& step)
 
     if (step.decLimited)
         ev << NV("DecLimited", true);
+
+    if (step.starPos.IsValid())
+    {
+        ev << NV("StarPos", step.starPos);
+    }
 
     do_notify(m_eventServerClients, ev);
 }
@@ -3338,20 +3384,6 @@ void EventServer::NotifyGearChange()
     do_notify(m_eventServerClients, ev);
 }
 
-void EventServer::NotifySurfaceDetection(bool detected, int features, double variance, double quality, double sharpness,
-                                         bool isRef)
-{
-    wxMutexLocker lck(m_clientsLock);
-    Ev ev("SurfaceDetection");
-    ev << NV("detect", detected);
-    ev << NV("features", features);
-    ev << NV("variance", variance);
-    ev << NV("quality", quality);
-    ev << NV("sharpness", sharpness);
-    ev << NV("ref", isRef);
-    do_notify(m_eventServerClients, ev);
-}
-
 void EventServer::NotifyPlanetaryDetection(bool detected, int points, double score, int radius)
 {
     wxMutexLocker lck(m_clientsLock);
@@ -3371,6 +3403,19 @@ void EventServer::NotifyPlanetMetrics(double snr, double mass, int peak)
     ev << NV("mass", mass);
     ev << NV("peak", peak);
     do_notify(m_eventServerClients, ev);
+}
+
+void EventServer::NotifyMouseClick(PHD_Point& click)
+{
+    wxMutexLocker lck(m_clientsLock);
+    Ev ev("MouseClick");
+    ev << click;
+    do_notify(m_eventServerClients, ev);
+}
+
+void EventServer::NotifyAutoSelect()
+{
+    SIMPLE_NOTIFY("AutoSelect");
 }
 
 void EventServer::NotifyStartCapture()

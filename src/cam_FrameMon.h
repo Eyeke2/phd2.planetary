@@ -41,9 +41,33 @@ public:
     frameDesc()
     {
         pixelSize = GuideCamera::UnknownPixelSize;
+        pos = PHD_Point(0, 0);
+        pos.Invalidate();
+        quality = 0.f;
+        sharpness = 0.f;
+        snr = 0.f;
+        mass = 0.f;
+        peak = 0;
+        radius = 0;
+        minRadius = 0;
+        maxRadius = 0;
+        features = 0;
+        time = 0.f;
     };
 
     double pixelSize;
+    PHD_Point pos;
+    float dispersion;
+    float quality;
+    float sharpness;
+    float snr;
+    float mass;
+    float time;
+    int peak;
+    int radius;
+    int minRadius;
+    int maxRadius;
+    int features;
 };
 
 class ImageFrameServer;
@@ -62,6 +86,7 @@ public:
     bool HasNonGuiCapture() override { return true; }
     wxByte BitsPerPixel() override;
     void InitCapture() override;
+    bool GetCaptureDescriptor(void* desc) override;
     void SetProperty(const wxString prop, wxString value) override;
     void SetProperty(const wxString prop, int value) override;
     wxString GetStrProperty(const wxString prop, int timeout = 0) override;

@@ -227,11 +227,14 @@ void GuiderMultiStar::SetMultiStarMode(bool val)
         if (GetState() >=
             STATE_SELECTED) // If we have a single star, need to force an auto-find to be sure we have the right secondary stars
         {
-            StopGuiding();
+            bool guiding_active = IsCalibratingOrGuiding();
+            if (guiding_active)
+                StopGuiding();
             InvalidateCurrentPosition(true);
             if (!AutoSelect(wxRect(0, 0, 0, 0)))
             {
-                StartGuiding();
+                if (guiding_active)
+                    StartGuiding();
                 autoFindForced = true;
             }
         }
@@ -1166,6 +1169,10 @@ void GuiderMultiStar::OnLClick(wxMouseEvent& mevent)
                 m_SolarSystemObject.m_clicked_y = wxMin(StarY, pImage->Size.GetHeight() - 1);
                 m_SolarSystemObject.m_userLClick = true;
                 m_SolarSystemObject.m_detectionCounter = 0;
+#if defined(FRAME_MONITOR_CAMERA)
+                if (pCamera && (pCamera->Name == FRAME_MONITOR_CAMERA) && pCamera->Connected)
+                    EvtServer.NotifyMouseClick(PHD_Point(StarX, StarY));
+#endif
             }
 
             SetCurrentPosition(pImage, PHD_Point(StarX, StarY));

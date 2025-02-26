@@ -804,6 +804,11 @@ bool GuideCamera::GetSensorTemperature(double *temperature)
     return true; // error
 }
 
+bool GuideCamera::GetCaptureDescriptor(void* desc)
+{
+    return true; // error
+}
+
 CameraConfigDialogPane *GuideCamera::GetConfigDialogPane(wxWindow *pParent)
 {
     return new CameraConfigDialogPane(pParent, this);

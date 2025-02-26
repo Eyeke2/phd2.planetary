@@ -33,6 +33,7 @@
  */
 
 #include "phd.h"
+#include "cam_FrameMon.h"
 #include "planetary.h"
 #include "planetary_tool.h"
 
@@ -73,17 +74,8 @@ SolarSystemObject::SolarSystemObject()
     m_unknownHFD = true;
     m_focusSharpness = 0;
     m_paramNoiseFilterState = false;
-    m_requestSurfModeUpdate = false;
-
-    int cliplimit = 2;
-    m_surf.clahe = createCLAHE(cliplimit);
-    m_surfaceDetectionParamsChanging = false;
-    m_forceReferenceFrameSwitch = false;
-    m_surf.referenceKeypoints.clear();
-    m_surf.inlierPoints.clear();
-    m_surf.guidingFixationPointValid = false;
-    m_surf.surfaceFixationPoint = Point2f(0, 0);
-    m_surf.guidingFixationPoint = Point2f(0, 0);
+    m_updateDiameters = false;
+    m_remoteData = false;
     m_surf.trackingQuality = 0;
 
     m_cameraSimulationMove = Point2f(0, 0);
@@ -119,7 +111,7 @@ SolarSystemObject::SolarSystemObject()
     m_StarFindMode_Saved = Star::FIND_CENTROID;
 
     // Build gaussian weighting function table used for circle feature detection
-    float sigma = 1.0;
+    float sigma = 2.0;
     memset(gaussianWeight, 0, sizeof(gaussianWeight));
     for (double x = 0; x < 20; x += 0.01)
     {
@@ -148,7 +140,7 @@ SolarSystemObject::SolarSystemObject()
     m_lockTargetHeightBad = (ihdrChunk2[4] << 24) | (ihdrChunk2[5] << 16) | (ihdrChunk2[6] << 8) | ihdrChunk2[7];
 
     // Get initial values of the solar system object detection state and parameters from configuration
-    SetSurfaceTrackingState(pConfig->Profile.GetBoolean("/PlanetTool/surface_tracking", false));
+    SetSurfaceTrackingState(false);
 #ifdef DEVELOPER_MODE
     SetNoiseFilterState(pConfig->Profile.GetBoolean("/PlanetTool/noise_filter", false));
 #endif
@@ -174,8 +166,6 @@ SolarSystemObject::SolarSystemObject()
 
     // Remove the alert dialog setting for pausing solar/planetary detection
     pConfig->Global.DeleteEntry(PausePlanetDetectionAlertEnabledKey());
-    bool nonfreeInit = initModule_nonfree();
-    assert(nonfreeInit);
 }
 
 SolarSystemObject::~SolarSystemObject()
@@ -183,15 +173,12 @@ SolarSystemObject::~SolarSystemObject()
     delete m_SER;
 
     // Save all detection parameters
-    pConfig->Profile.SetBoolean("/PlanetTool/surface_tracking", GetSurfaceTrackingState());
 #ifdef DEVELOPER_MODE
     pConfig->Profile.SetBoolean("/PlanetTool/noise_filter", GetNoiseFilterState());
 #endif
     pConfig->Profile.SetInt("/PlanetTool/min_radius", Get_minRadius());
     pConfig->Profile.SetInt("/PlanetTool/max_radius", Get_maxRadius());
     pConfig->Profile.SetInt("/PlanetTool/high_threshold", Get_highThreshold());
-    pConfig->Profile.SetInt("/PlanetTool/min_hessian", Get_minHessian());
-    pConfig->Profile.SetInt("/PlanetTool/max_features", Get_maxFeatures());
     pConfig->Flush();
 }
 
@@ -283,32 +270,6 @@ void SolarSystemObject::Set_SolarSystemObjMode(bool enabled)
     }
 }
 
-// Set surface detection parameters passed by the client application
-void SolarSystemObject::Set_SurfaceDetectionParams(int minHessian, int maxFeatures)
-{
-    if (wxThread::IsMain())
-    {
-        if (minHessian >= 0)
-            Set_minHessian(minHessian);
-        if (maxFeatures >= 0)
-            Set_maxFeatures(maxFeatures);
-        m_forceReferenceFrameSwitch = true;
-
-        // Request to update controls in UI dialog if opened
-        SetPlanetaryModeUpdate(true);
-    }
-    else
-    {
-        SolarPlanetaryMessage *msg = new SolarPlanetaryMessage();
-        msg->type = SolarPlanetaryMessage::SURFACE_PARAMS_CHANGE;
-        msg->minHessian = minHessian;
-        msg->maxFeatures = maxFeatures;
-        wxThreadEvent *event = new wxThreadEvent(wxEVT_THREAD, SOLAR_PLANETARY_EVENT);
-        event->SetExtraLong((long) msg);
-        wxQueueEvent(pFrame, event);
-    }
-}
-
 // Enable/disable surface tracking mode
 void SolarSystemObject::Set_SurfaceDetectionMode(bool enabled)
 {
@@ -318,7 +279,19 @@ void SolarSystemObject::Set_SurfaceDetectionMode(bool enabled)
 
     // Request to set the new state
     SetSurfaceTrackingState(enabled);
-    SetSurfaceModeUpdate(true);
+}
+
+// Set limits for min/max radius
+bool SolarSystemObject::SetLimits(int minRadius, int maxRadius)
+{
+    if (minRadius > 0 && maxRadius > 0)
+    {
+        Set_minRadius(minRadius);
+        Set_maxRadius(maxRadius);
+        SetMinMaxDiametersUpdate();
+        return true;
+    }
+    return false;
 }
 
 // Report detected object size or sharpness depending on measurement mode
@@ -377,176 +350,93 @@ void SolarSystemObject::ToggleSharpness()
     }
 }
 
-// Set sub-region for calculating object metrics
-void SolarSystemObject::SetMetricsRegion(Mat& FullFrame, Point2f& clickedPoint, bool detectionResult)
+double SolarSystemObject::CalcSharpness(const cv::Mat& src, int filtMin, int filtMax)
 {
-    int x, y;
-
-    if (detectionResult)
-    {
-        // Use the tracked position if it's valid
-        x = m_center_x;
-        y = m_center_y;
-    }
-    else if (norm(clickedPoint))
-    {
-        // Use the clicked point if it's valid
-        x = clickedPoint.x;
-        y = clickedPoint.y;
-    }
-    else
-    {
-        // Use entire frame if no valid point
-        m_metricsRoi = FullFrame;
-        return;
-    }
-
-    const int diameter = (GetPlanetDetectMode() == DETECTION_MODE_SURFACE) ? 256 : (m_paramMaxRadius * 2.5);
-    const int radius = diameter / 2;
-    int start_x = wxMax(x - radius, 0);
-    int end_x   = wxMin(x + radius, m_frameWidth - 1);
-    int start_y = wxMax(y - radius, 0);
-    int end_y   = wxMin(y + radius, m_frameHeight - 1);
-
-    // Adjust clipped roi to max possible size
-    if (end_x - start_x < diameter)
-    {
-        if (end_x == m_frameWidth - 1)
-            start_x = wxMax(end_x - diameter, 0);
-        else
-            end_x = wxMin(start_x + diameter, m_frameWidth - 1);
-    }
-    if (end_y - start_y < diameter)
-    {
-        if (end_y == m_frameHeight - 1)
-            start_y = wxMax(end_y - diameter, 0);
-        else
-            end_y = wxMin(start_y + diameter, m_frameHeight);
-    }
-    cv::Rect roi(start_x, start_y, end_x - start_x, end_y - start_y);
-    m_metricsRoi = FullFrame(roi);
-}
-
-// The Sobel operator can be used to detect edges in an image, which are more pronounced in
-// focused images. You can apply the Sobel operator to the image and calculate the sum or mean
-// of the absolute values of the gradients.
-double SolarSystemObject::ComputeSobelSharpness(const Mat& img)
-{
+    cv::Mat filtered, normf;
+    cv::Mat norm = cv::Mat(src.size(), CV_16U);
     Mat grad_x, grad_y, grad;
-    Sobel(img, grad_x, CV_32F, 1, 0);
-    Sobel(img, grad_y, CV_32F, 0, 1);
+    GaussianBlur(src, filtered, cv::Size(3, 3), 1.6);
+    const int range = std::max(filtMax - filtMin, 1);
+    const float scale = 65535.0f / range;
+    for (int y = 0; y < src.rows; y++)
+    {
+        for (int x = 0; x < src.cols; x++)
+        {
+            unsigned pixel = filtered.at<ushort>(y, x);
+            unsigned normPixel = (pixel < filtMin) ? 0 : (pixel > filtMax ? 0xffff : (pixel - filtMin) * scale);
+            norm.at<ushort>(y, x) = normPixel;
+        }
+    }
+    norm.convertTo(normf, CV_32F);
+    Sobel(normf, grad_x, CV_32F, 1, 0, 3);
+    Sobel(normf, grad_y, CV_32F, 0, 1, 3);
     magnitude(grad_x, grad_y, grad);
-    double sharpness = cv::mean(grad)[0];
-    return sharpness;
+    return cv::mean(grad)[0] / 100.0;
 }
 
-// Calculate focus metrics around the updated tracked position
-double SolarSystemObject::CalcSharpness()
+static double estimateSigma(const cv::Mat& image)
 {
-    cv::Mat filtered;
-    cv::Mat normalized;
-    GaussianBlur(m_metricsRoi, filtered, cv::Size(3, 3), 1.5);
-
-    cv::Scalar meanSignal = cv::mean(filtered);
-    double meanValue = meanSignal[0];
-
-    // Normalize by signal mean value
-    double scaleFactor = meanValue ? 256.0 / meanValue : 1.0;
-    filtered.convertTo(normalized, CV_32F, scaleFactor);
-    double sharpness = ComputeSobelSharpness(normalized);
-
-    // Scale by a weight factor to account for low SNR
-    if (m_snrThreshold < 1.0)
-        m_snrThreshold = 50.0;
-    double snrWeight = m_snr < m_snrThreshold ? m_snr / m_snrThreshold : 1.0;
-    return sharpness * snrWeight;
-}
-
-// Helper function to compute the median of a single-channel floating point image
-static double computeMedian(cv::Mat channel)
-{
-    std::vector<float> vec;
-    vec.assign((float *) channel.datastart, (float *) channel.dataend);
-    size_t n = vec.size() / 2;
-    std::nth_element(vec.begin(), vec.begin() + n, vec.end());
-    double median = vec[n];
-    return median;
-}
-
-// Compute noise estimation : sigma = sqrt(variance)
-static double estimateNoiseStd(const cv::Mat& image, double& meanValue)
-{
-    cv::Mat imgFloat;
+    cv::Mat flt, lap;
     if (image.type() != CV_32F)
-        image.convertTo(imgFloat, CV_32F);
+    {
+        image.convertTo(flt, CV_32F);
+        cv::Laplacian(flt, lap, CV_32F);
+    }
     else
-        imgFloat = image;
-
-    cv::Mat lap;
-    cv::Laplacian(imgFloat, lap, CV_32F);
+    {
+        cv::Laplacian(image, lap, CV_32F);
+    }
     cv::Mat absLap = cv::abs(lap);
 
-    double med = computeMedian(absLap);
-    double noiseStd = med / 0.6745;
+    double minVal, maxVal;
+    cv::minMaxLoc(absLap, &minVal, &maxVal);
+    if (maxVal - minVal < 0.001)
+        return 0;
 
-    cv::Scalar meanSignal = cv::mean(imgFloat);
-    meanValue = meanSignal[0];
-
-    return noiseStd;
+    std::vector<int> vec;
+    vec.reserve(absLap.rows * absLap.cols);
+    double factor = 65535.0 / (maxVal - minVal);
+    for (int y = 0; y < absLap.rows; y++)
+    {
+        for (int x = 0; x < absLap.cols; x++)
+        {
+            float val = absLap.at<float>(y, x);
+            if (val > minVal)
+            {
+                vec.push_back(cvRound((val - minVal) * factor));
+            }
+        }
+    }
+    size_t n = vec.size() / 2;
+    std::nth_element(vec.begin(), vec.begin() + n, vec.end());
+    return (vec[n] + minVal) / factor / 0.6745;
 }
 
-// Measure image metrics within previously computed sub-region
-void SolarSystemObject::CalcSurfaceMetrics(const usImage *pImg)
+void SolarSystemObject::CalcPlanetMetrics(const cv::Mat& image, int center_x, int center_y, int r, int annulusWidth, double& mass,
+                                          double& snr, int& peak)
 {
-    // Find the peak value within the given region of interest (subframe)
-    double minVal, maxVal, meanValue;
-    cv::minMaxLoc(m_metricsRoi, &minVal, &maxVal);
-    m_peak = round(maxVal);
-
-    // Estimate standard noise deviation based on MAD (median absolute deviation)
-    double sigma = estimateNoiseStd(m_metricsRoi, meanValue);
-    m_noiseStdDev = sigma;
-
-    double localMin = wxMax(minVal, pImg->FiltMin);
-    m_mass = meanValue;
-    m_snr = (m_noiseStdDev > 0.5) ? (meanValue - localMin) / m_noiseStdDev : 0.0;
-    m_snrThreshold = 20.0;
-    Debug.Write(wxString::Format("CalcSurfaceMetrics: Mass=%.1f, stdDevNoise=%.1f, SNR=%.1f\n", m_mass, m_noiseStdDev, m_snr));
-}
-
-// Calculate metrics in disk mode
-void SolarSystemObject::CalcPlanetMetrics(const usImage *pImg, int annulusWidth)
-{
-    int center_x = m_center_x;
-    int center_y = m_center_y;
-    int r = m_radius;
-
-    const double sigma_factor = 1.0;
+    const double sigma_factor = 3.0;
     int scopeOuter = r + annulusWidth * 3;
     int scopeInner = r + annulusWidth;
     int scopeOuter2 = scopeOuter * scopeOuter;
     int scopeInner2 = scopeInner * scopeInner;
-    int start_x = wxMax(0, center_x - scopeOuter);
-    int end_x = wxMin(center_x + scopeOuter, pImg->Size.GetWidth() - 1);
-    int start_y = wxMax(0, center_y - scopeOuter);
-    int end_y = wxMin(center_y + scopeOuter, pImg->Size.GetHeight() - 1);
-
-    const unsigned short *imgdata = pImg->ImageData;
-    const int rowsize = pImg->Size.GetWidth();
+    int start_x = std::max(0, center_x - scopeOuter);
+    int end_x = std::min(center_x + scopeOuter, image.cols - 1);
+    int start_y = std::max(0, center_y - scopeOuter);
+    int end_y = std::min(center_y + scopeOuter, image.rows - 1);
 
     // Calculate the statistics within the larger annulus
     double sum = 0.0;
     double sq_sum = 0.0;
     int count = 0;
-    const unsigned short *row = imgdata + rowsize * start_y;
-    for (int y = start_y; y <= end_y; y++, row += rowsize)
+    for (int y = start_y; y <= end_y; y++)
     {
         for (int x = start_x; x <= end_x; x++)
         {
             int r2 = (x - center_x) * (x - center_x) + (y - center_y) * (y - center_y);
             if ((r2 < scopeOuter2) && (r2 > scopeInner2))
             {
-                double pixel = (double) row[x];
+                unsigned int pixel = image.at<ushort>(y, x);
                 sum += pixel;
                 sq_sum += pixel * pixel;
                 count++;
@@ -558,26 +448,27 @@ void SolarSystemObject::CalcPlanetMetrics(const usImage *pImg, int annulusWidth)
     double mean = (count > 0) ? sum / count : 0.0;
     double variance = (count > 0) ? (sq_sum / count) - (mean * mean) : 0.0;
     double stdDev = sqrt(variance);
-    int signalThreshold = mean + stdDev * sigma_factor;
+    unsigned int signalThreshold = (unsigned int) (mean + stdDev * sigma_factor);
 
     // Calculate signal and noise within the circle
-    unsigned short peak_val = 0;
+    cv::Mat inner = cv::Mat::zeros(image.size(), CV_16U);
+    unsigned int peak_val = 0;
     double meanSignal = 0.0;
     int signalCount = 0;
     double meanNoise = 0.0;
     int noiseCount = 0;
     double noiseVariance = 0.0;
-    row = imgdata + rowsize * start_y;
-    for (int y = start_y; y <= end_y; y++, row += rowsize)
+    for (int y = start_y; y <= end_y; y++)
     {
         for (int x = start_x; x <= end_x; x++)
         {
             int r2 = (x - center_x) * (x - center_x) + (y - center_y) * (y - center_y);
+            unsigned int pixel = image.at<ushort>(y, x);
+            inner.at<ushort>(y, x) = pixel;
+            if (pixel > peak_val)
+                peak_val = pixel;
             if (r2 < scopeInner2)
             {
-                double pixel = (double) row[x];
-                if (pixel > peak_val)
-                    peak_val = pixel;
                 if (pixel > signalThreshold)
                 {
                     meanSignal += pixel;
@@ -586,7 +477,7 @@ void SolarSystemObject::CalcPlanetMetrics(const usImage *pImg, int annulusWidth)
             }
             else if (r2 < scopeOuter2)
             {
-                double pixel = (double) row[x];
+                unsigned int pixel = image.at<ushort>(y, x);
                 if (pixel <= signalThreshold)
                 {
                     meanNoise += pixel;
@@ -597,29 +488,36 @@ void SolarSystemObject::CalcPlanetMetrics(const usImage *pImg, int annulusWidth)
         }
     }
 
-    // Use sum of all pixels considered as signal as the mass metric
-    m_mass = meanSignal;
+    // Estimate standard noise deviation based on MAD in the inner circle
+    float sigma = (float) estimateSigma(inner);
+
+    // Estimate mass as the sum of all pixels normalized by the circle area.
+    mass = (float) meanSignal / (float) (CV_PI * r * r);
     meanSignal = (signalCount > 0) ? meanSignal / signalCount : 0.0;
 
-    m_snr = 0.0;
-    m_noiseStdDev = 0.0;
+    snr = 100.0f;
+    float noiseStdDev = 0.0f;
     if (noiseCount > 0)
     {
         meanNoise /= noiseCount;
         noiseVariance = noiseVariance / noiseCount - meanNoise * meanNoise;
-        m_noiseStdDev = sqrt(noiseVariance);
-    }
-    if (m_noiseStdDev > 1)
-    {
-        double snr = (meanSignal - meanNoise) / m_noiseStdDev;
-        m_snr = 20 * log10(snr);
+        noiseStdDev = (float) sqrt(noiseVariance);
     }
 
-    m_peak = peak_val;
-    m_snrThreshold = 50.0;
+    // Use the maximum of noise sigma estimations
+    noiseStdDev = std::max(noiseStdDev, sigma);
+    if (noiseStdDev > 1)
+    {
+        snr = (meanSignal - meanNoise) / noiseStdDev;
+        snr = std::max(0.001, snr);
+        snr = 20.0f * log10(snr);
+    }
+    m_noiseStdDev = noiseStdDev;
+
+    peak = peak_val;
     Debug.Write(wxString::Format(
-        "CalcPlanetMetrics: signalThreshold=%d, meanSignal=%.1f, meanNoise=%.1f (stddev=%.1f), SNR=%.1f\n",
-        signalThreshold, meanSignal, meanNoise, m_noiseStdDev, m_snr));
+        "CalcPlanetMetrics: signalThreshold=%.1f, meanSignal=%.1f, meanNoise=%.1f (sigma=%.1f), SNR=%.1f\n",
+        signalThreshold, meanSignal, meanNoise, sigma, m_snr));
 }
 
 // Get planetary metrics
@@ -690,7 +588,6 @@ void SolarSystemObject::ShowVisualElements(bool state)
 {
     m_syncLock.Lock();
     m_diskContour.clear();
-    m_surf.inlierPoints.clear();
     m_showVisualElements = state;
     if (state == false)
         m_showMinMaxDiameters = false;
@@ -711,7 +608,6 @@ bool SolarSystemObject::UpdateCaptureState(bool CaptureActive)
                 ShowVisualElements(false);
                 pFrame->pGuider->Reset(false);
             }
-            m_surf.guidingFixationPointValid = false;
             need_update = true;
         }
         else
@@ -829,14 +725,6 @@ void SolarSystemObject::VisualHelper(wxDC& dc, Star primaryStar, double scaleFac
 
         switch (GetPlanetDetectMode())
         {
-        case DETECTION_MODE_SURFACE:
-            // Draw detected surface features
-            dc.SetPen(wxPen(wxColour(230, 0, 0), 2, wxPENSTYLE_SOLID));
-            for (const auto& feature : m_surf.inlierPoints)
-            {
-                dc.DrawCircle(feature.x * scaleFactor, feature.y * scaleFactor, 5);
-            }
-            break;
         case DETECTION_MODE_DISK:
             // Draw contour points in solar/planetary mode
             if (m_diskContour.size())
@@ -1212,7 +1100,7 @@ float SolarSystemObject::FindContourCenter(CircleDescriptor& diskCenter, CircleD
 }
 
 // Find a minimum enclosing circle of the contour and also its center of mass
-void SolarSystemObject::FindCenters(Mat image, const std::vector<Point>& contour, CircleDescriptor& centroid,
+void SolarSystemObject::FindCenters(const Mat& image, const std::vector<Point>& contour, CircleDescriptor& centroid,
                                     CircleDescriptor& circle, std::vector<Point2f>& diskContour, Moments& mu, int minRadius,
                                     int maxRadius)
 {
@@ -1259,15 +1147,6 @@ void SolarSystemObject::FindCenters(Mat image, const std::vector<Point>& contour
 
         // Calculate center of mass based on contour points
         mu = cv::moments(diskContour, false);
-#if 0
-        // Calculate center of mass based on original image masked by the circle
-        Mat maskedImage;
-        Mat mask = Mat::zeros(image.size(), CV_8U);
-        Point center(circle.x, circle.y);
-        cv::circle(mask, center, circle_radius, 255, -1);
-        bitwise_and(image, mask, maskedImage);
-        mu = cv::moments(maskedImage, false);
-#endif
         if (mu.m00 > 0)
         {
             centroid.x = mu.m10 / mu.m00;
@@ -1288,501 +1167,102 @@ void SolarSystemObject::FindCenters(Mat image, const std::vector<Point>& contour
     }
 }
 
-// Calculate position of fixation point
-Point2f SolarSystemObject::calculateCentroid(const std::vector<KeyPoint>& keypoints, Point2f& clickedPoint)
+// Get surface features
+bool SolarSystemObject::GetSurfaceFeatures()
 {
-    // If no clicked point is available, calculate centroid of keypoints
-    if ((clickedPoint.x == 0) || (clickedPoint.y == 0) || (clickedPoint.x > m_frameWidth) || (clickedPoint.y > m_frameHeight))
-    {
-        // Calculate centroid of keypoints to be used as a virtual tracking point
-        Point2f sum(0, 0);
-        for (const auto& kp : keypoints)
-            sum += kp.pt;
-        // Radius affects scaling factor for the Star Profile window
-        m_radius = m_starProfileSize;
-        return Point2f(sum.x / keypoints.size(), sum.y / keypoints.size());
-    }
-    else
-    {
-        // Find closest keypoint to clicked point
-        double minDist = 999999;
-        KeyPoint trackedKeypoint;
-        Point2f closestPoint = Point2f(0, 0);
-        for (const auto& kp : keypoints)
-        {
-            // Calculate distance between clicked point and keypoint but avoid points too close to the edge
-            const int margin = 50;
-            double dist = norm(kp.pt - clickedPoint);
-            if ((dist < minDist) && (kp.pt.x > 50) && (kp.pt.y > 50) && (kp.pt.x < m_frameWidth - 50) &&
-                (kp.pt.y < m_frameHeight - 50))
-            {
-                minDist = dist;
-                trackedKeypoint = kp;
-                closestPoint = kp.pt;
-            }
-        }
-        m_radius = m_starProfileSize;
-        return closestPoint;
-    }
-}
-
-// Function to check for collinearity
-bool SolarSystemObject::areCollinear(const KeyPoint& kp1, const KeyPoint& kp2, const KeyPoint& kp3)
-{
-    double area2 = abs((kp2.pt.x - kp1.pt.x) * (kp3.pt.y - kp1.pt.y) - (kp3.pt.x - kp1.pt.x) * (kp2.pt.y - kp1.pt.y));
-    return area2 < 2.0; // Consider using a relative threshold based on image dimensions
-}
-
-// Function to validate and filter keypoints
-bool SolarSystemObject::validateAndFilterKeypoints(std::vector<KeyPoint>& keypoints, std::vector<KeyPoint>& filteredKeypoints,
-                                                   int maxKeypoints)
-{
-    std::vector<KeyPoint> selectedKeypoints;
-    selectedKeypoints.reserve(keypoints.size());
-    filteredKeypoints.clear();
-
-    // Check for sufficient keypoints (at least 4)
-    if (keypoints.size() < 4)
-    {
-        return false;
-    }
-
-    // Filter coincident points
-    double dist_threshold = HOMOGRAPHY_DIST_THRESHOLD;
-    for (size_t i = 0; i < keypoints.size(); ++i)
-    {
-        bool unique = true;
-        for (size_t j = 0; j < i; ++j)
-        {
-            if (norm(keypoints[i].pt - keypoints[j].pt) < dist_threshold)
-            {
-                unique = false;
-                break;
-            }
-        }
-        if (unique)
-            selectedKeypoints.push_back(keypoints[i]);
-    }
-
-    // Filter collinear points
-    int size = selectedKeypoints.size();
-    for (size_t i = 0; i < size; ++i)
-    {
-        for (size_t j = i + 1; j < size; ++j)
-        {
-            for (size_t k = j + 1; k < size; ++k)
-            {
-                if (areCollinear(selectedKeypoints[i], selectedKeypoints[j], selectedKeypoints[k]))
-                {
-                    selectedKeypoints.erase(selectedKeypoints.begin() + k);
-                    --k; // Adjust index after erasing
-                    --size;
-                }
-            }
-        }
-    }
-
-    // Limit to top N keypoints
-    if (maxKeypoints == 0)
-        maxKeypoints = PT_MAX_SURFACE_FEATURES;
-    maxKeypoints = wxMin(maxKeypoints, (int) selectedKeypoints.size());
-    filteredKeypoints.assign(selectedKeypoints.begin(), selectedKeypoints.begin() + maxKeypoints);
-
-    // Check for sufficient keypoints (at least 4)
-    return (filteredKeypoints.size() < 4) ? false : true;
-}
-
-void SolarSystemObject::Set_minHessian(int value)
-{
-    value = wxMax(PT_MIN_HESSIAN_UI_MIN, wxMin(value, PT_MIN_HESSIAN_UI_MAX));
-    if (m_paramMinHessian != value)
-    {
-        m_paramMinHessian = value;
-        m_surfaceDetectionParamsChanging = true;
-    }
-}
-
-void SolarSystemObject::Set_maxFeatures(int value)
-{
-    value = wxMax(PT_MIN_SURFACE_FEATURES, wxMin(value, PT_MAX_SURFACE_FEATURES));
-    if (m_paramMaxFeatures != value)
-    {
-        m_paramMaxFeatures = value;
-        m_surfaceDetectionParamsChanging = true;
-    }
-}
-
-int SolarSystemObject::Get_minHessian()
-{
-    return wxMax(PT_MIN_HESSIAN_UI_MIN, wxMin(m_paramMinHessian, PT_MIN_HESSIAN_UI_MAX));
-}
-
-// Map the slider value to physical minHessian parameter value using inverse logarithmic scale
-int SolarSystemObject::Get_minHessianPhysical()
-{
-    // Ensure the sensitivity value is within the expected range
-    int uiSensitivityValue = Get_minHessian();
-    uiSensitivityValue = wxMax(PT_MIN_HESSIAN_UI_MIN, wxMin(uiSensitivityValue, PT_MIN_HESSIAN_UI_MAX));
-
-    // Calculate the inverse ratio of the current position to the maximum UI value
-    double ratio = (static_cast<double>(uiSensitivityValue) / static_cast<double>(PT_MIN_HESSIAN_UI_MAX));
-
-    // Apply an inverse logarithmic scale to the ratio
-    double logRatio = log2(1 + (ratio * 1023));
-
-    // Map the logarithmic ratio to the minHessian range inversely
-    int mappedValue = static_cast<int>(PT_MIN_HESSIAN_MAX - ((logRatio / 10.0) * (PT_MIN_HESSIAN_MAX - PT_MIN_HESSIAN_MIN)));
-
-    return mappedValue;
-}
-
-// Detect/track surface features
-bool SolarSystemObject::DetectSurfaceFeatures(Mat image, Point2f& clickedPoint, bool autoSelect)
-{
-    // No detected features yet
+    // No detected features
+    m_remoteData = false;
+    m_detected = false;
     m_detectedFeatures = 0;
+    m_focusSharpness = 0;
+    m_peak = 0;
 
     // Search region for star find is fixed value for surface features tracking
     m_searchRegion = 128;
 
-    // Variance is not known yet
-    m_surf.variance = 0.0;
-
-    // Assume this won't be a reference frame
-    m_surf.isReferenceFrame = false;
-
-    // Enhance local contrast before feature detection
-    m_surf.clahe->apply(image, m_surf.equalized);
-
-    // Create SURF detector
-    int nOctaves = 4;
-    int nOctaveLayers = 2;
-    bool upright = true;
-    bool surfExtended = false;
-    m_surf.surfDetector = SurfFeatureDetector(Get_minHessianPhysical(), nOctaves, nOctaveLayers, surfExtended, upright);
-
-    // Detect keypoints
-    std::vector<KeyPoint> keypoints;
-    m_surf.surfDetector.detect(m_surf.equalized, keypoints);
-
-    // Set locked guiding position when guiding starts
-    if (pFrame->pGuider->IsGuiding())
+    // Check if tracking info is available
+    if (pCamera && pCamera->Connected)
     {
-        if (!m_surf.guidingFixationPointValid && m_surf.referenceKeypoints.size())
+        frameDesc desc;
+        bool bErr = pCamera->GetCaptureDescriptor(&desc);
+        if (!bErr)
         {
-            m_surf.guidingFixationPoint = m_surf.surfaceFixationPoint;
-            m_surf.guidingFixationPointValid = true;
-        }
-    }
-    else
-    {
-        // While not guiding we can still reset the fixation point based on new clicked point or autoselect
-        if (autoSelect || (clickedPoint != m_prevClickedPoint))
-            m_surf.referenceKeypoints.clear();
-        m_surf.guidingFixationPointValid = false;
-    }
-
-    // Exclude keypoints which are too close to frame edges.
-    // When setting the reference frame, we limit keypoints to be further away from the edges.
-    const int edgeMargin = m_surf.referenceKeypoints.size() ? 15 : 30;
-    for (auto it = keypoints.begin(); it != keypoints.end();)
-    {
-        if ((it->pt.x < edgeMargin) || (it->pt.y < edgeMargin) || (it->pt.x > m_frameWidth - edgeMargin) ||
-            (it->pt.y > m_frameHeight - edgeMargin))
-            it = keypoints.erase(it);
-        else
-            ++it;
-    }
-
-    // Limit to top N keypoints
-    int maxKeypoints =
-        wxMin(m_surf.referenceKeypoints.size() ? m_paramMaxFeatures : PT_MAX_SURFACE_FEATURES, (int) keypoints.size());
-    std::vector<KeyPoint> topKeypoints;
-    if (keypoints.size() <= maxKeypoints)
-        topKeypoints = keypoints;
-    else
-    {
-        // Sort keypoints by response and limit to top N
-        std::sort(keypoints.begin(), keypoints.end(),
-                  [](const KeyPoint& a, const KeyPoint& b) { return a.response > b.response; });
-        topKeypoints.assign(keypoints.begin(), keypoints.begin() + maxKeypoints);
-    }
-
-    // Filter keypoints and limit by the maximum number of features
-    if (!validateAndFilterKeypoints(topKeypoints, m_surf.filteredKeypoints, maxKeypoints))
-    {
-        // Indicate insufficient keypoints
-        m_statusMsg = _("No detectable features");
-        Debug.Write("Surface feature tracking: " + m_statusMsg + "\n");
-        return false;
-    }
-
-    // Extract descriptors
-    m_surf.extractor.compute(m_surf.equalized, m_surf.filteredKeypoints, m_surf.descriptors);
-
-    // When reference keypoints are available, filter and validate keypoints
-    if (m_surf.referenceKeypoints.size())
-    {
-        // Match descriptors using FLANN matcher
-        FlannBasedMatcher matcher;
-        std::vector<std::vector<cv::DMatch>> knnMatches;
-        matcher.knnMatch(m_surf.referenceDescriptors, m_surf.descriptors, knnMatches, 2);
-
-        // Lowe's Ratio Test : https://docs.opencv.org/3.4/d5/d6f/tutorial_feature_flann_matcher.html
-        // This helps to ensure that matches are distinct and likely to be correct.
-        std::vector<DMatch> matches;
-        matches.reserve(m_surf.descriptors.rows);
-        const float ratio_thresh = 0.75;
-        for (size_t i = 0; i < knnMatches.size(); i++)
-        {
-            if (knnMatches[i].size() == 2 && knnMatches[i][0].distance < ratio_thresh * knnMatches[i][1].distance)
-                matches.push_back(knnMatches[i][0]);
-        }
-
-        // A minimum number of 4 points is required to find RANSAC homography
-        if (matches.size() < 4)
-        {
-            m_statusMsg = _("Too few matched features");
-            Debug.Write("Surface feature tracking: " + m_statusMsg + "\n");
-            return false;
-        }
-
-        // Extract location of good matches
-        std::vector<Point2f> points1;
-        std::vector<Point2f> points2;
-        points1.reserve(matches.size());
-        points2.reserve(matches.size());
-        for (const DMatch& match : matches)
-        {
-            points1.push_back(m_surf.referenceKeypoints[match.queryIdx].pt);
-            points2.push_back(m_surf.filteredKeypoints[match.trainIdx].pt);
-        }
-
-        // Find homography using RANSAC
-        Mat mask; // This will be filled with the inliers mask
-        double ransacReprojThreshold = HOMOGRAPHY_DIST_THRESHOLD;
-        Mat H = findHomography(points1, points2, CV_RANSAC, ransacReprojThreshold, mask);
-
-        // Use the mask to filter out the outliers
-        Point2f displacement(0, 0);
-        std::vector<DMatch> inlierMatches;
-        std::vector<Point2f> inlierPoints;
-        std::vector<double> distances;
-        inlierMatches.reserve(mask.rows);
-        inlierPoints.reserve(mask.rows);
-        distances.reserve(mask.rows);
-        for (size_t i = 0; i < mask.rows; i++)
-        {
-            if (mask.at<unsigned char>(i))
+            m_detectionTime = desc.time;
+            m_snr = desc.snr;
+            m_mass = desc.mass;
+            m_peak = desc.peak;
+            m_focusSharpness = desc.sharpness;
+            m_surf.variance = desc.dispersion;
+            m_surf.trackingQuality = desc.quality;
+            m_detectedFeatures = desc.features;
+            if (desc.pos.IsValid())
             {
-                auto match = matches[i];
-                inlierMatches.push_back(match);
-                inlierPoints.push_back(m_surf.filteredKeypoints[match.trainIdx].pt);
-
-                // Compute average displacement vector between matched keypoints
-                displacement += m_surf.filteredKeypoints[match.trainIdx].pt - m_surf.referenceKeypoints[match.queryIdx].pt;
-
-                // Calculate distances between matched descriptors
-                double dist = norm(m_surf.referenceKeypoints[match.queryIdx].pt - m_surf.filteredKeypoints[match.trainIdx].pt);
-                distances.push_back(dist);
+                m_radius = desc.radius;
+                m_center_x = desc.pos.X;
+                m_center_y = desc.pos.Y;
+                m_detected = true;
             }
+            m_remoteData = true;
+            pFrame->pStatsWin->UpdatePlanetScore(_T("Dispersion"), m_surf.variance);
+            pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), m_detected ? m_detectedFeatures : 0);
+            return m_detected;
         }
-
-        // Discard if very few inliers were found
-        if (inlierMatches.size() < 4)
-        {
-            m_statusMsg = _("Too few detectable features");
-            Debug.Write("Surface feature tracking: " + m_statusMsg + "\n");
-            return false;
-        }
-
-        // Calculate mean, variance, and score
-        double mean = std::accumulate(distances.begin(), distances.end(), 0.0) / distances.size();
-        m_surf.variance = 0.0;
-        for (double distance : distances)
-        {
-            double delta = distance - mean;
-            m_surf.variance += delta * delta;
-            mean += delta / distances.size(); // Update mean for unbiased estimator
-        }
-        m_surf.variance /= distances.size() - 1; // Adjust for unbiased estimator
-
-        // If variance is too high, fail detection and don't update fixation point
-        if (m_surf.variance > 100)
-        {
-            m_statusMsg = wxString::Format("Dispersion too high (features:%d)", inlierMatches.size());
-            Debug.Write("Surface feature tracking: " + m_statusMsg + "\n");
-            return false;
-        }
-
-        // Compute average displacement Point2f vector between matched keypoints
-        displacement.x /= inlierMatches.size();
-        displacement.y /= inlierMatches.size();
-
-        // Calculate new position based on average displacement vector and virtual tracking point
-        m_surf.surfaceFixationPoint = m_surf.referencePoint + displacement;
-
-        // Compute distance from the locked guiding position
-        double distance =
-            m_surf.guidingFixationPointValid ? norm(m_surf.surfaceFixationPoint - m_surf.guidingFixationPoint) : 0;
-
-        // Estimate tracking quality based on variance
-        if (m_surf.variance <= 1.0)
-        {
-            m_surf.trackingQuality = 1.0;
-        }
-        else
-        {
-            const double k = 0.199715;
-            m_surf.trackingQuality = std::exp(-k * (m_surf.variance - 1.0));
-        }
-        // Adjust tracking accuracy using the maximum permitted distance from the reference frame
-        if (distance >= 100)
-            m_surf.trackingQuality = 0;
-
-        // If variance becomes too high, try to switch to the new reference frame
-        const float varianceThreshold = 16.0;
-        if ((m_surf.variance > varianceThreshold) || m_surfaceDetectionParamsChanging || m_forceReferenceFrameSwitch)
-        {
-            // Switch to red tracking box as a warning sign
-            if (m_surf.trackingQuality < 0.25)
-                m_surf.trackingQuality = 0;
-            m_surfaceDetectionParamsChanging = false;
-
-            // When guiding restrict switching to the new reference frame
-            if (!pFrame->pGuider->IsGuiding() || m_forceReferenceFrameSwitch ||
-                ((distance < 100) && (m_surf.variance < varianceThreshold * 2)))
-            {
-                // Reset flag after trying to switch to the new reference frame
-                m_forceReferenceFrameSwitch = false;
-
-                // When selecting new reference frame, recalculate keypoints and descriptors
-                // without limiting the number of features.
-                validateAndFilterKeypoints(topKeypoints, m_surf.filteredKeypoints, 0);
-
-                // Exclude keypoints which are too close to frame edges.
-                // When setting the reference frame, we limit keypoints to be further away from the edges.
-                const int edgeMargin = 30;
-                for (auto it = m_surf.filteredKeypoints.begin(); it != m_surf.filteredKeypoints.end();)
-                {
-                    if ((it->pt.x < edgeMargin) || (it->pt.y < edgeMargin) || (it->pt.x > m_frameWidth - edgeMargin) ||
-                        (it->pt.y > m_frameHeight - edgeMargin))
-                        it = m_surf.filteredKeypoints.erase(it);
-                    else
-                        ++it;
-                }
-                if (m_surf.filteredKeypoints.size() < 4)
-                {
-                    m_statusMsg = _("Too few detectable features");
-                    Debug.Write("Surface feature tracking: " + m_statusMsg + "\n");
-                    return false;
-                }
-
-                // We must recalculate descriptors for the filtered keypoints
-                m_surf.extractor.compute(m_surf.equalized, m_surf.filteredKeypoints, m_surf.descriptors);
-
-                // Set new reference frame. The new position may not be rather accurate
-                m_surf.referencePoint = m_surf.surfaceFixationPoint;
-                m_surf.referenceKeypoints = m_surf.filteredKeypoints;
-                m_surf.referenceDescriptors = m_surf.descriptors.clone();
-                m_surf.isReferenceFrame = true;
-                Debug.Write("Surface feature tracking: update reference point\n");
-            }
-
-            // Warn user about unstable image
-            if ((m_surf.variance > 100) && pFrame->pGuider->IsGuiding())
-            {
-                Debug.Write(
-                    wxString::Format("Feature matching encountered very large variance (%.1f), position may not be accurate.\n",
-                                     m_surf.variance));
-                pFrame->Alert(_("WARNING: image is not stable, tracking may not be accurate!"), wxICON_WARNING);
-            }
-        }
-
-        // Find the keypoint closest to the surface fixation point
-        KeyPoint *trackedKeypoint = NULL;
-        float trackedPosMinDistance = 999999.0;
-        for (int i = 0; i < m_surf.filteredKeypoints.size(); ++i)
-        {
-            double dist = norm(m_surf.surfaceFixationPoint - m_surf.filteredKeypoints[i].pt);
-            if (dist < trackedPosMinDistance)
-            {
-                trackedPosMinDistance = dist;
-                trackedKeypoint = &m_surf.filteredKeypoints[i];
-            }
-        }
-        m_radius = m_starProfileSize;
-
-        // Save inlier matches for visualization
-        if (VisualElementsEnabled())
-        {
-            m_syncLock.Lock();
-            m_surf.inlierPoints = inlierPoints;
-            m_syncLock.Unlock();
-        }
-
-        // Count detected features
-        m_detectedFeatures = inlierPoints.size();
-
-        // Update stats
-        Debug.Write(
-            wxString::Format("Surface feature tracking: mean=%.1f, variance=%.1f, distance=%.1f, quality=%.1f, features=%d\n",
-                             mean, m_surf.variance, distance, m_surf.trackingQuality, m_detectedFeatures));
-        pFrame->pStatsWin->UpdatePlanetScore(_T("Dispersion"), m_surf.variance);
-    }
-    // Set reference frame keypoints and descriptors
-    else if (m_surf.descriptors.rows > 4)
-    {
-        // Tracking quality is not available yet
-        m_surf.trackingQuality = 0;
-
-        m_surf.referenceKeypoints = m_surf.filteredKeypoints;
-        m_surf.referenceDescriptors = m_surf.descriptors.clone();
-        m_surf.isReferenceFrame = true;
-
-        // Save reference frame centroid
-        m_surf.referencePoint = calculateCentroid(m_surf.filteredKeypoints, clickedPoint);
-        m_surf.surfaceFixationPoint = m_surf.referencePoint;
-
-        // Save reference keypoints for visualization
-        if (VisualElementsEnabled())
-        {
-            m_syncLock.Lock();
-            m_surf.inlierPoints.clear();
-            m_surf.inlierPoints.reserve(m_surf.referenceKeypoints.size());
-            for (const auto& kp : m_surf.referenceKeypoints)
-                m_surf.inlierPoints.push_back(kp.pt);
-            m_syncLock.Unlock();
-        }
-
-        // Count detected features
-        m_detectedFeatures = m_surf.referenceKeypoints.size();
-
-        // Assume no more changes to minHessian until further notice
-        m_surfaceDetectionParamsChanging = false;
-        Debug.Write(wxString::Format("Surface feature tracking: set new reference point, features=%d\n", m_detectedFeatures));
     }
 
-    // Set new object position based on updated centroid
-    m_center_x = m_surf.surfaceFixationPoint.x;
-    m_center_y = m_surf.surfaceFixationPoint.y;
-
-    return true;
+    return false;
 }
 
 // Find orb center using circle matching with contours
-bool SolarSystemObject::FindOrbisCenter(Mat img8, int minRadius, int maxRadius, bool roiActive, Point2f& clickedPoint,
+bool SolarSystemObject::FindOrbisCenter(const Mat& src, int minRadius, int maxRadius, bool roiActive, Point2f& clickedPoint,
                                         Rect& roiRect, bool activeRoiLimits, float distanceRoiMax)
 {
     m_planetaryContourPoints = 0;
     m_planetaryFittingScore = 0;
+    m_remoteData = false;
+    m_focusSharpness = 0;
+    m_peak = 0;
 
-    int LowThreshold = Get_lowThreshold();
-    int HighThreshold = Get_highThreshold();
+    // Check if tracking info is available
+    if (pCamera && pCamera->Connected)
+    {
+        frameDesc desc;
+        bool bErr = pCamera->GetCaptureDescriptor(&desc);
+        if (!bErr)
+        {
+            m_detectionTime = desc.time;
+            m_planetaryContourPoints = desc.features;
+            m_planetaryFittingScore = desc.quality;
+            m_detected = false;
+            m_focusSharpness = desc.sharpness;
+            m_snr = desc.snr;
+            m_mass = desc.mass;
+            m_peak = desc.peak;
+            if (desc.pos.IsValid())
+            {
+                m_detectedFeatures = desc.features;
+                m_radius = desc.radius;
+                SetLimits(desc.minRadius, desc.maxRadius);
+                m_center_x = desc.pos.X;
+                m_center_y = desc.pos.Y;
+                m_detected = true;
+            }
+            pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), m_planetaryContourPoints);
+            pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), m_planetaryFittingScore);
+            m_remoteData = true;
+
+            return m_detected;
+        }
+    }
+
+    // Do slight image blurring to decrease noise impact on results
+    Mat img8;
+    GaussianBlur(src, img8, cv::Size(3, 3), 1.5);
 
     // Apply Canny edge detection
-    Debug.Write(wxString::Format("Start detection of solar system object (roi:%d low_tr=%d,high_tr=%d,minr=%d,maxr=%d)\n",
-                                 roiActive, LowThreshold, HighThreshold, minRadius, maxRadius));
+    int LowThreshold = Get_lowThreshold();
+    int HighThreshold = Get_highThreshold();
+    Debug.Write(wxString::Format("Start disk detection: roi:%d, minr=%d,maxr=%d (low_tr=%d,high_tr=%d)\n",
+        roiActive, minRadius, maxRadius, LowThreshold, HighThreshold));
     Mat edges, dilatedEdges;
     Canny(img8, edges, LowThreshold, HighThreshold, 5, true);
     dilate(edges, dilatedEdges, Mat(), Point(-1, -1), 2);
@@ -1909,16 +1389,13 @@ bool SolarSystemObject::FindOrbisCenter(Mat img8, int minRadius, int maxRadius, 
 }
 
 // Save full 8-bit frame to SER file
-void SolarSystemObject::SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool roiActive, int bppFactor)
+void SolarSystemObject::SaveVideoFrame(const cv::Mat& src, int bppFactor)
 {
-    Mat FullFrame8;
-    if (roiActive)
-        FullFrame.convertTo(FullFrame8, CV_8U, 1.0 / bppFactor);
-    else
-        FullFrame8 = img8;
+    Mat frame8;
+    src.convertTo(frame8, CV_8U, 1.0 / bppFactor);
 
     // Create new SER file on first frame or when frame dimensions change - close previous file first
-    if (!m_SER || !m_SER->IsOpen() || (m_SER->FrameWidth() != FullFrame.cols) || (m_SER->FrameHeight() != FullFrame.rows))
+    if (!m_SER || !m_SER->IsOpen() || (m_SER->FrameWidth() != src.cols) || (m_SER->FrameHeight() != src.rows))
     {
         // Close previous SER file and open a new one
         if (m_SER && m_SER->IsOpen())
@@ -1930,12 +1407,12 @@ void SolarSystemObject::SaveVideoFrame(cv::Mat& FullFrame, cv::Mat& img8, bool r
         // Create new SER file
         wxDateTime dt = wxDateTime::Now();
         const wxString m_serFileName = Debug.GetLogDir() + _("\\") + dt.Format(_T("PHD2_VideoLog_%Y-%m-%d_%H%M%S.ser"));
-        m_SER = new SERFile(m_serFileName, FullFrame8.cols, FullFrame8.rows, _("PHD2"), pCamera->Name, pMount->Name());
+        m_SER = new SERFile(m_serFileName, src.cols, src.rows, _("PHD2"), pCamera->Name, pMount->Name());
         m_SER->Open();
     }
     if (m_SER && m_SER->IsOpen())
     {
-        m_SER->WriteFrame(FullFrame8);
+        m_SER->WriteFrame(frame8);
     }
 }
 
@@ -2101,6 +1578,12 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
     // Check tracking state
     CheckMountTrackingState();
 
+#if defined(FRAME_MONITOR_CAMERA)
+    // Notify client of autoselect attempt
+    if (autoSelect && pCamera && pCamera->Name == FRAME_MONITOR_CAMERA)
+        EvtServer.NotifyAutoSelect();
+#endif
+
     // Skip detection when paused
     if (m_paramDetectionPaused)
     {
@@ -2108,7 +1591,6 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
         m_detected = false;
         m_detectionCounter = 0;
         m_diskContour.clear();
-        m_surf.inlierPoints.clear();
         m_syncLock.Unlock();
         return false;
     }
@@ -2143,7 +1625,6 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
         m_detected = false;
         m_detectionCounter = 0;
         m_diskContour.clear();
-        m_surf.inlierPoints.clear();
         m_syncLock.Unlock();
         return false;
     }
@@ -2181,11 +1662,12 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
     // Save latest frame dimensions
     m_frameWidth = pImage->Size.GetWidth();
     m_frameHeight = pImage->Size.GetHeight();
+    m_detectionTime = -1;
 
     // Save frames to SER file only when guiding is active
     if (GetVideoLogging() && pFrame->pGuider->IsGuiding())
     {
-        SaveVideoFrame(FullFrame, img8, roiActive, bppFactor);
+        SaveVideoFrame(FullFrame, bppFactor);
     }
 
     // ROI current state and limit
@@ -2195,91 +1677,16 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
     bool detectionResult = false;
     try
     {
-        // Do slight image blurring to decrease noise impact on results
-        Mat imgFiltered;
-        GaussianBlur(img8, imgFiltered, cv::Size(3, 3), 1.5);
-
-#ifdef DEVELOPER_MODE
-        // Optional noise suppression filter
-        if (GetNoiseFilterState())
-        {
-            const int d = 10;
-            const double sigmaColor = 5.0;
-            double sigmaSpace = 5.0;
-            Mat filteredImage;
-            bilateralFilter(imgFiltered, filteredImage, d, sigmaColor, sigmaSpace);
-            imgFiltered = filteredImage;
-            Debug.Write(_("Find solar system object: noise filter applied\n"));
-        }
-#endif
-
         // Find object depending on the selected detection mode
         switch (GetPlanetDetectMode())
         {
         case DETECTION_MODE_SURFACE:
-            detectionResult = DetectSurfaceFeatures(imgFiltered, clickedPoint, autoSelect);
-            pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), detectionResult ? m_detectedFeatures : 0);
+            detectionResult = GetSurfaceFeatures();
             break;
         case DETECTION_MODE_DISK:
-            detectionResult = FindOrbisCenter(imgFiltered, minRadius, maxRadius, roiActive, clickedPoint, roiRect,
-                                              activeRoiLimits, distanceRoiMax);
+            detectionResult = FindOrbisCenter(img8, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
             break;
         }
-
-        // Set sub-region for metrics calculation
-        SetMetricsRegion(FullFrame, clickedPoint, detectionResult);
-
-        // Compute image data metrics (snr, peak and mass)
-        if (detectionResult)
-        {
-            switch (GetPlanetDetectMode())
-            {
-            case DETECTION_MODE_SURFACE:
-                CalcSurfaceMetrics(pImage);
-                break;
-            case DETECTION_MODE_DISK:
-                CalcPlanetMetrics(pImage, 15);
-                break;
-            }
-        }
-
-        // Calculate sharpness of the image regardless of detection
-        if (m_measuringSharpnessMode)
-        {
-            m_focusSharpness = CalcSharpness();
-            Debug.Write(wxString::Format("Find solar system object: sharpness=%.1f\n", m_focusSharpness));
-        }
-
-        // Update detection time stats
-        pFrame->pStatsWin->UpdatePlanetDetectionTime(m_SolarSystemObjWatchdog.Time());
-
-        // Notify the server about the detection result
-        if (GetPlanetDetectMode() == DETECTION_MODE_SURFACE)
-            EvtServer.NotifySurfaceDetection(detectionResult, m_detectedFeatures, m_surf.variance, m_surf.trackingQuality,
-                                             m_focusSharpness, m_surf.isReferenceFrame);
-        else
-            EvtServer.NotifyPlanetaryDetection(detectionResult, m_planetaryContourPoints, m_planetaryFittingScore, m_radius);
-
-        if (detectionResult)
-        {
-            m_detected = true;
-            if (m_detectionCounter++ > 3)
-            {
-                // Smooth search region to avoid sudden jumps in star find stats
-                m_searchRegion = cvRound(m_searchRegion * 0.3 + m_prevSearchRegion * 0.7);
-
-                // Forget about the clicked point after a few successful detections
-                m_userLClick = false;
-            }
-            m_prevSearchRegion = m_searchRegion;
-        }
-        if (m_measuringSharpnessMode || detectionResult)
-            m_unknownHFD = false;
-    }
-    catch (const wxString& msg)
-    {
-        POSSIBLY_UNUSED(msg);
-        Debug.Write(wxString::Format("Find solar system object: exception %s\n", msg));
     }
     catch (const cv::Exception& ex)
     {
@@ -2294,6 +1701,47 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
         pFrame->Alert(_("ERROR: unknown exception occurred in solar system object detection"), wxICON_ERROR);
     }
 
+    try
+    {
+        // Compute image data metrics (snr, peak and mass)
+        if (!m_remoteData && detectionResult && (GetPlanetDetectMode() == DETECTION_MODE_DISK))
+            CalcPlanetMetrics(FullFrame, m_center_x, m_center_y, m_radius, 25, m_mass, m_snr, m_peak);
+
+        // Calculate sharpness of the image regardless of detection
+        if (m_measuringSharpnessMode && (m_focusSharpness == 0))
+            m_focusSharpness = CalcSharpness(FullFrame, pImage->FiltMin, pImage->FiltMax);
+        Debug.Write(wxString::Format("Find solar system object: sharpness=%.1f\n", m_focusSharpness));
+    }
+    catch (const cv::Exception& ex)
+    {
+        Debug.Write(wxString::Format("Find solar system object: OpenCV exception %s\n", ex.what()));
+    }
+
+    // Update detection time stats
+    pFrame->pStatsWin->UpdatePlanetDetectionTime(m_detectionTime > 0 ? m_detectionTime : m_SolarSystemObjWatchdog.Time());
+
+    // Notify the server about the detection result
+    if (!m_remoteData && GetPlanetDetectMode() == DETECTION_MODE_DISK)
+    {
+        EvtServer.NotifyPlanetaryDetection(detectionResult, m_planetaryContourPoints, m_planetaryFittingScore, m_radius);
+    }
+
+    if (detectionResult)
+    {
+        m_detected = true;
+        if (m_detectionCounter++ > 3)
+        {
+            // Smooth search region to avoid sudden jumps in star find stats
+            m_searchRegion = cvRound(m_searchRegion * 0.3 + m_prevSearchRegion * 0.7);
+
+            // Forget about the clicked point after a few successful detections
+            m_userLClick = false;
+        }
+        m_prevSearchRegion = m_searchRegion;
+    }
+    if (m_measuringSharpnessMode || detectionResult)
+        m_unknownHFD = false;
+
     // For simulated camera, calculate detection error by comparing with the simulated position
     UpdateDetectionErrorInSimulator(clickedPoint);
 
@@ -2305,7 +1753,6 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
         m_detected = false;
         m_detectionCounter = 0;
         m_diskContour.clear();
-        m_surf.inlierPoints.clear();
     }
     m_roiActive = roiActive;
     m_prevClickedPoint = clickedPoint;

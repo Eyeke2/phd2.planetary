@@ -47,12 +47,42 @@
 
 class ImageFrameServer;
 
+// Image frame header (should be multiple of 4 bytes)
+struct imageFrameHeader
+{
+# define IFLINK_MAGIC 0x46C9A3D0
+# define IFLINK_VERSION 2
+    volatile uint32_t magic;
+    volatile uint16_t version;
+    volatile uint16_t hdrLength;
+    volatile uint32_t dataLength;
+    uint16_t width;
+    uint16_t height;
+    double pixelSize;
+
+    unsigned short detected;
+    unsigned short features;
+    unsigned short radius;
+    unsigned short minRadius;
+    unsigned short maxRadius;
+    unsigned short peak;
+    float centerX;
+    float centerY;
+    float dispersion;
+    float quality;
+    float sharpness;
+    float snr;
+    float mass;
+    float detectionTime;
+};
+
 class ImageFrameClientHandler : public wxEvtHandler
 {
 public:
     ImageFrameClientHandler(wxSocketBase *sock, ImageFrameServer *server);
     ~ImageFrameClientHandler();
 
+    void Destroy();
     void ProcessImage();
     void ReadFrame();
     void OnSocketEvent(wxSocketEvent& event);
@@ -60,19 +90,7 @@ public:
     wxSocketBase *imgSock;
 
 private:
-    // Image frame header (should be multiple of 4 bytes)
-    struct imageFrameHeader
-    {
-# define IFLINK_MAGIC 0x46C9A3D0
-# define IFLINK_VERSION 1
-        volatile uint32_t magic;
-        volatile uint16_t version;
-        volatile uint16_t hdrLength;
-        volatile uint32_t dataLength;
-        uint16_t width;
-        uint16_t height;
-        double pixelSize;
-    } hdr;
+    imageFrameHeader hdr;
 
     char *imgBuffer;
     uint32_t bytesReceived;
@@ -94,12 +112,13 @@ public:
     void StopServer();
     void AddClient(ImageFrameClientHandler *cli, wxSocketBase *sock);
     void RemoveClient(ImageFrameClientHandler *cli);
+    void DestroyClient();
     void StopClient(bool stop);
     bool WaitClientStopped(int msecTimeout);
     bool IsConnected();
     bool IsClientStopping();
     bool IsServerStopping() { return stop_flag; }
-    void AddImageFrame(char *buf, int height, int width, double pixelSize);
+    void AddImageFrame(char *buf, imageFrameHeader& hdr);
     bool GetImageFrame(cv::Mat& frame, bool flush, frameDesc& desc);
 
 private:
@@ -157,13 +176,19 @@ ImageFrameClientHandler::ImageFrameClientHandler(wxSocketBase *sock, ImageFrameS
 
 ImageFrameClientHandler::~ImageFrameClientHandler()
 {
+    delete[] imgBuffer;
+}
+
+void ImageFrameClientHandler::Destroy()
+{
     Disconnect(wxEVT_SOCKET, wxSocketEventHandler(ImageFrameClientHandler::OnSocketEvent), NULL, this);
     if (imgSock)
     {
         imgSock->Destroy();
+        imgSock = nullptr;
     }
     imgServer->RemoveClient(this);
-    delete[] imgBuffer;
+    CallAfter([this]() { delete this; });
 }
 
 void ImageFrameClientHandler::ResetState()
@@ -175,7 +200,12 @@ void ImageFrameClientHandler::ResetState()
 
 void ImageFrameClientHandler::ProcessImage()
 {
-    imgServer->AddImageFrame(imgBuffer, hdr.height, hdr.width, hdr.pixelSize);
+    PHD_Point loc = PHD_Point(hdr.centerX, hdr.centerY);
+    if (!hdr.detected)
+    {
+        loc.Invalidate();
+    }
+    imgServer->AddImageFrame(imgBuffer, hdr);
     wxDateTime now = wxDateTime::UNow();
     wxString cameraName = pCamera ? pCamera->GetStrProperty("name") : wxEmptyString;
     wxString ts = IMAGE_LINK_ID + cameraName + _(": ");
@@ -289,6 +319,13 @@ bool ImageFrameServer::StartServer()
     return true;
 }
 
+void ImageFrameServer::DestroyClient()
+{
+    wxCriticalSectionLocker locker(clientsLock);
+    if (client)
+        client->Destroy();
+}
+
 void ImageFrameServer::StopServer()
 {
     stop_flag = true;
@@ -305,7 +342,7 @@ void ImageFrameServer::StopServer()
         serverSocket = nullptr;
     }
 
-    delete client;
+    DestroyClient();
 }
 
 void ImageFrameServer::StopClient(bool stopping)
@@ -338,14 +375,34 @@ bool ImageFrameServer::WaitClientStopped(int msecTimeout)
     return clientStopping;
 }
 
-void ImageFrameServer::AddImageFrame(char *buf, int height, int width, double pixelSize)
+void ImageFrameServer::AddImageFrame(char *buf, imageFrameHeader& hdr)
 {
     try
     {
-        cv::Mat tmp(height, width, CV_16UC(1), buf);
+        cv::Mat tmp(hdr.height, hdr.width, CV_16UC(1), buf);
         wxCriticalSectionLocker locker(imgLock);
         imgMat = tmp.clone();
-        imgDesc.pixelSize = pixelSize;
+        imgDesc.pos = PHD_Point(hdr.centerX, hdr.centerY);
+        imgDesc.pixelSize = hdr.pixelSize;
+        imgDesc.features = hdr.features;
+        imgDesc.dispersion = hdr.dispersion;
+        imgDesc.quality = hdr.quality;
+        imgDesc.sharpness = hdr.sharpness;
+        imgDesc.snr = hdr.snr;
+        imgDesc.mass = hdr.mass;
+        imgDesc.peak = hdr.peak;
+        imgDesc.time = hdr.detectionTime;
+        imgDesc.minRadius = hdr.minRadius;
+        imgDesc.maxRadius = hdr.maxRadius;
+        if (hdr.detected)
+        {
+
+            imgDesc.radius = hdr.radius;
+        }
+        else
+        {
+            imgDesc.pos.Invalidate();
+        }
     }
     catch (const cv::Exception& e)
     {
@@ -465,8 +522,7 @@ wxThread::ExitCode ImageServerThread::Entry()
         }
         if (imgServer->IsClientStopping())
         {
-            if (imgServer->client)
-                delete imgServer->client;
+            imgServer->DestroyClient();
             imgServer->StopClient(false);
         }
         if (doWait)
@@ -707,6 +763,13 @@ bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const 
     }
 
     return bError;
+}
+
+bool CameraFrameMonitor::GetCaptureDescriptor(void* ptr)
+{
+    frameDesc* desc = static_cast <frameDesc *> (ptr);
+    *desc = m_imgDesc;
+    return false; // No error
 }
 
 void CameraFrameMonitor::SetProperty(const wxString prop, wxString value)

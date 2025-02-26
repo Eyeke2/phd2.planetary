@@ -1070,6 +1070,7 @@ Mount::MOVE_RESULT Mount::MoveOffset(GuiderOffset *ofs, unsigned int moveOptions
         info.decLimited = yMoveResult.limited;
         info.aoPos = GetAoPos();
         const Star& star = pFrame->pGuider->PrimaryStar();
+        info.starPos = PHD_Point(star);
         info.starMass = star.Mass;
         info.starSNR = star.SNR;
         info.starHFD = star.HFD;
