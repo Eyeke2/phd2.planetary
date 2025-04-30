@@ -52,7 +52,7 @@
 # include <wx/txtstrm.h>
 # include <wx/tokenzr.h>
 
-# include "opencv2/opencv.hpp"
+# include <opencv2/opencv.hpp>
 
 // #define SIMDEBUG
 

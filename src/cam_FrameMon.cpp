@@ -37,7 +37,7 @@
 
 #if defined(FRAME_MONITOR_CAMERA)
 
-# include "opencv2/opencv.hpp"
+# include <opencv2/opencv.hpp>
 # include "cam_FrameMon.h"
 # include <wx/socket.h>
 
