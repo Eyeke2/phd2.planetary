@@ -176,11 +176,10 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
         }
 
         // search region bounds
-        int start_x, end_x, start_y, end_y;
-        start_x = wxMax(base_x - searchRegion, minx);
-        end_x = wxMin(base_x + searchRegion, maxx);
-        start_y = wxMax(base_y - searchRegion, miny);
-        end_y = wxMin(base_y + searchRegion, maxy);
+        int start_x = wxMax(base_x - searchRegion, minx);
+        int end_x = wxMin(base_x + searchRegion, maxx);
+        int start_y = wxMax(base_y - searchRegion, miny);
+        int end_y = wxMin(base_y + searchRegion, maxy);
 
         if (end_x <= start_x || end_y <= start_y)
         {

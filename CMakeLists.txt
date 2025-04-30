@@ -825,13 +825,16 @@ elseif(WIN32)
 elseif(UNIX)
 
   add_executable(
-   phd2
-   ${scopes_SRC}
-   ${cam_SRC}
-   ${guiding_SRC}
-   ${phd2_SRC}
-   )
-  target_link_libraries(phd2 X11)
+    phd2
+    ${scopes_SRC}
+    ${cam_SRC}
+    ${guiding_SRC}
+    ${phd2_SRC}
+  )
+
+  find_package( OpenCV REQUIRED )
+
+  target_link_libraries(phd2 X11 ${OpenCV_LIBS})
 
   set_target_properties(
     phd2
