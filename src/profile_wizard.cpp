@@ -74,6 +74,7 @@ private:
 
     // wx UI controls
     wxBoxSizer *m_pvSizer;
+    wxBoxSizer *m_instrSizer;
     wxStaticBitmap *m_bitmap;
     wxStaticText *m_pInstructions;
     wxStaticText *m_pGearLabel;
@@ -171,6 +172,14 @@ wxEND_EVENT_TABLE();
 
 static const int DialogWidth = 425;
 static const int TextWrapPoint = 400;
+#if defined(__WINDOWS__)
+# define GetSystemDpiScale() (wxMax(GetDpiForWindow(GetHWND()), 96) / 96.0f)
+# define DPI_SCALE(x) (x * dpiScale)
+#else
+# define GetSystemDpiScale() 1.0f
+# define DPI_SCALE(x) (x)
+#endif
+
 // Help text heights - "tall" is for greetings page, "normal" is for gear selection panels
 static const int TallHelpHeight = 150;
 static const int NormalHelpHeight = 85;
@@ -224,26 +233,32 @@ ProfileWizard::ProfileWizard(wxWindow *parent, bool showGreeting)
     m_bitmaps[STATE_AO] = new wxBitmap(ao_xpm);
     m_bitmaps[STATE_ROTATOR] = new wxBitmap(phd2);
 
+    // Windows DPI graphics scaling factor
+    const float dpiScale = GetSystemDpiScale();
+
     // Build the superset of UI controls, minus state-specific labels and data
     // User instructions at top
-    wxBoxSizer *instrSizer = new wxBoxSizer(wxHORIZONTAL);
-    m_bitmap = new wxStaticBitmap(this, wxID_ANY, *m_bitmaps[STATE_GREETINGS], wxDefaultPosition, wxSize(55, 55));
-    instrSizer->Add(m_bitmap, 0, wxALIGN_CENTER_VERTICAL | wxFIXED_MINSIZE, 5);
-
-    m_pInstructions = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(DialogWidth, 75),
-                                       wxALIGN_LEFT | wxST_NO_AUTORESIZE);
+    m_instrSizer = new wxBoxSizer(wxHORIZONTAL);
+    m_bitmap = new wxStaticBitmap(this, wxID_ANY, *m_bitmaps[STATE_GREETINGS], wxDefaultPosition,
+                                  wxSize(DPI_SCALE(55), DPI_SCALE(55)));
+    m_pInstructions =
+        new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(DPI_SCALE(DialogWidth), -1), wxALIGN_LEFT);
     wxFont font = m_pInstructions->GetFont();
     font.SetWeight(wxFONTWEIGHT_BOLD);
     m_pInstructions->SetFont(font);
-    instrSizer->Add(m_pInstructions, wxSizerFlags().Border(wxALL, 10));
-    m_pvSizer->Add(instrSizer);
+    wxBoxSizer *txtSizer = new wxBoxSizer(wxVERTICAL);
+    txtSizer->Add(m_pInstructions, 0, wxALL | wxALIGN_CENTER, DPI_SCALE(10));
+    m_instrSizer->Add(m_bitmap, 0, wxALIGN_CENTER_VERTICAL | wxFIXED_MINSIZE, DPI_SCALE(5));
+    m_instrSizer->Add(txtSizer, 0, wxALIGN_CENTER_VERTICAL, DPI_SCALE(10));
+    m_pvSizer->Add(m_instrSizer);
 
     // Verbose help block
     m_pHelpGroup = new wxStaticBoxSizer(wxVERTICAL, this, _("More Info"));
-    m_pHelpText = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(DialogWidth, -1));
+    m_pHelpText = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(DPI_SCALE(DialogWidth), -1));
     // Vertical sizing of help text will be handled in state machine
     m_pHelpGroup->Add(m_pHelpText, wxSizerFlags().Border(wxLEFT, 10).Border(wxBOTTOM, 10));
     m_pvSizer->Add(m_pHelpGroup, wxSizerFlags().Border(wxALL, 5));
+    m_pvSizer->AddSpacer(DPI_SCALE(10));
 
     // Status bar for error messages
     m_pStatusBar = new wxStatusBar(this, -1);
@@ -252,15 +267,16 @@ ProfileWizard::ProfileWizard(wxWindow *parent, bool showGreeting)
     // Gear label and combo box
     m_pGearGrid = new wxFlexGridSizer(2, 2, 5, 15);
     m_pGearLabel = new wxStaticText(this, wxID_ANY, "Temp:", wxDefaultPosition, wxDefaultSize);
-    m_pGearChoice = new wxChoice(this, ID_COMBO, wxDefaultPosition, wxSize(265, -1), GuideCamera::GuideCameraList(), 0,
+    m_pGearChoice = new wxChoice(this, ID_COMBO, wxDefaultPosition, wxDefaultSize, GuideCamera::GuideCameraList(), 0,
                                  wxDefaultValidator, _("Gear"));
+    m_pGearChoice->SetMaxSize(wxSize(DPI_SCALE(350), -1));
     m_pGearGrid->Add(m_pGearLabel, 1, wxALIGN_LEFT);
-    m_pGearGrid->Add(m_pGearChoice, 1, wxLEFT, 20);
+    m_pGearGrid->Add(m_pGearChoice, 1, wxLEFT, DPI_SCALE(20));
     m_pDeviceLabel = new wxStaticText(this, wxID_ANY, _("Device Id:"), wxDefaultPosition, wxDefaultSize);
     m_pDeviceId = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize);
     m_pGearGrid->Add(m_pDeviceLabel, 1, wxALIGN_LEFT);
-    m_pGearGrid->Add(m_pDeviceId, 1, wxLEFT, 20);
-    m_pvSizer->Add(m_pGearGrid, wxSizerFlags().Border(wxLEFT, 65));
+    m_pGearGrid->Add(m_pDeviceId, 1, wxLEFT, DPI_SCALE(20));
+    m_pvSizer->Add(m_pGearGrid, wxSizerFlags().Border(wxLEFT, DPI_SCALE(65)));
 
     m_pUserProperties = new wxGridBagSizer(6, 6);
     // Pixel-size
@@ -354,7 +370,7 @@ ProfileWizard::ProfileWizard(wxWindow *parent, bool showGreeting)
 
     // Wrapup panel
     m_pWrapUp = new wxFlexGridSizer(2, 2, 5, 15);
-    m_pProfileName = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(250, -1));
+    m_pProfileName = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(DPI_SCALE(250), -1));
     m_pLaunchDarks = new wxCheckBox(this, wxID_ANY, _("Build dark library"));
     m_pLaunchDarks->SetValue(m_launchDarks);
     m_pLaunchDarks->SetToolTip(_("Check this to automatically start the process of building a dark library for this profile."));
@@ -492,12 +508,16 @@ void ProfileWizard::ShowHelp(DialogState state)
         break;
     }
 
-    // Need to do it this way to handle 125% font scaling in Windows accessibility
-    m_pHelpText = new wxStaticText(this, wxID_ANY, hText, wxDefaultPosition, wxSize(DialogWidth, -1));
-    m_pHelpText->Wrap(TextWrapPoint);
+    // Windows DPI graphics scaling factor
+    const float dpiScale = GetSystemDpiScale();
+
+    // Need to do it this way to handle any font scaling in Windows accessibility
+    m_pHelpText = new wxStaticText(this, wxID_ANY, hText, wxDefaultPosition, wxSize(DPI_SCALE(DialogWidth), -1));
+    m_pHelpText->Wrap(DPI_SCALE(TextWrapPoint));
     m_pHelpGroup->Clear(true);
     m_pHelpGroup->Add(m_pHelpText, wxSizerFlags().Border(wxLEFT, 10).Border(wxBOTTOM, 10).Expand());
-    m_pHelpGroup->Layout();
+
+    m_pvSizer->Layout();
     SetSizerAndFit(m_pvSizer);
 }
 
@@ -717,6 +737,9 @@ static int RangeCheck(int thisval)
 // State machine manager.  Layout and content of dialog panel will be changed here based on state.
 void ProfileWizard::UpdateState(const int change)
 {
+    // Windows DPI graphics scaling factor
+    const float dpiScale = GetSystemDpiScale();
+
     wxSpinDoubleEvent dummyEvt;
     ShowStatus(wxEmptyString);
     if (SemanticCheck(m_State, change))
@@ -743,8 +766,7 @@ void ProfileWizard::UpdateState(const int change)
             m_pMountProperties->Show(false);
             m_pWrapUp->Show(false);
             m_pInstructions->SetLabel(_("Welcome to the PHD2 'first light' wizard"));
-            m_pHelpText->SetSizeHints(wxSize(-1, TallHelpHeight));
-            SetSizerAndFit(m_pvSizer);
+            m_pHelpText->SetSizeHints(wxSize(-1, DPI_SCALE(TallHelpHeight)));
             break;
         case STATE_CAMERA:
             SetTitle(TitlePrefix + _("Choose a Guide Camera"));
@@ -761,10 +783,8 @@ void ProfileWizard::UpdateState(const int change)
             m_pUserProperties->Show(true);
             m_pMountProperties->Show(false);
             m_pWrapUp->Show(false);
-            m_pHelpText->SetSizeHints(wxSize(-1, NormalHelpHeight));
-            SetSizerAndFit(m_pvSizer);
+            m_pHelpText->SetSizeHints(wxSize(-1, DPI_SCALE(NormalHelpHeight)));
             m_pInstructions->SetLabel(_("Select your guide camera and specify the optical properties of your guiding setup"));
-            m_pInstructions->Wrap(TextWrapPoint);
             OnFocalLengthChange(dummyEvt); // Control visibility of focal length warning message
             break;
         case STATE_MOUNT:
@@ -866,7 +886,6 @@ void ProfileWizard::UpdateState(const int change)
                 _("Enter a name for your profile and optionally launch the process to build a dark library"));
             m_pAutoRestore->Show(m_PositionAware || m_SelectedAuxMount != _("None"));
             m_pAutoRestore->SetValue(m_autoRestore);
-            SetSizerAndFit(m_pvSizer);
             break;
         case STATE_DONE:
             WrapUp();
@@ -874,6 +893,7 @@ void ProfileWizard::UpdateState(const int change)
         }
     }
 
+    m_pInstructions->Wrap(DPI_SCALE(TextWrapPoint));
     ShowHelp(m_State);
 }
 
@@ -1463,14 +1483,14 @@ void ProfileWizard::OnPrev(wxCommandEvent& evt)
 ConnectDialog::ConnectDialog(ProfileWizard *parent, ProfileWizard::DialogState currState)
     : wxDialog(parent, wxID_ANY, _("Ask About Connection"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
 {
-    static const int DialogWidth = 425;
-    static const int TextWrapPoint = 400;
+    // Windows DPI graphics scaling factor
+    const float dpiScale = GetSystemDpiScale();
 
     m_Parent = parent;
     wxBoxSizer *vSizer = new wxBoxSizer(wxVERTICAL);
     // Expanded explanations
-    m_Instructions = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(DialogWidth, 95),
-                                      wxALIGN_LEFT | wxST_NO_AUTORESIZE);
+    m_Instructions = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                                      wxSize(DPI_SCALE(DialogWidth), DPI_SCALE(95)), wxALIGN_LEFT | wxST_NO_AUTORESIZE);
     switch (currState)
     {
     case ProfileWizard::STATE_CAMERA:
@@ -1501,7 +1521,7 @@ ConnectDialog::ConnectDialog(ProfileWizard *parent, ProfileWizard::DialogState c
     default:
         break;
     }
-    m_Instructions->Wrap(TextWrapPoint);
+    m_Instructions->Wrap(DPI_SCALE(TextWrapPoint));
 
     vSizer->Add(m_Instructions, wxSizerFlags().Border(wxALL, 10));
 
