@@ -197,6 +197,7 @@ enum
 wxBEGIN_EVENT_TABLE(GuiderMultiStar, Guider)
     EVT_PAINT(GuiderMultiStar::OnPaint)
     EVT_LEFT_DOWN(GuiderMultiStar::OnLClick)
+    EVT_RIGHT_DOWN(GuiderMultiStar::OnRClick)
 wxEND_EVENT_TABLE();
 // clang-format on
 
@@ -1200,6 +1201,16 @@ void GuiderMultiStar::OnLClick(wxMouseEvent& mevent)
     catch (const wxString& Msg)
     {
         POSSIBLY_UNUSED(Msg);
+    }
+}
+
+void GuiderMultiStar::OnRClick(wxMouseEvent& mevent)
+{
+    if (GetState() <= STATE_SELECTED)
+    {
+        ShiftPoint pos = pFrame->pGuider->LockPosition();
+        if (pos.IsValid())
+            pFrame->pGuider->SetLockPosToStarAtPosition(pos);
     }
 }
 

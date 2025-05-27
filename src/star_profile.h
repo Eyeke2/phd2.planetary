@@ -45,6 +45,7 @@ public:
     void OnPaint(wxPaintEvent& evt);
     void SetState(bool is_active);
     void OnLClick(wxMouseEvent& evt);
+    void OnRClick(wxMouseEvent& evt);
     void OnMouseWheel(wxMouseEvent& evt);
 
 private:
