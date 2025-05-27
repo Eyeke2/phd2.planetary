@@ -34,7 +34,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PHD2 2.6.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-14 21:21+0300\n"
+"POT-Creation-Date: 2025-05-27 15:08+0300\n"
 "PO-Revision-Date: 2024-04-12 13:48+0800\n"
 "Last-Translator: Tsung-Chi Wu <tc.wooo@gmail.com>\n"
 "Language-Team: 天體暨宇宙事件攝影觀測聯萌 <tc.wooo@gmail.com>\n"
@@ -1244,7 +1244,7 @@ msgid "Failed to get camera resolution for Altair Camera."
 msgstr "無法取得 Altair 相機的解析度數值。"
 
 #: cam_ascom.cpp:361 cam_ascom.cpp:384 cam_firewire_IC.cpp:412
-#: cam_FrameMon.cpp:733 cam_indi.cpp:897 cam_indi.cpp:931 cam_opencv.cpp:144
+#: cam_FrameMon.cpp:737 cam_indi.cpp:897 cam_indi.cpp:931 cam_opencv.cpp:144
 #: gear_simulator.cpp:765 gear_simulator.cpp:1530 gear_simulator.cpp:1580
 #: gear_simulator.cpp:1868 image_math.cpp:85 image_math.cpp:620
 msgid "Memory allocation error"
@@ -4467,76 +4467,76 @@ msgstr ""
 msgid "Are you sure you want to delete all Bookmarks?"
 msgstr "你是否要將所有書籤刪除?"
 
-#: guider_multistar.cpp:406 guider_multistar.cpp:944
+#: guider_multistar.cpp:407 guider_multistar.cpp:945
 msgid "No star selected"
 msgstr "未選擇任何星點"
 
-#: guider_multistar.cpp:411
+#: guider_multistar.cpp:412
 msgid "Star lost - low SNR"
 msgstr "星點遺失 - 低訊噪比"
 
-#: guider_multistar.cpp:413
+#: guider_multistar.cpp:414
 msgid "Star lost - low mass"
 msgstr "星點遺失 - 低星點質心"
 
-#: guider_multistar.cpp:415
+#: guider_multistar.cpp:416
 msgid "Star lost - low HFD"
 msgstr "星點遺失 - 低 HFD"
 
-#: guider_multistar.cpp:417
+#: guider_multistar.cpp:418
 msgid "Star too near edge"
 msgstr "星點太接近影像邊緣"
 
-#: guider_multistar.cpp:419
+#: guider_multistar.cpp:420
 msgid "Star lost - mass changed"
 msgstr "星點遺失 - 質心改變"
 
-#: guider_multistar.cpp:421 guider_multistar.cpp:1182
+#: guider_multistar.cpp:422 guider_multistar.cpp:1172
 msgid "No star found"
 msgstr "未找到可用星點"
 
-#: guider_multistar.cpp:427
+#: guider_multistar.cpp:428
 #, c-format
 msgid "m=%.0f SNR=%.1f"
 msgstr "m=%.0f SNR=%.1f"
 
-#: guider_multistar.cpp:430
+#: guider_multistar.cpp:431
 msgid "Saturated"
 msgstr "亮度太高"
 
-#: guider_multistar.cpp:440
+#: guider_multistar.cpp:441
 #, c-format
 msgid "Exp=%0.1f s"
 msgstr "曝光=%0.1f s"
 
-#: guider_multistar.cpp:442
+#: guider_multistar.cpp:443
 #, c-format
 msgid "Exp=%d ms"
 msgstr "曝光=%d ms"
 
-#: guider_multistar.cpp:522
+#: guider_multistar.cpp:523
 #, c-format
 msgid "Auto-selected star at (%.1f, %.1f)"
 msgstr "自動選擇在 (%.1f, %.1f) 的星體"
 
-#: guider_multistar.cpp:990
+#: guider_multistar.cpp:991
 #, c-format
 msgid "Mass: %.f vs %.f"
 msgstr "質心：%.f vs %.f"
 
-#: guider_multistar.cpp:1028
+#: guider_multistar.cpp:1029
 msgid "Recovering"
 msgstr "回復中"
 
-#: guider_multistar.cpp:1194
+#: guider_multistar.cpp:1184
 msgid "object"
 msgstr ""
 
-#: guider_multistar.cpp:1194
+#: guider_multistar.cpp:1184
 msgid "star"
 msgstr ""
 
-#: guider_multistar.cpp:1196
+#: guider_multistar.cpp:1186
 #, c-format
 msgid "Selected %s at (%.1f, %.1f)"
 msgstr ""
@@ -7114,45 +7114,45 @@ msgstr ""
 msgid "Object at (%.1f, %.1f) radius=%d"
 msgstr ""
 
-#: planetary.cpp:971
+#: planetary.cpp:987
 msgid "RefineDiskCenter: failed to start a thread\n"
 msgstr ""
 
-#: planetary.cpp:1285
+#: planetary.cpp:1299
 msgid ""
 "Too many contour points detected. Please apply pixel binning, enable ROI, or "
 "increase the Edge Detection Threshold."
 msgstr ""
 
-#: planetary.cpp:1409
+#: planetary.cpp:1423
 msgid "\\"
 msgstr ""
 
-#: planetary.cpp:1410
+#: planetary.cpp:1424
 msgid "PHD2"
 msgstr ""
 
-#: planetary.cpp:1473 planetary_tool.cpp:529 scope.cpp:339
+#: planetary.cpp:1487 planetary_tool.cpp:529 scope.cpp:339
 msgid "INDI Mount"
 msgstr "INDI 赤道儀"
 
-#: planetary.cpp:1576
+#: planetary.cpp:1590
 msgid "Object not found"
 msgstr ""
 
-#: planetary.cpp:1622
+#: planetary.cpp:1636
 msgid ""
 "ERROR: camera frame size exceeds maximum limit. Please apply binning to "
 "reduce the frame size."
 msgstr ""
 
-#: planetary.cpp:1695
+#: planetary.cpp:1709
 msgid ""
 "ERROR: exception occurred during image processing: change detection "
 "parameters"
 msgstr ""
 
-#: planetary.cpp:1701
+#: planetary.cpp:1715
 msgid "ERROR: unknown exception occurred in solar system object detection"
 msgstr ""
 
@@ -8763,49 +8763,49 @@ msgstr "連接新伺服器"
 msgid "Lock set to %d,%d"
 msgstr "鎖定設定為 %d,%d"
 
-#: star_profile.cpp:53
+#: star_profile.cpp:54
 msgid "Profile"
 msgstr "配置檔案"
 
-#: star_profile.cpp:202
+#: star_profile.cpp:213
 msgid "HFD: "
 msgstr "HFD: "
 
-#: star_profile.cpp:257
+#: star_profile.cpp:268
 msgid "Mid row"
 msgstr "Mid row"
 
-#: star_profile.cpp:261
+#: star_profile.cpp:272
 msgid "Avg row"
 msgstr "Avg row"
 
-#: star_profile.cpp:265
+#: star_profile.cpp:276
 msgid "Avg col"
 msgstr "Avg col"
 
-#: star_profile.cpp:375
+#: star_profile.cpp:386
 msgid "Click image for raw view"
 msgstr "點擊影像以檢視 RAW 內容"
 
-#: star_profile.cpp:380
+#: star_profile.cpp:391
 msgid "Click image for interpolated view"
 msgstr "點擊影像以檢視影像內插內容"
 
-#: star_profile.cpp:412
+#: star_profile.cpp:423
 msgid "Peak"
 msgstr "峰值"
 
-#: star_profile.cpp:418
+#: star_profile.cpp:429
 #, c-format
 msgid "%s FWHM: %.2f"
 msgstr "%s FWHM: %.2f"
 
-#: star_profile.cpp:464
+#: star_profile.cpp:475
 #, c-format
 msgid "%s FWHM: %.2f, %s%.2f (%.2f\")"
 msgstr ""
 
-#: star_profile.cpp:467
+#: star_profile.cpp:478
 #, c-format
 msgid "%s; %s%.2f"
 msgstr ""

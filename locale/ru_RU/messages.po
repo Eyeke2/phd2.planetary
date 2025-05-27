@@ -35,7 +35,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: open-phd-guiding 2.3.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-14 21:21+0300\n"
+"POT-Creation-Date: 2025-05-27 15:08+0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Konstantin Menshikoff <konstantin.menshikoff@gmail.com>\n"
 "Language-Team: \n"
@@ -1229,7 +1229,7 @@ msgid "Failed to get camera resolution for Altair Camera."
 msgstr "Сбой установки разрешения для камеры Altair"
 
 #: cam_ascom.cpp:361 cam_ascom.cpp:384 cam_firewire_IC.cpp:412
-#: cam_FrameMon.cpp:733 cam_indi.cpp:897 cam_indi.cpp:931 cam_opencv.cpp:144
+#: cam_FrameMon.cpp:737 cam_indi.cpp:897 cam_indi.cpp:931 cam_opencv.cpp:144
 #: gear_simulator.cpp:765 gear_simulator.cpp:1530 gear_simulator.cpp:1580
 #: gear_simulator.cpp:1868 image_math.cpp:85 image_math.cpp:620
 msgid "Memory allocation error"
@@ -4533,76 +4533,76 @@ msgstr ""
 msgid "Are you sure you want to delete all Bookmarks?"
 msgstr "Вы уверены, что хотите удалить все закладки?"
 
-#: guider_multistar.cpp:406 guider_multistar.cpp:944
+#: guider_multistar.cpp:407 guider_multistar.cpp:945
 msgid "No star selected"
 msgstr "Звезда не выбрана"
 
-#: guider_multistar.cpp:411
+#: guider_multistar.cpp:412
 msgid "Star lost - low SNR"
 msgstr "Звезда потеряна - низкое соотношение сигнал/шум"
 
-#: guider_multistar.cpp:413
+#: guider_multistar.cpp:414
 msgid "Star lost - low mass"
 msgstr "Звезда потеряна из-за слабой величины"
 
-#: guider_multistar.cpp:415
+#: guider_multistar.cpp:416
 msgid "Star lost - low HFD"
 msgstr "Звезда потеняна - низкий HFD"
 
-#: guider_multistar.cpp:417
+#: guider_multistar.cpp:418
 msgid "Star too near edge"
 msgstr "Звезда слишком близка к краю"
 
-#: guider_multistar.cpp:419
+#: guider_multistar.cpp:420
 msgid "Star lost - mass changed"
 msgstr "Звезда потеряна из-за изменения величины"
 
-#: guider_multistar.cpp:421 guider_multistar.cpp:1182
+#: guider_multistar.cpp:422 guider_multistar.cpp:1172
 msgid "No star found"
 msgstr "Звезда не найдена"
 
-#: guider_multistar.cpp:427
+#: guider_multistar.cpp:428
 #, c-format
 msgid "m=%.0f SNR=%.1f"
 msgstr "m=%.0f сигнал/шум=%.1f"
 
-#: guider_multistar.cpp:430
+#: guider_multistar.cpp:431
 msgid "Saturated"
 msgstr "Пересвечено"
 
-#: guider_multistar.cpp:440
+#: guider_multistar.cpp:441
 #, c-format
 msgid "Exp=%0.1f s"
 msgstr "Эксп=%0.1f s"
 
-#: guider_multistar.cpp:442
+#: guider_multistar.cpp:443
 #, c-format
 msgid "Exp=%d ms"
 msgstr "Эксп=%d ms"
 
-#: guider_multistar.cpp:522
+#: guider_multistar.cpp:523
 #, c-format
 msgid "Auto-selected star at (%.1f, %.1f)"
 msgstr "Звезда выбрана автоматически (%.1f, %.1f)"
 
-#: guider_multistar.cpp:990
+#: guider_multistar.cpp:991
 #, c-format
 msgid "Mass: %.f vs %.f"
 msgstr "Величина: %.f vs %.f"
 
-#: guider_multistar.cpp:1028
+#: guider_multistar.cpp:1029
 msgid "Recovering"
 msgstr "Восстановление"
 
-#: guider_multistar.cpp:1194
+#: guider_multistar.cpp:1184
 msgid "object"
 msgstr ""
 
-#: guider_multistar.cpp:1194
+#: guider_multistar.cpp:1184
 msgid "star"
 msgstr ""
 
-#: guider_multistar.cpp:1196
+#: guider_multistar.cpp:1186
 #, c-format
 msgid "Selected %s at (%.1f, %.1f)"
 msgstr ""
@@ -7254,45 +7254,45 @@ msgstr ""
 msgid "Object at (%.1f, %.1f) radius=%d"
 msgstr ""
 
-#: planetary.cpp:971
+#: planetary.cpp:987
 msgid "RefineDiskCenter: failed to start a thread\n"
 msgstr ""
 
-#: planetary.cpp:1285
+#: planetary.cpp:1299
 msgid ""
 "Too many contour points detected. Please apply pixel binning, enable ROI, or "
 "increase the Edge Detection Threshold."
 msgstr ""
 
-#: planetary.cpp:1409
+#: planetary.cpp:1423
 msgid "\\"
 msgstr ""
 
-#: planetary.cpp:1410
+#: planetary.cpp:1424
 msgid "PHD2"
 msgstr ""
 
-#: planetary.cpp:1473 planetary_tool.cpp:529 scope.cpp:339
+#: planetary.cpp:1487 planetary_tool.cpp:529 scope.cpp:339
 msgid "INDI Mount"
 msgstr "Монтировка INDI"
 
-#: planetary.cpp:1576
+#: planetary.cpp:1590
 msgid "Object not found"
 msgstr ""
 
-#: planetary.cpp:1622
+#: planetary.cpp:1636
 msgid ""
 "ERROR: camera frame size exceeds maximum limit. Please apply binning to "
 "reduce the frame size."
 msgstr ""
 
-#: planetary.cpp:1695
+#: planetary.cpp:1709
 msgid ""
 "ERROR: exception occurred during image processing: change detection "
 "parameters"
 msgstr ""
 
-#: planetary.cpp:1701
+#: planetary.cpp:1715
 msgid "ERROR: unknown exception occurred in solar system object detection"
 msgstr ""
 
@@ -8948,49 +8948,49 @@ msgstr "Новое соединение с сервером"
 msgid "Lock set to %d,%d"
 msgstr "Задать выбор %d %d"
 
-#: star_profile.cpp:53
+#: star_profile.cpp:54
 msgid "Profile"
 msgstr "Профиль"
 
-#: star_profile.cpp:202
+#: star_profile.cpp:213
 msgid "HFD: "
 msgstr "HFD:"
 
-#: star_profile.cpp:257
+#: star_profile.cpp:268
 msgid "Mid row"
 msgstr "Средн."
 
-#: star_profile.cpp:261
+#: star_profile.cpp:272
 msgid "Avg row"
 msgstr "Ср. строка"
 
-#: star_profile.cpp:265
+#: star_profile.cpp:276
 msgid "Avg col"
 msgstr "Ср. столбец"
 
-#: star_profile.cpp:375
+#: star_profile.cpp:386
 msgid "Click image for raw view"
 msgstr ""
 
-#: star_profile.cpp:380
+#: star_profile.cpp:391
 msgid "Click image for interpolated view"
 msgstr ""
 
-#: star_profile.cpp:412
+#: star_profile.cpp:423
 msgid "Peak"
 msgstr "Пик"
 
-#: star_profile.cpp:418
+#: star_profile.cpp:429
 #, c-format
 msgid "%s FWHM: %.2f"
 msgstr "%s полуширина: %2f"
 
-#: star_profile.cpp:464
+#: star_profile.cpp:475
 #, c-format
 msgid "%s FWHM: %.2f, %s%.2f (%.2f\")"
 msgstr ""
 
-#: star_profile.cpp:467
+#: star_profile.cpp:478
 #, c-format
 msgid "%s; %s%.2f"
 msgstr ""
