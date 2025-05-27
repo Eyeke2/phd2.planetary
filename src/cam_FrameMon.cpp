@@ -679,9 +679,9 @@ bool CameraFrameMonitor::Disconnect()
 bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const wxRect& subframe)
 {
     bool bError = false;
+    frameDesc imgDesc;
     wxStopWatch swatch;
 
-    m_imgDesc = frameDesc();
     try
     {
         cv::Mat image;
@@ -700,10 +700,14 @@ bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const 
             {
                 connected = m_imageServer->IsConnected();
                 double oldPixelSize = pCamera ? pCamera->GetCameraPixelSize() : 0;
-                if (m_imageServer->GetImageFrame(image, !paused, m_imgDesc))
+                if (m_imageServer->GetImageFrame(image, !paused, imgDesc))
                 {
                     if (pCamera && m_imgDesc.pixelSize != oldPixelSize && m_imgDesc.pixelSize != UnknownPixelSize)
                         pCamera->SetCameraPixelSize(m_imgDesc.pixelSize);
+                }
+                {
+                    wxMutexLocker lck(m_lock);
+                    m_imgDesc = imgDesc;
                 }
                 PutServer();
             }
@@ -767,7 +771,8 @@ bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const 
 
 bool CameraFrameMonitor::GetCaptureDescriptor(void* ptr)
 {
-    frameDesc* desc = static_cast <frameDesc *> (ptr);
+    frameDesc *desc = static_cast<frameDesc *>(ptr);
+    wxMutexLocker lck(m_lock);
     *desc = m_imgDesc;
     return false; // No error
 }
