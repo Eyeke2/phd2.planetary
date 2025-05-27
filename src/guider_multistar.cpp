@@ -1163,18 +1163,7 @@ void GuiderMultiStar::OnLClick(wxMouseEvent& mevent)
             double StarX = (double) mevent.m_x / scaleFactor;
             double StarY = (double) mevent.m_y / scaleFactor;
 
-            if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
-            {
-                m_SolarSystemObject.m_clicked_x = wxMin(StarX, pImage->Size.GetWidth() - 1);
-                m_SolarSystemObject.m_clicked_y = wxMin(StarY, pImage->Size.GetHeight() - 1);
-                m_SolarSystemObject.m_userLClick = true;
-                m_SolarSystemObject.m_detectionCounter = 0;
-#if defined(FRAME_MONITOR_CAMERA)
-                if (pCamera && (pCamera->Name == FRAME_MONITOR_CAMERA) && pCamera->Connected)
-                    EvtServer.NotifyMouseClick(PHD_Point(StarX, StarY));
-#endif
-            }
-
+            m_SolarSystemObject.OnLClick(pImage, StarX, StarY);
             SetCurrentPosition(pImage, PHD_Point(StarX, StarY));
 
             if (!m_primaryStar.IsValid())

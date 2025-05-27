@@ -639,6 +639,22 @@ void SolarSystemObject::NotifyCameraConnect(bool connected)
     m_userLClick = false;
 }
 
+// Notification callback when user clicks on the image
+void SolarSystemObject::OnLClick(usImage *pImage, double x, double y)
+{
+    if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+    {
+        m_clicked_x = wxMin(x, pImage->Size.GetWidth() - 1);
+        m_clicked_y = wxMin(y, pImage->Size.GetHeight() - 1);
+        m_userLClick = true;
+        m_detectionCounter = 0;
+#if defined(FRAME_MONITOR_CAMERA)
+        if (pCamera && (pCamera->Name == FRAME_MONITOR_CAMERA) && pCamera->Connected)
+            EvtServer.NotifyMouseClick(PHD_Point(x, y));
+#endif
+    }
+}
+
 void SolarSystemObject::SaveCameraSimulationMove(double rx, double ry)
 {
     m_cameraSimulationMove = Point2f(rx, ry);
