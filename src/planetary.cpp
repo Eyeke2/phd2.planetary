@@ -1176,8 +1176,6 @@ bool SolarSystemObject::GetSurfaceFeatures()
     m_detectedFeatures = 0;
     m_focusSharpness = 0;
     m_peak = 0;
-
-    // Search region for star find is fixed value for surface features tracking
     m_searchRegion = 128;
 
     // Check if tracking info is available
@@ -1195,9 +1193,9 @@ bool SolarSystemObject::GetSurfaceFeatures()
             m_surf.variance = desc.dispersion;
             m_surf.trackingQuality = desc.quality;
             m_detectedFeatures = desc.features;
+            m_radius = m_starProfileSize;
             if (desc.pos.IsValid())
             {
-                m_radius = desc.radius;
                 m_center_x = desc.pos.X;
                 m_center_y = desc.pos.Y;
                 m_detected = true;
