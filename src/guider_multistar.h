@@ -150,6 +150,7 @@ private:
     bool SetCurrentPosition(const usImage *pImage, const PHD_Point& position) final;
 
     void OnLClick(wxMouseEvent& evt);
+    void OnRClick(wxMouseEvent& evt);
 
     void SaveStarFITS();
 

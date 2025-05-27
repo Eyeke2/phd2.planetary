@@ -39,6 +39,7 @@
 wxBEGIN_EVENT_TABLE(ProfileWindow, wxWindow)
     EVT_PAINT(ProfileWindow::OnPaint)
     EVT_LEFT_DOWN(ProfileWindow::OnLClick)
+    EVT_RIGHT_DOWN(ProfileWindow::OnRClick)
     EVT_MOUSEWHEEL(ProfileWindow::OnMouseWheel)
 wxEND_EVENT_TABLE();
 // clang-format on
@@ -72,6 +73,16 @@ ProfileWindow::ProfileWindow(wxWindow *parent)
 ProfileWindow::~ProfileWindow()
 {
     delete[] data;
+}
+
+void ProfileWindow::OnRClick(wxMouseEvent& mevent)
+{
+    if (mevent.GetX() > imageLeftMargin && mevent.GetY() <= imageBottom)
+    {
+        ShiftPoint pos = pFrame->pGuider->LockPosition();
+        if (!pFrame->pGuider->IsGuiding() && pos.IsValid())
+            pFrame->pGuider->SetLockPosToStarAtPosition(pos);
+    }
 }
 
 void ProfileWindow::OnLClick(wxMouseEvent& mevent)
