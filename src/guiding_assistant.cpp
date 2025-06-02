@@ -41,6 +41,14 @@
 #include <wx/textwrapper.h>
 #include <wx/tokenzr.h>
 
+#if defined(__WINDOWS__)
+# define GetSystemDpiScale() (wxMax(GetDpiForWindow(GetHWND()), 96) / 96.0f)
+# define DPI_SCALE(x) (x * dpiScale)
+#else
+# define GetSystemDpiScale() 1.0f
+# define DPI_SCALE(x) (x)
+#endif
+
 struct GADetails
 {
     wxString TimeStamp;
@@ -99,16 +107,19 @@ struct SampleWait : public wxDialog
 
 SampleWait::SampleWait(int SecondsLeft, bool BltNeeded) : wxDialog(pFrame, wxID_ANY, _("Extended Sampling"))
 {
+    // Windows DPI graphics scaling factor
+    const float dpiScale = GetSystemDpiScale();
+
     wxBoxSizer *vSizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *amtSizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText *explanation = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
     wxString msg;
     if (BltNeeded)
-        msg = _("Additional data sampling is being done to better meaure Dec drift. Backlash testing \nwill start "
-                "automatically when sampling is completed.");
+        msg = _("Additional data sampling is being done to better meaure Dec drift.\n"
+            "Backlash testing will start automatically when sampling is completed.");
     else
-        msg =
-            _("Additional sampling is being done for accurate measurements.  Results will be shown when sampling is complete.");
+        msg = _("Additional sampling is being done for accurate measurements.\n"
+            "Results will be shown when sampling is complete.");
     explanation->SetLabelText(msg);
     MakeBold(explanation);
     wxStaticText *countDownLabel =
@@ -122,7 +133,7 @@ SampleWait::SampleWait(int SecondsLeft, bool BltNeeded) : wxDialog(pFrame, wxID_
     wxBoxSizer *btnSizer = new wxBoxSizer(wxHORIZONTAL);
     btnSizer->Add(cancelBtn, wxSizerFlags(0).Border(wxALL, 8).Center());
 
-    vSizer->Add(explanation, wxSizerFlags(0).Border(wxALL, 8).Center());
+    vSizer->Add(explanation, wxSizerFlags(0).Border(wxALL, DPI_SCALE(10)).Center());
     vSizer->Add(amtSizer, wxSizerFlags(0).Border(wxALL, 8).Center());
     vSizer->Add(btnSizer, wxSizerFlags(0).Border(wxALL, 8).Center());
 
@@ -263,6 +274,9 @@ struct GuidingAsstWin : public wxDialog
     bool origMultistarMode;
     VarDelayCfg origVarDelayConfig;
 
+    Calibration realCal;
+    bool m_fakeCalibration; // true if we are using a fake calibration for planetary mode
+
     bool m_measuringBacklash;
     BacklashTool *m_backlashTool;
     bool reviewMode;
@@ -307,6 +321,8 @@ struct GuidingAsstWin : public wxDialog
     int GetGAHistoryCount();
     void GetMinMoveRecs(double& RecRA, double& RecDec);
     bool LikelyBacklash(const CalibrationDetails& calDetails);
+    void SetupPlanetaryGuiding();
+    bool CanStart();
     const int MAX_GA_HISTORY = 3;
 };
 
@@ -347,6 +363,9 @@ GuidingAsstWin::GuidingAsstWin()
     : wxDialog(pFrame, wxID_ANY, wxGetTranslation(_("Guiding Assistant"))), m_measuring(false), m_guideOutputDisabled(false),
       m_measurementsTaken(false), m_origSubFrames(-1), m_backlashTool(nullptr), m_flushConfig(false)
 {
+    // Windows DPI graphics scaling factor
+    const float dpiScale = GetSystemDpiScale();
+
     // Sizer hierarchy:
     // m_vSizer has {instructions, vResultsSizer, m_gaStatus, btnSizer}
     // vResultsSizer has {hTopSizer, hBottomSizer}
@@ -357,8 +376,8 @@ GuidingAsstWin::GuidingAsstWin()
     wxBoxSizer *hTopSizer = new wxBoxSizer(wxHORIZONTAL); // Measurement status and high-frequency results
     wxBoxSizer *hBottomSizer = new wxBoxSizer(wxHORIZONTAL); // Low-frequency results and recommendations
 
-    m_instructions =
-        new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(700, 50), wxALIGN_LEFT | wxST_NO_AUTORESIZE);
+    m_instructions = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(DPI_SCALE(700), DPI_SCALE(50)),
+                                      wxALIGN_LEFT | wxST_NO_AUTORESIZE);
     MakeBold(m_instructions);
     m_vSizer->Add(m_instructions, wxSizerFlags(0).Border(wxALL, 8));
 
@@ -540,7 +559,7 @@ GuidingAsstWin::GuidingAsstWin()
         m_backlashCB->Enable(false);
     }
     // Text area for showing backlash measuring steps
-    m_gaStatus = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(500, 40), wxALIGN_CENTER);
+    m_gaStatus = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(DPI_SCALE(500), DPI_SCALE(50)), wxALIGN_CENTER);
     MakeBold(m_gaStatus);
     m_vSizer->Add(m_gaStatus, wxSizerFlags(0).Border(wxALL, 8).Center());
 
@@ -592,7 +611,8 @@ GuidingAsstWin::GuidingAsstWin()
     OnAppStateNotify(dummy); // init state-dependent controls
 
     reviewMode = false;
-    if (pFrame->pGuider->IsGuiding())
+
+    if (CanStart())
     {
         OnStart(dummy); // Auto-start if we're already guiding
     }
@@ -1612,8 +1632,11 @@ void GuidingAsstWin::DisplayStaticRecommendations(const GADetails& details)
 
 void GuidingAsstWin::OnStart(wxCommandEvent& event)
 {
-    if (!pFrame->pGuider->IsGuiding())
+    if (!CanStart())
         return;
+
+    // Make sure to enter guiding mode in planetary mode
+    SetupPlanetaryGuiding();
 
     double exposure = (double) pFrame->RequestedExposureDuration() / 1000.0;
     double lp_cutoff = wxMax(6.0, 3.0 * exposure);
@@ -1699,6 +1722,13 @@ void GuidingAsstWin::DoStop(const wxString& status)
 
     FillInstructions(m_dlgState);
 
+    if (m_fakeCalibration)
+    {
+        pMount->SetCalibration(realCal);
+        pFrame->pGuider->StopGuiding();
+        m_fakeCalibration = false;
+    }
+
     if (m_guideOutputDisabled)
     {
         Debug.Write(wxString::Format("GuidingAssistant: Re-enabling guide output (%d, %d)\n", m_savePrimaryMountEnabled,
@@ -1714,7 +1744,7 @@ void GuidingAsstWin::DoStop(const wxString& status)
         pFrame->SetVariableDelayConfig(origVarDelayConfig.enabled, origVarDelayConfig.shortDelay, origVarDelayConfig.longDelay);
     }
 
-    m_start->Enable(pFrame->pGuider->IsGuiding());
+    m_start->Enable(CanStart());
     btnReviewPrev->Enable(GetGAHistoryCount() > 0);
     m_stop->Enable(false);
 
@@ -1739,7 +1769,7 @@ void GuidingAsstWin::EndBacklashTest(bool completed)
     Layout();
     GetSizer()->Fit(this);
 
-    m_start->Enable(pFrame->pGuider->IsGuiding());
+    m_start->Enable(CanStart());
     m_stop->Enable(false);
     MakeRecommendations();
     if (!completed)
@@ -1795,11 +1825,56 @@ void GuidingAsstWin::OnStop(wxCommandEvent& event)
     }
 }
 
+bool GuidingAsstWin::CanStart()
+{
+    bool can_start = pFrame->pGuider->IsGuiding();
+    if (pFrame->GetStarFindMode() == Star::FIND_PLANET && pFrame->pGuider->IsLocked())
+        can_start = true;
+    return can_start;
+}
+
+// Start guiding in planetary mode while loading dummy calibration data
+void GuidingAsstWin::SetupPlanetaryGuiding()
+{
+    m_fakeCalibration = false;
+    if (pFrame->GetStarFindMode() == Star::FIND_PLANET && pFrame->pGuider->IsLocked() && pMount && pPointingSource && pCamera &&
+        !pFrame->pGuider->IsGuiding())
+    {
+        Calibration cal = pPointingSource->MountCal();
+        realCal = cal;
+        if (!pMount->IsCalibrated())
+        {
+            cal.xRate = 1.0;
+            cal.yRate = 1.0;
+            cal.xAngle = 0.0;
+            cal.yAngle = M_PI / 2.;
+        }
+        else
+        {
+            cal.xRate = pMount->xRate();
+            cal.yRate = pMount->yRate();
+            cal.xAngle = pMount->xAngle();
+            cal.yAngle = pMount->yAngle();
+        }
+        cal.declination = pPointingSource->GetDeclinationRadians();
+        cal.pierSide = pPointingSource->SideOfPier();
+        cal.raGuideParity = cal.decGuideParity = GUIDE_PARITY_UNCHANGED;
+        cal.rotatorAngle = Rotator::RotatorPosition();
+        cal.binning = pCamera->Binning;
+        cal.isValid = true;
+        pPointingSource->SetCalibration(cal);
+        pFrame->pGuider->StartGuiding();
+        m_backlashCB->SetValue(false);
+        m_backlashCB->Enable(false);
+        m_fakeCalibration = true;
+    }
+}
+
 void GuidingAsstWin::OnAppStateNotify(wxCommandEvent& WXUNUSED(event))
 {
     if (m_measuring || m_measuringBacklash)
     {
-        if (!pFrame->pGuider->IsGuiding())
+        if (!CanStart())
         {
             // if guiding stopped, stop measuring
             DoStop(_("Guiding stopped"));
@@ -1807,8 +1882,7 @@ void GuidingAsstWin::OnAppStateNotify(wxCommandEvent& WXUNUSED(event))
     }
     else
     {
-        bool can_start = pFrame->pGuider->IsGuiding();
-        m_start->Enable(can_start);
+        bool can_start = CanStart();
         if (can_start)
             m_dlgState = STATE_START_READY;
         else
