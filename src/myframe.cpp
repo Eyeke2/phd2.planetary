@@ -3680,6 +3680,6 @@ bool MyFrame::IsCaptureActive(bool& paused) const
 {
     if (WorkerThread::InterruptRequested())
         return false;
-    paused = pFrame->pGuider->IsPaused();
+    paused = pFrame->pGuider->GetPauseType() == PAUSE_FULL;
     return m_continueCapturing && !paused;
 }
