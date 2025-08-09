@@ -650,13 +650,13 @@ void Scope::AlertLimitReached(int duration, GuideAxis axis)
                 if (CanPulseGuide())
                 {
                     msg = _("PHD2 is not able to make sufficient corrections in RA.  Check for cable snags, try re-doing your "
-                            "calibration, and "
+                            "polar alignment, calibration, and "
                             "check for problems with the mount mechanics.");
                 }
                 else
                 {
                     msg = _("PHD2 is not able to make sufficient corrections in RA.  Check for cable snags, try re-doing your "
-                            "calibration, and "
+                            "polar alignment, calibration, and "
                             "confirm the ST-4 cable is working properly.");
                 }
             }
@@ -669,13 +669,13 @@ void Scope::AlertLimitReached(int duration, GuideAxis axis)
                             "check to see if the 'Reverse Dec output option' on the Advanced Dialog guiding tab is wrong. If "
                             "so, fix it and recalibrate.  "
                             "Otherwise, "
-                            "check for cable snags, try re-doing your calibration, and check for problems with the mount "
+                            "check for cable snags, try re-doing your polar alignment, calibration, and check for problems with the mount "
                             "mechanics.");
                 }
                 else
                 {
                     msg = _("PHD2 is not able to make sufficient corrections in Dec.  Check for cable snags, try re-doing your "
-                            "calibration and "
+                            "polar alignment, calibration and "
                             "confirm the ST-4 cable is working properly.");
                 }
             }
@@ -744,12 +744,25 @@ Mount::MOVE_RESULT Scope::MoveAxis(GUIDE_DIRECTION direction, int duration, unsi
                     duration = m_maxDecDuration;
                     Debug.Write(wxString::Format("duration set to %d by maxDecDuration\n", duration));
                     limitReached = true;
+
+                    // Get guiding error in camera pixels
+                    if (m_decLimitReachedCount == 0)
+                        m_decLimitStartErrorDistance = pFrame->CurrentGuideError();
                 }
 
                 if (limitReached && direction == m_decLimitReachedDirection)
                 {
-                    if (++m_decLimitReachedCount >= LIMIT_REACHED_WARN_COUNT)
-                        AlertLimitReached(duration, GUIDE_DEC);
+                    if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+                    {
+                        if ((++m_decLimitReachedCount >= LIMIT_REACHED_WARN_COUNT) &&
+                            pFrame->CurrentGuideError() >= m_decLimitStartErrorDistance / 2)
+                            AlertLimitReached(duration, GUIDE_DEC);
+                    }
+                    else
+                    {
+                        if (++m_decLimitReachedCount >= LIMIT_REACHED_WARN_COUNT)
+                            AlertLimitReached(duration, GUIDE_DEC);
+                    }
                 }
                 else
                     m_decLimitReachedCount = 0;
@@ -771,12 +784,25 @@ Mount::MOVE_RESULT Scope::MoveAxis(GUIDE_DIRECTION direction, int duration, unsi
                     duration = m_maxRaDuration;
                     Debug.Write(wxString::Format("duration set to %d by maxRaDuration\n", duration));
                     limitReached = true;
+
+                    // Get guiding error in camera pixels
+                    if (m_raLimitReachedCount == 0)
+                        m_raLimitStartErrorDistance = pFrame->CurrentGuideError();
                 }
 
                 if (limitReached && direction == m_raLimitReachedDirection)
                 {
-                    if (++m_raLimitReachedCount >= LIMIT_REACHED_WARN_COUNT)
-                        AlertLimitReached(duration, GUIDE_RA);
+                    if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+                    {
+                        if ((++m_raLimitReachedCount >= LIMIT_REACHED_WARN_COUNT) &&
+                            pFrame->CurrentGuideError() >= m_raLimitStartErrorDistance / 2)
+                            AlertLimitReached(duration, GUIDE_RA);
+                    }
+                    else
+                    {
+                        if (++m_raLimitReachedCount >= LIMIT_REACHED_WARN_COUNT)
+                            AlertLimitReached(duration, GUIDE_RA);
+                    }
                 }
                 else
                     m_raLimitReachedCount = 0;

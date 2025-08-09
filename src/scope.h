@@ -108,6 +108,8 @@ class Scope : public Mount
     int m_raLimitReachedCount;
     GUIDE_DIRECTION m_decLimitReachedDirection;
     int m_decLimitReachedCount;
+    double m_decLimitStartErrorDistance;
+    double m_raLimitStartErrorDistance;
 
     // Calibration variables
     int m_calibrationSteps;
