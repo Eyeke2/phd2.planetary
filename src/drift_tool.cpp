@@ -38,6 +38,14 @@
 #include <wx/gbsizer.h>
 #include <wx/valnum.h>
 
+#if defined(__WINDOWS__)
+# define GetSystemDpiScale() (wxMax(GetDpiForWindow(GetHWND()), 96) / 96.0f)
+# define DPI_SCALE(x) (x * dpiScale)
+#else
+# define GetSystemDpiScale() 1.0f
+# define DPI_SCALE(x) (x)
+#endif
+
 enum Phase
 {
     PHASE_ADJUST_AZ,
@@ -140,6 +148,9 @@ DriftToolWin::DriftToolWin()
                   wxFRAME_NO_TASKBAR),
       m_need_end_dec_drift(false), m_slewing(false)
 {
+    // Windows DPI graphics scaling factor
+    const float dpiScale = GetSystemDpiScale();
+
     SetSizeHints(wxDefaultSize, wxDefaultSize);
 
     // a vertical sizer holding everything
@@ -229,7 +240,7 @@ DriftToolWin::DriftToolWin()
     m_notesLabel->Wrap(-1);
     topSizer->Add(m_notesLabel, 0, wxEXPAND | wxTOP | wxLEFT, 8);
 
-    m_notes = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 54), wxTE_MULTILINE);
+    m_notes = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, DPI_SCALE(54)), wxTE_MULTILINE);
     pFrame->RegisterTextCtrl(m_notes);
     topSizer->Add(m_notes, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
     m_notes->Bind(wxEVT_COMMAND_TEXT_UPDATED, &DriftToolWin::OnNotesText, this);
