@@ -1638,7 +1638,15 @@ void GuidingAsstWin::OnStart(wxCommandEvent& event)
     // Make sure to enter guiding mode in planetary mode
     SetupPlanetaryGuiding();
 
-    double exposure = (double) pFrame->RequestedExposureDuration() / 1000.0;
+    double exposure;
+    if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
+    {
+        exposure = pFrame->GetGuidingPeriod() / 1000.0;
+    }
+    else
+    {
+        exposure = (double) pFrame->RequestedExposureDuration() / 1000.0;
+    }
     double lp_cutoff = wxMax(6.0, 3.0 * exposure);
     double hp_cutoff = 1.0;
 
