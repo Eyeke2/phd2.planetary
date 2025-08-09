@@ -181,6 +181,7 @@ struct GuidingAsstWin : public wxDialog
     enum DlgConstants
     {
         MAX_BACKLASH_COMP = 3000,
+        GA_MIN_SAMPLING_PERIOD_PLANET = 60,
         GA_MIN_SAMPLING_PERIOD = 120
     };
 
@@ -735,9 +736,14 @@ void GuidingAsstWin::FillInstructions(DialogState eState)
             instr = m_instructions->GetLabel();
         break;
     case STATE_MEASURING:
-        instr = _("Guiding output is disabled and star movement is being measured.  Click Stop after 2 minutes (longer if "
-                  "you're measuring RA tracking accuracy of the mount).");
+    {
+
+        wxString timeout = m_fakeCalibration ? "1 minute" : "2 minutes";
+        instr =
+            _("Guiding output is disabled and star movement is being measured.  Click Stop after " + timeout + " (longer if "
+              "you're measuring RA tracking accuracy of the mount).");
         break;
+    }
     case STATE_STOPPED:
         instr = _("Guiding has been resumed. Look at the recommendations and make any desired changes.  Click Start to repeat "
                   "the measurements, or close the window to continue guiding.");
@@ -1792,9 +1798,11 @@ void GuidingAsstWin::OnStop(wxCommandEvent& event)
 {
     bool performBLT = m_backlashCB->IsChecked();
     bool longEnough;
-    if (m_elapsedSecs < GA_MIN_SAMPLING_PERIOD && !m_measuringBacklash)
+    int minPeriod = m_fakeCalibration ? GA_MIN_SAMPLING_PERIOD_PLANET : GA_MIN_SAMPLING_PERIOD;
+
+    if (m_elapsedSecs < minPeriod && !m_measuringBacklash)
     {
-        SampleWait waitDlg(GA_MIN_SAMPLING_PERIOD - m_elapsedSecs, performBLT);
+        SampleWait waitDlg(minPeriod - m_elapsedSecs, performBLT);
         longEnough = (waitDlg.ShowModal() == wxOK);
     }
     else
@@ -1827,7 +1835,7 @@ void GuidingAsstWin::OnStop(wxCommandEvent& event)
     }
     else
     {
-        if (longEnough)
+        if (longEnough && !m_fakeCalibration)
             MakeRecommendations();
         DoStop();
     }
@@ -1835,8 +1843,10 @@ void GuidingAsstWin::OnStop(wxCommandEvent& event)
 
 bool GuidingAsstWin::CanStart()
 {
+    bool paused = false;
+    bool looping = pFrame->IsCaptureActive(paused);
     bool can_start = pFrame->pGuider->IsGuiding();
-    if (pFrame->GetStarFindMode() == Star::FIND_PLANET && pFrame->pGuider->IsLocked())
+    if (pFrame->GetStarFindMode() == Star::FIND_PLANET && pFrame->pGuider->IsLocked() && looping)
         can_start = true;
     return can_start;
 }
