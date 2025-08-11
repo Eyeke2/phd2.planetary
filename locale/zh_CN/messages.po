@@ -34,7 +34,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PHD2 2.6.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-03 19:52+0300\n"
+"POT-Creation-Date: 2025-08-11 11:03+0300\n"
 "PO-Revision-Date: 2023-01-26 10:13+0800\n"
 "Last-Translator: Linkage <Linkage@163.com>\n"
 "Language-Team: Linkage <Linkage@163.com>\n"
@@ -77,7 +77,7 @@ msgstr "其他设备"
 msgid "Advanced Settings"
 msgstr "高级设置"
 
-#: advanced_dialog.cpp:223 guiding_assistant.cpp:533 myframe.cpp:1368
+#: advanced_dialog.cpp:223 guiding_assistant.cpp:534 myframe.cpp:1368
 #: profile_wizard.cpp:392
 msgid "Help"
 msgstr "帮助"
@@ -92,7 +92,7 @@ msgstr "赤道仪"
 msgid "No mount specified"
 msgstr "未指定赤道仪"
 
-#: aui_controls.cpp:384 aui_controls.cpp:399 guiding_assistant.cpp:406
+#: aui_controls.cpp:384 aui_controls.cpp:399 guiding_assistant.cpp:407
 msgid "SNR"
 msgstr "SNR"
 
@@ -165,7 +165,7 @@ msgstr "AO"
 msgid "Rotator"
 msgstr "旋转器"
 
-#: aui_controls.cpp:748 calibration_assistant.cpp:916
+#: aui_controls.cpp:748 calibration_assistant.cpp:917
 msgid ", "
 msgstr ", "
 
@@ -226,12 +226,12 @@ msgstr "理想"
 msgid "Measured"
 msgstr "测量"
 
-#: backlash_comp.cpp:674 guiding_assistant.cpp:1524 polardrift_toolwin.cpp:190
+#: backlash_comp.cpp:674 guiding_assistant.cpp:1530 polardrift_toolwin.cpp:190
 #: scope.cpp:273 staticpa_toolwin.cpp:346 testguide.cpp:164
 msgid "North"
 msgstr "北"
 
-#: backlash_comp.cpp:675 guiding_assistant.cpp:1524 polardrift_toolwin.cpp:191
+#: backlash_comp.cpp:675 guiding_assistant.cpp:1530 polardrift_toolwin.cpp:191
 #: scope.cpp:275 staticpa_toolwin.cpp:347 testguide.cpp:164
 msgid "South"
 msgstr "南"
@@ -315,7 +315,7 @@ msgid ": "
 msgstr ": "
 
 #: calibration_assistant.cpp:161 cam_qhy.cpp:298 darks_dialog.cpp:61
-#: guiding_assistant.cpp:402
+#: guiding_assistant.cpp:403
 msgid "Exposure time"
 msgstr "曝光时间"
 
@@ -332,33 +332,33 @@ msgid "Calibration Location"
 msgstr ""
 
 #: calibration_assistant.cpp:189 calibration_assistant.cpp:212
-#: calibration_assistant.cpp:1079
+#: calibration_assistant.cpp:1080
 msgid "Pointing"
 msgstr ""
 
 #: calibration_assistant.cpp:190 calibration_assistant.cpp:213
-#: calibration_assistant.cpp:1080 calreview_dialog.cpp:305
+#: calibration_assistant.cpp:1081 calreview_dialog.cpp:305
 #: calreview_dialog.cpp:349 gear_simulator.cpp:2449 mount.cpp:88
 #: testguide.cpp:164
 msgid "West"
 msgstr "西"
 
 #: calibration_assistant.cpp:191 calibration_assistant.cpp:216
-#: calibration_assistant.cpp:1083 calreview_dialog.cpp:304
+#: calibration_assistant.cpp:1084 calreview_dialog.cpp:304
 #: calreview_dialog.cpp:348 gear_simulator.cpp:2449 mount.cpp:86
 #: testguide.cpp:164
 msgid "East"
 msgstr "东"
 
 #: calibration_assistant.cpp:195 calibration_assistant.cpp:206
-#: calibration_assistant.cpp:1073 calreview_dialog.cpp:137
+#: calibration_assistant.cpp:1074 calreview_dialog.cpp:137
 #: calreview_dialog.cpp:142 calreview_dialog.cpp:388 mount.cpp:224
 #: pierflip_tool.cpp:96 statswindow.cpp:105
 msgid "Declination"
 msgstr "赤纬"
 
 #: calibration_assistant.cpp:196 calibration_assistant.cpp:210
-#: calibration_assistant.cpp:1077
+#: calibration_assistant.cpp:1078
 msgid "Meridian offset (degrees)"
 msgstr ""
 
@@ -374,7 +374,7 @@ msgid ""
 "'Pointing' buttons (less than 15 degrees recommended)"
 msgstr ""
 
-#: calibration_assistant.cpp:214 calibration_assistant.cpp:1081
+#: calibration_assistant.cpp:214 calibration_assistant.cpp:1082
 msgid "Scope on the east side of pier, pointing west"
 msgstr ""
 
@@ -412,8 +412,8 @@ msgid ""
 "location"
 msgstr ""
 
-#: calibration_assistant.cpp:247 calibration_assistant.cpp:690
-#: drift_tool.cpp:207 drift_tool.cpp:560
+#: calibration_assistant.cpp:247 calibration_assistant.cpp:691
+#: drift_tool.cpp:218 drift_tool.cpp:571
 msgid "Slew"
 msgstr "指向"
 
@@ -433,8 +433,8 @@ msgid ""
 "open to monitor and assess results"
 msgstr ""
 
-#: calibration_assistant.cpp:254 calibration_assistant.cpp:1112
-#: calibration_assistant.cpp:1165 camcal_import_dialog.cpp:128
+#: calibration_assistant.cpp:254 calibration_assistant.cpp:1113
+#: calibration_assistant.cpp:1166 camcal_import_dialog.cpp:128
 #: darks_dialog.cpp:228 darks_dialog.cpp:380 gear_simulator.cpp:2327
 #: guiding_assistant.cpp:131 phdupdate.cpp:792 profile_wizard.cpp:1535
 msgid "Cancel"
@@ -456,7 +456,7 @@ msgid ""
 "'good'"
 msgstr ""
 
-#: calibration_assistant.cpp:330
+#: calibration_assistant.cpp:331
 msgid ""
 "Your mount guide speed is too slow for effective calibration and guiding. "
 "Use the hand-controller or mount driver to increase the guide speed to at "
@@ -464,7 +464,7 @@ msgid ""
 "correct calibration step-size."
 msgstr ""
 
-#: calibration_assistant.cpp:334
+#: calibration_assistant.cpp:335
 msgid ""
 "Your mount guide speed is below the minimum recommended value of 0.5x "
 "sidereal. Use the hand-controller or mount driver to increase the guide "
@@ -472,252 +472,252 @@ msgid ""
 "compute a correct calibration step-size."
 msgstr ""
 
-#: calibration_assistant.cpp:349
+#: calibration_assistant.cpp:350
 msgid ""
 "Your current calibration parameters can be adjusted for more accurate "
 "results. Click the 'Recalc' button to restore them to the default values."
 msgstr ""
 
-#: calibration_assistant.cpp:389
+#: calibration_assistant.cpp:390
 msgid "Calibration failed or was cancelled"
 msgstr ""
 
-#: calibration_assistant.cpp:434 calibration_assistant.cpp:566
-#: calibration_assistant.cpp:583 calibration_assistant.cpp:637
+#: calibration_assistant.cpp:435 calibration_assistant.cpp:567
+#: calibration_assistant.cpp:584 calibration_assistant.cpp:638
 msgid "Mount can't report its pointing position"
 msgstr ""
 
-#: calibration_assistant.cpp:450 calibration_assistant.cpp:647
-#: calibration_assistant.cpp:1013
+#: calibration_assistant.cpp:451 calibration_assistant.cpp:648
+#: calibration_assistant.cpp:1014
 msgid "MERIDIAN FLIP!"
 msgstr ""
 
-#: calibration_assistant.cpp:455
+#: calibration_assistant.cpp:456
 msgid "WATCH SCOPE DURING SLEWING TO INSURE SAFETY"
 msgstr ""
 
-#: calibration_assistant.cpp:538
+#: calibration_assistant.cpp:539
 msgid ""
 "Use the 'slew' button to move the scope to within 20 degrees of Dec = 0 or "
 "as close to that as your site will allow."
 msgstr ""
 
-#: calibration_assistant.cpp:541
+#: calibration_assistant.cpp:542
 msgid ""
 "Slew the scope to within 20 degrees of Dec = 0 or as close to that as your "
 "site will allow."
 msgstr ""
 
-#: calibration_assistant.cpp:544
+#: calibration_assistant.cpp:545
 msgid "Calibration is likely to fail this close to the pole."
 msgstr ""
 
-#: calibration_assistant.cpp:548
+#: calibration_assistant.cpp:549
 msgid ""
 "If you calibrate within 30 degrees of the pole, you will need to recalibrate "
 "when you slew to a different target."
 msgstr ""
 
-#: calibration_assistant.cpp:554
+#: calibration_assistant.cpp:555
 msgid ""
 "Calibration will be more accurate with the scope pointing closer to the "
 "celestial equator."
 msgstr ""
 
-#: calibration_assistant.cpp:564
+#: calibration_assistant.cpp:565
 msgid "Mount is not connected"
 msgstr ""
 
-#: calibration_assistant.cpp:654
+#: calibration_assistant.cpp:655
 msgid ""
 "Adjust 'Calibration Location' values if needed for your site, then click "
 "'Slew'"
 msgstr ""
 
-#: calibration_assistant.cpp:656
+#: calibration_assistant.cpp:657
 #, c-format
 msgid "Manually move the telescope to a Dec location near %d"
 msgstr ""
 
-#: calibration_assistant.cpp:690 drift_tool.cpp:560
+#: calibration_assistant.cpp:691 drift_tool.cpp:571
 msgid "Slewing..."
 msgstr "指向中..."
 
-#: calibration_assistant.cpp:699 calibration_assistant.cpp:752
+#: calibration_assistant.cpp:700 calibration_assistant.cpp:753
 msgid "Slew failed! Make sure scope is tracking at sidereal rate"
 msgstr ""
 
-#: calibration_assistant.cpp:708
+#: calibration_assistant.cpp:709
 msgid "Slew was cancelled"
 msgstr ""
 
-#: calibration_assistant.cpp:729 calibration_assistant.cpp:743
+#: calibration_assistant.cpp:730 calibration_assistant.cpp:744
 msgid "Pausing..."
 msgstr ""
 
-#: calibration_assistant.cpp:746 calibration_assistant.cpp:794
+#: calibration_assistant.cpp:747 calibration_assistant.cpp:795
 msgid ""
 "Wait for tracking to stabilize, then click 'Calibrate' to start calibration "
 "or 'Cancel' to exit"
 msgstr ""
 
-#: calibration_assistant.cpp:788
+#: calibration_assistant.cpp:789
 msgid "Initial slew to approximate position"
 msgstr ""
 
-#: calibration_assistant.cpp:791
+#: calibration_assistant.cpp:792
 msgid "Final slew north to pre-clear Dec backlash"
 msgstr ""
 
-#: calibration_assistant.cpp:799
+#: calibration_assistant.cpp:800
 msgid "Slewing to calibration location"
 msgstr ""
 
-#: calibration_assistant.cpp:801
+#: calibration_assistant.cpp:802
 msgid ""
 "Wait for tracking to stabilize, then Click 'Calibrate' to start calibration "
 "or 'Cancel' to exit"
 msgstr ""
 
-#: calibration_assistant.cpp:881
+#: calibration_assistant.cpp:882
 msgid "Steps"
 msgstr ""
 
-#: calibration_assistant.cpp:889 calibration_assistant.cpp:1254
+#: calibration_assistant.cpp:890 calibration_assistant.cpp:1255
 msgid "Orthogonality"
 msgstr ""
 
-#: calibration_assistant.cpp:898 comet_tool.cpp:141
+#: calibration_assistant.cpp:899 comet_tool.cpp:141
 msgid "Rates"
 msgstr "跟踪速率"
 
-#: calibration_assistant.cpp:907
+#: calibration_assistant.cpp:908
 msgid "Sky location (Dec comp disabled)"
 msgstr ""
 
-#: calibration_assistant.cpp:912
+#: calibration_assistant.cpp:913
 msgid "Sky location"
 msgstr ""
 
-#: calibration_assistant.cpp:916
+#: calibration_assistant.cpp:917
 #, c-format
 msgid "(%s)"
 msgstr ""
 
-#: calibration_assistant.cpp:922
+#: calibration_assistant.cpp:923
 msgid ""
 "Calibration result was good, guiding is active using the new calibration"
 msgstr ""
 
-#: calibration_assistant.cpp:928
+#: calibration_assistant.cpp:929
 msgid ""
 "Calibration result was acceptable, guiding is active using the new "
 "calibration"
 msgstr ""
 
-#: calibration_assistant.cpp:935
+#: calibration_assistant.cpp:936
 msgid ""
 "Calibration result was poor, consider re-doing it while following all "
 "recommendations"
 msgstr ""
 
-#: calibration_assistant.cpp:942
+#: calibration_assistant.cpp:943
 msgid "Calibration failed - probably because the mount didn't move at all"
 msgstr ""
 
-#: calibration_assistant.cpp:964
+#: calibration_assistant.cpp:965
 msgid "Scope isn't reporting current position"
 msgstr ""
 
-#: calibration_assistant.cpp:975
+#: calibration_assistant.cpp:976
 msgid "Slew the scope closer to Dec = 0"
 msgstr ""
 
-#: calibration_assistant.cpp:982
+#: calibration_assistant.cpp:983
 msgid "Pre-clearing backlash"
 msgstr ""
 
-#: calibration_assistant.cpp:991
+#: calibration_assistant.cpp:992
 msgid "Waiting for calibration to complete"
 msgstr ""
 
-#: calibration_assistant.cpp:997
+#: calibration_assistant.cpp:998
 msgid "Calibration could not start - suspend any imaging automation apps"
 msgstr ""
 
-#: calibration_assistant.cpp:1063
+#: calibration_assistant.cpp:1064
 msgid "Save Customized Calibration Position"
 msgstr ""
 
-#: calibration_assistant.cpp:1067
+#: calibration_assistant.cpp:1068
 msgid "Target Position"
 msgstr ""
 
-#: calibration_assistant.cpp:1072
+#: calibration_assistant.cpp:1073
 msgid ""
 "Target declination for slew, as close to Dec = 0 as possible for your "
 "location"
 msgstr ""
 
-#: calibration_assistant.cpp:1076
+#: calibration_assistant.cpp:1077
 msgid ""
 "Target offset from central meridian, in degrees; east or west based on "
 "'Pointing' buttons"
 msgstr ""
 
-#: calibration_assistant.cpp:1084
+#: calibration_assistant.cpp:1085
 msgid "Scope on the west side of pier, pointing east"
 msgstr ""
 
-#: calibration_assistant.cpp:1097
+#: calibration_assistant.cpp:1098
 msgid ""
 "Check this if calibration can only be done on a particular side of the "
 "meridian because of nearby obstructions"
 msgstr ""
 
-#: calibration_assistant.cpp:1099 calibration_assistant.cpp:1147
+#: calibration_assistant.cpp:1100 calibration_assistant.cpp:1148
 msgid "Western sky only"
 msgstr ""
 
-#: calibration_assistant.cpp:1101 calibration_assistant.cpp:1151
+#: calibration_assistant.cpp:1102 calibration_assistant.cpp:1152
 msgid "Eastern sky only"
 msgstr ""
 
-#: calibration_assistant.cpp:1105
+#: calibration_assistant.cpp:1106
 msgid ""
 "If your site location requires a unique sky position for calibration, you "
 "can specify it here."
 msgstr ""
 
-#: calibration_assistant.cpp:1110 calibration_assistant.cpp:1295
+#: calibration_assistant.cpp:1111 calibration_assistant.cpp:1296
 #: planetary_tool.cpp:309 planetary_tool.cpp:793 planetary_tool.cpp:810
 msgid "Ok"
 msgstr ""
 
-#: calibration_assistant.cpp:1155
+#: calibration_assistant.cpp:1156
 msgid "Calibration Parameters Check"
 msgstr ""
 
-#: calibration_assistant.cpp:1163
+#: calibration_assistant.cpp:1164
 msgid "Recalc"
 msgstr ""
 
-#: calibration_assistant.cpp:1214
+#: calibration_assistant.cpp:1215
 msgid "Explanation of Results"
 msgstr ""
 
-#: calibration_assistant.cpp:1221
+#: calibration_assistant.cpp:1222
 msgid ""
 "Assuming you have followed all the recommendations of the Calibration "
 "Assistant, the information below can help you identify any remaining "
 "problems."
 msgstr ""
 
-#: calibration_assistant.cpp:1226
+#: calibration_assistant.cpp:1227
 msgid "Too Few Steps"
 msgstr ""
 
-#: calibration_assistant.cpp:1230
+#: calibration_assistant.cpp:1231
 msgid ""
 "Calibration was completed with fewer than the desired number of steps.  This "
 "is usually caused by changes to binning, focal length, or mount guide speed "
@@ -725,11 +725,11 @@ msgid ""
 "calibration parameters."
 msgstr ""
 
-#: calibration_assistant.cpp:1240
+#: calibration_assistant.cpp:1241
 msgid "Unexpected Rates"
 msgstr ""
 
-#: calibration_assistant.cpp:1243
+#: calibration_assistant.cpp:1244
 msgid ""
 "Measured RA and Dec movements on the camera sensor aren't related by the "
 "expected ratio (cos(dec)).  This can be caused by sustantial weight "
@@ -737,7 +737,7 @@ msgid ""
 "over-tight gear mesh."
 msgstr ""
 
-#: calibration_assistant.cpp:1258
+#: calibration_assistant.cpp:1259
 msgid ""
 "The mount is wandering off-target on one axis while PHD2 is measuring "
 "movement on the other axis. This can be caused by large periodic error in RA "
@@ -745,11 +745,11 @@ msgid ""
 "the mount is probably not guiding correctly."
 msgstr ""
 
-#: calibration_assistant.cpp:1268
+#: calibration_assistant.cpp:1269
 msgid "Sky Location"
 msgstr ""
 
-#: calibration_assistant.cpp:1272
+#: calibration_assistant.cpp:1273
 msgid ""
 "Calibration wasn't done with Dec in the range of -20 to +20.  Outside that "
 "range, measurement errors may degrade the calibration accuracy. If Dec is "
@@ -757,11 +757,11 @@ msgid ""
 "correctly."
 msgstr ""
 
-#: calibration_assistant.cpp:1282
+#: calibration_assistant.cpp:1283
 msgid "Not Enough Movement"
 msgstr ""
 
-#: calibration_assistant.cpp:1285
+#: calibration_assistant.cpp:1286
 msgid ""
 "If you saw an alert saying the guide star did not move enough, the mount may "
 "not be receiving or handling guide commands. If you are using an ST-4 guide "
@@ -806,7 +806,7 @@ msgstr "赤纬步数:"
 msgid "Camera angle:"
 msgstr "相机角度:"
 
-#: calreview_dialog.cpp:212 calreview_dialog.cpp:700
+#: calreview_dialog.cpp:212 calreview_dialog.cpp:701
 msgid "Orthogonality error:"
 msgstr "正交误差："
 
@@ -814,8 +814,8 @@ msgstr "正交误差："
 msgid "a-s/sec"
 msgstr "角秒/秒"
 
-#: calreview_dialog.cpp:233 guiding_assistant.cpp:1927
-#: guiding_assistant.cpp:2012
+#: calreview_dialog.cpp:233 guiding_assistant.cpp:1945
+#: guiding_assistant.cpp:2030
 msgid "px/sec"
 msgstr "像素/秒"
 
@@ -823,7 +823,7 @@ msgstr "像素/秒"
 msgid "a-s/px"
 msgstr "角秒/像素"
 
-#: calreview_dialog.cpp:238 calreview_dialog.cpp:731
+#: calreview_dialog.cpp:238 calreview_dialog.cpp:732
 msgid "RA rate:"
 msgstr "赤经速率:"
 
@@ -973,31 +973,37 @@ msgstr ""
 "的%0.0f %%。 但你的赤经导星速率是赤纬的%0.0f %%。 这通常意味着其中一个轴校准"
 "不正确，可能导致导星效果很差。"
 
-#: calreview_dialog.cpp:664
+#: calreview_dialog.cpp:627
+msgid ""
+"Details for this calibration result are no longer available. The calibration "
+"has probably been replaced."
+msgstr ""
+
+#: calreview_dialog.cpp:665
 msgid "Explanation"
 msgstr "说明"
 
-#: calreview_dialog.cpp:678
+#: calreview_dialog.cpp:679
 msgid "Details"
 msgstr "详细设置"
 
-#: calreview_dialog.cpp:687
+#: calreview_dialog.cpp:688
 msgid "Steps, RA:"
 msgstr "步数，赤经："
 
-#: calreview_dialog.cpp:689
+#: calreview_dialog.cpp:690
 msgid "Steps, Dec:"
 msgstr "步数，赤纬："
 
-#: calreview_dialog.cpp:702
+#: calreview_dialog.cpp:703
 msgid "Previous orthogonality error:"
 msgstr "上次正交错误："
 
-#: calreview_dialog.cpp:714
+#: calreview_dialog.cpp:715
 msgid "This declination rate:"
 msgstr "本次赤纬速率:"
 
-#: calreview_dialog.cpp:718 calreview_dialog.cpp:734 calreview_dialog.cpp:739
+#: calreview_dialog.cpp:719 calreview_dialog.cpp:735 calreview_dialog.cpp:740
 #, c-format
 msgid ""
 "%0.3f a-s/sec\n"
@@ -1006,11 +1012,11 @@ msgstr ""
 "%0.3f a-s/sec\n"
 "%0.3f px/sec"
 
-#: calreview_dialog.cpp:721
+#: calreview_dialog.cpp:722
 msgid "Previous declination rate:"
 msgstr "上次赤纬速率:"
 
-#: calreview_dialog.cpp:723
+#: calreview_dialog.cpp:724
 #, c-format
 msgid ""
 "\n"
@@ -1019,43 +1025,43 @@ msgstr ""
 "\n"
 "%0.3f 像素/秒"
 
-#: calreview_dialog.cpp:735
+#: calreview_dialog.cpp:736
 msgid "Declination rate:"
 msgstr "赤纬速率:"
 
-#: calreview_dialog.cpp:755
+#: calreview_dialog.cpp:756
 msgid "Don't show calibration alerts of this type"
 msgstr "不显示这种类型的校准告警"
 
-#: calreview_dialog.cpp:765
+#: calreview_dialog.cpp:766
 msgid "Accept calibration"
 msgstr "接受校准数据"
 
-#: calreview_dialog.cpp:766
+#: calreview_dialog.cpp:767
 msgid "Accept the calibration as being valid and continue guiding"
 msgstr "接受有效的校准数据并开始导星"
 
-#: calreview_dialog.cpp:768
+#: calreview_dialog.cpp:769
 msgid "Discard calibration"
 msgstr "放弃校准数据"
 
-#: calreview_dialog.cpp:770
+#: calreview_dialog.cpp:771
 msgid ""
 "Stop guiding and discard the most recent calibration.  Calibration will be "
 "re-done the next time you start guiding"
 msgstr "停止导星，并丢弃最近的校准数据。下次开始导星时将重新进行校准。"
 
-#: calreview_dialog.cpp:772
+#: calreview_dialog.cpp:773
 msgid "Restore old calibration"
 msgstr "恢复上次校准数据"
 
-#: calreview_dialog.cpp:773
+#: calreview_dialog.cpp:774
 msgid ""
 "Stop guiding, discard the most recent calibration, then load the previous "
 "(good) calibration"
 msgstr "停止导星，并丢弃最近的校准数据。然后使用最后一次正常的校准数据。"
 
-#: calreview_dialog.cpp:814
+#: calreview_dialog.cpp:815
 msgid "Previous calibration restored"
 msgstr "上次校准数据已恢复"
 
@@ -2403,7 +2409,7 @@ msgid "Comet Tracking - Active"
 msgstr "彗星跟踪 - 开启"
 
 #: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1503
-#: scope.cpp:2090
+#: scope.cpp:2116
 msgid "Enable"
 msgstr "启用"
 
@@ -2447,7 +2453,7 @@ msgstr "轴"
 msgid "Tracking rate axes"
 msgstr "轴跟踪速率"
 
-#: comet_tool.cpp:117 darks_dialog.cpp:224 guiding_assistant.cpp:571
+#: comet_tool.cpp:117 darks_dialog.cpp:224 guiding_assistant.cpp:572
 #: polardrift_toolwin.cpp:203 polardrift_toolwin.cpp:355
 #: starcross_test.cpp:159
 msgid "Start"
@@ -2457,7 +2463,7 @@ msgstr "开始"
 msgid "Start training the tracking rate."
 msgstr "开始训练学习跟踪速率。"
 
-#: comet_tool.cpp:119 darks_dialog.cpp:256 guiding_assistant.cpp:581
+#: comet_tool.cpp:119 darks_dialog.cpp:256 guiding_assistant.cpp:582
 #: polardrift_toolwin.cpp:358 starcross_test.cpp:161 staticpa_toolwin.cpp:643
 msgid "Stop"
 msgstr "停止"
@@ -2809,63 +2815,63 @@ msgstr ""
 msgid "unable to open file %s"
 msgstr "不能打开文件 %s"
 
-#: drift_tool.cpp:138
+#: drift_tool.cpp:146
 msgid "Drift Align"
 msgstr "精确极轴漂移校准"
 
-#: drift_tool.cpp:170 scope_manual_pointing.cpp:54
+#: drift_tool.cpp:181 scope_manual_pointing.cpp:54
 msgid "Scope Pointing"
 msgstr "望远镜指向"
 
-#: drift_tool.cpp:179
+#: drift_tool.cpp:190
 #, c-format
 msgid "Meridian Offset (%s)"
 msgstr "中天偏移（%s）"
 
-#: drift_tool.cpp:183 scope_manual_pointing.cpp:79
+#: drift_tool.cpp:194 scope_manual_pointing.cpp:79
 #, c-format
 msgid "Declination (%s)"
 msgstr "赤纬 (%s)"
 
-#: drift_tool.cpp:187
+#: drift_tool.cpp:198
 msgid "Current"
 msgstr "当前"
 
-#: drift_tool.cpp:197
+#: drift_tool.cpp:208
 msgid "Slew To"
 msgstr "指向到"
 
-#: drift_tool.cpp:208
+#: drift_tool.cpp:219
 msgid "Click to slew to given coordinates."
 msgstr "Goto至给定的坐标。"
 
-#: drift_tool.cpp:211 nudge_lock.cpp:188 nudge_lock.cpp:197
+#: drift_tool.cpp:222 nudge_lock.cpp:188 nudge_lock.cpp:197
 msgid "Save"
 msgstr "保存"
 
-#: drift_tool.cpp:216
+#: drift_tool.cpp:227
 msgid ""
 "Click to save these coordinates as the default location for this axis "
 "adjustment."
 msgstr "点击将保存此坐标为该轴调整的默认位置。"
 
-#: drift_tool.cpp:228 drift_tool.cpp:399
+#: drift_tool.cpp:239 drift_tool.cpp:410
 msgid "Altitude adjustment notes"
 msgstr "仰角调节注意事项"
 
-#: drift_tool.cpp:243
+#: drift_tool.cpp:254
 msgid "Drift"
 msgstr "漂移"
 
-#: drift_tool.cpp:249
+#: drift_tool.cpp:260
 msgid "Adjust"
 msgstr "调整"
 
-#: drift_tool.cpp:379
+#: drift_tool.cpp:390
 msgid "Drift Align - Azimuth Adjustment"
 msgstr "精确极轴漂移校准 - 方位角调整"
 
-#: drift_tool.cpp:381
+#: drift_tool.cpp:392
 msgid ""
 "Slew to near the Meridian and the Equator.\n"
 "Press Drift to measure drift, watch the Dec trend line.\n"
@@ -2879,19 +2885,19 @@ msgstr ""
 "重复漂移/调整，直至方位角调整完成。\n"
 "然后，单击“> 仰角”按钮开始仰角调节。"
 
-#: drift_tool.cpp:386
+#: drift_tool.cpp:397
 msgid "Azimuth adjustment notes"
 msgstr "方位角调节注意事项"
 
-#: drift_tool.cpp:388
+#: drift_tool.cpp:399
 msgid "> Altitude"
 msgstr "> 仰角"
 
-#: drift_tool.cpp:392
+#: drift_tool.cpp:403
 msgid "Drift Align - Altitude Adjustment"
 msgstr "精确极轴漂移校准 - 仰角调整"
 
-#: drift_tool.cpp:394
+#: drift_tool.cpp:405
 msgid ""
 "Slew to a location near the Equator and the Eastern or Western horizon.\n"
 "Press Drift to measure drift, watch the Dec trend line.\n"
@@ -2905,68 +2911,68 @@ msgstr ""
 "重复漂移/调整，直至仰角调整完成。\n"
 "然后，单击“< 方位角”按钮开始方位角调节。"
 
-#: drift_tool.cpp:401
+#: drift_tool.cpp:412
 msgid "< Azimuth"
 msgstr "< 方位角"
 
-#: drift_tool.cpp:427
+#: drift_tool.cpp:438
 msgid "Please connect a camera and a mount"
 msgstr "请选择相机和赤道仪"
 
-#: drift_tool.cpp:434
+#: drift_tool.cpp:445
 msgid "Please calibrate before starting drift alignment"
 msgstr "请在漂移校准前先校准赤道仪。"
 
-#: drift_tool.cpp:442 polardrift_toolwin.cpp:145 staticpa_toolwin.cpp:249
+#: drift_tool.cpp:453 polardrift_toolwin.cpp:145 staticpa_toolwin.cpp:249
 msgid "Start Looping..."
 msgstr "开始连续曝光…"
 
-#: drift_tool.cpp:455
+#: drift_tool.cpp:466
 msgid "Auto-selecting a star"
 msgstr "正在自动选择星点"
 
-#: drift_tool.cpp:463
+#: drift_tool.cpp:474
 msgid "Waiting for calibration to complete..."
 msgstr "等待校准完成…"
 
-#: drift_tool.cpp:466
+#: drift_tool.cpp:477
 msgid "Start guiding..."
 msgstr "开始导星..."
 
-#: drift_tool.cpp:478
+#: drift_tool.cpp:489
 msgid "Drifting... click Adjust when done drifting"
 msgstr "漂移中... 当漂移结束后，点击\"调整\"按钮"
 
-#: drift_tool.cpp:496
+#: drift_tool.cpp:507
 msgid "Adjust azimuth, click Drift when done"
 msgstr "当\"漂移\"结束后调整方位角"
 
-#: drift_tool.cpp:497
+#: drift_tool.cpp:508
 msgid "Adjust altitude, click Drift when done"
 msgstr "当\"漂移\"结束后调整仰角"
 
-#: drift_tool.cpp:569
+#: drift_tool.cpp:580
 msgid "Slew failed!"
 msgstr "指向失败！"
 
-#: drift_tool.cpp:578
+#: drift_tool.cpp:589
 msgid "Slew was canceled"
 msgstr "指向被取消"
 
-#: drift_tool.cpp:596
+#: drift_tool.cpp:607
 msgid "Slewing ..."
 msgstr "指向中 ..."
 
-#: drift_tool.cpp:615
+#: drift_tool.cpp:626
 msgid "Coordinates saved."
 msgstr "坐标已保存。"
 
-#: drift_tool.cpp:824 eegg.cpp:282 myframe_events.cpp:806
+#: drift_tool.cpp:835 eegg.cpp:282 myframe_events.cpp:806
 #: polardrift_toolwin.cpp:58 staticpa_toolwin.cpp:103
 msgid "Please connect a camera first."
 msgstr "请先连接相机。"
 
-#: drift_tool.cpp:832
+#: drift_tool.cpp:843
 msgid ""
 "The Drift Align tool is most effective when PHD2 knows your guide\n"
 "scope focal length and camera pixel size.\n"
@@ -4628,111 +4634,111 @@ msgstr ""
 msgid "Seconds remaining: "
 msgstr "剩下的秒数："
 
-#: guiding_assistant.cpp:363
+#: guiding_assistant.cpp:364
 msgid "Guiding Assistant"
 msgstr "导星助手"
 
-#: guiding_assistant.cpp:385
+#: guiding_assistant.cpp:386
 msgid " -999.99 px/min (-999.99 arc-sec/min )"
 msgstr " -999.99 像素/分钟 (-999.99 角秒/分钟 )"
 
-#: guiding_assistant.cpp:386
+#: guiding_assistant.cpp:387
 msgid " 9.99 px ( 9.99 arc-sec)"
 msgstr " 9.99 像素 ( 9.99 角秒)"
 
-#: guiding_assistant.cpp:388
+#: guiding_assistant.cpp:389
 msgid "Measurement Status"
 msgstr "测量状态"
 
-#: guiding_assistant.cpp:400
+#: guiding_assistant.cpp:401
 msgid "Start time"
 msgstr "开始时间"
 
-#: guiding_assistant.cpp:408
+#: guiding_assistant.cpp:409
 msgid "Star mass"
 msgstr "星点质心"
 
-#: guiding_assistant.cpp:412
+#: guiding_assistant.cpp:413
 msgid "Elapsed time"
 msgstr "已用时间"
 
-#: guiding_assistant.cpp:414
+#: guiding_assistant.cpp:415
 msgid "Sample count"
 msgstr "样本数量"
 
-#: guiding_assistant.cpp:426
+#: guiding_assistant.cpp:427
 msgid "High-frequency Star Motion"
 msgstr "高频星点侦测"
 
-#: guiding_assistant.cpp:438
+#: guiding_assistant.cpp:439
 msgid "Right ascension, RMS"
 msgstr "赤经，RMS"
 
-#: guiding_assistant.cpp:442
+#: guiding_assistant.cpp:443
 msgid "Declination, RMS"
 msgstr "赤纬，RMS"
 
-#: guiding_assistant.cpp:446
+#: guiding_assistant.cpp:447
 msgid "Total, RMS"
 msgstr "累计, RMS"
 
-#: guiding_assistant.cpp:455
+#: guiding_assistant.cpp:456
 msgid "Other Star Motion"
 msgstr "其他的星点位移"
 
-#: guiding_assistant.cpp:469
+#: guiding_assistant.cpp:470
 msgid "Right ascension, Peak"
 msgstr "赤经，峰值"
 
-#: guiding_assistant.cpp:473
+#: guiding_assistant.cpp:474
 msgid "Declination, Peak"
 msgstr "赤纬，峰值"
 
-#: guiding_assistant.cpp:477
+#: guiding_assistant.cpp:478
 msgid "Right ascension, Peak-Peak"
 msgstr "赤经，峰峰值"
 
-#: guiding_assistant.cpp:481
+#: guiding_assistant.cpp:482
 msgid "Right ascension Drift Rate"
 msgstr "赤经漂移率"
 
-#: guiding_assistant.cpp:485
+#: guiding_assistant.cpp:486
 msgid "Right ascension Max Drift Rate"
 msgstr "赤经最大漂移率"
 
-#: guiding_assistant.cpp:489
+#: guiding_assistant.cpp:490
 msgid "Drift-limiting exposure"
 msgstr "无导星极限曝光时间"
 
-#: guiding_assistant.cpp:493
+#: guiding_assistant.cpp:494
 msgid "Declination Drift Rate"
 msgstr "赤纬漂移速率"
 
-#: guiding_assistant.cpp:497
+#: guiding_assistant.cpp:498
 msgid "Declination Backlash"
 msgstr "赤纬回差"
 
-#: guiding_assistant.cpp:501
+#: guiding_assistant.cpp:502
 msgid "Polar Alignment Error"
 msgstr "极轴误差"
 
-#: guiding_assistant.cpp:512
+#: guiding_assistant.cpp:513
 msgid "Recommendations"
 msgstr "建议"
 
-#: guiding_assistant.cpp:528
+#: guiding_assistant.cpp:529
 msgid "Show Backlash Graph"
 msgstr "显示回差图表"
 
-#: guiding_assistant.cpp:529
+#: guiding_assistant.cpp:530
 msgid "Show graph of backlash measurement points"
 msgstr "显示回差测量点的图表"
 
-#: guiding_assistant.cpp:546
+#: guiding_assistant.cpp:547
 msgid "Measure Declination Backlash"
 msgstr "测量赤纬回差"
 
-#: guiding_assistant.cpp:547
+#: guiding_assistant.cpp:548
 msgid ""
 "PHD2 will move the guide star a considerable distance north, then south to "
 "measure backlash. Be sure the selected star has plenty of room to move in "
@@ -4743,77 +4749,77 @@ msgstr ""
 "屏幕上有足够的空间向北移动。 如果被导星丢失，请将搜索区域的大小增加到至少20像"
 "素"
 
-#: guiding_assistant.cpp:572
+#: guiding_assistant.cpp:573
 msgid "Start measuring (disables guiding)"
 msgstr "开始测量（禁用导星输出）"
 
-#: guiding_assistant.cpp:576
+#: guiding_assistant.cpp:577
 msgid "Review previous"
 msgstr "查看之前的"
 
-#: guiding_assistant.cpp:577
+#: guiding_assistant.cpp:578
 msgid "Review previous Guiding Assistant results"
 msgstr "查看之前的导星助手结果"
 
-#: guiding_assistant.cpp:582
+#: guiding_assistant.cpp:583
 msgid "Stop measuring and re-enable guiding"
 msgstr "停止测量并重新开始导星"
 
-#: guiding_assistant.cpp:651
+#: guiding_assistant.cpp:652
 msgid ""
 "Signal-to-noise ratio; a measure of how well PHD2 can isolate the star from "
 "the sky/noise background"
 msgstr "信噪比；用于衡量PHD2能否将恒星与 天空/噪声 背景隔离的程度"
 
-#: guiding_assistant.cpp:653
+#: guiding_assistant.cpp:654
 msgid ""
 "Measure of overall star brightness. Consider using 'Auto-select Star' (Alt-"
 "S) to choose the star."
 msgstr "测量整体星点亮度。 考虑使用“自动选择星点”（Alt-S）来选择星点。"
 
-#: guiding_assistant.cpp:659
+#: guiding_assistant.cpp:660
 msgid ""
 "Measure of typical high-frequency right ascension star movements; guiding "
 "usually cannot correct for fluctuations this small."
 msgstr "测量典型的高频星点赤经的运动；导星通常不能纠正这种小波动。"
 
-#: guiding_assistant.cpp:663
+#: guiding_assistant.cpp:664
 msgid ""
 "Measure of typical high-frequency declination star movements; guiding "
 "usually cannot correct for fluctuations this small."
 msgstr "测量典型的高频星点赤纬的运动；导星通常不能纠正这种小波动。"
 
-#: guiding_assistant.cpp:669
+#: guiding_assistant.cpp:670
 msgid "Maximum sample-sample deflection seen in right ascension."
 msgstr "赤经中最大的 样本-样本 偏转。"
 
-#: guiding_assistant.cpp:672
+#: guiding_assistant.cpp:673
 msgid "Maximum sample-sample deflection seen in declination."
 msgstr "赤纬中最大的 样本-样本 偏转"
 
-#: guiding_assistant.cpp:675
+#: guiding_assistant.cpp:676
 msgid ""
 "Maximum peak-peak deflection seen in right ascension during sampling period."
 msgstr "赤经采样周期的峰-峰值。"
 
-#: guiding_assistant.cpp:678
+#: guiding_assistant.cpp:679
 msgid "Estimated overall drift rate in right ascension."
 msgstr "预计赤经漂移速率。"
 
-#: guiding_assistant.cpp:681
+#: guiding_assistant.cpp:682
 msgid "Maximum drift rate in right ascension during sampling period."
 msgstr "采样期间赤经的最大漂移率。"
 
-#: guiding_assistant.cpp:684
+#: guiding_assistant.cpp:685
 msgid ""
 "Exposure time to keep maximum RA drift below the recommended min-move level."
 msgstr "曝光时间，以保持最大赤经漂移低于建议的最小移动。"
 
-#: guiding_assistant.cpp:687
+#: guiding_assistant.cpp:688
 msgid "Estimated overall drift rate in declination."
 msgstr "预计赤纬漂移速率。"
 
-#: guiding_assistant.cpp:690
+#: guiding_assistant.cpp:691
 msgid ""
 "Estimated declination backlash if test was completed. Results are time to "
 "clear backlash (ms) and corresponding gear angle (arc-sec). Uncertainty "
@@ -4822,33 +4828,34 @@ msgstr ""
 "测试完成将估算赤纬的回差。 输出结果是清除间隙（毫秒）和相应的齿轮角（角秒）的"
 "时间。 不确定性估计是标准差的一个单位"
 
-#: guiding_assistant.cpp:694
+#: guiding_assistant.cpp:695
 msgid ""
 "Estimate of polar alignment error. If the scope declination is unknown, the "
 "value displayed is a lower bound and the actual error may be larger."
 msgstr ""
 "预计极轴误差。如果“望远镜转角”未知，这个值可能显示的很小但实际上偏差很大。"
 
-#: guiding_assistant.cpp:728
+#: guiding_assistant.cpp:729
 msgid "Choose a non-saturated star with a good SNR (>= 10) and begin guiding"
 msgstr "选择一个良好的非饱和的星点(SNR>10)并开始导星。"
 
-#: guiding_assistant.cpp:733
+#: guiding_assistant.cpp:734
 msgid ""
 "Click Start to begin measurements.  Guiding will be disabled during this "
 "time so the star will move around."
 msgstr "单击“开始”开始测量。 在此期间将禁用导星，因此星点将四处移动。"
 
-#: guiding_assistant.cpp:738
+#: guiding_assistant.cpp:743
 msgid ""
 "Guiding output is disabled and star movement is being measured.  Click Stop "
-"after 2 minutes (longer if you're measuring RA tracking accuracy of the "
-"mount)."
+"after "
 msgstr ""
-"导星输出被禁用，正在测量星点运动。 请在2 分钟后点击“停止”按钮（如果您正在测量"
-"赤道仪的 赤经 跟踪精度，则需要更长的时间）。"
 
-#: guiding_assistant.cpp:742
+#: guiding_assistant.cpp:743
+msgid " (longer if you're measuring RA tracking accuracy of the mount)."
+msgstr ""
+
+#: guiding_assistant.cpp:748
 msgid ""
 "Guiding has been resumed. Look at the recommendations and make any desired "
 "changes.  Click Start to repeat the measurements, or close the window to "
@@ -4857,153 +4864,153 @@ msgstr ""
 "导星已经恢复。 请查看建议并进行任何所需的更改。 点击“开始”按钮以重复测量，或"
 "关闭窗口以继续导星。"
 
-#: guiding_assistant.cpp:755 guiding_assistant.cpp:759
+#: guiding_assistant.cpp:761 guiding_assistant.cpp:765
 msgid "Measuring backlash: "
 msgstr "测量回差： "
 
-#: guiding_assistant.cpp:792 guiding_assistant.cpp:1922
-#: guiding_assistant.cpp:2007
+#: guiding_assistant.cpp:798 guiding_assistant.cpp:1940
+#: guiding_assistant.cpp:2025
 msgid "ms"
 msgstr "ms"
 
-#: guiding_assistant.cpp:793 guiding_assistant.cpp:1924
-#: guiding_assistant.cpp:2009
+#: guiding_assistant.cpp:799 guiding_assistant.cpp:1942
+#: guiding_assistant.cpp:2027
 msgid "arc-sec"
 msgstr "角秒"
 
-#: guiding_assistant.cpp:799
+#: guiding_assistant.cpp:805
 msgid "ms (test impaired)"
 msgstr "ms (测试失败)"
 
-#: guiding_assistant.cpp:958 guiding_assistant.cpp:959 pierflip_tool.cpp:291
+#: guiding_assistant.cpp:964 guiding_assistant.cpp:965 pierflip_tool.cpp:291
 msgid "Apply"
 msgstr "应用"
 
-#: guiding_assistant.cpp:1356 guiding_assistant.cpp:2060 myframe.cpp:3258
+#: guiding_assistant.cpp:1362 guiding_assistant.cpp:2078 myframe.cpp:3258
 #: myframe.cpp:3270
 msgid " "
 msgstr " "
 
-#: guiding_assistant.cpp:1356 guiding_assistant.cpp:1921
-#: guiding_assistant.cpp:2006
+#: guiding_assistant.cpp:1362 guiding_assistant.cpp:1939
+#: guiding_assistant.cpp:2024
 msgid "s"
 msgstr "南"
 
-#: guiding_assistant.cpp:1397
+#: guiding_assistant.cpp:1403
 #, c-format
 msgid "Use exposure times in the range of %.1fs to %.1fs"
 msgstr ""
 
-#: guiding_assistant.cpp:1399
+#: guiding_assistant.cpp:1405
 #, c-format
 msgid ""
 "Use exposure times from %.1fs to %0.1fs and variable delay feature to "
 "control guide cadence"
 msgstr ""
 
-#: guiding_assistant.cpp:1407
+#: guiding_assistant.cpp:1413
 msgid "Try binning your guide camera"
 msgstr "请尝试您导星相机的像素合并功能（比如Bin 2x2）"
 
-#: guiding_assistant.cpp:1415
+#: guiding_assistant.cpp:1421
 msgid "Consider re-doing your calibration "
 msgstr "请考虑重做校准"
 
-#: guiding_assistant.cpp:1417
+#: guiding_assistant.cpp:1423
 msgid "(Prior alert)"
 msgstr "(预警)"
 
-#: guiding_assistant.cpp:1419
+#: guiding_assistant.cpp:1425
 msgid "(Backlash clearing)"
 msgstr "(清除回差)"
 
-#: guiding_assistant.cpp:1429
+#: guiding_assistant.cpp:1435
 msgid ""
 "Consider using a brighter star for the test or increasing the exposure time"
 msgstr "请考虑使用更亮的星点进行测试或增加曝光时间"
 
-#: guiding_assistant.cpp:1445 guiding_assistant.cpp:1451
+#: guiding_assistant.cpp:1451 guiding_assistant.cpp:1457
 msgid ""
 "Polar alignment error > 10 arc-min; try using the Drift Align tool to "
 "improve alignment."
 msgstr "如果极轴误差大于10角分，请重新使用漂移校准工具来改善误差情况。"
 
-#: guiding_assistant.cpp:1450
+#: guiding_assistant.cpp:1456
 msgid "Polar alignment error > 5 arc-min; that could probably be improved."
 msgstr "如果极轴误差大于5角分，可能可以改善误差情况。"
 
-#: guiding_assistant.cpp:1467
+#: guiding_assistant.cpp:1473
 msgid "Consider trying to improve focus on the guide camera"
 msgstr "请考虑尝试改善导星镜的对焦情况"
 
-#: guiding_assistant.cpp:1478
+#: guiding_assistant.cpp:1484
 #, c-format
 msgid "Try setting RA min-move to %0.2f"
 msgstr "设置赤经最小移动为%0.2f"
 
-#: guiding_assistant.cpp:1489
+#: guiding_assistant.cpp:1495
 #, c-format
 msgid "Try setting Dec min-move to %0.2f"
 msgstr "设置赤纬最小移动为%0.2f"
 
-#: guiding_assistant.cpp:1514
+#: guiding_assistant.cpp:1520
 msgid "Mount has absolute encoders, no compensation needed"
 msgstr "赤道仪有绝对编码器，不需要做回差校正"
 
-#: guiding_assistant.cpp:1516
+#: guiding_assistant.cpp:1522
 msgid "Backlash is small, no compensation needed"
 msgstr "回差很小，不需要补偿"
 
-#: guiding_assistant.cpp:1520
+#: guiding_assistant.cpp:1526
 #, c-format
 msgid "Try starting with a Dec backlash compensation of %d ms"
 msgstr "%d秒后尝试进行赤纬回差补偿"
 
-#: guiding_assistant.cpp:1523
+#: guiding_assistant.cpp:1529
 #, c-format
 msgid ""
 "Backlash is >= %d ms; you may need to guide in only one Dec direction "
 "(currently %s)"
 msgstr "回差≥ %d 毫秒，你可能只需要在赤纬方向上进行导星（当前 %s）"
 
-#: guiding_assistant.cpp:1540
+#: guiding_assistant.cpp:1546
 msgid "Try using Lowpass2 for Dec guiding"
 msgstr "尝试在赤纬使用低通2算法"
 
-#: guiding_assistant.cpp:1659
+#: guiding_assistant.cpp:1673
 msgid "Measuring..."
 msgstr "测量中…"
 
-#: guiding_assistant.cpp:1763
+#: guiding_assistant.cpp:1777
 msgid "Backlash test aborted, see graph..."
 msgstr "回差测试终止，请看图形……"
 
-#: guiding_assistant.cpp:1805 guiding_assistant.cpp:1811
+#: guiding_assistant.cpp:1821 guiding_assistant.cpp:1827
 msgid "Measuring backlash... "
 msgstr "测量回差中… "
 
-#: guiding_assistant.cpp:1880
+#: guiding_assistant.cpp:1898
 msgid "Guiding stopped"
 msgstr "导星停止"
 
-#: guiding_assistant.cpp:1923 guiding_assistant.cpp:2008 statswindow.cpp:323
+#: guiding_assistant.cpp:1941 guiding_assistant.cpp:2026 statswindow.cpp:323
 #: statswindow.cpp:326
 msgid "px"
 msgstr "像素"
 
-#: guiding_assistant.cpp:1925 guiding_assistant.cpp:2010 statswindow.cpp:314
+#: guiding_assistant.cpp:1943 guiding_assistant.cpp:2028 statswindow.cpp:314
 msgid "arc-min"
 msgstr "角分"
 
-#: guiding_assistant.cpp:1926 guiding_assistant.cpp:2011
+#: guiding_assistant.cpp:1944 guiding_assistant.cpp:2029
 msgid "px/min"
 msgstr "像素/分"
 
-#: guiding_assistant.cpp:1928 guiding_assistant.cpp:2013
+#: guiding_assistant.cpp:1946 guiding_assistant.cpp:2031
 msgid "arc-sec/min"
 msgstr "角秒/分钟"
 
-#: guiding_assistant.cpp:1929 guiding_assistant.cpp:2014
+#: guiding_assistant.cpp:1947 guiding_assistant.cpp:2032
 msgid "arc-sec/sec"
 msgstr "角秒/秒"
 
@@ -6296,7 +6303,7 @@ msgid ""
 "calibration after gear is connected."
 msgstr "对于此设备配置文件，在连接设备后将自动恢复为上次成功校准的数据。"
 
-#: myframe.cpp:3346 scope.cpp:2117
+#: myframe.cpp:3346 scope.cpp:2143
 msgid "Min"
 msgstr "最小"
 
@@ -6304,7 +6311,7 @@ msgstr "最小"
 msgid "Auto exposure minimum duration"
 msgstr "自动曝光最小时间"
 
-#: myframe.cpp:3347 scope.cpp:2120
+#: myframe.cpp:3347 scope.cpp:2146
 msgid "Max"
 msgstr "最大"
 
@@ -8180,38 +8187,32 @@ msgstr "INDI赤道仪[%s]"
 #: scope.cpp:652
 msgid ""
 "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
-"snags, try re-doing your calibration, and check for problems with the mount "
-"mechanics."
+"snags, try re-doing your polar alignment, calibration, and check for "
+"problems with the mount mechanics."
 msgstr ""
-"PHD2无法对赤经进行充分的校准。 请检查电缆连接，尝试重新校准，并确认赤道仪工作"
-"正常以及连接方式。"
 
 #: scope.cpp:658
 msgid ""
 "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
-"snags, try re-doing your calibration, and confirm the ST-4 cable is working "
-"properly."
+"snags, try re-doing your polar alignment, calibration, and confirm the ST-4 "
+"cable is working properly."
 msgstr ""
-"PHD2无法对赤经进行充分的校准。 请检查电缆连接，尝试重新校准，并确认ST-4电缆工"
-"作正常。"
 
 #: scope.cpp:667
 msgid ""
 "PHD2 is not able to make sufficient corrections in Dec.  If the side-of-pier "
 "has changed from where you last calibrated, check to see if the 'Reverse Dec "
 "output option' on the Advanced Dialog guiding tab is wrong. If so, fix it "
-"and recalibrate.  Otherwise, check for cable snags, try re-doing your "
-"calibration, and check for problems with the mount mechanics."
+"and recalibrate.  Otherwise, check for cable snags, try re-doing your polar "
+"alignment, calibration, and check for problems with the mount mechanics."
 msgstr ""
 
 #: scope.cpp:677
 msgid ""
 "PHD2 is not able to make sufficient corrections in Dec.  Check for cable "
-"snags, try re-doing your calibration and confirm the ST-4 cable is working "
-"properly."
+"snags, try re-doing your polar alignment, calibration and confirm the ST-4 "
+"cable is working properly."
 msgstr ""
-"PHD2无法对赤纬进行充分的校准。 请检查电缆连接，尝试重新校准，并确认ST-4电缆工"
-"作正常。"
 
 #: scope.cpp:687
 msgid "Max RA Duration setting"
@@ -8241,25 +8242,25 @@ msgstr ""
 "即使使用最大移动，PHD2 也无法正确校正 %s 中波动大的被导星运动。 在您消除这些"
 "问题的根源之前，导星效果将会很差。"
 
-#: scope.cpp:956
+#: scope.cpp:982
 msgid ""
 "Advisory: Calibration completed but few guide steps were used, so accuracy "
 "is questionable"
 msgstr "提示：校准已完成，但使用的导星步骤很少，因此准确性值得怀疑。"
 
-#: scope.cpp:959
+#: scope.cpp:985
 msgid ""
 "Advisory: Calibration completed but RA/Dec axis angles are questionable and "
 "guiding may be impaired"
 msgstr "提示：校准已完成，但 赤经 和 赤纬 轴的角度有问题，可能会影响导星。"
 
-#: scope.cpp:962
+#: scope.cpp:988
 msgid ""
 "Advisory: This calibration is substantially different from the previous one "
 "- have you changed configurations?"
 msgstr "提示：本次校准和以前的校准有很大的不同 - 您是否更改了相关配置？"
 
-#: scope.cpp:966
+#: scope.cpp:992
 msgid ""
 "Advisory: Calibration completed but RA and Dec rates vary by an unexpected "
 "amount (often caused by large Dec backlash)"
@@ -8267,25 +8268,25 @@ msgstr ""
 "提示：校准已完成，但 赤经 和 赤纬 速率的变化量较大（通常由较大的赤纬回差导"
 "致）"
 
-#: scope.cpp:977
+#: scope.cpp:1003
 msgid "Details..."
 msgstr "详细设置..."
 
-#: scope.cpp:1256
+#: scope.cpp:1282
 msgid "RA Calibration Failed: star did not move enough"
 msgstr "赤经校准失败：星点未能移动足够的距离"
 
-#: scope.cpp:1263
+#: scope.cpp:1289
 #, c-format
 msgid "West step %3d, dist=%4.1f"
 msgstr "西 step %3d, dist=%4.1f"
 
-#: scope.cpp:1336
+#: scope.cpp:1362
 #, c-format
 msgid "East step %3d, dist=%4.1f"
 msgstr "东 步 %3d, dist=%4.1f"
 
-#: scope.cpp:1357
+#: scope.cpp:1383
 msgid ""
 "Advisory: Little or no east movement was measured, so guiding will probably "
 "be impaired. Check the guide cable and use the Manual Guide tool to confirm "
@@ -8294,34 +8295,34 @@ msgstr ""
 "提示：很少或没有测量到向东运动，因此导星可能会受到影响。 检查导星线缆并使"
 "用“手动导星”工具确认赤道仪的基本功能正常。"
 
-#: scope.cpp:1420
+#: scope.cpp:1446
 msgid "Clearing backlash step 1"
 msgstr "清除回差第 1 步"
 
-#: scope.cpp:1459
+#: scope.cpp:1485
 #, c-format
 msgid "Clearing backlash step %3d"
 msgstr "清除回差，第 %3d 步"
 
-#: scope.cpp:1481
+#: scope.cpp:1507
 msgid "Backlash Clearing Failed: star did not move enough"
 msgstr "回差消除失败：星点未能移动足够的距离。"
 
-#: scope.cpp:1530
+#: scope.cpp:1556
 msgid "DEC Calibration Failed: star did not move enough"
 msgstr "赤纬校准失败：星点未能移动足够的距离"
 
-#: scope.cpp:1537
+#: scope.cpp:1563
 #, c-format
 msgid "North step %3d, dist=%4.1f"
 msgstr "北 步 %3d, dist=%4.1f"
 
-#: scope.cpp:1628
+#: scope.cpp:1654
 #, c-format
 msgid "South step %3d, dist=%4.1f"
 msgstr "南  步 %3d, dist=%4.1f"
 
-#: scope.cpp:1649
+#: scope.cpp:1675
 msgid ""
 "Advisory: Calibration succeessful but little or no south movement was "
 "measured, so guiding will probably be impaired.\n"
@@ -8335,7 +8336,7 @@ msgstr ""
 "检查导向线缆并阅读联机帮助以了解如何识别这些类型的问题（如：手动导星、赤纬回"
 "差）。"
 
-#: scope.cpp:1656
+#: scope.cpp:1682
 msgid ""
 "Advisory: Calibration successful but little south movement was measured, so "
 "guiding will probably be impaired. \n"
@@ -8348,7 +8349,7 @@ msgstr ""
 "  这通常是由超大的赤纬回差或其他赤道仪问题导致。\n"
 "检查导向线缆并阅读联机帮助以了解如何识别这些类型的问题（如：赤纬回差）。"
 
-#: scope.cpp:1664
+#: scope.cpp:1690
 msgid ""
 "Advisory: Calibration successful but little south movement was measured, so "
 "guiding may be impaired.\n"
@@ -8361,44 +8362,44 @@ msgstr ""
 "  这通常是由超大的赤纬回差或其他赤道仪问题导致。\n"
 "检查导向线缆并阅读联机帮助以了解如何识别这些类型的问题（如：赤纬回差）。"
 
-#: scope.cpp:1735
+#: scope.cpp:1761
 #, c-format
 msgid "Nudge South %3d"
 msgstr "微调 南 %3d"
 
-#: scope.cpp:1772 stepguider.cpp:761
+#: scope.cpp:1798 stepguider.cpp:761
 msgid "Calibration complete"
 msgstr "校准成功"
 
-#: scope.cpp:1997
+#: scope.cpp:2023
 msgid "Mount Guide Algorithms"
 msgstr "赤道仪导星算法"
 
-#: scope.cpp:2039
+#: scope.cpp:2065
 msgid "Calibration step (ms)"
 msgstr "校准时长 (毫秒)"
 
-#: scope.cpp:2040
+#: scope.cpp:2066
 msgid ""
 "How long a guide pulse should be used during calibration? Click \"Advanced..."
 "\" to compute a suitable value."
 msgstr "校准期间应使用多长时间的到行脉冲？ 点击“高级…”按钮用以计算合适的值。"
 
-#: scope.cpp:2044
+#: scope.cpp:2070
 msgid "Advanced..."
 msgstr "高级…"
 
-#: scope.cpp:2046
+#: scope.cpp:2072
 msgid ""
 "Click to open the Calibration Calculator Dialog to review or change all "
 "calibration parameters"
 msgstr "点击打开校准计算器对话框，用来查看或更改所有校准参数"
 
-#: scope.cpp:2058
+#: scope.cpp:2084
 msgid "Reverse Dec output after meridian flip"
 msgstr "中天自动翻转后反向输出赤纬"
 
-#: scope.cpp:2060
+#: scope.cpp:2086
 msgid ""
 "Check if your mount needs Dec output reversed after a meridian flip. "
 "Changing this setting will clear the existing calibration data"
@@ -8406,19 +8407,19 @@ msgstr ""
 "勾选表示您的赤道仪需要在子午线翻转后反转赤纬输出。 更改此设置将清除现有的校准"
 "数据。"
 
-#: scope.cpp:2068
+#: scope.cpp:2094
 msgid "Stop guiding when mount slews"
 msgstr "当赤道仪Goto时自动停止导星"
 
-#: scope.cpp:2070
+#: scope.cpp:2096
 msgid "When checked, PHD will stop guiding if the mount starts slewing"
 msgstr "如果选中该项，PHD2会在赤道仪开始Goto时停止导星。"
 
-#: scope.cpp:2075
+#: scope.cpp:2101
 msgid "Assume Dec orthogonal to RA"
 msgstr "假设赤纬正交于赤经"
 
-#: scope.cpp:2078
+#: scope.cpp:2104
 msgid ""
 "Assume Dec axis is perpendicular to RA axis, regardless of calibration. "
 "Prevents RA periodic error from affecting Dec calibration. Option takes "
@@ -8427,49 +8428,49 @@ msgstr ""
 "假设赤纬轴垂直于赤经轴。可防止赤经周期误差影响赤纬校准。该选项在赤纬校准时生"
 "效。"
 
-#: scope.cpp:2092
+#: scope.cpp:2118
 msgid ""
 "Check this if you want to apply a backlash compensation guide pulse when "
 "declination direction is reversed."
 msgstr "勾选表示需要在赤纬方向反转时使用回差补偿导星脉冲。"
 
-#: scope.cpp:2101
+#: scope.cpp:2127
 msgid "Amount"
 msgstr "数量"
 
-#: scope.cpp:2101
+#: scope.cpp:2127
 msgid "Size of backlash compensation guide pulse (mSec)"
 msgstr "回差补偿的导星脉冲（毫秒）"
 
-#: scope.cpp:2105
+#: scope.cpp:2131
 msgid "Mount Backlash Compensation"
 msgstr "赤道仪回差补偿"
 
-#: scope.cpp:2105
+#: scope.cpp:2131
 msgid "Backlash Compensation"
 msgstr "回差补偿"
 
-#: scope.cpp:2118
+#: scope.cpp:2144
 msgid "Minimum length of backlash compensation pulse (mSec)."
 msgstr "最小回差补偿脉冲时长（毫秒）"
 
-#: scope.cpp:2121
+#: scope.cpp:2147
 msgid "Maximum length of backlash compensation pulse (mSec)."
 msgstr "最大回差补偿脉冲时长（毫秒）"
 
-#: scope.cpp:2128
+#: scope.cpp:2154
 msgid "Use Dec compensation"
 msgstr "使用赤纬补偿"
 
-#: scope.cpp:2131
+#: scope.cpp:2157
 msgid "Automatically adjust RA guide rate based on scope declination"
 msgstr "基于赤纬自动调整赤经导星速率"
 
-#: scope.cpp:2137
+#: scope.cpp:2163
 msgid "Max RA duration"
 msgstr "赤经最大脉冲时长"
 
-#: scope.cpp:2138 scope.cpp:2352
+#: scope.cpp:2164 scope.cpp:2378
 msgid ""
 "Longest length of pulse to send in RA\n"
 "Default = 2500 ms."
@@ -8477,30 +8478,30 @@ msgstr ""
 "发送至赤经的最大脉冲时长\n"
 "默认值 = 2500 毫秒。"
 
-#: scope.cpp:2143
+#: scope.cpp:2169
 msgid "Max Dec duration"
 msgstr "赤纬最大脉冲时长"
 
-#: scope.cpp:2144
+#: scope.cpp:2170
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms. NOTE: this will be ignored if backlash compensation is "
 "enabled"
 msgstr ""
 
-#: scope.cpp:2157
+#: scope.cpp:2183
 msgid "Dec guide mode"
 msgstr "赤纬导星模式"
 
-#: scope.cpp:2158 scope.cpp:2371
+#: scope.cpp:2184 scope.cpp:2397
 msgid "Directions in which Dec guide commands will be issued"
 msgstr "将发布赤纬导星命令的方向"
 
-#: scope.cpp:2354
+#: scope.cpp:2380
 msgid "Mx RA"
 msgstr "赤经限长"
 
-#: scope.cpp:2360
+#: scope.cpp:2386
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms.  Increase if drift is fast."
@@ -8508,7 +8509,7 @@ msgstr ""
 "发送至赤纬的最大脉冲时长\n"
 "默认值 = 2500 毫秒。加大这个值可以让漂移的速度更快。"
 
-#: scope.cpp:2362
+#: scope.cpp:2388
 msgid "Mx DEC"
 msgstr "赤纬限长"
 
@@ -9529,6 +9530,38 @@ msgstr "正在连接相机 ..."
 #: runinbg.h:109
 msgid "Connecting to Rotator..."
 msgstr "正在连接旋转器 ..."
+
+#~ msgid ""
+#~ "Guiding output is disabled and star movement is being measured.  Click "
+#~ "Stop after 2 minutes (longer if you're measuring RA tracking accuracy of "
+#~ "the mount)."
+#~ msgstr ""
+#~ "导星输出被禁用，正在测量星点运动。 请在2 分钟后点击“停止”按钮（如果您正在"
+#~ "测量赤道仪的 赤经 跟踪精度，则需要更长的时间）。"
+
+#~ msgid ""
+#~ "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
+#~ "snags, try re-doing your calibration, and check for problems with the "
+#~ "mount mechanics."
+#~ msgstr ""
+#~ "PHD2无法对赤经进行充分的校准。 请检查电缆连接，尝试重新校准，并确认赤道仪"
+#~ "工作正常以及连接方式。"
+
+#~ msgid ""
+#~ "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
+#~ "snags, try re-doing your calibration, and confirm the ST-4 cable is "
+#~ "working properly."
+#~ msgstr ""
+#~ "PHD2无法对赤经进行充分的校准。 请检查电缆连接，尝试重新校准，并确认ST-4电"
+#~ "缆工作正常。"
+
+#~ msgid ""
+#~ "PHD2 is not able to make sufficient corrections in Dec.  Check for cable "
+#~ "snags, try re-doing your calibration and confirm the ST-4 cable is "
+#~ "working properly."
+#~ msgstr ""
+#~ "PHD2无法对赤纬进行充分的校准。 请检查电缆连接，尝试重新校准，并确认ST-4电"
+#~ "缆工作正常。"
 
 #~ msgid ""
 #~ "Additional data sampling is being done to better meaure Dec drift. "
