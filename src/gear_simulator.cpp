@@ -1509,7 +1509,7 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
     {
         int width = sim.width / Binning;
         int height = sim.height / Binning;
-        FullSize = wxSize(width, height);
+        FrameSize = wxSize(width, height);
 
         // No file name
         if (pCamera)
@@ -1519,13 +1519,13 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
         if (subframe.width <= 0 || subframe.height <= 0 || subframe.GetRight() >= width || subframe.GetBottom() >= height)
             usingSubframe = false;
         if (!usingSubframe)
-            subframe = wxRect(0, 0, FullSize.GetWidth(), FullSize.GetHeight());
+            subframe = wxRect(0, 0, FrameSize.GetWidth(), FrameSize.GetHeight());
 
         int const exptime = duration;
         int const gain = 30;
         int const offset = 100;
 
-        if (img.Init(FullSize))
+        if (img.Init(FrameSize))
         {
             pFrame->Alert(_("Memory allocation error"));
             return true;
@@ -1583,8 +1583,8 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
         }
 
         // Save full frame size
-        FullSize.x = image.size().width;
-        FullSize.y = image.size().height;
+        FrameSize.x = image.size().width;
+        FrameSize.y = image.size().height;
 
         // Convert to grayscale
         cv::Mat *disk_image = &image;
@@ -1631,7 +1631,7 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
         if (SimCamParams::clouds_opacity > 0)
         {
             if (pFrame->pGuider->m_SolarSystemObject.Get_SolarSystemObjMode())
-                subframe = wxRect(0, 0, FullSize.x, FullSize.y);
+                subframe = wxRect(0, 0, FrameSize.x, FrameSize.y);
             render_clouds(img, subframe, duration, 30, 100);
         }
         if (pCamera)
@@ -1678,7 +1678,7 @@ bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxR
             pCamera->SetProperty("path", filename);
         Debug.Write(wxString::Format("Simulator: loaded image file: %s\n", filename));
 
-        FullSize = img.Size;
+        FrameSize = img.Size;
         break;
     }
     }
