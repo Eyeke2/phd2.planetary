@@ -180,7 +180,7 @@ public:
     void GetDetectionStatus(wxString& statusMsg);
     void GetPlanetMetrics(double& snr, double& mass, double& hfd, unsigned short& peak);
     void NotifyCameraConnect(bool connected);
-    void OnLClick(usImage *pImage, double x, double y);
+    void OnLClick(usImage *pImage, double& x, double& y);
     bool UpdateCaptureState(bool CaptureActive);
     void SaveCameraSimulationMove(double rx, double ry);
     bool Get_SolarSystemObjMode();
