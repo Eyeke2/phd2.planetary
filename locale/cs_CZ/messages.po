@@ -35,7 +35,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PHD 3.6.13 dev5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-11 11:03+0300\n"
+"POT-Creation-Date: 2025-08-29 15:24+0300\n"
 "PO-Revision-Date: 2024-11-03 08:48+0100\n"
 "Last-Translator: \n"
 "Language-Team: Stanislav Holub\n"
@@ -7387,45 +7387,45 @@ msgstr ""
 msgid "Object at (%.1f, %.1f) radius=%d"
 msgstr ""
 
-#: planetary.cpp:987
+#: planetary.cpp:994
 msgid "RefineDiskCenter: failed to start a thread\n"
 msgstr ""
 
-#: planetary.cpp:1299
+#: planetary.cpp:1306
 msgid ""
 "Too many contour points detected. Please apply pixel binning, enable ROI, or "
 "increase the Edge Detection Threshold."
 msgstr ""
 
-#: planetary.cpp:1423
+#: planetary.cpp:1430
 msgid "\\"
 msgstr ""
 
-#: planetary.cpp:1424
+#: planetary.cpp:1431
 msgid "PHD2"
 msgstr ""
 
-#: planetary.cpp:1487 planetary_tool.cpp:529 scope.cpp:339
+#: planetary.cpp:1494 planetary_tool.cpp:529 scope.cpp:339
 msgid "INDI Mount"
 msgstr "INDI Montáž"
 
-#: planetary.cpp:1590
+#: planetary.cpp:1597
 msgid "Object not found"
 msgstr ""
 
-#: planetary.cpp:1636
+#: planetary.cpp:1643
 msgid ""
 "ERROR: camera frame size exceeds maximum limit. Please apply binning to "
 "reduce the frame size."
 msgstr ""
 
-#: planetary.cpp:1709
+#: planetary.cpp:1716
 msgid ""
 "ERROR: exception occurred during image processing: change detection "
 "parameters"
 msgstr ""
 
-#: planetary.cpp:1715
+#: planetary.cpp:1722
 msgid "ERROR: unknown exception occurred in solar system object detection"
 msgstr ""
 
