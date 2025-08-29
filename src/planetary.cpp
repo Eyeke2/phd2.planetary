@@ -640,7 +640,7 @@ void SolarSystemObject::NotifyCameraConnect(bool connected)
 }
 
 // Notification callback when user clicks on the image
-void SolarSystemObject::OnLClick(usImage *pImage, double x, double y)
+void SolarSystemObject::OnLClick(usImage *pImage, double& x, double& y)
 {
     if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
     {
@@ -650,7 +650,14 @@ void SolarSystemObject::OnLClick(usImage *pImage, double x, double y)
         m_detectionCounter = 0;
 #if defined(FRAME_MONITOR_CAMERA)
         if (pCamera && (pCamera->Name == FRAME_MONITOR_CAMERA) && pCamera->Connected)
+        {
+            if (m_detected && !m_paramSurfaceTracking)
+            {
+                x = m_center_x;
+                y = m_center_y;
+            }
             EvtServer.NotifyMouseClick(PHD_Point(x, y));
+        }
 #endif
     }
 }
