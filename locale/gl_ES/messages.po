@@ -1,11 +1,11 @@
-# 
+#
 #  fr\messages.po
 #  PHD Guiding
-# 
+#
 #  Created by Sylvain Girard
 #  Copyright (c) 2013 Sylvain Girard
 #  All rights reserved.
-# 
+#
 #  This source code is distributed under the following "BSD" license
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are met:
@@ -17,7 +17,7 @@
 #    Neither the name of Bret McKee, Dad Dog Development Ltd, nor the names of its
 #     contributors may be used to endorse or promote products derived from
 #     this software without specific prior written permission.
-# 
+#
 #  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 #  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 #  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,13 +29,13 @@
 #  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
-# 
-# 
+#
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: PHD2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-17 16:17+0200\n"
+"POT-Creation-Date: 2025-11-17 18:29+0200\n"
 "PO-Revision-Date: 2020-06-24 19:32+0200\n"
 "Last-Translator: Javier R. <frjaraur@gmail.com>\n"
 "Language-Team: LL@li.org\n"
@@ -9917,30 +9917,30 @@ msgstr "Conectando coa Cámara..."
 msgid "Connecting to Rotator..."
 msgstr "Conectando co Rotador..."
 
-#~ msgid "Failed to initizlize ZWO ASI Camera."
-#~ msgstr "Fallou o arranque da cámara ZWO ASI."
+#~ msgid "SAT"
+#~ msgstr "SAT"
 
-#~ msgid "Align by analysing star drift near the celestial equator (Accurate)"
-#~ msgstr ""
-#~ "Aliña analizando a deriva da estrela preto do ecuador celeste (Preciso)"
+#~ msgid "Cannot load simulated image"
+#~ msgstr "Non se pode cargar imaxe simulada"
 
-#~ msgid "Align by analysing star drift near the celestial pole (Simple)"
-#~ msgstr "Aliña analizando a deriva da estrela preto do polo celeste (Simple)"
+#~ msgid "Selected star at (%.1f, %.1f)"
+#~ msgstr "Estrela seleccionada en (%.1f, %.1f)"
 
 #~ msgid ""
-#~ "Advisory: Calibration succeessful but little or no south movement was "
-#~ "measured, so guiding will probably be impaired.\n"
-#~ " This is usually caused by a faulty guide cable or very large Dec "
-#~ "backlash. \n"
-#~ "Check the guide cable and read the online Help for how to identify these "
-#~ "types of problems (Manual Guide, Declination backlash)."
+#~ "Additional data sampling is being done to better meaure Dec drift. "
+#~ "Backlash testing \n"
+#~ "will start automatically when sampling is completed."
 #~ msgstr ""
-#~ "Aviso: a calibración non tivo éxito, pero mediuse pouco ou ningún "
-#~ "movemento cara ó sur, polo que probablemente non estea ben.\n"
-#~ "  Isto normalmente é causado por un cable de guiado defectuoso ou un "
-#~ "backlash en Dec moi grande.\n"
-#~ "Consulta o cable de guiado e le a axuda en liña para identificar este "
-#~ "tipo de problemas (guía manual, backlash em declinación)."
+#~ "A mostraxe adicional de datos mellorar a deriva de declinación. A proba "
+#~ "de \n"
+#~ "backlash iniciarase automaticamente cando se tomen as mostras."
+
+#~ msgid ""
+#~ "Additional sampling is being done for accurate measurements.  Results "
+#~ "will be shown when sampling is complete."
+#~ msgstr ""
+#~ "Está a facerse unha mostraxe adicional para medicións precisas. Os "
+#~ "resultados mostraranse ó completar as mostras."
 
 #~ msgid ""
 #~ "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
@@ -9969,21 +9969,18 @@ msgstr "Conectando co Rotador..."
 #~ "que os cables están conectados, proba a facer a calibración e comproba "
 #~ "que o cable ST-4 funciona correctamente."
 
-#~ msgid ""
-#~ "Additional data sampling is being done to better meaure Dec drift. "
-#~ "Backlash testing \n"
-#~ "will start automatically when sampling is completed."
-#~ msgstr ""
-#~ "A mostraxe adicional de datos mellorar a deriva de declinación. A proba "
-#~ "de \n"
-#~ "backlash iniciarase automaticamente cando se tomen as mostras."
+#~ msgid "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
+#~ msgstr "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
 
-#~ msgid ""
-#~ "Additional sampling is being done for accurate measurements.  Results "
-#~ "will be shown when sampling is complete."
+#~ msgid "Failed to initizlize ZWO ASI Camera."
+#~ msgstr "Fallou o arranque da cámara ZWO ASI."
+
+#~ msgid "Align by analysing star drift near the celestial equator (Accurate)"
 #~ msgstr ""
-#~ "Está a facerse unha mostraxe adicional para medicións precisas. Os "
-#~ "resultados mostraranse ó completar as mostras."
+#~ "Aliña analizando a deriva da estrela preto do ecuador celeste (Preciso)"
+
+#~ msgid "Align by analysing star drift near the celestial pole (Simple)"
+#~ msgstr "Aliña analizando a deriva da estrela preto do polo celeste (Simple)"
 
 #~ msgid ""
 #~ "PHD2 could not connect to the camera so you may want to deal with that "
@@ -9995,29 +9992,22 @@ msgstr "Conectando co Rotador..."
 #~ "xunto coa distancia focal e os niveis de binnig."
 
 #~ msgid ""
-#~ "PHD2 is not able to make sufficient corrections in Dec.  If you have just "
-#~ "done a meridian flip, check to see if the 'Reverse Dec output option' on "
-#~ "the Advanced Dialog guiding tab is wrong.  Otherwise, check for cable "
-#~ "snags, try re-doing your calibration, and check for problems with the "
-#~ "mount mechanics."
+#~ "Advisory: Calibration succeessful but little or no south movement was "
+#~ "measured, so guiding will probably be impaired.\n"
+#~ " This is usually caused by a faulty guide cable or very large Dec "
+#~ "backlash. \n"
+#~ "Check the guide cable and read the online Help for how to identify these "
+#~ "types of problems (Manual Guide, Declination backlash)."
 #~ msgstr ""
-#~ "PHD2 non é quen de facer as correccións suficientes en dec. Se acaba de "
-#~ "facer un volteo por meridiano, comproba se a opción de saída \"Dec "
-#~ "Invertida\" da guía de diálogo avanzado é incorrecta. En caso contrario, "
-#~ "comproba se hai cables desenchufados, proba a facer a calibración e "
-#~ "comproba se hai problemas coa mecánica de montura."
-
-#~ msgid "SAT"
-#~ msgstr "SAT"
+#~ "Aviso: a calibración non tivo éxito, pero mediuse pouco ou ningún "
+#~ "movemento cara ó sur, polo que probablemente non estea ben.\n"
+#~ "  Isto normalmente é causado por un cable de guiado defectuoso ou un "
+#~ "backlash en Dec moi grande.\n"
+#~ "Consulta o cable de guiado e le a axuda en liña para identificar este "
+#~ "tipo de problemas (guía manual, backlash em declinación)."
 
 #~ msgid "Failed to set camera exposure"
 #~ msgstr "Fallo ó configurar a exposición da cámara"
-
-#~ msgid "Cannot load simulated image"
-#~ msgstr "Non se pode cargar imaxe simulada"
-
-#~ msgid "Selected star at (%.1f, %.1f)"
-#~ msgstr "Estrela seleccionada en (%.1f, %.1f)"
 
 #~ msgid "Try to keep your exposure times in the range of %.1fs to %.1fs"
 #~ msgstr ""
@@ -10034,8 +10024,18 @@ msgstr "Conectando co Rotador..."
 #~ "óptica adaptativa (Lonxitude focal = apertura X valor f telesc). Podes "
 #~ "usar o control arriba/abaixo ou escribir o valor directamente."
 
-#~ msgid "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
-#~ msgstr "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
+#~ msgid ""
+#~ "PHD2 is not able to make sufficient corrections in Dec.  If you have just "
+#~ "done a meridian flip, check to see if the 'Reverse Dec output option' on "
+#~ "the Advanced Dialog guiding tab is wrong.  Otherwise, check for cable "
+#~ "snags, try re-doing your calibration, and check for problems with the "
+#~ "mount mechanics."
+#~ msgstr ""
+#~ "PHD2 non é quen de facer as correccións suficientes en dec. Se acaba de "
+#~ "facer un volteo por meridiano, comproba se a opción de saída \"Dec "
+#~ "Invertida\" da guía de diálogo avanzado é incorrecta. En caso contrario, "
+#~ "comproba se hai cables desenchufados, proba a facer a calibración e "
+#~ "comproba se hai problemas coa mecánica de montura."
 
 #~ msgid ""
 #~ "Guiding parameters have been reset because the binning or pixel size "

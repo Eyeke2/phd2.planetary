@@ -1,11 +1,11 @@
-# 
+#
 # fr\messages.po
 # PHD Guiding
-# 
+#
 # Created by Sylvain Girard
 # Copyright (c) 2013 Sylvain Girard
 # All rights reserved.
-# 
+#
 # This source code is distributed under the following "BSD" license
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -17,7 +17,7 @@
 # Neither the name of Bret McKee, Dad Dog Development Ltd, nor the names
 # contributors may be used to endorse or promote products derived from
 # this software without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,13 +29,13 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-# 
-# 
+#
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: open-phd-guiding 2.3.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-17 16:17+0200\n"
+"POT-Creation-Date: 2025-11-17 18:29+0200\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Konstantin Menshikoff <konstantin.menshikoff@gmail.com>\n"
 "Language-Team: \n"
@@ -9813,32 +9813,30 @@ msgstr "Подключение камеры..."
 msgid "Connecting to Rotator..."
 msgstr "Подключение к поворотному устройству..."
 
-#~ msgid "Failed to initizlize ZWO ASI Camera."
-#~ msgstr "Сбой инициализации камеры ZWO."
+#~ msgid "SAT"
+#~ msgstr "Пересвет"
 
-#~ msgid "Align by analysing star drift near the celestial equator (Accurate)"
-#~ msgstr ""
-#~ "Выровнять путём анализа дрейфа звезды у небесного экватора (высокая "
-#~ "точность)"
+#~ msgid "Cannot load simulated image"
+#~ msgstr "Невозможно загрузить искусственное изображение"
 
-#~ msgid "Align by analysing star drift near the celestial pole (Simple)"
-#~ msgstr ""
-#~ "Выровнять путём анализа дрейфа звезды у небесного полюса (приблизительно)"
+#~ msgid "Selected star at (%.1f, %.1f)"
+#~ msgstr "Выбранная звезда (%.1f, %1f)"
 
 #~ msgid ""
-#~ "Advisory: Calibration succeessful but little or no south movement was "
-#~ "measured, so guiding will probably be impaired.\n"
-#~ " This is usually caused by a faulty guide cable or very large Dec "
-#~ "backlash. \n"
-#~ "Check the guide cable and read the online Help for how to identify these "
-#~ "types of problems (Manual Guide, Declination backlash)."
+#~ "Additional data sampling is being done to better meaure Dec drift. "
+#~ "Backlash testing \n"
+#~ "will start automatically when sampling is completed."
 #~ msgstr ""
-#~ "Предупреждение: калибровка успешна, но слишком мало измерено движений в "
-#~ "южном направлении, поэтому гидирование может быть нарушено.\n"
-#~ "Обычно это происходит из-за проблем с кабелем для гидирования или очень "
-#~ "большого люфта склонения. \n"
-#~ "Проверьте кабель и обратитесь к онлайн-документации (Manual Guide, "
-#~ "Declination backlash)."
+#~ "Сделан дополнительный отбор данных для лучшего определения люфта "
+#~ "склонения.\n"
+#~ "Автоматическое тестирование люфта начнётся по завершении отбора."
+
+#~ msgid ""
+#~ "Additional sampling is being done for accurate measurements.  Results "
+#~ "will be shown when sampling is complete."
+#~ msgstr ""
+#~ "Производится дополнительный сбор данных для более точных измерений. "
+#~ "Результаты появятся по завершении сбора данных. "
 
 #~ msgid ""
 #~ "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
@@ -9865,21 +9863,20 @@ msgstr "Подключение к поворотному устройству...
 #~ "подключение кабелей, повторите калибровку и удостоверьтесь, что кабель ST-"
 #~ "4 работает как надо."
 
-#~ msgid ""
-#~ "Additional data sampling is being done to better meaure Dec drift. "
-#~ "Backlash testing \n"
-#~ "will start automatically when sampling is completed."
-#~ msgstr ""
-#~ "Сделан дополнительный отбор данных для лучшего определения люфта "
-#~ "склонения.\n"
-#~ "Автоматическое тестирование люфта начнётся по завершении отбора."
+#~ msgid "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
+#~ msgstr "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
 
-#~ msgid ""
-#~ "Additional sampling is being done for accurate measurements.  Results "
-#~ "will be shown when sampling is complete."
+#~ msgid "Failed to initizlize ZWO ASI Camera."
+#~ msgstr "Сбой инициализации камеры ZWO."
+
+#~ msgid "Align by analysing star drift near the celestial equator (Accurate)"
 #~ msgstr ""
-#~ "Производится дополнительный сбор данных для более точных измерений. "
-#~ "Результаты появятся по завершении сбора данных. "
+#~ "Выровнять путём анализа дрейфа звезды у небесного экватора (высокая "
+#~ "точность)"
+
+#~ msgid "Align by analysing star drift near the celestial pole (Simple)"
+#~ msgstr ""
+#~ "Выровнять путём анализа дрейфа звезды у небесного полюса (приблизительно)"
 
 #~ msgid ""
 #~ "PHD2 could not connect to the camera so you may want to deal with that "
@@ -9891,28 +9888,22 @@ msgstr "Подключение к поворотному устройству...
 #~ "вручную."
 
 #~ msgid ""
-#~ "PHD2 is not able to make sufficient corrections in Dec.  If you have just "
-#~ "done a meridian flip, check to see if the 'Reverse Dec output option' on "
-#~ "the Advanced Dialog guiding tab is wrong.  Otherwise, check for cable "
-#~ "snags, try re-doing your calibration, and check for problems with the "
-#~ "mount mechanics."
+#~ "Advisory: Calibration succeessful but little or no south movement was "
+#~ "measured, so guiding will probably be impaired.\n"
+#~ " This is usually caused by a faulty guide cable or very large Dec "
+#~ "backlash. \n"
+#~ "Check the guide cable and read the online Help for how to identify these "
+#~ "types of problems (Manual Guide, Declination backlash)."
 #~ msgstr ""
-#~ "PHD2 не в состоянии сделать нужную поправку по склонению. Если вы только "
-#~ "что переложили меридиан проверьте значение параметра 'Инвертировать "
-#~ "импульсы по δ после перекладки меридиана '. Если он установлен правильно, "
-#~ "проверьте кабели, механику монтировки и попробуйте перекалиброваться."
-
-#~ msgid "SAT"
-#~ msgstr "Пересвет"
+#~ "Предупреждение: калибровка успешна, но слишком мало измерено движений в "
+#~ "южном направлении, поэтому гидирование может быть нарушено.\n"
+#~ "Обычно это происходит из-за проблем с кабелем для гидирования или очень "
+#~ "большого люфта склонения. \n"
+#~ "Проверьте кабель и обратитесь к онлайн-документации (Manual Guide, "
+#~ "Declination backlash)."
 
 #~ msgid "Failed to set camera exposure"
 #~ msgstr "Сбой установки выдержки"
-
-#~ msgid "Cannot load simulated image"
-#~ msgstr "Невозможно загрузить искусственное изображение"
-
-#~ msgid "Selected star at (%.1f, %.1f)"
-#~ msgstr "Выбранная звезда (%.1f, %1f)"
 
 #~ msgid "Try to keep your exposure times in the range of %.1fs to %.1fs"
 #~ msgstr ""
@@ -9929,8 +9920,17 @@ msgstr "Подключение к поворотному устройству...
 #~ "или устройство адаптивной оптики).  Типичное фокусное расстояние гида "
 #~ "примерно равно 165 мм. "
 
-#~ msgid "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
-#~ msgstr "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
+#~ msgid ""
+#~ "PHD2 is not able to make sufficient corrections in Dec.  If you have just "
+#~ "done a meridian flip, check to see if the 'Reverse Dec output option' on "
+#~ "the Advanced Dialog guiding tab is wrong.  Otherwise, check for cable "
+#~ "snags, try re-doing your calibration, and check for problems with the "
+#~ "mount mechanics."
+#~ msgstr ""
+#~ "PHD2 не в состоянии сделать нужную поправку по склонению. Если вы только "
+#~ "что переложили меридиан проверьте значение параметра 'Инвертировать "
+#~ "импульсы по δ после перекладки меридиана '. Если он установлен правильно, "
+#~ "проверьте кабели, механику монтировки и попробуйте перекалиброваться."
 
 #~ msgid ""
 #~ "Guiding parameters have been reset because the binning or pixel size "

@@ -1,11 +1,11 @@
-# 
+#
 #  fr\messages.po
 #  PHD Guiding
-# 
+#
 #  Created by Sylvain Girard
 #  Copyright (c) 2013 Sylvain Girard
 #  All rights reserved.
-# 
+#
 #  This source code is distributed under the following "BSD" license
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are met:
@@ -17,7 +17,7 @@
 #    Neither the name of Bret McKee, Dad Dog Development Ltd, nor the names of its
 #     contributors may be used to endorse or promote products derived from
 #     this software without specific prior written permission.
-# 
+#
 #  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 #  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 #  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,13 +29,13 @@
 #  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
-# 
-# 
+#
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-17 16:17+0200\n"
+"POT-Creation-Date: 2025-11-17 18:29+0200\n"
 "PO-Revision-Date: 2020-01-19 14:09+0900\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -9700,30 +9700,26 @@ msgstr "카메라 연결중..."
 msgid "Connecting to Rotator..."
 msgstr "Rotator 연결중..."
 
-#~ msgid "Failed to initizlize ZWO ASI Camera."
-#~ msgstr "ZWO ASI 카메라를 초기화하지 못했습니다."
+#~ msgid "Cannot load simulated image"
+#~ msgstr "시뮬레이션된 이미지를 로드 할 수 없습니다"
 
-#~ msgid "Align by analysing star drift near the celestial equator (Accurate)"
-#~ msgstr "천구 적도 근처에 있는 별의 표류를 분석하여 정렬 (정확)"
-
-#~ msgid "Align by analysing star drift near the celestial pole (Simple)"
-#~ msgstr ""
-#~ "천구의 극(북극 또는 남극) 근처에 있는 별의 표류를 분석하여 정렬 (간단)"
+#~ msgid "Selected star at (%.1f, %.1f)"
+#~ msgstr "선택된 별 (%.1f, %.1f)"
 
 #~ msgid ""
-#~ "Advisory: Calibration succeessful but little or no south movement was "
-#~ "measured, so guiding will probably be impaired.\n"
-#~ " This is usually caused by a faulty guide cable or very large Dec "
-#~ "backlash. \n"
-#~ "Check the guide cable and read the online Help for how to identify these "
-#~ "types of problems (Manual Guide, Declination backlash)."
+#~ "Additional data sampling is being done to better meaure Dec drift. "
+#~ "Backlash testing \n"
+#~ "will start automatically when sampling is completed."
 #~ msgstr ""
-#~ "권고: 교정에 성공했지만 남쪽으로 움직임이 거의 또는 전혀 측정되지 않았으므"
-#~ "로 가이드가 정상으로 작동 하지 않을 것 입니다.\n"
-#~ "이는 일반적으로 잘못된 가이드 케이블 또는 매우 큰 적위 백래시로 인해 발생"
-#~ "합니다.\n"
-#~ "이러한 유형의 문제를 식별하는 방법에 대해서는 가이드 케이블을 확인하고 온"
-#~ "라인 도움말을 참조 하십시오(수동 가이드, 적위 백래시)."
+#~ "적위 표류를 더 잘 측정하기 위해 추가 데이터 샘플링이 수행됩니다. \n"
+#~ "샘플링이 완료되면 백래시 테스트가 자동으로 시작됩니다."
+
+#~ msgid ""
+#~ "Additional sampling is being done for accurate measurements.  Results "
+#~ "will be shown when sampling is complete."
+#~ msgstr ""
+#~ "정확한 측정하기 위해 추가 데이터 샘플링이 수행됩니다. 샘플링이 완료되면 결"
+#~ "과를 보여줍니다."
 
 #~ msgid ""
 #~ "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
@@ -9749,20 +9745,15 @@ msgstr "Rotator 연결중..."
 #~ "PHD2가 적위에 충분한 교정을 할 수 없습니다. 케이블 걸림이 있는지 점검하고 "
 #~ "교정을 다시 시도한 후 ST-4 케이블이 제대로 작동하는지 확인하십시오."
 
-#~ msgid ""
-#~ "Additional data sampling is being done to better meaure Dec drift. "
-#~ "Backlash testing \n"
-#~ "will start automatically when sampling is completed."
-#~ msgstr ""
-#~ "적위 표류를 더 잘 측정하기 위해 추가 데이터 샘플링이 수행됩니다. \n"
-#~ "샘플링이 완료되면 백래시 테스트가 자동으로 시작됩니다."
+#~ msgid "Failed to initizlize ZWO ASI Camera."
+#~ msgstr "ZWO ASI 카메라를 초기화하지 못했습니다."
 
-#~ msgid ""
-#~ "Additional sampling is being done for accurate measurements.  Results "
-#~ "will be shown when sampling is complete."
+#~ msgid "Align by analysing star drift near the celestial equator (Accurate)"
+#~ msgstr "천구 적도 근처에 있는 별의 표류를 분석하여 정렬 (정확)"
+
+#~ msgid "Align by analysing star drift near the celestial pole (Simple)"
 #~ msgstr ""
-#~ "정확한 측정하기 위해 추가 데이터 샘플링이 수행됩니다. 샘플링이 완료되면 결"
-#~ "과를 보여줍니다."
+#~ "천구의 극(북극 또는 남극) 근처에 있는 별의 표류를 분석하여 정렬 (간단)"
 
 #~ msgid ""
 #~ "PHD2 could not connect to the camera so you may want to deal with that "
@@ -9771,6 +9762,27 @@ msgstr "Rotator 연결중..."
 #~ msgstr ""
 #~ "카메라를 연결할 수 없으므로 나중에 처리 하십시오. 초점 길이, 비닝 수준, 픽"
 #~ "셀 크기를 수동으로 입력하기만 하면 됩니다."
+
+#~ msgid ""
+#~ "Advisory: Calibration succeessful but little or no south movement was "
+#~ "measured, so guiding will probably be impaired.\n"
+#~ " This is usually caused by a faulty guide cable or very large Dec "
+#~ "backlash. \n"
+#~ "Check the guide cable and read the online Help for how to identify these "
+#~ "types of problems (Manual Guide, Declination backlash)."
+#~ msgstr ""
+#~ "권고: 교정에 성공했지만 남쪽으로 움직임이 거의 또는 전혀 측정되지 않았으므"
+#~ "로 가이드가 정상으로 작동 하지 않을 것 입니다.\n"
+#~ "이는 일반적으로 잘못된 가이드 케이블 또는 매우 큰 적위 백래시로 인해 발생"
+#~ "합니다.\n"
+#~ "이러한 유형의 문제를 식별하는 방법에 대해서는 가이드 케이블을 확인하고 온"
+#~ "라인 도움말을 참조 하십시오(수동 가이드, 적위 백래시)."
+
+#~ msgid "Failed to set camera exposure"
+#~ msgstr "카메라 노출 설정 실패"
+
+#~ msgid "Try to keep your exposure times in the range of %.1fs to %.1fs"
+#~ msgstr "노축시간을 다음 범위에서 유지하십시오 %.1fs to %.1fs"
 
 #~ msgid ""
 #~ "PHD2 is not able to make sufficient corrections in Dec.  If you have just "
@@ -9783,18 +9795,6 @@ msgstr "Rotator 연결중..."
 #~ "급 대화 상자 가이딩 탭의 '역방향 적위 출력 옵션'이 잘못 되었는지 확인하십"
 #~ "시오. 그렇지 않으면 케이블 걸림이 있는지 확인하고 교정을 다시 시도한 후 마"
 #~ "운트 메커니즘에 문제가 있는지 확인하십시오."
-
-#~ msgid "Failed to set camera exposure"
-#~ msgstr "카메라 노출 설정 실패"
-
-#~ msgid "Cannot load simulated image"
-#~ msgstr "시뮬레이션된 이미지를 로드 할 수 없습니다"
-
-#~ msgid "Selected star at (%.1f, %.1f)"
-#~ msgstr "선택된 별 (%.1f, %.1f)"
-
-#~ msgid "Try to keep your exposure times in the range of %.1fs to %.1fs"
-#~ msgstr "노축시간을 다음 범위에서 유지하십시오 %.1fs to %.1fs"
 
 #~ msgid ""
 #~ "Guiding parameters have been reset because the binning or pixel size "
