@@ -3370,6 +3370,18 @@ void EventServer::NotifyGuideStep(const GuideStepInfo& step)
     do_notify(m_eventServerClients, ev);
 }
 
+void EventServer::NotifySt4Step(char direction, int duration)
+{
+    wxMutexLocker lck(m_clientsLock);
+    if (m_eventServerClients.empty())
+        return;
+
+    Ev ev("St4Step");
+    ev << NV("Dir", direction) << NV("Step", duration);
+
+    do_notify(m_eventServerClients, ev);
+}
+
 void EventServer::NotifyGuidingDithered(double dx, double dy)
 {
     wxMutexLocker lck(m_clientsLock);
