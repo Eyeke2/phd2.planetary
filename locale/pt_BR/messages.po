@@ -1,11 +1,11 @@
-# 
+#
 #  fr\messages.po
 #  PHD Guiding
-# 
+#
 #  Created by Sylvain Girard
 #  Copyright (c) 2013 Sylvain Girard
 #  All rights reserved.
-# 
+#
 #  This source code is distributed under the following "BSD" license
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are met:
@@ -17,7 +17,7 @@
 #    Neither the name of Bret McKee, Dad Dog Development Ltd, nor the names of its
 #     contributors may be used to endorse or promote products derived from
 #     this software without specific prior written permission.
-# 
+#
 #  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 #  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 #  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,13 +29,13 @@
 #  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
-# 
-# 
+#
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-17 16:17+0200\n"
+"POT-Creation-Date: 2025-11-17 18:29+0200\n"
 "PO-Revision-Date: 2022-07-20 21:44-0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -9989,38 +9989,30 @@ msgstr "Conectando à câmera...."
 msgid "Connecting to Rotator..."
 msgstr "Conectando ao rotacionador..."
 
-#~ msgid ""
-#~ "Discard this many frames whan capturing starts. Useful for preventing "
-#~ "initial under-exposed frames interfering with automatic star selection."
-#~ msgstr ""
-#~ "Descartar essa quantidade de quadros quando a captura for iniciada. Útil "
-#~ "para evitar que os quadros iniciais subexpostos interfiram na seleção "
-#~ "automática de estrelas."
+#~ msgid "SAT"
+#~ msgstr "SAT"
 
-#~ msgid "Failed to initizlize ZWO ASI Camera."
-#~ msgstr "Falhou em iniciar câmera ZWO ASI."
+#~ msgid "Cannot load simulated image"
+#~ msgstr "Não pode carregar imagem simulada"
 
-#~ msgid "Align by analysing star drift near the celestial equator (Accurate)"
-#~ msgstr ""
-#~ "Alinhar analisando a deriva estelar perto do equador celeste (Preciso)"
-
-#~ msgid "Align by analysing star drift near the celestial pole (Simple)"
-#~ msgstr "Alinhar analisando a deriva estelar perto do pólo celeste (Simples)"
+#~ msgid "Selected star at (%.1f, %.1f)"
+#~ msgstr "Estrela selecionada em (%.1f, %.1f)"
 
 #~ msgid ""
-#~ "Advisory: Calibration succeessful but little or no south movement was "
-#~ "measured, so guiding will probably be impaired.\n"
-#~ " This is usually caused by a faulty guide cable or very large Dec "
-#~ "backlash. \n"
-#~ "Check the guide cable and read the online Help for how to identify these "
-#~ "types of problems (Manual Guide, Declination backlash)."
+#~ "Additional data sampling is being done to better meaure Dec drift. "
+#~ "Backlash testing \n"
+#~ "will start automatically when sampling is completed."
 #~ msgstr ""
-#~ "Aviso: Calibração bem-sucedida, mas pouco ou nenhum movimento Sul foi "
-#~ "medido; portanto, a guiagem provavelmente será prejudicada.\n"
-#~ " Isso geralmente é causado por um cabo guia com defeito ou por uma folga "
-#~ "muito grande em Dec.\n"
-#~ "Verifique o cabo de guiagem e leia a Ajuda on-line para saber como "
-#~ "identificar esses tipos de problemas (Guia Manual, Folga de Declinação)."
+#~ "Amostragem de dados adicionais está sendo feita para medir melhor o "
+#~ "desvio em Dec. Teste de folga \n"
+#~ "começará automaticamente quando a amostragem estiver concluída."
+
+#~ msgid ""
+#~ "Additional sampling is being done for accurate measurements.  Results "
+#~ "will be shown when sampling is complete."
+#~ msgstr ""
+#~ "Amostragem adicional está sendo feita para medições precisas.  Os "
+#~ "resultados serão mostrados quando a amostragem estiver completa."
 
 #~ msgid ""
 #~ "Guiding output is disabled and star movement is being measured.  Click "
@@ -10058,21 +10050,26 @@ msgstr "Conectando ao rotacionador..."
 #~ "dobras no cabo, tente refazer sua calibração e confirme se o cabo ST-4 "
 #~ "está funcionando corretamente."
 
-#~ msgid ""
-#~ "Additional data sampling is being done to better meaure Dec drift. "
-#~ "Backlash testing \n"
-#~ "will start automatically when sampling is completed."
-#~ msgstr ""
-#~ "Amostragem de dados adicionais está sendo feita para medir melhor o "
-#~ "desvio em Dec. Teste de folga \n"
-#~ "começará automaticamente quando a amostragem estiver concluída."
+#~ msgid "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
+#~ msgstr "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
 
 #~ msgid ""
-#~ "Additional sampling is being done for accurate measurements.  Results "
-#~ "will be shown when sampling is complete."
+#~ "Discard this many frames whan capturing starts. Useful for preventing "
+#~ "initial under-exposed frames interfering with automatic star selection."
 #~ msgstr ""
-#~ "Amostragem adicional está sendo feita para medições precisas.  Os "
-#~ "resultados serão mostrados quando a amostragem estiver completa."
+#~ "Descartar essa quantidade de quadros quando a captura for iniciada. Útil "
+#~ "para evitar que os quadros iniciais subexpostos interfiram na seleção "
+#~ "automática de estrelas."
+
+#~ msgid "Failed to initizlize ZWO ASI Camera."
+#~ msgstr "Falhou em iniciar câmera ZWO ASI."
+
+#~ msgid "Align by analysing star drift near the celestial equator (Accurate)"
+#~ msgstr ""
+#~ "Alinhar analisando a deriva estelar perto do equador celeste (Preciso)"
+
+#~ msgid "Align by analysing star drift near the celestial pole (Simple)"
+#~ msgstr "Alinhar analisando a deriva estelar perto do pólo celeste (Simples)"
 
 #~ msgid ""
 #~ "PHD2 could not connect to the camera so you may want to deal with that "
@@ -10085,29 +10082,22 @@ msgstr "Conectando ao rotacionador..."
 #~ "binning."
 
 #~ msgid ""
-#~ "PHD2 is not able to make sufficient corrections in Dec.  If you have just "
-#~ "done a meridian flip, check to see if the 'Reverse Dec output option' on "
-#~ "the Advanced Dialog guiding tab is wrong.  Otherwise, check for cable "
-#~ "snags, try re-doing your calibration, and check for problems with the "
-#~ "mount mechanics."
+#~ "Advisory: Calibration succeessful but little or no south movement was "
+#~ "measured, so guiding will probably be impaired.\n"
+#~ " This is usually caused by a faulty guide cable or very large Dec "
+#~ "backlash. \n"
+#~ "Check the guide cable and read the online Help for how to identify these "
+#~ "types of problems (Manual Guide, Declination backlash)."
 #~ msgstr ""
-#~ "O PHD2 não pode fazer correções suficientes em Dec. Se você acabou de "
-#~ "inverter o meridiano, verifique se a 'opção de saída de reversão inversa' "
-#~ "na guia de guia da caixa de diálogo Avançado está incorreta. Caso "
-#~ "contrário, verifique se há dobras no cabo, tente refazer sua calibração e "
-#~ "verifique se há problemas com a mecânica da montagem."
-
-#~ msgid "SAT"
-#~ msgstr "SAT"
+#~ "Aviso: Calibração bem-sucedida, mas pouco ou nenhum movimento Sul foi "
+#~ "medido; portanto, a guiagem provavelmente será prejudicada.\n"
+#~ " Isso geralmente é causado por um cabo guia com defeito ou por uma folga "
+#~ "muito grande em Dec.\n"
+#~ "Verifique o cabo de guiagem e leia a Ajuda on-line para saber como "
+#~ "identificar esses tipos de problemas (Guia Manual, Folga de Declinação)."
 
 #~ msgid "Failed to set camera exposure"
 #~ msgstr "Falha ao ajustar a exposição da câmera"
-
-#~ msgid "Cannot load simulated image"
-#~ msgstr "Não pode carregar imagem simulada"
-
-#~ msgid "Selected star at (%.1f, %.1f)"
-#~ msgstr "Estrela selecionada em (%.1f, %.1f)"
 
 #~ msgid "Try to keep your exposure times in the range of %.1fs to %.1fs"
 #~ msgstr "Tente manter seus tempos de exposição na faixa de %.1fs a %.1fs"
@@ -10126,8 +10116,18 @@ msgstr "Conectando ao rotacionador..."
 #~ msgid "Mount has high-precision encoders"
 #~ msgstr "A montagem possui codificadores de alta precisão"
 
-#~ msgid "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
-#~ msgstr "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
+#~ msgid ""
+#~ "PHD2 is not able to make sufficient corrections in Dec.  If you have just "
+#~ "done a meridian flip, check to see if the 'Reverse Dec output option' on "
+#~ "the Advanced Dialog guiding tab is wrong.  Otherwise, check for cable "
+#~ "snags, try re-doing your calibration, and check for problems with the "
+#~ "mount mechanics."
+#~ msgstr ""
+#~ "O PHD2 não pode fazer correções suficientes em Dec. Se você acabou de "
+#~ "inverter o meridiano, verifique se a 'opção de saída de reversão inversa' "
+#~ "na guia de guia da caixa de diálogo Avançado está incorreta. Caso "
+#~ "contrário, verifique se há dobras no cabo, tente refazer sua calibração e "
+#~ "verifique se há problemas com a mecânica da montagem."
 
 #~ msgid ""
 #~ "Guiding parameters have been reset because the binning or pixel size "

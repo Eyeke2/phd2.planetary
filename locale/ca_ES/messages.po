@@ -1,11 +1,11 @@
-# 
+#
 #  fr\messages.po
 #  PHD Guiding
-# 
+#
 #  Created by Sylvain Girard
 #  Copyright (c) 2013 Sylvain Girard
 #  All rights reserved.
-# 
+#
 #  This source code is distributed under the following "BSD" license
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are met:
@@ -17,7 +17,7 @@
 #    Neither the name of Bret McKee, Dad Dog Development Ltd, nor the names of its
 #     contributors may be used to endorse or promote products derived from
 #     this software without specific prior written permission.
-# 
+#
 #  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 #  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 #  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,13 +29,13 @@
 #  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
-# 
-# 
+#
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-17 16:17+0200\n"
+"POT-Creation-Date: 2025-11-17 18:29+0200\n"
 "PO-Revision-Date: 2021-02-19 13:44+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -10013,32 +10013,30 @@ msgstr "Connectant amb la Càmera..."
 msgid "Connecting to Rotator..."
 msgstr "Connectant al Rotador..."
 
-#~ msgid "Failed to initizlize ZWO ASI Camera."
-#~ msgstr "No s'ha pogut iniciar la càmera ZWO ASI."
+#~ msgid "SAT"
+#~ msgstr "SAT"
 
-#~ msgid "Align by analysing star drift near the celestial equator (Accurate)"
-#~ msgstr ""
-#~ "Alinea analitzant la deriva estel·lar a prop de l'equador celeste (Precís)"
+#~ msgid "Cannot load simulated image"
+#~ msgstr "No es pot carregar la imatge simulada"
 
-#~ msgid "Align by analysing star drift near the celestial pole (Simple)"
-#~ msgstr ""
-#~ "Alinea analitzant la deriva estel·lar a prop del pol celeste (simple)"
+#~ msgid "Selected star at (%.1f, %.1f)"
+#~ msgstr "Estrella seleccionada en (%.1f, %.1f)"
 
 #~ msgid ""
-#~ "Advisory: Calibration succeessful but little or no south movement was "
-#~ "measured, so guiding will probably be impaired.\n"
-#~ " This is usually caused by a faulty guide cable or very large Dec "
-#~ "backlash. \n"
-#~ "Check the guide cable and read the online Help for how to identify these "
-#~ "types of problems (Manual Guide, Declination backlash)."
+#~ "Additional data sampling is being done to better meaure Dec drift. "
+#~ "Backlash testing \n"
+#~ "will start automatically when sampling is completed."
 #~ msgstr ""
-#~ "Advertiment: Calibratge amb èxit, però es va mesurar poc o cap moviment "
-#~ "cap al sud, de manera que la guia probablement es veurà afectada.\n"
-#~ " Això sol ser causat per un cable de guia defectuós o per un backlash de "
-#~ "Dec molt gran.\n"
-#~ "Consulteu el cable de la guia i llegiu l’ajuda en línia per saber com "
-#~ "identificar aquest tipus de problemes (Manual Guiatge, backlash de "
-#~ "declinació)."
+#~ "S’està fent un mostreig de dades addicionals per millorar la deriva de "
+#~ "Dec. Proves de backlash\n"
+#~ "s'iniciarà automàticament quan es completi el mostreig."
+
+#~ msgid ""
+#~ "Additional sampling is being done for accurate measurements.  Results "
+#~ "will be shown when sampling is complete."
+#~ msgstr ""
+#~ "S’està fent un mostreig addicional per fer mesures precises. Els "
+#~ "resultats es mostraran quan es completi el mostreig."
 
 #~ msgid ""
 #~ "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
@@ -10067,21 +10065,19 @@ msgstr "Connectant al Rotador..."
 #~ "problemes de cables, proveu de tornar a fer el calibratge i confirmeu que "
 #~ "el cable ST-4 funciona correctament."
 
-#~ msgid ""
-#~ "Additional data sampling is being done to better meaure Dec drift. "
-#~ "Backlash testing \n"
-#~ "will start automatically when sampling is completed."
-#~ msgstr ""
-#~ "S’està fent un mostreig de dades addicionals per millorar la deriva de "
-#~ "Dec. Proves de backlash\n"
-#~ "s'iniciarà automàticament quan es completi el mostreig."
+#~ msgid "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
+#~ msgstr "%s FWHM: %.2f, HFD: %.2f (%.2f \")"
 
-#~ msgid ""
-#~ "Additional sampling is being done for accurate measurements.  Results "
-#~ "will be shown when sampling is complete."
+#~ msgid "Failed to initizlize ZWO ASI Camera."
+#~ msgstr "No s'ha pogut iniciar la càmera ZWO ASI."
+
+#~ msgid "Align by analysing star drift near the celestial equator (Accurate)"
 #~ msgstr ""
-#~ "S’està fent un mostreig addicional per fer mesures precises. Els "
-#~ "resultats es mostraran quan es completi el mostreig."
+#~ "Alinea analitzant la deriva estel·lar a prop de l'equador celeste (Precís)"
+
+#~ msgid "Align by analysing star drift near the celestial pole (Simple)"
+#~ msgstr ""
+#~ "Alinea analitzant la deriva estel·lar a prop del pol celeste (simple)"
 
 #~ msgid ""
 #~ "PHD2 could not connect to the camera so you may want to deal with that "
@@ -10094,29 +10090,23 @@ msgstr "Connectant al Rotador..."
 #~ "de combinació."
 
 #~ msgid ""
-#~ "PHD2 is not able to make sufficient corrections in Dec.  If you have just "
-#~ "done a meridian flip, check to see if the 'Reverse Dec output option' on "
-#~ "the Advanced Dialog guiding tab is wrong.  Otherwise, check for cable "
-#~ "snags, try re-doing your calibration, and check for problems with the "
-#~ "mount mechanics."
+#~ "Advisory: Calibration succeessful but little or no south movement was "
+#~ "measured, so guiding will probably be impaired.\n"
+#~ " This is usually caused by a faulty guide cable or very large Dec "
+#~ "backlash. \n"
+#~ "Check the guide cable and read the online Help for how to identify these "
+#~ "types of problems (Manual Guide, Declination backlash)."
 #~ msgstr ""
-#~ "PHD2 no pot fer les correccions suficients al Dec. Si acabeu de capgirar "
-#~ "el meridià, comproveu si l'opció \"Dec sortida invers\" de la pestanya de "
-#~ "guia del diàleg avançat és incorrecta. En cas contrari, comproveu si hi "
-#~ "ha un enganxall de cables, proveu de tornar a fer el calibratge i "
-#~ "comproveu si hi ha problemes amb la mecànica de la muntura."
-
-#~ msgid "SAT"
-#~ msgstr "SAT"
+#~ "Advertiment: Calibratge amb èxit, però es va mesurar poc o cap moviment "
+#~ "cap al sud, de manera que la guia probablement es veurà afectada.\n"
+#~ " Això sol ser causat per un cable de guia defectuós o per un backlash de "
+#~ "Dec molt gran.\n"
+#~ "Consulteu el cable de la guia i llegiu l’ajuda en línia per saber com "
+#~ "identificar aquest tipus de problemes (Manual Guiatge, backlash de "
+#~ "declinació)."
 
 #~ msgid "Failed to set camera exposure"
 #~ msgstr "No s'ha pogut configurar l'exposició de la càmera"
-
-#~ msgid "Cannot load simulated image"
-#~ msgstr "No es pot carregar la imatge simulada"
-
-#~ msgid "Selected star at (%.1f, %.1f)"
-#~ msgstr "Estrella seleccionada en (%.1f, %.1f)"
 
 #~ msgid "Try to keep your exposure times in the range of %.1fs to %.1fs"
 #~ msgstr ""
@@ -10133,8 +10123,18 @@ msgstr "Connectant al Rotador..."
 #~ "(distància focal = obertura x proporció f). Els tubs de cerca típics "
 #~ "tenen una distància focal d’uns 165 mm."
 
-#~ msgid "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
-#~ msgstr "%s FWHM: %.2f, HFD: %.2f (%.2f \")"
+#~ msgid ""
+#~ "PHD2 is not able to make sufficient corrections in Dec.  If you have just "
+#~ "done a meridian flip, check to see if the 'Reverse Dec output option' on "
+#~ "the Advanced Dialog guiding tab is wrong.  Otherwise, check for cable "
+#~ "snags, try re-doing your calibration, and check for problems with the "
+#~ "mount mechanics."
+#~ msgstr ""
+#~ "PHD2 no pot fer les correccions suficients al Dec. Si acabeu de capgirar "
+#~ "el meridià, comproveu si l'opció \"Dec sortida invers\" de la pestanya de "
+#~ "guia del diàleg avançat és incorrecta. En cas contrari, comproveu si hi "
+#~ "ha un enganxall de cables, proveu de tornar a fer el calibratge i "
+#~ "comproveu si hi ha problemes amb la mecànica de la muntura."
 
 #~ msgid ""
 #~ "Guiding parameters have been reset because the binning or pixel size "

@@ -1,10 +1,10 @@
 # fr\messages.po
 # PHD Guiding
-# 
+#
 # Created by Sylvain Girard
 # Copyright (c) 2013 Sylvain Girard
 # All rights reserved.
-# 
+#
 # This source code is distributed under the following "BSD" license
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -16,7 +16,7 @@
 # Neither the name of Bret McKee, Dad Dog Development Ltd, nor the names of its
 # contributors may be used to endorse or promote products derived from
 # this software without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -28,13 +28,13 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-# 
-# 
+#
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: PHD2 2.6.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-17 16:17+0200\n"
+"POT-Creation-Date: 2025-11-17 18:29+0200\n"
 "PO-Revision-Date: 2023-01-26 10:13+0800\n"
 "Last-Translator: Linkage <Linkage@163.com>\n"
 "Language-Team: Linkage <Linkage@163.com>\n"
@@ -3749,7 +3749,7 @@ msgid "Seeing"
 msgstr "视宁度"
 
 #: gear_simulator.cpp:2307
-#, c-format
+#, fuzzy, c-format
 msgid "% cloud opacity"
 msgstr "% 云量"
 
@@ -9535,32 +9535,27 @@ msgstr "正在连接相机 ..."
 msgid "Connecting to Rotator..."
 msgstr "正在连接旋转器 ..."
 
-#~ msgid ""
-#~ "Discard this many frames whan capturing starts. Useful for preventing "
-#~ "initial under-exposed frames interfering with automatic star selection."
-#~ msgstr "在曝光开始丢弃的帧数。有助于防止初始曝光不足的帧干扰自动选星。"
+#~ msgid "SAT"
+#~ msgstr "SAT"
 
-#~ msgid "Failed to initizlize ZWO ASI Camera."
-#~ msgstr "无法初始化振旺ASI相机。"
+#~ msgid "Cannot load simulated image"
+#~ msgstr "无法读取模拟器图像"
 
-#~ msgid "Align by analysing star drift near the celestial equator (Accurate)"
-#~ msgstr "通过分析天极点附近星点漂移情况来对准极轴（精确）"
-
-#~ msgid "Align by analysing star drift near the celestial pole (Simple)"
-#~ msgstr "通过分析天极点附近星点漂移情况来对准极轴（简单）"
+#~ msgid "Selected star at (%.1f, %.1f)"
+#~ msgstr "被导星已选择 (%.1f, %.1f)"
 
 #~ msgid ""
-#~ "Advisory: Calibration succeessful but little or no south movement was "
-#~ "measured, so guiding will probably be impaired.\n"
-#~ " This is usually caused by a faulty guide cable or very large Dec "
-#~ "backlash. \n"
-#~ "Check the guide cable and read the online Help for how to identify these "
-#~ "types of problems (Manual Guide, Declination backlash)."
+#~ "Additional data sampling is being done to better meaure Dec drift. "
+#~ "Backlash testing \n"
+#~ "will start automatically when sampling is completed."
 #~ msgstr ""
-#~ "提示：校准成功，但很少或没有测量到向南移动，因此导星可能会受到影响。\n"
-#~ "  这通常是由导星线缆问题或超大的 赤纬 回差导致。\n"
-#~ "检查导向线缆并阅读联机帮助以了解如何识别这些类型的问题（如：手动导星、赤纬"
-#~ "回差）。"
+#~ "正在进行额外的数据采样以更好地测量赤纬漂移。 \n"
+#~ "采样完成后将自动进行回差测试。"
+
+#~ msgid ""
+#~ "Additional sampling is being done for accurate measurements.  Results "
+#~ "will be shown when sampling is complete."
+#~ msgstr "正在进行额外的采样以进行精确测量。 采样完成后将显示结果。"
 
 #~ msgid ""
 #~ "Guiding output is disabled and star movement is being measured.  Click "
@@ -9594,18 +9589,22 @@ msgstr "正在连接旋转器 ..."
 #~ "PHD2无法对赤纬进行充分的校准。 请检查电缆连接，尝试重新校准，并确认ST-4电"
 #~ "缆工作正常。"
 
-#~ msgid ""
-#~ "Additional data sampling is being done to better meaure Dec drift. "
-#~ "Backlash testing \n"
-#~ "will start automatically when sampling is completed."
-#~ msgstr ""
-#~ "正在进行额外的数据采样以更好地测量赤纬漂移。 \n"
-#~ "采样完成后将自动进行回差测试。"
+#~ msgid "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
+#~ msgstr "%s FWHM: %.2f, HFD: %.2f (%.2f”)"
 
 #~ msgid ""
-#~ "Additional sampling is being done for accurate measurements.  Results "
-#~ "will be shown when sampling is complete."
-#~ msgstr "正在进行额外的采样以进行精确测量。 采样完成后将显示结果。"
+#~ "Discard this many frames whan capturing starts. Useful for preventing "
+#~ "initial under-exposed frames interfering with automatic star selection."
+#~ msgstr "在曝光开始丢弃的帧数。有助于防止初始曝光不足的帧干扰自动选星。"
+
+#~ msgid "Failed to initizlize ZWO ASI Camera."
+#~ msgstr "无法初始化振旺ASI相机。"
+
+#~ msgid "Align by analysing star drift near the celestial equator (Accurate)"
+#~ msgstr "通过分析天极点附近星点漂移情况来对准极轴（精确）"
+
+#~ msgid "Align by analysing star drift near the celestial pole (Simple)"
+#~ msgstr "通过分析天极点附近星点漂移情况来对准极轴（简单）"
 
 #~ msgid ""
 #~ "PHD2 could not connect to the camera so you may want to deal with that "
@@ -9616,27 +9615,20 @@ msgstr "正在连接旋转器 ..."
 #~ "大小以及焦距和像素合并级别。"
 
 #~ msgid ""
-#~ "PHD2 is not able to make sufficient corrections in Dec.  If you have just "
-#~ "done a meridian flip, check to see if the 'Reverse Dec output option' on "
-#~ "the Advanced Dialog guiding tab is wrong.  Otherwise, check for cable "
-#~ "snags, try re-doing your calibration, and check for problems with the "
-#~ "mount mechanics."
+#~ "Advisory: Calibration succeessful but little or no south movement was "
+#~ "measured, so guiding will probably be impaired.\n"
+#~ " This is usually caused by a faulty guide cable or very large Dec "
+#~ "backlash. \n"
+#~ "Check the guide cable and read the online Help for how to identify these "
+#~ "types of problems (Manual Guide, Declination backlash)."
 #~ msgstr ""
-#~ "PHD2无法对赤纬进行充分的校准。 如果刚刚进行了中天翻转，请在”高级设置“的”导"
-#~ "星“页面中检查是否错误的选择了”中天自动翻转后反向输出赤纬“选项。除此以外，"
-#~ "请检查电缆连接，尝试重新校准，并确认赤道仪工作正常以及连接方式。"
-
-#~ msgid "SAT"
-#~ msgstr "SAT"
+#~ "提示：校准成功，但很少或没有测量到向南移动，因此导星可能会受到影响。\n"
+#~ "  这通常是由导星线缆问题或超大的 赤纬 回差导致。\n"
+#~ "检查导向线缆并阅读联机帮助以了解如何识别这些类型的问题（如：手动导星、赤纬"
+#~ "回差）。"
 
 #~ msgid "Failed to set camera exposure"
 #~ msgstr "无法设置相机曝光时间"
-
-#~ msgid "Cannot load simulated image"
-#~ msgstr "无法读取模拟器图像"
-
-#~ msgid "Selected star at (%.1f, %.1f)"
-#~ msgstr "被导星已选择 (%.1f, %.1f)"
 
 #~ msgid "Try to keep your exposure times in the range of %.1fs to %.1fs"
 #~ msgstr "请尝试将你的曝光时间控制在 %.1f秒至 %.1f秒之间。"
@@ -9653,8 +9645,16 @@ msgstr "正在连接旋转器 ..."
 #~ msgid "Mount has high-precision encoders"
 #~ msgstr "赤道仪有高精度编码器"
 
-#~ msgid "%s FWHM: %.2f, HFD: %.2f (%.2f\")"
-#~ msgstr "%s FWHM: %.2f, HFD: %.2f (%.2f”)"
+#~ msgid ""
+#~ "PHD2 is not able to make sufficient corrections in Dec.  If you have just "
+#~ "done a meridian flip, check to see if the 'Reverse Dec output option' on "
+#~ "the Advanced Dialog guiding tab is wrong.  Otherwise, check for cable "
+#~ "snags, try re-doing your calibration, and check for problems with the "
+#~ "mount mechanics."
+#~ msgstr ""
+#~ "PHD2无法对赤纬进行充分的校准。 如果刚刚进行了中天翻转，请在”高级设置“的”导"
+#~ "星“页面中检查是否错误的选择了”中天自动翻转后反向输出赤纬“选项。除此以外，"
+#~ "请检查电缆连接，尝试重新校准，并确认赤道仪工作正常以及连接方式。"
 
 #~ msgid ""
 #~ "Guiding parameters have been reset because the binning or pixel size "

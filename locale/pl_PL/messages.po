@@ -1,11 +1,11 @@
-# 
+#
 #  fr\messages.po
 #  PHD Guiding
-# 
+#
 #  Created by Sylvain Girard
 #  Copyright (c) 2013 Sylvain Girard
 #  All rights reserved.
-# 
+#
 #  This source code is distributed under the following "BSD" license
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are met:
@@ -17,7 +17,7 @@
 #    Neither the name of Bret McKee, Dad Dog Development Ltd, nor the names of its
 #     contributors may be used to endorse or promote products derived from
 #     this software without specific prior written permission.
-# 
+#
 #  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 #  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 #  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,13 +29,13 @@
 #  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
-# 
-# 
+#
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: open-phd-guiding 2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-17 16:17+0200\n"
+"POT-Creation-Date: 2025-11-17 18:29+0200\n"
 "PO-Revision-Date: 2020-11-11 01:17+0100\n"
 "Last-Translator: Paweł Pleskaczyński <pawelpleskaczynski@gmail.com>\n"
 "Language-Team: Paweł Pleskaczyński <pawelpleskaczynski@gmail.com>, Jakub "
@@ -3839,7 +3839,7 @@ msgid "Seeing"
 msgstr "Seeing"
 
 #: gear_simulator.cpp:2307
-#, c-format
+#, fuzzy, c-format
 msgid "% cloud opacity"
 msgstr "% przezroczystości chmury"
 
@@ -9931,31 +9931,27 @@ msgstr "Łączenie z kamerą..."
 msgid "Connecting to Rotator..."
 msgstr "Łączenie z rotatorem..."
 
-#~ msgid "Failed to initizlize ZWO ASI Camera."
-#~ msgstr "Nie udało się zainicjować kamery ZWO ASI."
+#~ msgid "Cannot load simulated image"
+#~ msgstr "Nie można załadować symulowanego obrazu"
 
-#~ msgid "Align by analysing star drift near the celestial equator (Accurate)"
-#~ msgstr ""
-#~ "Wyrównaj, analizując dryf gwiazd w pobliżu równika niebieskiego (dokładne)"
-
-#~ msgid "Align by analysing star drift near the celestial pole (Simple)"
-#~ msgstr ""
-#~ "Wyrównaj, analizując dryf gwiazd w pobliżu bieguna niebieskiego (proste)"
+#~ msgid "Selected star at (%.1f, %.1f)"
+#~ msgstr "Zaznaczona gwiazda na (%.1f, %.1f)"
 
 #~ msgid ""
-#~ "Advisory: Calibration succeessful but little or no south movement was "
-#~ "measured, so guiding will probably be impaired.\n"
-#~ " This is usually caused by a faulty guide cable or very large Dec "
-#~ "backlash. \n"
-#~ "Check the guide cable and read the online Help for how to identify these "
-#~ "types of problems (Manual Guide, Declination backlash)."
+#~ "Additional data sampling is being done to better meaure Dec drift. "
+#~ "Backlash testing \n"
+#~ "will start automatically when sampling is completed."
 #~ msgstr ""
-#~ "Uwaga: Kalibracja powiodła się, ale zmierzono niewielki lub żaden ruch na "
-#~ "południe, więc prowadzenie prawdopodobnie będzie utrudnione.\n"
-#~ " Zwykle jest to spowodowane wadliwym kablem guidera lub bardzo dużym "
-#~ "luzem DEC.\n"
-#~ "Sprawdź kabel guidera i przeczytaj pomoc online, aby dowiedzieć się, jak "
-#~ "zidentyfikować tego typu problemy (ręczny guiding, luz deklinacyjny)."
+#~ "Pobierane są dodatkowe próbki danych, aby lepiej zmierzyć dryft DEC. "
+#~ "Testowanie luzów\n"
+#~ "rozpocznie się automatycznie po zakończeniu próbkowania."
+
+#~ msgid ""
+#~ "Additional sampling is being done for accurate measurements.  Results "
+#~ "will be shown when sampling is complete."
+#~ msgstr ""
+#~ "Pobierane są dodatkowe próbki w celu uzyskania dokładnych pomiarów. "
+#~ "Wyniki zostaną wyświetlone po zakończeniu pobierania próbek."
 
 #~ msgid ""
 #~ "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
@@ -9984,21 +9980,16 @@ msgstr "Łączenie z rotatorem..."
 #~ "nie ma zaczepów kablowych, spróbuj ponownie przeprowadzić kalibrację i "
 #~ "sprawdź, czy nie ma problemów z kablem ST-4."
 
-#~ msgid ""
-#~ "Additional data sampling is being done to better meaure Dec drift. "
-#~ "Backlash testing \n"
-#~ "will start automatically when sampling is completed."
-#~ msgstr ""
-#~ "Pobierane są dodatkowe próbki danych, aby lepiej zmierzyć dryft DEC. "
-#~ "Testowanie luzów\n"
-#~ "rozpocznie się automatycznie po zakończeniu próbkowania."
+#~ msgid "Failed to initizlize ZWO ASI Camera."
+#~ msgstr "Nie udało się zainicjować kamery ZWO ASI."
 
-#~ msgid ""
-#~ "Additional sampling is being done for accurate measurements.  Results "
-#~ "will be shown when sampling is complete."
+#~ msgid "Align by analysing star drift near the celestial equator (Accurate)"
 #~ msgstr ""
-#~ "Pobierane są dodatkowe próbki w celu uzyskania dokładnych pomiarów. "
-#~ "Wyniki zostaną wyświetlone po zakończeniu pobierania próbek."
+#~ "Wyrównaj, analizując dryf gwiazd w pobliżu równika niebieskiego (dokładne)"
+
+#~ msgid "Align by analysing star drift near the celestial pole (Simple)"
+#~ msgstr ""
+#~ "Wyrównaj, analizując dryf gwiazd w pobliżu bieguna niebieskiego (proste)"
 
 #~ msgid ""
 #~ "PHD2 could not connect to the camera so you may want to deal with that "
@@ -10008,6 +9999,37 @@ msgstr "Łączenie z rotatorem..."
 #~ "PHD2 nie może połączyć się z kamerą, więc możesz zająć się tym później. W "
 #~ "międzyczasie możesz po prostu ręcznie wprowadzić rozmiar pikseli wraz z "
 #~ "ogniskową i poziomami binningu."
+
+#~ msgid ""
+#~ "Advisory: Calibration succeessful but little or no south movement was "
+#~ "measured, so guiding will probably be impaired.\n"
+#~ " This is usually caused by a faulty guide cable or very large Dec "
+#~ "backlash. \n"
+#~ "Check the guide cable and read the online Help for how to identify these "
+#~ "types of problems (Manual Guide, Declination backlash)."
+#~ msgstr ""
+#~ "Uwaga: Kalibracja powiodła się, ale zmierzono niewielki lub żaden ruch na "
+#~ "południe, więc prowadzenie prawdopodobnie będzie utrudnione.\n"
+#~ " Zwykle jest to spowodowane wadliwym kablem guidera lub bardzo dużym "
+#~ "luzem DEC.\n"
+#~ "Sprawdź kabel guidera i przeczytaj pomoc online, aby dowiedzieć się, jak "
+#~ "zidentyfikować tego typu problemy (ręczny guiding, luz deklinacyjny)."
+
+#~ msgid "Failed to set camera exposure"
+#~ msgstr "Nie można ustawić ekspozycji kamery"
+
+#~ msgid "Try to keep your exposure times in the range of %.1fs to %.1fs"
+#~ msgstr "Staraj się utrzymywać czasy ekspozycji w zakresie od %.1fs do %.1fs"
+
+#~ msgid ""
+#~ "This is the focal length of the guide scope - or the imaging scope if you "
+#~ "are using an off-axis-guider or adaptive optics device (Focal length = "
+#~ "aperture x f-ratio).  Typical finder scopes have a focal length of about "
+#~ "165mm."
+#~ msgstr ""
+#~ "Jest to ogniskowa guidera, teleskopu głównego, jeśli używasz guidera OAG, "
+#~ "lub optyki adaptacyjnej (ogniskowa = apertura x współczynnik f). Typowe "
+#~ "szukacze mają ogniskową około 165 mm."
 
 #~ msgid ""
 #~ "PHD2 is not able to make sufficient corrections in Dec.  If you have just "
@@ -10022,28 +10044,6 @@ msgstr "Łączenie z rotatorem..."
 #~ "jest poprawnie zaznaczona. W przeciwnym razie sprawdź, czy nie ma "
 #~ "zaczepów kablowych, spróbuj ponownie przeprowadzić kalibrację i sprawdź, "
 #~ "czy nie ma problemów z mechaniką montażu."
-
-#~ msgid "Failed to set camera exposure"
-#~ msgstr "Nie można ustawić ekspozycji kamery"
-
-#~ msgid "Cannot load simulated image"
-#~ msgstr "Nie można załadować symulowanego obrazu"
-
-#~ msgid "Selected star at (%.1f, %.1f)"
-#~ msgstr "Zaznaczona gwiazda na (%.1f, %.1f)"
-
-#~ msgid "Try to keep your exposure times in the range of %.1fs to %.1fs"
-#~ msgstr "Staraj się utrzymywać czasy ekspozycji w zakresie od %.1fs do %.1fs"
-
-#~ msgid ""
-#~ "This is the focal length of the guide scope - or the imaging scope if you "
-#~ "are using an off-axis-guider or adaptive optics device (Focal length = "
-#~ "aperture x f-ratio).  Typical finder scopes have a focal length of about "
-#~ "165mm."
-#~ msgstr ""
-#~ "Jest to ogniskowa guidera, teleskopu głównego, jeśli używasz guidera OAG, "
-#~ "lub optyki adaptacyjnej (ogniskowa = apertura x współczynnik f). Typowe "
-#~ "szukacze mają ogniskową około 165 mm."
 
 #~ msgid ""
 #~ "Guiding parameters have been reset because the binning or pixel size "
