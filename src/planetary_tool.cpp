@@ -822,7 +822,7 @@ void PlanetToolWin::OnThresholdChanged(wxCommandEvent& event)
     pSolarSystemObj->RestartSimulatorErrorDetection();
 }
 
-static void SuppressPausePlanetDetection(long)
+static void SuppressPausePlanetDetection(intptr_t)
 {
     pConfig->Global.SetBoolean(PausePlanetDetectionAlertEnabledKey(), false);
 }
@@ -839,7 +839,7 @@ void PlanetToolWin::OnPauseButton(wxCommandEvent& event)
     if (paused)
     {
         pauseAlert = true;
-        pFrame->SuppressableAlert(PausePlanetDetectionAlertEnabledKey(), planetaryPauseAlertMsg, SuppressPausePlanetDetection,
+        pFrame->SuppressibleAlert(PausePlanetDetectionAlertEnabledKey(), planetaryPauseAlertMsg, SuppressPausePlanetDetection,
                                   0);
     }
     else if (pauseAlert)

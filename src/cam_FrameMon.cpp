@@ -33,7 +33,8 @@
  *
  */
 
-#include "phd.h"
+# include "phd.h"
+# include "camera.h"
 
 #if defined(FRAME_MONITOR_CAMERA)
 
@@ -556,9 +557,9 @@ CameraFrameMonitor::CameraFrameMonitor() : m_serverCond(m_serverMutex), m_useCou
     Name = FRAME_MONITOR_CAMERA;
     m_lastKnownGoodFilename = wxEmptyString;
     m_cameraConnectAlertMsg = _("Lost camera feed, waiting for reconnection ...");
-    FullSize = wxSize(640, 480);
-    m_frameSize = FullSize;
-    m_hasGuideOutput = false;
+    FrameSize = wxSize(640, 480);
+    m_frameSize = FrameSize;
+    m_hasGuideOutput = true;
     m_imageServer = nullptr;
     m_lastKnownImage = cv::Mat::zeros(m_frameSize.y, m_frameSize.x, CV_16UC1);
 
@@ -738,8 +739,8 @@ bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const 
             return true;
         }
 
-        FullSize.x = image.size().width;
-        FullSize.y = image.size().height;
+        FrameSize.x = image.size().width;
+        FrameSize.y = image.size().height;
 
         cv::Mat *disk_image = &image;
         cv::Mat grayscaleImage;
@@ -756,7 +757,7 @@ bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const 
             disk_image = &grayscale16;
         }
 
-        m_frameSize = FullSize;
+        m_frameSize = FrameSize;
         int dataSize = image.cols * image.rows * 2;
         memcpy(img.ImageData, disk_image->data, dataSize);
     }
