@@ -770,6 +770,36 @@ bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const 
     return bError;
 }
 
+bool CameraFrameMonitor::ST4PulseGuideScope(int direction, int duration)
+{
+    char dir;
+    switch (direction)
+    {
+    case WEST:
+        dir = 'W';
+        break;
+    case NORTH:
+        dir = 'N';
+        break;
+    case SOUTH:
+        dir = 'S';
+        break;
+    case EAST:
+        dir = 'E';
+        break;
+    default:
+        return true; // bad direction passed in
+    }
+
+    EvtServer.NotifySt4Step(dir, duration);
+
+    if (duration > 10)
+        if (WorkerThread::MilliSleep(duration - 10))
+            return true;
+
+    return false;
+}
+
 bool CameraFrameMonitor::GetCaptureDescriptor(void* ptr)
 {
     frameDesc *desc = static_cast<frameDesc *>(ptr);

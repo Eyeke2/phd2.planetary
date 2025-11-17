@@ -84,6 +84,8 @@ public:
     bool Connect(const wxString& camId) override;
     bool Disconnect() override;
     bool HasNonGuiCapture() override { return true; }
+    bool ST4HasNonGuiMove() override { return true; }
+    bool ST4PulseGuideScope(int direction, int duration) override;
     wxByte BitsPerPixel() override;
     void InitCapture() override;
     bool GetCaptureDescriptor(void* desc) override;

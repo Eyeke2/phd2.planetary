@@ -72,6 +72,7 @@ public:
     void NotifyPaused();
     void NotifyResumed();
     void NotifyGuideStep(const GuideStepInfo& info);
+    void NotifySt4Step(char direction, int duration);
     void NotifyGuidingDithered(double dx, double dy);
     void NotifySetLockPosition(const PHD_Point& xy);
     void NotifyLockPositionLost();
