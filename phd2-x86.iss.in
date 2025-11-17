@@ -74,8 +74,8 @@ Source: Release\tiff.dll; DestDir: {app}; Flags: replacesameversion
 Source: Release\zlib1.dll; DestDir: {app}; Flags: replacesameversion
 
 [Icons]
-Name: "{group}\PHD Guiding 2 (solar)"; FileName: "{app}\phd2.exe"
-Name: "{commondesktop}\PHD Guiding 2 (solar)"; Filename: "{app}\phd2.exe"; Tasks: desktopicon; IconFilename: "{app}\phd2.exe"; IconIndex: 0;
+Name: "{group}\PHD Guiding 2 (solar)"; FileName: "{app}\phd2.exe"; Parameters: "-i 2"
+Name: "{commondesktop}\PHD Guiding 2 (solar)"; Filename: "{app}\phd2.exe"; Tasks: desktopicon; IconFilename: "{app}\phd2.exe"; IconIndex: 0; Parameters: "-i 2"
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "Additional icons:";
