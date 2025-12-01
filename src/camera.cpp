@@ -1597,7 +1597,10 @@ void GuideCamera::InitCapture() { }
 bool GuideCamera::Capture(GuideCamera *camera, int duration, usImage& img, int captureOptions, const wxRect& subframe)
 {
     img.InitImgStartTime();
+    img.LimitFrame = camera->LimitFrame;
+    img.Binning = camera->Binning;
     img.BitsPerPixel = camera->BitsPerPixel();
+    img.Gain = camera->GuideCameraGain;
     img.ImgExpDur = duration;
     bool err = camera->Capture(duration, img, captureOptions, subframe);
     return err;
