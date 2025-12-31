@@ -1204,9 +1204,11 @@ bool GearDialog::DoConnectCamera(bool autoReconnecting)
         pFrame->pGuider->m_SolarSystemObject.NotifyCameraConnect(true);
         EvtServer.NotifyGearChange();
 
-        // See if the profile was created with a binning level that isn't supported by the camera (user mistake) - if so, reset
-        // binning to 1 Must be done here because orig binning level is not saved
-        if (profileBinning > m_pCamera->MaxHwBinning)
+        // See if the profile was created with a binning level that isn't supported by
+        // the camera (user mistake) - if so, reset binning to 1. Must be done here
+        // because orig binning level is not saved
+        auto choices = m_pCamera->GetBinningChoices();
+        if (choices.find(profileBinning) == choices.end())
         {
             int rslt;
             if (TheScope())
@@ -1214,7 +1216,7 @@ bool GearDialog::DoConnectCamera(bool autoReconnecting)
                 rslt = TheScope()->GetCalibrationDuration() / profileBinning;
                 TheScope()->SetCalibrationDuration(rslt);
             }
-            m_pCamera->SetBinning(1);
+            m_pCamera->SetBinning(1, 1);
             Debug.Write(wxString::Format("CamConfigDlg correcting bogus user binning value from %d to 1\n", profileBinning));
         }
 
