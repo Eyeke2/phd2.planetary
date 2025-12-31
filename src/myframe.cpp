@@ -3760,3 +3760,17 @@ bool MyFrame::IsCaptureActive(bool& paused) const
     paused = pFrame->pGuider->GetPauseType() == PAUSE_FULL;
     return m_continueCapturing && !paused;
 }
+
+int GetIntChoice(wxChoice *choice, int dflt)
+{
+    unsigned long value;
+    if (!choice->GetStringSelection().ToULong(&value))
+        value = dflt;
+    return value;
+}
+
+void SetIntChoice(wxChoice *choice, int value)
+{
+    if (!choice->SetStringSelection(wxString::Format("%d", value)))
+        choice->SetSelection(0);
+}

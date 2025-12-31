@@ -865,4 +865,10 @@ inline int MyFrame::GetGuidingPeriod(int *exposure, int *timeLapse) const
     return m_timeLapse + m_exposureDuration;
 }
 
+// utility function to get an integer value from a wxChoice control
+extern int GetIntChoice(wxChoice *choice, int dflt);
+
+// utility function to set an integer value in a wxChoice control
+extern void SetIntChoice(wxChoice *choice, int value);
+
 #endif /* MYFRAME_H_INCLUDED */
