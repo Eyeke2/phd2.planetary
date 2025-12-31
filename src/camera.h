@@ -71,11 +71,13 @@ class CameraConfigDialogCtrlSet : public ConfigDialogCtrlSet
     wxSpinCtrl *m_pDelay;
     wxSpinCtrlDouble *m_pPixelSize;
     wxChoice *m_binning;
+    wxCheckBox *m_allowSwBinning;
     wxCheckBox *m_coolerOn;
     wxSpinCtrl *m_coolerSetpt;
     wxTextCtrl *m_camSaturationADU;
     wxRadioButton *m_SaturationByProfile;
     wxRadioButton *m_SaturationByADU;
+    void OnSwBinningChecked(wxCommandEvent& event);
 
     int m_prevBinning;
 
@@ -214,7 +216,7 @@ public:
     static void GetBinningOpts(wxArrayString *opts, int maxHwBinning, bool includeSwBinning);
     void GetBinningOpts(wxArrayString *opts, bool includeSwBinning) const;
     static bool GetOfferSwBinning(int maxHwBinning);
-    bool GetOfferSwBinning() const;
+    virtual bool GetOfferSwBinning();
     int GetBinning() const;
     // set the combined binning level
     bool SetBinning(int binning);
@@ -320,7 +322,7 @@ inline bool GuideCamera::GetOfferSwBinning(int maxHwBinning)
 // Returns true when software binning should be offered in the UI.
 //
 // For cameras with adequate hardware binning capability (>= 4x), returns false.
-inline bool GuideCamera::GetOfferSwBinning() const
+inline bool GuideCamera::GetOfferSwBinning()
 {
     return GetOfferSwBinning(MaxHwBinning);
 }

@@ -93,6 +93,7 @@ public:
     void SetProperty(const wxString prop, int value) override;
     wxString GetStrProperty(const wxString prop, int timeout = 0) override;
     wxSize DarkFrameSize() override { return UNDEFINED_FRAME_SIZE; };
+    bool GetOfferSwBinning() override { return false; }
 
 private:
     wxMutex m_lock;
