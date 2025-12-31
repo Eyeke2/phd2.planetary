@@ -1503,6 +1503,7 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
 
     // sleep before rendering the image so that any changes made in the middle of a long exposure (e.g. manual guide pulse)
     // shows up in the image
+
     if (duration > 5)
     {
         if (WorkerThread::MilliSleep(duration - 5, WorkerThread::INT_ANY))
@@ -1530,7 +1531,7 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
         if (subframe.width <= 0 || subframe.height <= 0 || subframe.GetRight() >= width || subframe.GetBottom() >= height)
             usingSubframe = false;
         if (!usingSubframe)
-            subframe = wxRect(0, 0, FrameSize.GetWidth(), FrameSize.GetHeight());
+            subframe = wxRect(FrameSize);
 
         int const exptime = duration;
         int const gain = 30;
