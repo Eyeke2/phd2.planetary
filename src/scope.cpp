@@ -1029,7 +1029,7 @@ void Scope::CheckCalibrationDuration(int currDuration)
     CalibrationDetails calDetails;
     LoadCalibrationDetails(&calDetails);
 
-    int binning = pCamera->Binning;
+    auto binning = pCamera->GetBinning();
     bool binningChange = binning != calDetails.origBinning;
 
     // if binning changed, may need to update the calibration distance
@@ -1788,7 +1788,7 @@ bool Scope::UpdateCalibrationState(const PHD_Point& currentLocation)
             cal.declination = pPointingSource->GetDeclinationRadians();
             cal.pierSide = pPointingSource->SideOfPier();
             cal.rotatorAngle = Rotator::RotatorPosition();
-            cal.binning = pCamera->Binning;
+            cal.binning = pCamera->GetBinning();
             SetCalibration(cal);
             m_calibrationDetails.raStepCount = m_raSteps;
             m_calibrationDetails.decStepCount = m_decSteps;
