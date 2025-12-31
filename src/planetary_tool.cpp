@@ -280,7 +280,8 @@ PlanetToolWin::PlanetToolWin()
     m_DelayCtrl = NewSpinner(this, _T("%5.0f"), 100, 0, 60000, 100);
     int maxBinning = pCamera ? (pCamera->Name == "Simulator" ? 1 : pCamera->MaxHwBinning) : 1;
     wxArrayString binningOpts;
-    GuideCamera::GetBinningOpts(maxBinning, &binningOpts);
+    bool includeSwBinning = false; // TODO: SW binning UI
+    GuideCamera::GetBinningOpts(&binningOpts, maxBinning, includeSwBinning);
     m_BinningCtrl = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, binningOpts);
     m_saveVideoLogCheckBox = new wxCheckBox(this, wxID_ANY, _("Enable video log"));
     m_saveVideoLogCheckBox->SetToolTip(_("Enable recording camera frames to video log file during guiding (using SER format)"));
