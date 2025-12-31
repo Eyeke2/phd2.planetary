@@ -1359,7 +1359,7 @@ public:
 
     CameraSimulator();
     ~CameraSimulator();
-    bool Capture(int duration, usImage& img, int options, const wxRect& subframe) override;
+    bool Capture(usImage& img, const CaptureParams& captureParams) override;
     bool Connect(const wxString& camId) override;
     bool Disconnect() override;
     void ShowPropertyDialog() override;
@@ -1450,6 +1450,7 @@ CameraSimulator::~CameraSimulator()
 # endif
 }
 
+
 // Used with the SIMMODE_GENERATE mode
 static void fill_noise(usImage& img, const wxRect& subframe, int exptime, int gain, int offset)
 {
@@ -1487,9 +1488,12 @@ static double calculateBorderAverage(const cv::Mat& image)
     return average;
 }
 
-bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxRect& subframeArg)
+bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
 {
-    wxRect subframe(subframeArg);
+    int duration = captureParams.duration;
+    int options = captureParams.captureOptions;
+
+    wxRect subframe(captureParams.subframe);
     CameraWatchdog watchdog(duration, GetTimeoutMs());
 
     // sleep before rendering the image so that any changes made in the middle of a long exposure (e.g. manual guide pulse)
@@ -1827,7 +1831,7 @@ void CameraSimulator::FlipPierSide()
 }
 
 # ifdef SIMMODE_LEGACY_DRIFT_ENABLED
-bool CameraSimulator::Capture(int duration, usImage& img, int options, const wxRect& subframe)
+bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
 {
     int xsize, ysize;
     //  unsigned short *dataptr;

@@ -1815,7 +1815,7 @@ bool MyFrame::StopWorkerThread(WorkerThread *& pWorkerThread)
 void MyFrame::OnRequestExposure(wxCommandEvent& evt)
 {
     EXPOSE_REQUEST *req = (EXPOSE_REQUEST *) evt.GetClientData();
-    bool error = GuideCamera::Capture(pCamera, req->exposureDuration, *req->pImage, req->options, req->subframe);
+    bool error = GuideCamera::Capture(pCamera, *req->pImage, req->captureParams);
     req->error = error;
     req->pSemaphore->Post();
 }
@@ -1851,12 +1851,17 @@ void MyFrame::OnStatusBarTimerEvent(wxTimerEvent& evt)
 
 void MyFrame::ScheduleExposure()
 {
-    int exposureDuration = RequestedExposureDuration();
-    int exposureOptions = GetRawImageMode() ? CAPTURE_BPM_REVIEW : CAPTURE_LIGHT;
-    const wxRect& subframe = m_singleExposure.enabled ? m_singleExposure.subframe : pGuider->GetBoundingBox();
+    CaptureParams captureParams;
+    captureParams.duration = RequestedExposureDuration();
+    captureParams.subframe = m_singleExposure.enabled ? m_singleExposure.subframe : pGuider->GetBoundingBox();
+    captureParams.hwBinning = pCamera->Binning;
+    captureParams.bpp = pCamera->BitsPerPixel();
+    captureParams.limitFrame = pCamera->LimitFrame;
+    captureParams.gain = pCamera->GuideCameraGain;
+    captureParams.captureOptions = GetRawImageMode() ? CAPTURE_BPM_REVIEW : CAPTURE_LIGHT;
 
-    Debug.Write(wxString::Format("ScheduleExposure(%d,%x,%d) exposurePending=%d\n", exposureDuration, exposureOptions,
-                                 !subframe.IsEmpty(), m_exposurePending));
+    Debug.Write(wxString::Format("ScheduleExposure(%d,%x,%d) exposurePending=%d\n", captureParams.duration,
+                                 captureParams.captureOptions, !captureParams.subframe.IsEmpty(), m_exposurePending));
 
     assert(wxThread::IsMain()); // m_exposurePending only updated in main thread
     assert(!m_exposurePending);
@@ -1868,7 +1873,7 @@ void MyFrame::ScheduleExposure()
     wxCriticalSectionLocker lock(m_CSpWorkerThread);
 
     if (m_pPrimaryWorkerThread) // can be null when app is shutting down (unlikely but possible)
-        m_pPrimaryWorkerThread->EnqueueWorkerThreadExposeRequest(img, exposureDuration, exposureOptions, subframe);
+        m_pPrimaryWorkerThread->EnqueueWorkerThreadExposeRequest(img, captureParams);
     else
         delete img;
 }
