@@ -80,7 +80,7 @@ public:
     CameraFrameMonitor();
     ~CameraFrameMonitor();
 
-    bool Capture(int duration, usImage& img, int options, const wxRect& subframe) override;
+    bool Capture(usImage& img, const CaptureParams& captureParams) override;
     bool Connect(const wxString& camId) override;
     bool Disconnect() override;
     bool HasNonGuiCapture() override { return true; }
@@ -92,7 +92,7 @@ public:
     void SetProperty(const wxString prop, wxString value) override;
     void SetProperty(const wxString prop, int value) override;
     wxString GetStrProperty(const wxString prop, int timeout = 0) override;
-    const wxSize& DarkFrameSize() override { return UNDEFINED_FRAME_SIZE; }
+    wxSize DarkFrameSize() override { return UNDEFINED_FRAME_SIZE; };
 
 private:
     wxMutex m_lock;

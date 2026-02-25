@@ -2389,7 +2389,7 @@ static void set_cal_step(JObj& response, const json_value *params)
                 pSecondaryMount->ClearCalibration();
 
             double defMinMove =
-                GuideAlgorithm::SmartDefaultMinMove(pFrame->GetFocalLength(), pCamera->GetCameraPixelSize(), pCamera->Binning);
+                GuideAlgorithm::SmartDefaultMinMove(pFrame->GetFocalLength(), pCamera->GetCameraPixelSize(), pCamera->GetBinning());
             pMount->GetXGuideAlgorithm()->SetMinMove(defMinMove);
             pMount->GetYGuideAlgorithm()->SetMinMove(defMinMove);
         }

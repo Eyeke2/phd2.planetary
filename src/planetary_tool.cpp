@@ -187,14 +187,14 @@ PlanetToolWin::PlanetToolWin()
     if (pCamera)
     {
         // arcsec/pixel
-        double pixelScale = pFrame->GetPixelScale(pCamera->GetCameraPixelSize(), pFrame->GetFocalLength(), pCamera->Binning);
+        double pixelScale = pFrame->GetPixelScale(pCamera->GetCameraPixelSize(), pFrame->GetFocalLength(), pCamera->GetBinning());
         if ((pFrame->GetFocalLength() > 1) && pixelScale > 0)
         {
             double radiusGuessMax = 990.0 / pixelScale;
             double raduisGuessMin = 870.0 / pixelScale;
             radiusTooltip = wxString::Format(_("Hint: for solar/lunar detection (pixel size=%.2f, binning=x%d, FL=%d mm) set "
                                                "the radius to approximately %.0f-%.0f."),
-                                             pCamera->GetCameraPixelSize(), pCamera->Binning, pFrame->GetFocalLength(),
+                                             pCamera->GetCameraPixelSize(), pCamera->GetBinning(), pFrame->GetFocalLength(),
                                              raduisGuessMin - 10, radiusGuessMax + 10);
         }
     }
@@ -278,7 +278,7 @@ PlanetToolWin::PlanetToolWin()
     m_ExposureCtrl = NewSpinner(this, _T("%5.0f"), 1000, PT_CAMERA_EXPOSURE_MIN, PT_CAMERA_EXPOSURE_MAX, 1);
     m_GainCtrl = NewSpinner(this, _T("%3.0f"), 0, 0, 100, 1);
     m_DelayCtrl = NewSpinner(this, _T("%5.0f"), 100, 0, 60000, 100);
-    int maxBinning = pCamera ? (pCamera->Name == "Simulator" ? 1 : pCamera->MaxBinning) : 1;
+    int maxBinning = pCamera ? (pCamera->Name == "Simulator" ? 1 : pCamera->MaxHwBinning) : 1;
     wxArrayString binningOpts;
     GuideCamera::GetBinningOpts(maxBinning, &binningOpts);
     m_BinningCtrl = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, binningOpts);
@@ -364,7 +364,7 @@ PlanetToolWin::PlanetToolWin()
     m_NoiseFilter->SetValue(pSolarSystemObj->GetNoiseFilterState());
 #endif
     m_enableCheckBox->SetValue(pSolarSystemObj->Get_SolarSystemObjMode());
-    m_BinningCtrl->Select(pCamera ? pCamera->Binning - 1 : 0);
+    m_BinningCtrl->Select(pCamera ? pCamera->GetBinning() - 1 : 0);
     m_saveVideoLogCheckBox->SetValue(pSolarSystemObj->GetVideoLogging());
     SetEnabledState(this, pSolarSystemObj->Get_SolarSystemObjMode());
 
@@ -618,9 +618,9 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
     if (pCamera)
     {
         int localBinning = m_BinningCtrl->GetSelection();
-        if (pCamera->Binning != localBinning + 1)
+        if (pCamera->GetBinning() != localBinning + 1)
         {
-            m_BinningCtrl->Select(pCamera->Binning - 1);
+            m_BinningCtrl->Select(pCamera->GetBinning() - 1);
         }
     }
 
@@ -719,7 +719,7 @@ void PlanetToolWin::OnBinningSelected(wxCommandEvent& event)
     if (pAdvancedDlg)
     {
         pAdvancedDlg->SetBinning(sel + 1);
-        if (pCamera && pCamera->Connected && (pCamera->Binning != sel + 1))
+        if (pCamera && pCamera->Connected && (pCamera->GetBinning() != sel + 1))
             pAdvancedDlg->MakeImageScaleAdjustments();
     }
     if (pCamera)

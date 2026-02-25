@@ -1881,7 +1881,7 @@ void GuidingAsstWin::SetupPlanetaryGuiding()
         cal.pierSide = pPointingSource->SideOfPier();
         cal.raGuideParity = cal.decGuideParity = GUIDE_PARITY_UNCHANGED;
         cal.rotatorAngle = Rotator::RotatorPosition();
-        cal.binning = pCamera->Binning;
+        cal.binning = pCamera->GetBinning();
         cal.isValid = true;
         pPointingSource->SetCalibration(cal);
         pFrame->pGuider->StartGuiding();
