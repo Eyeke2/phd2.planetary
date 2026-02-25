@@ -677,8 +677,11 @@ bool CameraFrameMonitor::Disconnect()
     return false;
 }
 
-bool CameraFrameMonitor::Capture(int duration, usImage& img, int options, const wxRect& subframe)
+bool CameraFrameMonitor::Capture(usImage& img, const CaptureParams& captureParams)
 {
+    int duration = captureParams.duration;
+    int options = captureParams.captureOptions;
+
     bool bError = false;
     frameDesc imgDesc;
     wxStopWatch swatch;

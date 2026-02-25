@@ -1513,8 +1513,8 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
     {
     case SIMMODE_GENERATE:
     {
-        int width = sim.width / Binning;
-        int height = sim.height / Binning;
+        int width = sim.width / HwBinning;
+        int height = sim.height / HwBinning;
         FrameSize = wxSize(width, height);
 
         // No file name
