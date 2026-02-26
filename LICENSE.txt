@@ -1,4 +1,4 @@
-Copyright (c) 2013-2025, Open PHD Guiding development team
+Copyright (c) 2013-2026, Open PHD Guiding development team
 Copyright (c) 2014-2015, Max Planck Society
 All rights reserved.
 
