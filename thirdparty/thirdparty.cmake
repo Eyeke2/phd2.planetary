@@ -73,7 +73,8 @@ if(WIN32)
   FetchContent_Declare(
     vcpkg
     GIT_REPOSITORY https://github.com/microsoft/vcpkg.git
-    GIT_TAG f7423ee180c4b7f40d43402c2feb3859161ef625
+    #vcpkg tag: 2025.12.12
+    GIT_TAG 84bab45d415d22042bd0b9081aea57f362da3f35
     UPDATE_COMMAND bootstrap-vcpkg.bat -disableMetrics
     COMMAND ${CMAKE_COMMAND} -E echo "Building vcpkg cfitsio"
     COMMAND vcpkg install --binarysource=default --no-print-usage cfitsio:${WINDOWS_ARCH}-windows
@@ -561,7 +562,7 @@ if(WIN32)
     message(STATUS "Disabling VLD: DISABLE_VLD is set")
   endif()
 
-  include_directories(${VCPKG_INCLUDE}/opencv2)
+  include_directories(${VCPKG_INCLUDE}/opencv4)
   list(APPEND PHD_LINK_EXTERNAL_DEBUG
       ${VCPKG_DEBUG_LIB}/opencv_imgproc4d.lib
       ${VCPKG_DEBUG_LIB}/opencv_highgui4d.lib
@@ -587,6 +588,8 @@ if(WIN32)
       ${VCPKG_DEBUG_BIN}/tiffd.dll
       ${VCPKG_DEBUG_BIN}/liblzma.dll
       ${VCPKG_DEBUG_BIN}/libwebp.dll
+      ${VCPKG_DEBUG_BIN}/libwebpmux.dll
+      ${VCPKG_DEBUG_BIN}/libwebpdemux.dll
       ${VCPKG_DEBUG_BIN}/libwebpdecoder.dll
       ${VCPKG_DEBUG_BIN}/libsharpyuv.dll
   )
@@ -601,6 +604,8 @@ if(WIN32)
       ${VCPKG_RELEASE_BIN}/tiff.dll
       ${VCPKG_RELEASE_BIN}/liblzma.dll
       ${VCPKG_RELEASE_BIN}/libwebp.dll
+      ${VCPKG_RELEASE_BIN}/libwebpmux.dll
+      ${VCPKG_RELEASE_BIN}/libwebpdemux.dll
       ${VCPKG_RELEASE_BIN}/libwebpdecoder.dll
       ${VCPKG_RELEASE_BIN}/libsharpyuv.dll
   )
