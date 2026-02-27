@@ -1014,7 +1014,7 @@ CameraConfigDialogCtrlSet::CameraConfigDialogCtrlSet(wxWindow *pParent, GuideCam
     m_pCamera->GetBinningOpts(&opts, false); // Default initialization, will be overridden in LoadValues()
     int width = StringArrayWidth(opts);
     wxStaticText *pLabel = new wxStaticText(GetParentWindow(AD_szBinning), wxID_ANY, _("Binning:"));
-    m_binning = new wxChoice(GetParentWindow(AD_szBinning), wxID_ANY, wxDefaultPosition, wxSize(width + 35, -1), opts);
+    m_binning = new wxChoice(GetParentWindow(AD_szBinning), wxID_ANY, wxDefaultPosition, wxSize(width + 50, -1), opts);
     m_binning->SetToolTip("Camera binning, used to optimize guider image scale or improve SNR for CCD cameras");
     m_allowSwBinning = new wxCheckBox(GetParentWindow(AD_szBinning), wxID_ANY, _("Enable software binning"));
     m_allowSwBinning->SetToolTip(_("Can be used to increase binning beyond camera hardware/driver limits. "
