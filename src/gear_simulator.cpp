@@ -62,6 +62,17 @@
 // Enable FITs folder option in simulator
 # define FITS_FOLDER_OPTION 1
 
+// Generic cleanup task
+class CleanupTask
+{
+public:
+    CleanupTask(std::function<void()> cleanupFunction) : cleanupFunction_(cleanupFunction) { }
+    ~CleanupTask() { cleanupFunction_(); }
+
+private:
+    std::function<void()> cleanupFunction_;
+};
+
 enum SimMode
 {
     SIMMODE_GENERATE = 0,
@@ -1500,6 +1511,24 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
 
     wxRect subframe(captureParams.subframe);
     CameraWatchdog watchdog(duration, GetTimeoutMs());
+
+    // Execute cleanup code when function exits
+    CleanupTask cleanup(
+        [&]()
+        {
+            // Decimate output image by binning factor
+            int binning = GetBinning();
+            int scaledWidth = img.Size.GetWidth() / binning;
+            int scaledHeight = img.Size.GetHeight() / binning;
+            if (img.ImageData && binning > 1 && scaledWidth > 1 && scaledHeight > 1)
+            {
+                cv::Mat binned, frame(img.Size.GetHeight(), img.Size.GetWidth(), CV_16UC1, img.ImageData);
+                cv::resize(frame, binned, cv::Size(scaledWidth, scaledHeight), 0, 0, cv::INTER_AREA);
+                img.Init(scaledWidth, scaledHeight);
+                memcpy(img.ImageData, binned.data, scaledWidth * scaledHeight * 2);
+            }
+        });
+
 
     // sleep before rendering the image so that any changes made in the middle of a long exposure (e.g. manual guide pulse)
     // shows up in the image
