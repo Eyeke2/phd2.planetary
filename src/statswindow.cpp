@@ -323,7 +323,7 @@ void StatsWindow::UpdateImageSize(const wxSize& frameSize)
         wxString sensorStr = wxString::Format("%d x %d %s", frameSize.x, frameSize.y, _("px"));
         m_grid2->SetCellValue(m_frameSizeRow, 1, sensorStr);
         const double sampling = pFrame ? pFrame->GetCameraPixelScale() : 1.0;
-        m_grid2->SetCellValue(m_pixelScaleRow, 1, wxString::Format(_("%.1f\"/%s"), sampling, _("px")));
+        m_grid2->SetCellValue(m_pixelScaleRow, 1, wxString::Format(_("%.2f\"/%s"), sampling, _("px")));
         m_grid2->SetCellValue(m_pixelScaleRow + 1, 1, fov(frameSize, sampling));
         m_lastFrameSize = frameSize;
     }
