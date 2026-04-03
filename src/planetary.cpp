@@ -1499,7 +1499,7 @@ bool SolarSystemObject::GetMountTrackingState(bool& trackingValid, bool& trackin
     if (pPointingSource->GetTrackingRate(&driveRate, &raRate, &decRate, false))
         return false;
 
-    // Special handling of EQMOD using RA/DEC offsets from SideReal rate
+    // Get RA/DEC offsets from SideReal rate
     switch (driveRate)
     {
     case driveSidereal:
@@ -1527,12 +1527,19 @@ bool SolarSystemObject::GetMountTrackingState(bool& trackingValid, bool& trackin
         break;
     }
 
+    rate += wxString::Format("(%f,%f)", raRate, decRate);
     return true;
 }
 
 // Set mount tracking rate
 bool SolarSystemObject::SetMountTrackingRate(const wxString& rateStr)
 {
+    if (!pPointingSource)
+    {
+        Debug.Write(wxString::Format("Failed to set tracking rate %s: no pointing source\n", rateStr));
+        return false;
+    }
+
     DriveRates trackingRate = driveSidereal;
     wxString rate = rateStr.Lower();
     if (rate == "solar")
@@ -1541,12 +1548,37 @@ bool SolarSystemObject::SetMountTrackingRate(const wxString& rateStr)
         trackingRate = driveLunar;
     else if (rate == "sidereal")
         trackingRate = driveSidereal;
+    else if (rate.StartsWith("custom")) {
+        if (pPointingSource->SetTrackingRate(driveSidereal))
+            return false;
+        double ra_offset = 0, dec_offset = 0;
+        ra_offset = wxAtof(rate.Mid(rate.Find('(') + 1, rate.Find(',') - rate.Find('(') - 1));
+        dec_offset = wxAtof(rate.Mid(rate.Find(',') + 1, rate.Find(')') - rate.Find(',') - 1));
+        double const siderealSecsPerSec = 0.9973;
+        const double siderealRate = 3600.0 / (15.0 * siderealSecsPerSec);
+        if ((fabs(ra_offset) > 10 * siderealRate) || (fabs(dec_offset) > 10 * siderealRate))
+            return false;
+        bool bErr = pPointingSource->SetTrackingRateOffsets(ra_offset, dec_offset);
+        if (bErr)
+            Debug.Write(wxString::Format("Failed to set custom tracking rate: %.3f, %.3f\n", ra_offset, dec_offset));
+        else
+            Debug.Write(wxString::Format("Set custom tracking rate: %.3f, %.3f\n", ra_offset, dec_offset));
+        return !bErr;
+
+    }
+    else if (rate == "start")
+        return !pPointingSource->SetTracking(true);
     else if (rate == "stop")
         return !pPointingSource->SetTracking(false);
     else
         return false;
 
-    return !pPointingSource->SetTracking(true) && !pPointingSource->SetTrackingRate(trackingRate);
+    bool bErr = pPointingSource->SetTrackingRate(trackingRate);
+    if (bErr)
+        Debug.Write(wxString::Format("Failed to set tracking rate: %s\n", rate));
+    else
+        Debug.Write(wxString::Format("Set custom tracking rate: %s\n", rate));
+    return !bErr;
 }
 
 // Check mount tracking state
