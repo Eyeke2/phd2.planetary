@@ -2267,6 +2267,21 @@ static void get_mount_coords(JObj& response, const json_value *params)
     }
 }
 
+static void get_site_coords(JObj& response, const json_value *params)
+{
+    JObj rslt;
+    double latitude, longitude;
+    if (pPointingSource && pPointingSource->IsConnected() && !pPointingSource->GetSiteLatLong(&latitude, &longitude))
+    {
+        rslt << NV("lat", latitude) << NV("long", longitude);
+        response << jrpc_result(rslt);
+    }
+    else
+    {
+        response << jrpc_error(1, "mount not connected");
+    }
+}
+
 static void get_mount_tracking(JObj& response, const json_value *params)
 {
     JObj rslt;
@@ -2910,6 +2925,7 @@ static bool handle_request(JRpcCall& call)
         { "set_planetary_mode", &set_planetary_mode },
         { "get_cal_settings", &get_cal_settings },
         { "get_mount_coords", &get_mount_coords },
+        { "get_site_coords", &get_site_coords },
         { "get_mount_tracking", &get_mount_tracking },
         { "set_mount_tracking", &set_mount_tracking },
         { "set_surf_mode", &set_surf_mode },

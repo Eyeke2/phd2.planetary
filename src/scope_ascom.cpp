@@ -546,7 +546,7 @@ void ScopeASCOM::EnumerateTrackingRates()
                             m_mountRates[driveRate].canSet = true;
                             break;
                         case driveKing:
-                            m_mountRates[driveRate].name = _("King");
+                            m_mountRates[driveRate].name = _("Custom");
                             m_mountRates[driveRate].canSet = true;
                             break;
                         }
@@ -1033,7 +1033,7 @@ bool ScopeASCOM::GetTrackingRate(enum DriveRates *rate, double *ra_rate, double 
 
         *rate = (enum DriveRates) vRes.iVal;
 
-        // EQMOD is known to return bogus rates, so we use offsets to correct them
+        // Offsets can be used for custom tracking rates
         if (*rate == driveSidereal)
         {
             if (ra_rate && scope.GetProp(&vRes, L"RightAscensionRate"))
