@@ -1886,6 +1886,11 @@ bool Scope::GetSiteLatLong(double *latitude, double *longitude)
     return true; // error
 }
 
+bool Scope::GetSiteElevation(double *elevation)
+{
+    return true; // error
+}
+
 bool Scope::CanSlew()
 {
     return false;

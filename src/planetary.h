@@ -216,7 +216,7 @@ public:
     bool SetLimits(int minRadius, int maxRadius);
 
     bool GetMountTrackingState(bool& trackingValid, bool& tracking, wxString& rate);
-    bool SetMountTrackingRate(const wxString& rate);
+    bool SetMountTrackingRate(const wxString& rate, double ra_rate, double dec_rate);
 
     void ShowVisualElements(bool state);
     bool VisualElementsEnabled() { return m_showVisualElements; }

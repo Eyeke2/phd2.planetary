@@ -2270,11 +2270,17 @@ static void get_mount_coords(JObj& response, const json_value *params)
 static void get_site_coords(JObj& response, const json_value *params)
 {
     JObj rslt;
-    double latitude, longitude;
-    if (pPointingSource && pPointingSource->IsConnected() && !pPointingSource->GetSiteLatLong(&latitude, &longitude))
+    double latitude, longitude, elevation;
+
+    if (pPointingSource && pPointingSource->IsConnected())
     {
-        rslt << NV("lat", latitude) << NV("long", longitude);
-        response << jrpc_result(rslt);
+        if (!pPointingSource->GetSiteLatLong(&latitude, &longitude))
+        {
+            rslt << NV("latitude", latitude) << NV("longitude", longitude);
+            if (!pPointingSource->GetSiteElevation(&elevation))
+                rslt << NV("elevation", elevation);
+            response << jrpc_result(rslt);
+        }
     }
     else
     {
@@ -2317,7 +2323,17 @@ static void set_mount_tracking(JObj& response, const json_value *params)
         return;
     }
     wxString rate = val->string_value;
-    if (pFrame->pGuider && pFrame->pGuider->m_SolarSystemObject.SetMountTrackingRate(rate))
+
+    val = p.param("ra_rate");
+    double ra_rate = 0;
+    if (val && val->type == JSON_FLOAT)
+        ra_rate = val->float_value;
+    val = p.param("dec_rate");
+    double dec_rate = 0;
+    if (val && val->type == JSON_FLOAT)
+        dec_rate = val->float_value;
+
+    if (pFrame->pGuider && pFrame->pGuider->m_SolarSystemObject.SetMountTrackingRate(rate, ra_rate, dec_rate))
         response << jrpc_result(0);
     else
         response << jrpc_error(1, "failed to set mount tracking rate");
