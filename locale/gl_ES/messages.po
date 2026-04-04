@@ -35,7 +35,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PHD2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-02 14:57+0200\n"
+"POT-Creation-Date: 2026-04-06 11:22+0300\n"
 "PO-Revision-Date: 2020-06-24 19:32+0200\n"
 "Last-Translator: Javier R. <frjaraur@gmail.com>\n"
 "Language-Team: LL@li.org\n"
@@ -699,7 +699,7 @@ msgid ""
 msgstr ""
 
 #: calibration_assistant.cpp:1112 calibration_assistant.cpp:1298
-#: planetary_tool.cpp:310 planetary_tool.cpp:794 planetary_tool.cpp:811
+#: planetary_tool.cpp:310 planetary_tool.cpp:795 planetary_tool.cpp:812
 msgid "Ok"
 msgstr ""
 
@@ -1168,8 +1168,8 @@ msgid "Approximate declination where you will do calibration"
 msgstr "Aproximar a Declinación ó lugar onde se vai realizar a calibración"
 
 #: calstep_dialog.cpp:169 camera.cpp:1001 darks_dialog.cpp:220
-#: gear_simulator.cpp:2361 mount.cpp:281 mount.cpp:334 planetary_tool.cpp:787
-#: planetary_tool.cpp:803 Refine_DefMap.cpp:181 starcross_test.cpp:146
+#: gear_simulator.cpp:2361 mount.cpp:281 mount.cpp:334 planetary_tool.cpp:788
+#: planetary_tool.cpp:804 Refine_DefMap.cpp:181 starcross_test.cpp:146
 #: testguide.cpp:105
 msgid "Reset"
 msgstr "Reiniciar"
@@ -1244,7 +1244,7 @@ msgstr "Fallo na resolución da cámara para a Cámara Altair."
 msgid "Memory allocation error"
 msgstr "Erro adquirindo memoria"
 
-#: cam_ascom.cpp:415 scope_ascom.cpp:894
+#: cam_ascom.cpp:415 scope_ascom.cpp:899
 msgid ""
 "ASCOM driver failed checking IsPulseGuiding. See the debug log for more "
 "information."
@@ -1546,9 +1546,9 @@ msgstr "Erro configurando a ganancia"
 #: cam_wdm.cpp:331 cam_wdm.cpp:339 cam_wdm.cpp:354 cam_wdm.cpp:362
 #: cam_zwo.cpp:287 gear_dialog.cpp:1467 gear_dialog.cpp:2194
 #: gear_dialog.cpp:2203 gear_dialog.cpp:2210 gear_dialog.cpp:2257
-#: gear_dialog.cpp:2263 scope_ascom.cpp:194 scope_ascom.cpp:225
-#: scope_ascom.cpp:232 scope_ascom.cpp:241 scope_ascom.cpp:257
-#: scope_ascom.cpp:264 scope_ascom.cpp:351 scope_ascom.cpp:359
+#: gear_dialog.cpp:2263 scope_ascom.cpp:195 scope_ascom.cpp:226
+#: scope_ascom.cpp:233 scope_ascom.cpp:242 scope_ascom.cpp:258
+#: scope_ascom.cpp:265 scope_ascom.cpp:356 scope_ascom.cpp:364
 #: scope_eqmac.cpp:145 scope_eqmac.cpp:150 scope_equinox.cpp:146
 #: scope_equinox.cpp:151 scope_GC_USBST4.cpp:143 scope_GC_USBST4.cpp:162
 #: scope_GC_USBST4.cpp:176 scope_GC_USBST4.cpp:187 scope_GC_USBST4.cpp:209
@@ -2454,7 +2454,7 @@ msgid "Comet Tracking - Active"
 msgstr "Seguimento de Cometas - Activado"
 
 #: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1500
-#: scope.cpp:2120
+#: scope.cpp:2125
 msgid "Enable"
 msgstr "Habilitar"
 
@@ -6521,7 +6521,7 @@ msgstr ""
 "Para este perfil de equipo, restaura automaticamente os datos da última "
 "calibración que tivo éxito despois de que o fose estivese conectado."
 
-#: myframe.cpp:3424 scope.cpp:2147
+#: myframe.cpp:3424 scope.cpp:2152
 msgid "Min"
 msgstr "Mín"
 
@@ -6529,7 +6529,7 @@ msgstr "Mín"
 msgid "Auto exposure minimum duration"
 msgstr "Duración mínima de Autoexposición"
 
-#: myframe.cpp:3425 scope.cpp:2150
+#: myframe.cpp:3425 scope.cpp:2155
 msgid "Max"
 msgstr "Máx"
 
@@ -7320,23 +7320,23 @@ msgstr ""
 msgid "INDI Mount"
 msgstr "Montura INDI"
 
-#: planetary.cpp:1597
+#: planetary.cpp:1625
 msgid "Object not found"
 msgstr ""
 
-#: planetary.cpp:1643
+#: planetary.cpp:1671
 msgid ""
 "ERROR: camera frame size exceeds maximum limit. Please apply binning to "
 "reduce the frame size."
 msgstr ""
 
-#: planetary.cpp:1716
+#: planetary.cpp:1744
 msgid ""
 "ERROR: exception occurred during image processing: change detection "
 "parameters"
 msgstr ""
 
-#: planetary.cpp:1722
+#: planetary.cpp:1750
 msgid "ERROR: unknown exception occurred in solar system object detection"
 msgstr ""
 
@@ -7455,7 +7455,7 @@ msgid "Press and hold CTRL key to toggle mount tracking state"
 msgstr ""
 
 #: planetary_tool.cpp:262 planetary_tool.cpp:573 planetary_tool.cpp:650
-#: scope_ascom.cpp:537 scope_ascom.cpp:609
+#: scope_ascom.cpp:542 scope_ascom.cpp:614
 msgid "Sidereal"
 msgstr ""
 
@@ -7508,7 +7508,7 @@ msgid "Camera binning. For solar/planetary guiding 1x1 is recommended."
 msgstr ""
 
 #: planetary_tool.cpp:311 planetary_tool.cpp:373 planetary_tool.cpp:519
-#: planetary_tool.cpp:836
+#: planetary_tool.cpp:837
 msgid "Pause"
 msgstr ""
 
@@ -7519,34 +7519,34 @@ msgid ""
 "realign the object without losing its original position"
 msgstr ""
 
-#: planetary_tool.cpp:373 planetary_tool.cpp:519 planetary_tool.cpp:836
+#: planetary_tool.cpp:373 planetary_tool.cpp:519 planetary_tool.cpp:837
 msgid "Resume"
 msgstr ""
 
 #: planetary_tool.cpp:573 planetary_tool.cpp:587 planetary_tool.cpp:652
-#: scope_ascom.cpp:541 scope_ascom.cpp:612
+#: scope_ascom.cpp:546 scope_ascom.cpp:617
 msgid "Lunar"
 msgstr ""
 
 #: planetary_tool.cpp:574 planetary_tool.cpp:594 planetary_tool.cpp:657
-#: scope_ascom.cpp:545 scope_ascom.cpp:615
+#: scope_ascom.cpp:550 scope_ascom.cpp:620
 msgid "Solar"
 msgstr ""
 
-#: planetary_tool.cpp:575 planetary_tool.cpp:662 scope_ascom.cpp:549
+#: planetary_tool.cpp:575 planetary_tool.cpp:662
 msgid "King"
 msgstr ""
 
 #: planetary_tool.cpp:575 planetary_tool.cpp:600 planetary_tool.cpp:662
-#: scope_ascom.cpp:619
+#: scope_ascom.cpp:554 scope_ascom.cpp:624
 msgid "Custom"
 msgstr ""
 
-#: planetary_tool.cpp:678
+#: planetary_tool.cpp:679
 msgid "EQMOD ASCOM"
 msgstr ""
 
-#: planetary_tool.cpp:899
+#: planetary_tool.cpp:900
 msgid ""
 "Warning: the sum of camera exposure and time lapse duration must be at least "
 "500 msec (recommended 2000-3000 msec)!"
@@ -8701,35 +8701,35 @@ msgstr "Mover ó Sur %3d"
 msgid "Calibration complete"
 msgstr "Calibración completada"
 
-#: scope.cpp:2027
+#: scope.cpp:2032
 msgid "Mount Guide Algorithms"
 msgstr "Algoritmos de Guiado da Montura"
 
-#: scope.cpp:2069
+#: scope.cpp:2074
 msgid "Calibration step (ms)"
 msgstr "Pasos de Calibración (ms)"
 
-#: scope.cpp:2070
+#: scope.cpp:2075
 msgid ""
 "How long a guide pulse should be used during calibration? Click \"Advanced..."
 "\" to compute a suitable value."
 msgstr ""
 
-#: scope.cpp:2074
+#: scope.cpp:2079
 msgid "Advanced..."
 msgstr "Avanzado..."
 
-#: scope.cpp:2076
+#: scope.cpp:2081
 msgid ""
 "Click to open the Calibration Calculator Dialog to review or change all "
 "calibration parameters"
 msgstr ""
 
-#: scope.cpp:2088
+#: scope.cpp:2093
 msgid "Reverse Dec output after meridian flip"
 msgstr "Declinación Invertida tralo volteo por paso de meridiano"
 
-#: scope.cpp:2090
+#: scope.cpp:2095
 msgid ""
 "Check if your mount needs Dec output reversed after a meridian flip. "
 "Changing this setting will clear the existing calibration data"
@@ -8738,21 +8738,21 @@ msgstr ""
 "volteo por paso de meridiano. Ó cambiar isto perderanse os datos da "
 "calibración existente"
 
-#: scope.cpp:2098
+#: scope.cpp:2103
 msgid "Stop guiding when mount slews"
 msgstr "Deter o guiado cando a montura se despraza"
 
-#: scope.cpp:2100
+#: scope.cpp:2105
 msgid "When checked, PHD will stop guiding if the mount starts slewing"
 msgstr ""
 "Cando está seleccionado, PHD parará o guiado se a montura comeza a "
 "desprazarse"
 
-#: scope.cpp:2105
+#: scope.cpp:2110
 msgid "Assume Dec orthogonal to RA"
 msgstr "Asumir ortogonalidade de Dec en AR"
 
-#: scope.cpp:2108
+#: scope.cpp:2113
 msgid ""
 "Assume Dec axis is perpendicular to RA axis, regardless of calibration. "
 "Prevents RA periodic error from affecting Dec calibration. Option takes "
@@ -8762,7 +8762,7 @@ msgstr ""
 "Isto prevén que o erro periódico de AR afecte á calibración de Dec. Esta "
 "opción ten efecto cando se calibra DEC."
 
-#: scope.cpp:2122
+#: scope.cpp:2127
 msgid ""
 "Check this if you want to apply a backlash compensation guide pulse when "
 "declination direction is reversed."
@@ -8770,74 +8770,74 @@ msgstr ""
 "Marcar se queres aplicar a compensación de backlash ó pulso guía cando a "
 "dirección de declinación cambia."
 
-#: scope.cpp:2131
+#: scope.cpp:2136
 msgid "Amount"
 msgstr "Cantidade"
 
-#: scope.cpp:2131
+#: scope.cpp:2136
 msgid "Size of backlash compensation guide pulse (mSec)"
 msgstr "Tamaño do pulso de guiado de compensación de backlash (mSeg)"
 
-#: scope.cpp:2135
+#: scope.cpp:2140
 msgid "Mount Backlash Compensation"
 msgstr "Compensación do backlash da Montura"
 
-#: scope.cpp:2135
+#: scope.cpp:2140
 msgid "Backlash Compensation"
 msgstr "Compensación de Backlash"
 
-#: scope.cpp:2148
+#: scope.cpp:2153
 msgid "Minimum length of backlash compensation pulse (mSec)."
 msgstr "Pulso mínimo de compensación de backlash (mSeg)."
 
-#: scope.cpp:2151
+#: scope.cpp:2156
 msgid "Maximum length of backlash compensation pulse (mSec)."
 msgstr "Pulso máximo de compensación de backlash (mSeg)."
 
-#: scope.cpp:2158
+#: scope.cpp:2163
 msgid "Use Dec compensation"
 msgstr "Usar compensación en DEC"
 
-#: scope.cpp:2161
+#: scope.cpp:2166
 msgid "Automatically adjust RA guide rate based on scope declination"
 msgstr ""
 "Axustar automaticamente a taxa de guiado en AR en función da declinación do "
 "telescopio"
 
-#: scope.cpp:2167
+#: scope.cpp:2172
 msgid "Max RA duration"
 msgstr "Duración Máx AR"
 
-#: scope.cpp:2168 scope.cpp:2382
+#: scope.cpp:2173 scope.cpp:2387
 msgid ""
 "Longest length of pulse to send in RA\n"
 "Default = 2500 ms."
 msgstr "Tamaño maior de pulso que se envía en AR. Por defecto = 2500 ms."
 
-#: scope.cpp:2173
+#: scope.cpp:2178
 msgid "Max Dec duration"
 msgstr "Duración Máx DEC"
 
-#: scope.cpp:2174
+#: scope.cpp:2179
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms. NOTE: this will be ignored if backlash compensation is "
 "enabled"
 msgstr ""
 
-#: scope.cpp:2187
+#: scope.cpp:2192
 msgid "Dec guide mode"
 msgstr "Modo de guiado en DEC"
 
-#: scope.cpp:2188 scope.cpp:2401
+#: scope.cpp:2193 scope.cpp:2406
 msgid "Directions in which Dec guide commands will be issued"
 msgstr "Dirección nas que se emitirán os comandos de guía en Dec"
 
-#: scope.cpp:2384
+#: scope.cpp:2389
 msgid "Mx RA"
 msgstr "AR Mx"
 
-#: scope.cpp:2390
+#: scope.cpp:2395
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms.  Increase if drift is fast."
@@ -8845,43 +8845,43 @@ msgstr ""
 "Tamaño maior de pulso que se envía en declinación\n"
 "Por defecto = 2500ms. Incrementar se a deriva é máis rápida."
 
-#: scope.cpp:2392
+#: scope.cpp:2397
 msgid "Mx DEC"
 msgstr "DEC Mx"
 
-#: scope_ascom.cpp:483
+#: scope_ascom.cpp:488
 msgid ""
 "ASCOM driver problem during disconnect, check the debug log for more "
 "information"
 msgstr ""
 "Problema do driver ASCOM ó desconectarse, busca no log para máis información"
 
-#: scope_ascom.cpp:698
+#: scope_ascom.cpp:703
 msgid ""
 "ASCOM driver does not support PulseGuide. Check your ASCOM driver settings."
 msgstr ""
 "O driver de ASCOM non soporta o PulseGuide. Busca na configuración do drives "
 "de ASCOM."
 
-#: scope_ascom.cpp:862
+#: scope_ascom.cpp:867
 msgid ""
 "PulseGuide command to mount has failed - guiding is likely to be ineffective."
 msgstr ""
 "Fallou o comando PulseGuide da montura - probablemente o guiado non é "
 "efectivo."
 
-#: scope_ascom.cpp:870
+#: scope_ascom.cpp:875
 msgid "Guiding stopped: the scope started slewing."
 msgstr "Guiado parado: El telescopio comenzó a desplazarse."
 
-#: scope_ascom.cpp:917
+#: scope_ascom.cpp:922
 msgid ""
 "ASCOM driver failed checking for slewing, see the debug log for more "
 "information."
 msgstr ""
 "O driver de ASCOM fallou no desprazamento, ver o log para máis información."
 
-#: scope_ascom.cpp:934
+#: scope_ascom.cpp:939
 msgid ""
 "ASCOM driver failed calling AbortSlew, see the debug log for more "
 "information."
@@ -8889,7 +8889,7 @@ msgstr ""
 "O driver de ASCOM fallou intentando abortar o desprazamento, ver o log para "
 "máis información."
 
-#: scope_ascom.cpp:1244
+#: scope_ascom.cpp:1249
 msgid ""
 "The mount's ASCOM driver is reporting invalid guide speeds. Some guiding "
 "functions including PPEC will be impaired. Contact the ASCOM driver provider "
