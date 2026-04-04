@@ -82,7 +82,7 @@
 
 #define APPNAME _T("PHD2 Guiding")
 #define PHDVERSION _T("2.6.14")
-#define PHDSUBVER _T("-solar.1")
+#define PHDSUBVER _T("-solar.2")
 #ifdef DEVELOPER_MODE
 # define FULLVER PHDVERSION PHDSUBVER _T(" (Developer mode)")
 #else
