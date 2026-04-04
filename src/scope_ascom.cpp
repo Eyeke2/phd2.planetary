@@ -67,6 +67,7 @@ ScopeASCOM::ScopeASCOM(const wxString& choice)
     dispid_siderealtime = DISPID_UNKNOWN;
     dispid_sitelatitude = DISPID_UNKNOWN;
     dispid_sitelongitude = DISPID_UNKNOWN;
+    dispid_siteelevation = DISPID_UNKNOWN;
     dispid_slewtocoordinates = DISPID_UNKNOWN;
     dispid_raguiderate = DISPID_UNKNOWN;
     dispid_decguiderate = DISPID_UNKNOWN;
@@ -290,6 +291,10 @@ bool ScopeASCOM::Connect()
         if (!pScopeDriver.GetDispatchId(&dispid_sitelongitude, L"SiteLongitude"))
         {
             Debug.Write("cannot get dispid_sitelongitude\n");
+        }
+        if (!pScopeDriver.GetDispatchId(&dispid_siteelevation, L"SiteElevation"))
+        {
+            Debug.Write("cannot get dispid_siteelevation\n");
         }
 
         m_canSlew = true;
@@ -1345,6 +1350,40 @@ bool ScopeASCOM::GetSiteLatLong(double *latitude, double *longitude)
 
         *latitude = vLat.dblVal;
         *longitude = vLong.dblVal;
+    }
+    catch (const wxString& Msg)
+    {
+        bError = true;
+        POSSIBLY_UNUSED(Msg);
+    }
+
+    return bError;
+}
+
+bool ScopeASCOM::GetSiteElevation(double *elevation)
+{
+    if (dispid_siteelevation == DISPID_UNKNOWN)
+        return true;
+
+    bool bError = false;
+
+    try
+    {
+        if (!IsConnected())
+        {
+            throw ERROR_INFO("ASCOM Scope: cannot get site latitude/longitude when not connected");
+        }
+
+        GITObjRef scope(m_gitEntry);
+
+        Variant vElevation;
+
+        if (!scope.GetProp(&vElevation, dispid_siteelevation))
+        {
+            throw ERROR_INFO("ASCOM Scope: get site elevation failed: " + ExcepMsg(scope.Excep()));
+        }
+
+        *elevation = vElevation.dblVal;
     }
     catch (const wxString& Msg)
     {

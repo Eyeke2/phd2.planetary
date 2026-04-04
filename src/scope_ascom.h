@@ -58,6 +58,7 @@ class ScopeASCOM : public Scope
     DISPID dispid_siderealtime;
     DISPID dispid_sitelatitude;
     DISPID dispid_sitelongitude;
+    DISPID dispid_siteelevation;
     DISPID dispid_slewtocoordinates;
     DISPID dispid_raguiderate;
     DISPID dispid_decguiderate;
@@ -112,6 +113,7 @@ public:
     bool GetGuideRates(double *pRAGuideRate, double *pDecGuideRate) override;
     bool GetCoordinates(double *ra, double *dec, double *siderealTime) override;
     bool GetSiteLatLong(double *latitude, double *longitude) override;
+    bool GetSiteElevation(double *elevation) override;
     bool CanSlew() override;
     bool CanSlewAsync() override;
     bool CanReportPosition() override;

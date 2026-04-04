@@ -283,6 +283,7 @@ public:
     virtual bool GetGuideRates(double *pRAGuideRate, double *pDecGuideRate);
     virtual bool GetCoordinates(double *ra, double *dec, double *siderealTime);
     virtual bool GetSiteLatLong(double *latitude, double *longitude);
+    virtual bool GetSiteElevation(double *elevation);
     virtual bool CanSlew();
     virtual bool CanSlewAsync();
     virtual bool SlewToCoordinates(double ra, double dec);
