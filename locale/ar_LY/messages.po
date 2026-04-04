@@ -35,7 +35,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-02 14:57+0200\n"
+"POT-Creation-Date: 2026-04-06 11:22+0300\n"
 "PO-Revision-Date: 2016-09-14 23:15+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -695,7 +695,7 @@ msgid ""
 msgstr ""
 
 #: calibration_assistant.cpp:1112 calibration_assistant.cpp:1298
-#: planetary_tool.cpp:310 planetary_tool.cpp:794 planetary_tool.cpp:811
+#: planetary_tool.cpp:310 planetary_tool.cpp:795 planetary_tool.cpp:812
 msgid "Ok"
 msgstr ""
 
@@ -1133,8 +1133,8 @@ msgid "Approximate declination where you will do calibration"
 msgstr "الانحراف الزاوي المقدر عندما ستقوم بالمعايرة"
 
 #: calstep_dialog.cpp:169 camera.cpp:1001 darks_dialog.cpp:220
-#: gear_simulator.cpp:2361 mount.cpp:281 mount.cpp:334 planetary_tool.cpp:787
-#: planetary_tool.cpp:803 Refine_DefMap.cpp:181 starcross_test.cpp:146
+#: gear_simulator.cpp:2361 mount.cpp:281 mount.cpp:334 planetary_tool.cpp:788
+#: planetary_tool.cpp:804 Refine_DefMap.cpp:181 starcross_test.cpp:146
 #: testguide.cpp:105
 msgid "Reset"
 msgstr "إعادة ضبط"
@@ -1209,7 +1209,7 @@ msgstr ""
 msgid "Memory allocation error"
 msgstr "خطأ في تحديد الذاكرة"
 
-#: cam_ascom.cpp:415 scope_ascom.cpp:894
+#: cam_ascom.cpp:415 scope_ascom.cpp:899
 msgid ""
 "ASCOM driver failed checking IsPulseGuiding. See the debug log for more "
 "information."
@@ -1500,9 +1500,9 @@ msgstr "خطأ في تحديد قيمة Gain"
 #: cam_wdm.cpp:331 cam_wdm.cpp:339 cam_wdm.cpp:354 cam_wdm.cpp:362
 #: cam_zwo.cpp:287 gear_dialog.cpp:1467 gear_dialog.cpp:2194
 #: gear_dialog.cpp:2203 gear_dialog.cpp:2210 gear_dialog.cpp:2257
-#: gear_dialog.cpp:2263 scope_ascom.cpp:194 scope_ascom.cpp:225
-#: scope_ascom.cpp:232 scope_ascom.cpp:241 scope_ascom.cpp:257
-#: scope_ascom.cpp:264 scope_ascom.cpp:351 scope_ascom.cpp:359
+#: gear_dialog.cpp:2263 scope_ascom.cpp:195 scope_ascom.cpp:226
+#: scope_ascom.cpp:233 scope_ascom.cpp:242 scope_ascom.cpp:258
+#: scope_ascom.cpp:265 scope_ascom.cpp:356 scope_ascom.cpp:364
 #: scope_eqmac.cpp:145 scope_eqmac.cpp:150 scope_equinox.cpp:146
 #: scope_equinox.cpp:151 scope_GC_USBST4.cpp:143 scope_GC_USBST4.cpp:162
 #: scope_GC_USBST4.cpp:176 scope_GC_USBST4.cpp:187 scope_GC_USBST4.cpp:209
@@ -2392,7 +2392,7 @@ msgid "Comet Tracking - Active"
 msgstr "تتبع المذنب- فعال"
 
 #: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1500
-#: scope.cpp:2120
+#: scope.cpp:2125
 msgid "Enable"
 msgstr "تفعيل"
 
@@ -6205,7 +6205,7 @@ msgid ""
 "calibration after gear is connected."
 msgstr ""
 
-#: myframe.cpp:3424 scope.cpp:2147
+#: myframe.cpp:3424 scope.cpp:2152
 msgid "Min"
 msgstr "الأقل"
 
@@ -6213,7 +6213,7 @@ msgstr "الأقل"
 msgid "Auto exposure minimum duration"
 msgstr "أقل زمن تعريض ذاتي"
 
-#: myframe.cpp:3425 scope.cpp:2150
+#: myframe.cpp:3425 scope.cpp:2155
 msgid "Max"
 msgstr "الأقصى"
 
@@ -6928,23 +6928,23 @@ msgstr ""
 msgid "INDI Mount"
 msgstr ""
 
-#: planetary.cpp:1597
+#: planetary.cpp:1625
 msgid "Object not found"
 msgstr ""
 
-#: planetary.cpp:1643
+#: planetary.cpp:1671
 msgid ""
 "ERROR: camera frame size exceeds maximum limit. Please apply binning to "
 "reduce the frame size."
 msgstr ""
 
-#: planetary.cpp:1716
+#: planetary.cpp:1744
 msgid ""
 "ERROR: exception occurred during image processing: change detection "
 "parameters"
 msgstr ""
 
-#: planetary.cpp:1722
+#: planetary.cpp:1750
 msgid "ERROR: unknown exception occurred in solar system object detection"
 msgstr ""
 
@@ -7063,7 +7063,7 @@ msgid "Press and hold CTRL key to toggle mount tracking state"
 msgstr ""
 
 #: planetary_tool.cpp:262 planetary_tool.cpp:573 planetary_tool.cpp:650
-#: scope_ascom.cpp:537 scope_ascom.cpp:609
+#: scope_ascom.cpp:542 scope_ascom.cpp:614
 msgid "Sidereal"
 msgstr ""
 
@@ -7116,7 +7116,7 @@ msgid "Camera binning. For solar/planetary guiding 1x1 is recommended."
 msgstr ""
 
 #: planetary_tool.cpp:311 planetary_tool.cpp:373 planetary_tool.cpp:519
-#: planetary_tool.cpp:836
+#: planetary_tool.cpp:837
 msgid "Pause"
 msgstr ""
 
@@ -7127,34 +7127,34 @@ msgid ""
 "realign the object without losing its original position"
 msgstr ""
 
-#: planetary_tool.cpp:373 planetary_tool.cpp:519 planetary_tool.cpp:836
+#: planetary_tool.cpp:373 planetary_tool.cpp:519 planetary_tool.cpp:837
 msgid "Resume"
 msgstr ""
 
 #: planetary_tool.cpp:573 planetary_tool.cpp:587 planetary_tool.cpp:652
-#: scope_ascom.cpp:541 scope_ascom.cpp:612
+#: scope_ascom.cpp:546 scope_ascom.cpp:617
 msgid "Lunar"
 msgstr ""
 
 #: planetary_tool.cpp:574 planetary_tool.cpp:594 planetary_tool.cpp:657
-#: scope_ascom.cpp:545 scope_ascom.cpp:615
+#: scope_ascom.cpp:550 scope_ascom.cpp:620
 msgid "Solar"
 msgstr ""
 
-#: planetary_tool.cpp:575 planetary_tool.cpp:662 scope_ascom.cpp:549
+#: planetary_tool.cpp:575 planetary_tool.cpp:662
 msgid "King"
 msgstr ""
 
 #: planetary_tool.cpp:575 planetary_tool.cpp:600 planetary_tool.cpp:662
-#: scope_ascom.cpp:619
+#: scope_ascom.cpp:554 scope_ascom.cpp:624
 msgid "Custom"
 msgstr ""
 
-#: planetary_tool.cpp:678
+#: planetary_tool.cpp:679
 msgid "EQMOD ASCOM"
 msgstr ""
 
-#: planetary_tool.cpp:899
+#: planetary_tool.cpp:900
 msgid ""
 "Warning: the sum of camera exposure and time lapse duration must be at least "
 "500 msec (recommended 2000-3000 msec)!"
@@ -8157,60 +8157,60 @@ msgstr ""
 msgid "Calibration complete"
 msgstr "انتهاء المعايرة"
 
-#: scope.cpp:2027
+#: scope.cpp:2032
 msgid "Mount Guide Algorithms"
 msgstr "خوارزميات توجيه القاعدة"
 
-#: scope.cpp:2069
+#: scope.cpp:2074
 msgid "Calibration step (ms)"
 msgstr "خطوات المعايرة (ملي ثانية)"
 
-#: scope.cpp:2070
+#: scope.cpp:2075
 msgid ""
 "How long a guide pulse should be used during calibration? Click \"Advanced..."
 "\" to compute a suitable value."
 msgstr ""
 
-#: scope.cpp:2074
+#: scope.cpp:2079
 msgid "Advanced..."
 msgstr ""
 
-#: scope.cpp:2076
+#: scope.cpp:2081
 msgid ""
 "Click to open the Calibration Calculator Dialog to review or change all "
 "calibration parameters"
 msgstr ""
 
-#: scope.cpp:2088
+#: scope.cpp:2093
 msgid "Reverse Dec output after meridian flip"
 msgstr ""
 
-#: scope.cpp:2090
+#: scope.cpp:2095
 msgid ""
 "Check if your mount needs Dec output reversed after a meridian flip. "
 "Changing this setting will clear the existing calibration data"
 msgstr ""
 
-#: scope.cpp:2098
+#: scope.cpp:2103
 msgid "Stop guiding when mount slews"
 msgstr "أوقف التوجيه إذا بدأ المنظار بالتحرك"
 
-#: scope.cpp:2100
+#: scope.cpp:2105
 msgid "When checked, PHD will stop guiding if the mount starts slewing"
 msgstr "عنما يتم اختيارها، PHD سيتوقف عن التوجيه إذا بدأ المنظار بالتحرك"
 
-#: scope.cpp:2105
+#: scope.cpp:2110
 msgid "Assume Dec orthogonal to RA"
 msgstr ""
 
-#: scope.cpp:2108
+#: scope.cpp:2113
 msgid ""
 "Assume Dec axis is perpendicular to RA axis, regardless of calibration. "
 "Prevents RA periodic error from affecting Dec calibration. Option takes "
 "effect when calibrating DEC."
 msgstr ""
 
-#: scope.cpp:2122
+#: scope.cpp:2127
 msgid ""
 "Check this if you want to apply a backlash compensation guide pulse when "
 "declination direction is reversed."
@@ -8218,115 +8218,115 @@ msgstr ""
 "حدد هذا الخيار إذا كنت تريد تطبيق تعويضات نبضات التوجيه لللحركة الارتجاعية "
 "(backlash) عندما يتم عكس الاتجاه الانحراف declination ."
 
-#: scope.cpp:2131
+#: scope.cpp:2136
 msgid "Amount"
 msgstr "مقدار"
 
-#: scope.cpp:2131
+#: scope.cpp:2136
 msgid "Size of backlash compensation guide pulse (mSec)"
 msgstr ""
 
-#: scope.cpp:2135
+#: scope.cpp:2140
 msgid "Mount Backlash Compensation"
 msgstr ""
 
-#: scope.cpp:2135
+#: scope.cpp:2140
 msgid "Backlash Compensation"
 msgstr ""
 
-#: scope.cpp:2148
+#: scope.cpp:2153
 msgid "Minimum length of backlash compensation pulse (mSec)."
 msgstr ""
 
-#: scope.cpp:2151
+#: scope.cpp:2156
 msgid "Maximum length of backlash compensation pulse (mSec)."
 msgstr ""
 
-#: scope.cpp:2158
+#: scope.cpp:2163
 msgid "Use Dec compensation"
 msgstr ""
 
-#: scope.cpp:2161
+#: scope.cpp:2166
 msgid "Automatically adjust RA guide rate based on scope declination"
 msgstr ""
 
-#: scope.cpp:2167
+#: scope.cpp:2172
 msgid "Max RA duration"
 msgstr ""
 
-#: scope.cpp:2168 scope.cpp:2382
+#: scope.cpp:2173 scope.cpp:2387
 msgid ""
 "Longest length of pulse to send in RA\n"
 "Default = 2500 ms."
 msgstr ""
 
-#: scope.cpp:2173
+#: scope.cpp:2178
 msgid "Max Dec duration"
 msgstr ""
 
-#: scope.cpp:2174
+#: scope.cpp:2179
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms. NOTE: this will be ignored if backlash compensation is "
 "enabled"
 msgstr ""
 
-#: scope.cpp:2187
+#: scope.cpp:2192
 msgid "Dec guide mode"
 msgstr ""
 
-#: scope.cpp:2188 scope.cpp:2401
+#: scope.cpp:2193 scope.cpp:2406
 msgid "Directions in which Dec guide commands will be issued"
 msgstr ""
 
-#: scope.cpp:2384
+#: scope.cpp:2389
 msgid "Mx RA"
 msgstr ""
 
-#: scope.cpp:2390
+#: scope.cpp:2395
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms.  Increase if drift is fast."
 msgstr ""
 
-#: scope.cpp:2392
+#: scope.cpp:2397
 msgid "Mx DEC"
 msgstr ""
 
-#: scope_ascom.cpp:483
+#: scope_ascom.cpp:488
 msgid ""
 "ASCOM driver problem during disconnect, check the debug log for more "
 "information"
 msgstr "مشكلة في تعريف آسكوم Ascom أثناء فصل الاتصال."
 
-#: scope_ascom.cpp:698
+#: scope_ascom.cpp:703
 msgid ""
 "ASCOM driver does not support PulseGuide. Check your ASCOM driver settings."
 msgstr ""
 "تعريف آسكوم Ascom لا يدعم توجيه النبضات. تحقق من إعدادات تعريف آسكوم Ascom"
 
-#: scope_ascom.cpp:862
+#: scope_ascom.cpp:867
 msgid ""
 "PulseGuide command to mount has failed - guiding is likely to be ineffective."
 msgstr "فشل نبضات أوامر التوجيه للقاعدة - التوجيه غالبا لن يكون فعالا."
 
-#: scope_ascom.cpp:870
+#: scope_ascom.cpp:875
 msgid "Guiding stopped: the scope started slewing."
 msgstr "توقف التوجه، المنظار بدء الانتقال"
 
-#: scope_ascom.cpp:917
+#: scope_ascom.cpp:922
 msgid ""
 "ASCOM driver failed checking for slewing, see the debug log for more "
 "information."
 msgstr "تعريف آسكوم Ascom فشل في التحقق من التوجه."
 
-#: scope_ascom.cpp:934
+#: scope_ascom.cpp:939
 msgid ""
 "ASCOM driver failed calling AbortSlew, see the debug log for more "
 "information."
 msgstr "تعريف آسكوم Ascom فشل في إجهاض التوجه."
 
-#: scope_ascom.cpp:1244
+#: scope_ascom.cpp:1249
 msgid ""
 "The mount's ASCOM driver is reporting invalid guide speeds. Some guiding "
 "functions including PPEC will be impaired. Contact the ASCOM driver provider "
