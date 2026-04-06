@@ -1568,6 +1568,7 @@ bool SolarSystemObject::SetMountTrackingRate(const wxString& rateStr, double ra_
     else
         return false;
 
+    pPointingSource->SetTrackingRateOffsets(0, 0);
     bool bErr = pPointingSource->SetTrackingRate(trackingRate);
     if (bErr)
         Debug.Write(wxString::Format("Failed to set tracking rate: %s\n", rate));
