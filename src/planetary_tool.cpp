@@ -666,6 +666,7 @@ void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
         Debug.Write(wxString::Format("Solar/planetary: setting mount tracking rate to %s\n", rateStr));
         if (pPointingSource->m_mountRates[driveRate].canSet)
         {
+            pPointingSource->SetTrackingRateOffsets(0, 0);
             pPointingSource->SetTrackingRate(driveRate);
             m_driveRate = driveRate;
         }
