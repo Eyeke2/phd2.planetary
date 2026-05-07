@@ -136,6 +136,12 @@ WX_DEFINE_ARRAY_DOUBLE(double, ArrayOfDbl);
 # define PATHSEPSTR _T("/")
 #endif
 
+#if defined(__WINDOWS__) && defined(_DEBUG)
+void SetThreadName(const char* threadName);
+#else
+inline void SetThreadName(const char* threadName) { (void) threadName; }
+#endif
+
 #define DEGREES_SYMBOL "\u00B0"
 #define MICRONS_SYMBOL "\u00B5m"
 

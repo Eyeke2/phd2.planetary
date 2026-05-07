@@ -111,6 +111,7 @@ class WorkerThread : public wxThread
     };
 
     MyFrame *m_pFrame;
+    const char *m_threadName;
     volatile unsigned int m_interruptRequested;
     volatile bool m_killable;
     wxMessageQueue<bool> m_wakeupQueue;
@@ -130,7 +131,7 @@ public:
         INT_ANY = (INT_STOP | INT_TERMINATE),
     };
 
-    WorkerThread(MyFrame *pFrame);
+    WorkerThread(MyFrame *pFrame, const char *threadName);
     ~WorkerThread(void);
 
     static WorkerThread *This(void);

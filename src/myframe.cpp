@@ -1736,7 +1736,9 @@ bool MyFrame::StartWorkerThread(WorkerThread *& pWorkerThread)
         if (!pWorkerThread || !pWorkerThread->IsRunning())
         {
             delete pWorkerThread;
-            pWorkerThread = new WorkerThread(this);
+            const char *threadName = &pWorkerThread == &m_pPrimaryWorkerThread ? "PHD2 Worker Primary"
+                                                                               : "PHD2 Worker Secondary";
+            pWorkerThread = new WorkerThread(this, threadName);
 
             if (pWorkerThread->Create() != wxTHREAD_NO_ERROR)
             {

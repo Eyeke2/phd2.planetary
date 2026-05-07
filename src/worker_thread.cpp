@@ -35,10 +35,10 @@
 
 #include "phd.h"
 
-WorkerThread::WorkerThread(MyFrame *pFrame)
-    : wxThread(wxTHREAD_JOINABLE), m_interruptRequested(0), m_killable(true), m_skipSendExposeComplete(false)
+WorkerThread::WorkerThread(MyFrame *pFrame, const char *threadName)
+    : wxThread(wxTHREAD_JOINABLE), m_pFrame(pFrame), m_threadName(threadName), m_interruptRequested(0), m_killable(true),
+      m_skipSendExposeComplete(false)
 {
-    m_pFrame = pFrame;
     Debug.Write("WorkerThread constructor called\n");
 }
 
@@ -385,6 +385,7 @@ wxThread::ExitCode WorkerThread::Entry()
 {
     bool bDone = TestDestroy();
 
+    SetThreadName(m_threadName);
     Debug.Write("WorkerThread::Entry() begins\n");
 
 #if defined(__WINDOWS__)

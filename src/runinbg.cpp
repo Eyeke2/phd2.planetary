@@ -172,6 +172,7 @@ struct RunInBgImpl : public wxTimer, public wxThreadHelper
 
     wxThread::ExitCode Entry()
     {
+        SetThreadName("PHD2 RunInBg");
         bool err = m_bg->Entry();
         m_done = true;
         return (wxThread::ExitCode) err;
