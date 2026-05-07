@@ -41,6 +41,22 @@
 
 EventServer EvtServer;
 
+// Tracks nested event-server RPC dispatch on the UI thread.
+static thread_local int s_rpcDepth = 0;
+
+namespace {
+struct RpcEntryGuard
+{
+    RpcEntryGuard() { ++s_rpcDepth; }
+    ~RpcEntryGuard() { --s_rpcDepth; }
+};
+} // namespace
+
+bool EventServer::InRpcCall()
+{
+    return s_rpcDepth > 0;
+}
+
 // clang-format off
 wxBEGIN_EVENT_TABLE(EventServer, wxEvtHandler)
     EVT_SOCKET(EVENT_SERVER_ID, EventServer::OnEventServerEvent)
@@ -2866,8 +2882,11 @@ static void dump_response(const JRpcCall& call)
     Debug.Write(wxString::Format("evsrv: cli %p response: %s\n", call.cli, s));
 }
 
+// RPC handlers run on the UI thread; do not enter nested wx event loops here.
 static bool handle_request(JRpcCall& call)
 {
+    RpcEntryGuard rpcGuard;
+
     const json_value *params;
     const json_value *id;
 

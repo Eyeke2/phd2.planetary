@@ -36,6 +36,8 @@
 #ifndef WORKER_THREAD_H_INCLUDED
 #define WORKER_THREAD_H_INCLUDED
 
+#include <atomic>
+
 class MyFrame;
 
 /*
@@ -118,6 +120,41 @@ class WorkerThread : public wxThread
     wxMessageQueue<WORKER_THREAD_REQUEST> m_highPriorityQueue;
     wxMessageQueue<WORKER_THREAD_REQUEST> m_lowPriorityQueue;
     bool m_skipSendExposeComplete;
+
+    // Diagnostic activity snapshot for StopWorkerThread logging.
+public:
+    enum Activity
+    {
+        ACT_IDLE,             // waiting for work in the wakeup queue
+        ACT_EXPOSING,         // inside HandleExpose (camera capture)
+        ACT_MOVING,           // inside HandleMove (mount pulse / guide correction)
+        ACT_AXIS_MOVING,      // inside HandleMove for a calibration axis move
+        ACT_TERMINATING,      // saw REQUEST_TERMINATE, draining
+    };
+
+private:
+    std::atomic<int> m_activity;     // one of Activity, default ACT_IDLE
+
+public:
+    Activity GetActivity() const { return static_cast<Activity>(m_activity.load(std::memory_order_relaxed)); }
+    static const char *ActivityName(Activity a);
+    const char *ThreadName() const { return m_threadName ? m_threadName : "(unnamed)"; }
+
+private:
+    // Temporarily marks the worker's current activity.
+    class ActivityScope
+    {
+        WorkerThread *m_thr;
+    public:
+        ActivityScope(WorkerThread *thr, Activity a) : m_thr(thr)
+        {
+            m_thr->m_activity.store(a, std::memory_order_relaxed);
+        }
+        ~ActivityScope()
+        {
+            m_thr->m_activity.store(ACT_IDLE, std::memory_order_relaxed);
+        }
+    };
 
 public:
     enum InterruptBits

@@ -259,6 +259,17 @@ private:
     double m_sampling;
     bool m_autoLoadCalibration;
 
+    // wxAuiManager owns all dockable panes (graph, stats, profile, target,
+    // toolbar, etc.). Note that m_mgr.Update() is wxAuiManager::Update() --
+    // it recomputes pane layout and fires window-resize messages to the
+    // panes' OWN HWNDs (in-process). It is NOT wxWindow::Update(), which
+    // forces a synchronous WM_PAINT and is banned on event-server RPC paths
+    // (see step (b) of the deadlock cleanup and the threading-rule comment
+    // block above handle_request() in event_server.cpp). The 8 m_mgr.Update()
+    // call sites in PHD2 (myframe.cpp + myframe_events.cpp) are all reached
+    // from EVT_MENU / EVT_TOOLBAR handlers and the wxAui restore path -- never
+    // from event-server RPC -- and therefore do not carry the cross-process
+    // SendMessage deadlock risk that motivated the wxWindow::Update() ban.
     wxAuiManager m_mgr;
     PHDStatusBar *m_statusbar;
 
@@ -570,6 +581,13 @@ private:
 
     bool StartWorkerThread(WorkerThread *& pWorkerThread);
     bool StopWorkerThread(WorkerThread *& pWorkerThread);
+
+    // TELEMETRY(e.1): true if the given pointer matches one of the
+    // currently-running worker threads. Used by OnRequestExposure /
+    // OnRequestMountMove to detect a force-killed worker before
+    // dereferencing its (now-dangling) request pointer. See the
+    // matching pack code in worker_thread.cpp::HandleExpose/HandleMove.
+    bool IsLiveWorker(WorkerThread *worker) const;
     void OnStatusMsg(wxThreadEvent& event);
     void DoAlert(const alert_params& params);
     void DoClearAlert();

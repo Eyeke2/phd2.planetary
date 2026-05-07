@@ -37,9 +37,23 @@
 
 WorkerThread::WorkerThread(MyFrame *pFrame, const char *threadName)
     : wxThread(wxTHREAD_JOINABLE), m_pFrame(pFrame), m_threadName(threadName), m_interruptRequested(0), m_killable(true),
-      m_skipSendExposeComplete(false)
+      m_skipSendExposeComplete(false),
+      m_activity(ACT_IDLE)
 {
     Debug.Write("WorkerThread constructor called\n");
+}
+
+const char *WorkerThread::ActivityName(Activity a)
+{
+    switch (a)
+    {
+    case ACT_IDLE:        return "IDLE";
+    case ACT_EXPOSING:    return "EXPOSING";
+    case ACT_MOVING:      return "MOVING";
+    case ACT_AXIS_MOVING: return "AXIS_MOVING";
+    case ACT_TERMINATING: return "TERMINATING";
+    }
+    return "UNKNOWN";
 }
 
 WorkerThread::~WorkerThread(void)
@@ -172,6 +186,8 @@ static void CameraROITest(usImage *img)
 
 bool WorkerThread::HandleExpose(EXPOSE_REQUEST *req)
 {
+    ActivityScope activityScope(this, ACT_EXPOSING);
+
     bool bError = false;
 
     try
@@ -206,6 +222,16 @@ bool WorkerThread::HandleExpose(EXPOSE_REQUEST *req)
 
             wxCommandEvent evt(REQUEST_EXPOSURE_EVENT, GetId());
             evt.SetClientData(req);
+            // Pack worker identity so the main thread can reject stale events.
+            {
+                uintptr_t thrAddr = reinterpret_cast<uintptr_t>(this);
+#if defined(_WIN64) || (UINTPTR_MAX > 0xFFFFFFFFu)
+                evt.SetInt(static_cast<int>(static_cast<unsigned int>(thrAddr & 0xFFFFFFFFu)));
+                evt.SetExtraLong(static_cast<long>(static_cast<unsigned int>(thrAddr >> 32)));
+#else
+                evt.SetExtraLong(static_cast<long>(thrAddr));
+#endif
+            }
             wxQueueEvent(m_pFrame, evt.Clone());
 
             // wait for the request to complete
@@ -298,6 +324,8 @@ void WorkerThread::EnqueueWorkerThreadAxisMove(Mount *mount, const GUIDE_DIRECTI
 
 void WorkerThread::HandleMove(MOVE_REQUEST *req)
 {
+    ActivityScope activityScope(this, req->axisMove ? ACT_AXIS_MOVING : ACT_MOVING);
+
     Mount::MOVE_RESULT result = Mount::MOVE_OK;
 
     try
@@ -341,6 +369,16 @@ void WorkerThread::HandleMove(MOVE_REQUEST *req)
 
             wxCommandEvent evt(REQUEST_MOUNT_MOVE_EVENT, GetId());
             evt.SetClientData(req);
+            // Pack worker identity so the main thread can reject stale events.
+            {
+                uintptr_t thrAddr = reinterpret_cast<uintptr_t>(this);
+#if defined(_WIN64) || (UINTPTR_MAX > 0xFFFFFFFFu)
+                evt.SetInt(static_cast<int>(static_cast<unsigned int>(thrAddr & 0xFFFFFFFFu)));
+                evt.SetExtraLong(static_cast<long>(static_cast<unsigned int>(thrAddr >> 32)));
+#else
+                evt.SetExtraLong(static_cast<long>(thrAddr));
+#endif
+            }
             wxQueueEvent(m_pFrame, evt.Clone());
 
             // wait for the request to complete
@@ -423,6 +461,7 @@ wxThread::ExitCode WorkerThread::Entry()
             bool bError;
 
         case REQUEST_TERMINATE:
+            m_activity.store(ACT_TERMINATING, std::memory_order_relaxed);
             Debug.Write("worker thread servicing REQUEST_TERMINATE\n");
             bDone = true;
             break;

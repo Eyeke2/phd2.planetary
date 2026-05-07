@@ -470,6 +470,14 @@ bool PlayerOneCamera::Connect(const wxString& camId)
 
     m_devicePixelSize = info.pixelSize;
 
+    // FIXME(ui-safety): wxYield() pumps the wx event loop reentrantly and
+    // can deadlock against a remote-control client via wx's internal
+    // wxFindWindowAtPoint() hit-test. See src/ui_safety.h and the
+    // threading-rule comment block above handle_request() in
+    // src/event_server.cpp. This site runs at Player One camera connect
+    // (not per exposure); same risk profile as the ZWO connect path. Real
+    // fix is per-driver-thread for POA capture; UI_SAFE_YIELD() would
+    // only LOG, not remove, the deadlock potential.
     wxYield();
 
     int numControls;

@@ -85,6 +85,17 @@ struct RunInBgImpl : public wxTimer, public wxThreadHelper
         Start(250); // start timer
         while (!m_done && !m_canceled)
         {
+            // FIXME(ui-safety): wxYield() pumps the wx event loop reentrantly
+            // and can deadlock against a remote-control client via wx's
+            // internal wxFindWindowAtPoint() hit-test. See src/ui_safety.h
+            // and the threading-rule comment block above handle_request()
+            // in src/event_server.cpp. RunInBg is the generic helper used by
+            // the darks dialog and similar wait-for-background-task UIs;
+            // the deadlock surface is one task at a time, but spans the
+            // full task duration (potentially many seconds). Real fix is
+            // either (a) post a wx event from the worker thread on
+            // completion instead of polling, or (b) move the entire
+            // RunInBg modal-wait machinery onto an event-driven model.
             wxYield();
             wxMilliSleep(20);
         }
@@ -94,6 +105,8 @@ struct RunInBgImpl : public wxTimer, public wxThreadHelper
             // give it a bit of time to respond to cancel before killing it
             for (int i = 0; i < 50 && !m_done; i++)
             {
+                // FIXME(ui-safety): see comment above -- same deadlock class,
+                // here during the cancel-grace polling window.
                 wxYield();
                 wxMilliSleep(20);
             }
