@@ -69,7 +69,7 @@ enum
     MSG_PROTOCOL_VERSION = 1,
 };
 
-#define MSG_EXTENTED_PROTOCOL_VERSION "solar.1"
+#define MSG_EXTENTED_PROTOCOL_VERSION "solar.2"
 
 static const wxString literal_null("null");
 static const wxString literal_true("true");
@@ -2208,6 +2208,150 @@ static void get_cal_settings(JObj& response, const json_value *params)
     response << jrpc_result(rslt);
 }
 
+static void get_equatorial_system(JObj& response, const json_value *params)
+{
+    if (!pPointingSource || !pPointingSource->IsConnected())
+    {
+        response << jrpc_error(1, "mount not connected");
+        return;
+    }
+
+    int system = 0;
+    if (!pPointingSource->GetEquatorialSystem(&system))
+        response << jrpc_result(system);
+    else
+        response << jrpc_error(1, "failed to get equatorial system");
+}
+
+static void does_refraction(JObj& response, const json_value *params)
+{
+    if (!pPointingSource || !pPointingSource->IsConnected())
+    {
+        response << jrpc_error(1, "mount not connected");
+        return;
+    }
+
+    bool refraction = 0;
+    if (!pPointingSource->DoesRefraction(&refraction))
+        response << jrpc_result(refraction);
+    else
+        response << jrpc_error(1, "failed to get refraction");
+}
+
+
+static void is_parked(JObj& response, const json_value *params)
+{
+    if (!pPointingSource || !pPointingSource->IsConnected())
+    {
+        response << jrpc_error(1, "mount not connected");
+        return;
+    }
+
+    bool parked = false;
+    if (!pPointingSource->IsParked(&parked))
+        response << jrpc_result(parked);
+    else
+        response << jrpc_error(1, "failed to get parked state");
+}
+
+static void park(JObj& response, const json_value *params)
+{
+    if (!pPointingSource || !pPointingSource->IsConnected())
+    {
+        response << jrpc_error(1, "mount not connected");
+        return;
+    }
+    if (!pPointingSource->Park())
+        response << jrpc_result(0);
+    else
+        response << jrpc_error(1, "failed to park mount");
+}
+
+static void unpark(JObj& response, const json_value *params)
+{
+    if (!pPointingSource || !pPointingSource->IsConnected())
+    {
+        response << jrpc_error(1, "mount not connected");
+        return;
+    }
+    if (!pPointingSource->Unpark())
+        response << jrpc_result(0);
+    else
+        response << jrpc_error(1, "failed to park mount");
+}
+
+static void slew_to_coordinates(JObj& response, const json_value* params)
+{
+    Params p("ra", "dec", params);
+    const json_value *raVal = p.param("ra");
+    const json_value *decVal = p.param("dec");
+    double ra, dec;
+    if (!raVal || !float_param(raVal, &ra) || !decVal || !float_param(decVal, &dec))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected ra and dec params");
+        return;
+    }
+
+    const json_value *asyncVal = p.param("async");
+    bool async = false;
+    if (!asyncVal || !bool_param(asyncVal, &async))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected async param");
+        return;
+    }
+
+    if (!pPointingSource || !pPointingSource->IsConnected())
+    {
+        response << jrpc_error(1, "mount not connected");
+        return;
+    }
+
+    if (async && pPointingSource->CanSlewAsync())
+    {
+        if (!pPointingSource->SlewToCoordinatesAsync(ra, dec))
+            response << jrpc_result(0);
+        else
+            response << jrpc_error(1, "failed to slew to coordinates asynchronously");
+    }
+    else if (!async && pPointingSource->CanSlew())
+    {
+        if (!pPointingSource->SlewToCoordinates(ra, dec))
+            response << jrpc_result(0);
+        else
+            response << jrpc_error(1, "failed to slew to coordinates");
+    }
+    else
+    {
+        response << jrpc_error(1, "mount does not support slewing to coordinates");
+    }
+}
+
+static void abort_slew(JObj& response, const json_value *params)
+{
+    if (!pPointingSource || !pPointingSource->IsConnected())
+    {
+        response << jrpc_error(1, "mount not connected");
+        return;
+    }
+    if (!pPointingSource->AbortSlew())
+        response << jrpc_result(0);
+    else
+        response << jrpc_error(1, "failed to abort slew");
+}
+
+static void poll_mount_slewing(JObj& response, const json_value *params)
+{
+    if (pPointingSource && pPointingSource->IsConnected())
+    {
+        bool slewing = pPointingSource->Slewing();
+        response << jrpc_result(slewing);
+    }
+    else
+    {
+        response << jrpc_error(1, "mount not connected");
+    }
+}
+
 static void set_surf_mode(JObj& response, const json_value *params)
 {
     Params p("mode", params);
@@ -2272,15 +2416,29 @@ static void get_mount_coords(JObj& response, const json_value *params)
 {
     JObj rslt;
     double ra, dec, st;
-    if (pPointingSource && pPointingSource->IsConnected() && !pPointingSource->GetCoordinates(&ra, &dec, &st))
-    {
-        rslt << NV("ra", ra) << NV("dec", dec) << NV("sidereal", st);
-        response << jrpc_result(rslt);
-    }
-    else
+    bool haveCoords = false;
+    if (!pPointingSource || !pPointingSource->IsConnected())
     {
         response << jrpc_error(1, "mount not connected");
+        return;
     }
+
+    if (!pPointingSource->GetCoordinates(&ra, &dec, &st))
+    {
+        rslt << NV("ra", ra) << NV("dec", dec) << NV("sidereal", st);
+        haveCoords = true;
+    }
+
+    double alt, az;
+    if (!pPointingSource->GetMountAltAz(&alt, &az))
+    {
+        rslt << NV("alt", alt) << NV("az", az);
+        haveCoords = true;
+    }
+    if (haveCoords)
+        response << jrpc_result(rslt);
+    else
+        response << jrpc_error(1, "failed to get mount coordinates");
 }
 
 static void get_site_coords(JObj& response, const json_value *params)
@@ -2989,7 +3147,16 @@ static bool handle_request(JRpcCall& call)
         { "set_cal_step", &set_cal_step },
         { "set_iflink", &set_iflink },
         { "set_iflink_cam", &set_iflink_cam },
-        { "get_cal_data", &get_cal_data }
+        { "get_cal_data", &get_cal_data },
+
+        { "is_parked", &is_parked },
+        { "park", &park },
+        { "unpark", &unpark },
+        { "slew_to_coordinates", &slew_to_coordinates },
+        { "poll_mount_slewing", &poll_mount_slewing },
+        { "abort_slew", &abort_slew },
+        { "get_equatorial_system", &get_equatorial_system },
+        { "does_refraction", &does_refraction },
     };
 
     for (unsigned int i = 0; i < WXSIZEOF(methods); i++)

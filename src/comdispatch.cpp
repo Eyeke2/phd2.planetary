@@ -58,6 +58,20 @@ ExcepInfo::ExcepInfo()
     memset(this, 0, sizeof(*this));
 }
 
+inline static void LogExcep(HRESULT hr, const wxString& prefix, DISPID id, const EXCEPINFO& excep)
+{
+    Debug.Write(wxString::Format("%s(%08x): [%x] %s\n", prefix, id, hr, _com_error(hr).ErrorMessage()));
+    if (hr == DISP_E_EXCEPTION)
+        Debug.AddLine(ExcepMsg(prefix, excep));
+}
+
+inline static void LogExcep(HRESULT hr, const wxString& prefix, OLECHAR *name, const EXCEPINFO& excep)
+{
+    Debug.Write(wxString::Format("%s(%s): [%x] %s\n", name, hr, _com_error(hr).ErrorMessage()));
+    if (hr == DISP_E_EXCEPTION)
+        Debug.AddLine(ExcepMsg(prefix, excep));
+}
+
 inline static void FreeExcep(EXCEPINFO& ex)
 {
     if (ex.bstrSource)
@@ -180,7 +194,7 @@ bool DispatchObj::GetProp(Variant *res, DISPID dispid)
     dispParms.rgdispidNamedArgs = NULL;
     HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &dispParms, res, &m_excep, NULL);
     if (FAILED(hr))
-        Debug.AddLine(wxString::Format("invoke: [%x] %s", hr, _com_error(hr).ErrorMessage()));
+        LogExcep(hr, "getprop", dispid, m_excep);
     return SUCCEEDED(hr);
 }
 
@@ -208,10 +222,8 @@ bool DispatchObj::GetProp(Variant *res, OLECHAR *name, int arg)
     dispParms.cNamedArgs = 0;
     dispParms.rgdispidNamedArgs = NULL;
     HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &dispParms, res, &m_excep, NULL);
-
     if (FAILED(hr))
-        Debug.AddLine(wxString::Format("getprop: [%x] %s", hr, _com_error(hr).ErrorMessage()));
-
+        LogExcep(hr, "getprop", name, m_excep);
     return SUCCEEDED(hr);
 }
 
@@ -234,10 +246,8 @@ bool DispatchObj::PutProp(OLECHAR *name, OLECHAR *val)
     Variant res;
     HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYPUT, &dispParms, &res, &m_excep, NULL);
     SysFreeString(bs);
-
     if (FAILED(hr))
-        Debug.AddLine(wxString::Format("putprop: [%x] %s", hr, _com_error(hr).ErrorMessage()));
-
+        LogExcep(hr, "putprop", name, m_excep);
     return SUCCEEDED(hr);
 }
 
@@ -255,7 +265,7 @@ bool DispatchObj::PutProp(DISPID dispid, bool val)
     Variant res;
     HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYPUT, &dispParms, &res, &m_excep, NULL);
     if (FAILED(hr))
-        Debug.AddLine(wxString::Format("putprop: [%x] %s", hr, _com_error(hr).ErrorMessage()));
+        LogExcep(hr, "putprop", dispid, m_excep);
     return SUCCEEDED(hr);
 }
 
@@ -273,7 +283,7 @@ bool DispatchObj::PutProp(DISPID dispid, double val)
     Variant res;
     HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYPUT, &dispParms, &res, &m_excep, NULL);
     if (FAILED(hr))
-        Debug.AddLine(wxString::Format("putprop: [%x] %s", hr, _com_error(hr).ErrorMessage()));
+        LogExcep(hr, "putprop", dispid, m_excep);
     return SUCCEEDED(hr);
 }
 
@@ -291,7 +301,7 @@ bool DispatchObj::PutProp(DISPID dispid, LONG val)
     Variant res;
     HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYPUT, &dispParms, &res, &m_excep, NULL);
     if (FAILED(hr))
-        Debug.AddLine(wxString::Format("putprop: [%x] %s", hr, _com_error(hr).ErrorMessage()));
+        LogExcep(hr, "putprop", dispid, m_excep);
     return SUCCEEDED(hr);
 }
 
@@ -329,7 +339,7 @@ bool DispatchObj::InvokeMethod(Variant *res, OLECHAR *name, OLECHAR *arg)
     HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL);
     SysFreeString(bs);
     if (FAILED(hr))
-        Debug.AddLine(wxString::Format("invoke(%s): [%x] %s", name, hr, _com_error(hr).ErrorMessage()));
+        LogExcep(hr, "invoke", name, m_excep);
     return SUCCEEDED(hr);
 }
 
@@ -347,7 +357,7 @@ bool DispatchObj::InvokeMethod(Variant *res, DISPID dispid, double arg1, double 
     dispParms.rgdispidNamedArgs = NULL;
     HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL);
     if (FAILED(hr))
-        Debug.AddLine(wxString::Format("invoke: [%x] %s", hr, _com_error(hr).ErrorMessage()));
+        LogExcep(hr, "invoke", dispid, m_excep);
     return SUCCEEDED(hr);
 }
 
@@ -368,7 +378,7 @@ bool DispatchObj::InvokeMethod(Variant *res, DISPID dispid)
     dispParms.rgdispidNamedArgs = NULL;
     HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL);
     if (FAILED(hr))
-        Debug.AddLine(wxString::Format("invoke: [%x] %s", hr, _com_error(hr).ErrorMessage()));
+        LogExcep(hr, "invoke", dispid, m_excep);
     return SUCCEEDED(hr);
 }
 

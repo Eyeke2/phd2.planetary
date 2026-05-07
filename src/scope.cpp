@@ -1881,6 +1881,11 @@ bool Scope::GetCoordinates(double *ra, double *dec, double *siderealTime)
     return true; // error
 }
 
+bool Scope::GetMountAltAz(double* alt, double* az)
+{
+    return true; // error
+}
+
 bool Scope::GetSiteLatLong(double *latitude, double *longitude)
 {
     return true; // error
@@ -1897,6 +1902,16 @@ bool Scope::CanSlew()
 }
 
 bool Scope::CanSlewAsync()
+{
+    return false;
+}
+
+bool Scope::CanPark()
+{
+    return false;
+}
+
+bool Scope::CanUnpark()
 {
     return false;
 }
@@ -1926,7 +1941,10 @@ bool Scope::SlewToCoordinatesAsync(double ra, double dec)
     return true; // error
 }
 
-void Scope::AbortSlew() { }
+bool Scope::AbortSlew()
+{
+    return true; // error
+}
 
 bool Scope::CanCheckSlewing()
 {
@@ -1936,6 +1954,33 @@ bool Scope::CanCheckSlewing()
 bool Scope::Slewing()
 {
     return false;
+}
+
+bool Scope::GetEquatorialSystem(int* system)
+{
+    *system = 0;
+    return false;
+}
+
+bool Scope::DoesRefraction(bool* refraction)
+{
+    *refraction = false;
+    return false;
+}
+
+bool Scope::IsParked(bool* parked)
+{
+    return true; // error
+}
+
+bool Scope::Park()
+{
+    return true; // error
+}
+
+bool Scope::Unpark()
+{
+    return true; // error
 }
 
 PierSide Scope::SideOfPier()

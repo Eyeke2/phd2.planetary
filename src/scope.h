@@ -283,15 +283,23 @@ public:
     virtual double GetDeclinationRadians(); // declination in radians, or UNKNOWN_DECLINATION
     virtual bool GetGuideRates(double *pRAGuideRate, double *pDecGuideRate);
     virtual bool GetCoordinates(double *ra, double *dec, double *siderealTime);
+    virtual bool GetMountAltAz(double *alt, double *az);
     virtual bool GetSiteLatLong(double *latitude, double *longitude);
     virtual bool GetSiteElevation(double *elevation);
     virtual bool CanSlew();
     virtual bool CanSlewAsync();
+    virtual bool CanPark();
+    virtual bool CanUnpark();
     virtual bool SlewToCoordinates(double ra, double dec);
     virtual bool SlewToCoordinatesAsync(double ra, double dec);
-    virtual void AbortSlew();
+    virtual bool AbortSlew();
     virtual bool CanCheckSlewing();
     virtual bool Slewing();
+    virtual bool GetEquatorialSystem(int *system);
+    virtual bool DoesRefraction(bool *refraction);
+    virtual bool IsParked(bool* parked);
+    virtual bool Park();
+    virtual bool Unpark();
     virtual PierSide SideOfPier();
     virtual bool CanReportPosition(); // Can report RA, Dec, side-of-pier, etc.
     // Will be called before guiding starts, before any call to GetCoordinates, GetDeclination, or SideOfPier.
