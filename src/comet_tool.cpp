@@ -88,9 +88,9 @@ CometToolWin::CometToolWin()
     m_enable = new wxToggleButton(this, wxID_ANY, _("Enable"), wxDefaultPosition, wxDefaultSize, 0);
     m_enable->SetToolTip(_("Toggle comet tracking on or off."));
 
-    m_xLabel = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(20, -1), wxALIGN_RIGHT);
+    m_xLabel = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(30, -1), wxALIGN_LEFT);
     m_xLabel->Wrap(-1);
-    m_yLabel = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(20, -1), wxALIGN_RIGHT);
+    m_yLabel = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(30, -1), wxALIGN_LEFT);
     m_yLabel->Wrap(-1);
 
     m_xRate = new wxSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, -5000.,

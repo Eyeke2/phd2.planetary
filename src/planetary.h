@@ -93,6 +93,7 @@ private:
     bool m_remoteData;
 
     std::atomic<bool> m_updateDiameters;
+    std::atomic<bool> m_disableCustomRateOverride;
 
     std::vector<cv::Point2f> m_diskContour;
     int m_centoid_x;
@@ -202,6 +203,8 @@ public:
 
     bool GetMinMaxDiametersUpdate() { return m_updateDiameters.exchange(false); }
     void SetMinMaxDiametersUpdate() { m_updateDiameters = true; }
+    bool GetDisableCustomRateOverride() { return m_disableCustomRateOverride.exchange(false); }
+    void SetDisableCustomRateOverride() { m_disableCustomRateOverride = true; }
 
     void Set_minRadius(double val) { m_paramMinRadius = val; }
     double Get_minRadius() { return m_paramMinRadius; }
@@ -226,7 +229,6 @@ public:
     void SetNoiseFilterState(bool enable) { m_paramNoiseFilterState = enable; }
     bool GetNoiseFilterState() { return m_paramNoiseFilterState; }
 #endif
-
     void SetVideoLogging(bool enable) { m_videoLogEnabled = enable; }
     bool GetVideoLogging() { return m_videoLogEnabled; }
 
