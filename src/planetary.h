@@ -218,7 +218,8 @@ public:
     int Get_highThreshold() { return m_paramHighThreshold; }
     bool SetLimits(int minRadius, int maxRadius);
 
-    bool GetMountTrackingState(bool& trackingValid, bool& tracking, wxString& rate);
+    bool GetMountTrackingState(bool& trackingValid, bool& tracking, wxString& rate, bool& offsetsValid, double& raOffset,
+                               double& decOffset);
     bool SetMountTrackingRate(const wxString& rate, double ra_rate, double dec_rate);
 
     void ShowVisualElements(bool state);

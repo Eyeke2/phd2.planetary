@@ -1473,10 +1473,12 @@ void SolarSystemObject::UpdateDetectionErrorInSimulator(Point2f& clickedPoint)
 
 // Get current mount tracking state and rate.
 // Returns true if tracking rate is known.
-bool SolarSystemObject::GetMountTrackingState(bool& trackingValid, bool& tracking, wxString& rate)
+bool SolarSystemObject::GetMountTrackingState(bool& trackingValid, bool& tracking, wxString& rate,
+    bool& offsetsValid, double& raOffset, double& decOffset)
 {
     rate = "Sidereal";
     trackingValid = false;
+    offsetsValid = false;
     tracking = false;
 
     // Cannot get information when no pointing source is available
@@ -1486,9 +1488,6 @@ bool SolarSystemObject::GetMountTrackingState(bool& trackingValid, bool& trackin
     // Get mount tracking state
     if (pPointingSource->GetTracking(&tracking))
         return false;
-
-    // Tracking state is valid
-    trackingValid = true;
 
     // Note: INDI mounts aren't currently supported
     if (pPointingSource->Name().StartsWith(_("INDI Mount")))
@@ -1527,7 +1526,11 @@ bool SolarSystemObject::GetMountTrackingState(bool& trackingValid, bool& trackin
         break;
     }
 
-    rate += wxString::Format("(%f,%f)", raRate, decRate);
+    // Tracking state is valid
+    trackingValid = true;
+    offsetsValid = true;
+    raOffset = raRate;
+    decOffset = decRate;
     return true;
 }
 
@@ -1589,7 +1592,9 @@ void SolarSystemObject::CheckMountTrackingState()
     // Get mount tracking state and rate
     wxString rate;
     bool trackingValid, tracking;
-    bool rateValid = GetMountTrackingState(trackingValid, tracking, rate);
+    bool offsetsValid;    
+    double raOffset, decOffset;
+    bool rateValid = GetMountTrackingState(trackingValid, tracking, rate, offsetsValid, raOffset, decOffset);
 
     // Issue warning alert when mount tracking is disabled during guiding
     if (pFrame->pGuider->IsGuiding())
