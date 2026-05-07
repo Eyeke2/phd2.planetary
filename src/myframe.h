@@ -99,6 +99,7 @@ enum DitherMode
 {
     DITHER_RANDOM,
     DITHER_SPIRAL,
+    DITHER_RANDOM_SPIRAL,
 };
 
 struct DitherSpiral
@@ -138,6 +139,7 @@ class MyFrameConfigDialogCtrlSet : public ConfigDialogCtrlSet
     wxCheckBox *m_updateMajorOnly;
     wxRadioButton *m_ditherRandom;
     wxRadioButton *m_ditherSpiral;
+    wxRadioButton *m_ditherRandomSpiral;
     wxSpinCtrlDouble *m_ditherScaleFactor;
     wxCheckBox *m_ditherRaOnly;
     wxChoice *m_pNoiseReduction;

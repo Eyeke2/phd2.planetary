@@ -886,7 +886,9 @@ void MyFrame::LoadProfileSettings()
     SetDitherRaOnly(ditherRaOnly);
 
     int ditherMode = pConfig->Profile.GetInt("/DitherMode", DefaultDitherMode);
-    SetDitherMode(ditherMode == DITHER_RANDOM ? DITHER_RANDOM : DITHER_SPIRAL);
+    SetDitherMode(ditherMode == DITHER_SPIRAL        ? DITHER_SPIRAL
+                  : ditherMode == DITHER_RANDOM_SPIRAL ? DITHER_RANDOM_SPIRAL
+                                                      : DITHER_RANDOM);
 
     int timeLapse = pConfig->Profile.GetInt("/frame/timeLapse", DefaultTimelapse);
     SetTimeLapse(timeLapse);
@@ -2177,6 +2179,12 @@ inline static void ROT(int& dx, int& dy)
     dy = t;
 }
 
+static void GetRandomDither(double amount, bool raOnly, double *dRa, double *dDec)
+{
+    *dRa = amount * ((rand() / (double) RAND_MAX) * 2.0 - 1.0);
+    *dDec = raOnly ? 0.0 : amount * ((rand() / (double) RAND_MAX) * 2.0 - 1.0);
+}
+
 void DitherSpiral::GetDither(double amount, bool raOnly, double *dRa, double *dDec)
 {
     // reset state when switching between ra only and ra/dec
@@ -2239,11 +2247,23 @@ bool MyFrame::Dither(double amount, bool raOnly)
         {
             m_ditherSpiral.GetDither(amount, raOnly, &dRa, &dDec);
         }
+        else if (m_ditherMode == DITHER_RANDOM_SPIRAL)
+        {
+            double spiralRa = 0.0;
+            double spiralDec = 0.0;
+            double randomRa = 0.0;
+            double randomDec = 0.0;
+
+            m_ditherSpiral.GetDither(amount, raOnly, &spiralRa, &spiralDec);
+            GetRandomDither(amount, raOnly, &randomRa, &randomDec);
+
+            dRa = spiralRa + 0.5 * randomRa;
+            dDec = spiralDec + 0.5 * randomDec;
+        }
         else
         {
             // DITHER_RANDOM
-            dRa = amount * ((rand() / (double) RAND_MAX) * 2.0 - 1.0);
-            dDec = raOnly ? 0.0 : amount * ((rand() / (double) RAND_MAX) * 2.0 - 1.0);
+            GetRandomDither(amount, raOnly, &dRa, &dDec);
         }
 
         Debug.Write(wxString::Format("dither: size=%.2f, dRA=%.2f dDec=%.2f\n", amount, dRa, dDec));
@@ -3379,10 +3399,13 @@ MyFrameConfigDialogCtrlSet::MyFrameConfigDialogCtrlSet(MyFrame *pFrame, Advanced
     m_ditherRandom->SetToolTip(_("Each dither command moves the lock position a random distance on each axis"));
     m_ditherSpiral = new wxRadioButton(parent, wxID_ANY, _("Spiral"));
     m_ditherSpiral->SetToolTip(_("Each dither command moves the lock position along a spiral path"));
+    m_ditherRandomSpiral = new wxRadioButton(parent, wxID_ANY, _("Random Spiral"));
+    m_ditherRandomSpiral->SetToolTip(_("Each dither command adds a spiral step and half of a random step"));
     wxBoxSizer *sz = new wxBoxSizer(wxHORIZONTAL);
     sz->Add(new wxStaticText(parent, wxID_ANY, _("Mode: ")), wxSizerFlags().Align(wxALIGN_CENTER_VERTICAL).Border(wxALL, 8));
     sz->Add(m_ditherRandom, wxSizerFlags().Align(wxALIGN_CENTER_VERTICAL).Border(wxALL, 8));
     sz->Add(m_ditherSpiral, wxSizerFlags().Align(wxALIGN_CENTER_VERTICAL).Border(wxALL, 8));
+    sz->Add(m_ditherRandomSpiral, wxSizerFlags().Align(wxALIGN_CENTER_VERTICAL).Border(wxALL, 8));
     ditherGroupBox->Add(sz);
 
     m_ditherRaOnly = new wxCheckBox(parent, wxID_ANY, _("RA only"));
@@ -3464,6 +3487,8 @@ void MyFrameConfigDialogCtrlSet::LoadValues()
     m_pNoiseReduction->SetSelection(pFrame->GetNoiseReductionMethod());
     if (m_pFrame->GetDitherMode() == DITHER_RANDOM)
         m_ditherRandom->SetValue(true);
+    else if (m_pFrame->GetDitherMode() == DITHER_RANDOM_SPIRAL)
+        m_ditherRandomSpiral->SetValue(true);
     else
         m_ditherSpiral->SetValue(true);
     m_ditherRaOnly->SetValue(m_pFrame->GetDitherRaOnly());
@@ -3559,7 +3584,9 @@ void MyFrameConfigDialogCtrlSet::UnloadValues()
         }
 
         m_pFrame->SetNoiseReductionMethod(m_pNoiseReduction->GetSelection());
-        m_pFrame->SetDitherMode(m_ditherRandom->GetValue() ? DITHER_RANDOM : DITHER_SPIRAL);
+        m_pFrame->SetDitherMode(m_ditherRandom->GetValue()        ? DITHER_RANDOM
+                                : m_ditherRandomSpiral->GetValue() ? DITHER_RANDOM_SPIRAL
+                                                                    : DITHER_SPIRAL);
         m_pFrame->SetDitherRaOnly(m_ditherRaOnly->GetValue());
         m_pFrame->SetDitherScaleFactor(m_ditherScaleFactor->GetValue());
         m_pFrame->SetTimeLapse(m_pTimeLapse->GetValue());
