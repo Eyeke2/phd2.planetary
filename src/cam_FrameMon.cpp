@@ -38,6 +38,7 @@
 
 #if defined(FRAME_MONITOR_CAMERA)
 
+# include <atomic>
 # include <opencv2/opencv.hpp>
 # include "cam_FrameMon.h"
 # include <wx/socket.h>
@@ -45,6 +46,11 @@
 # define FRAME_MONITOR_TIMEOUT_MS 10000
 # define FRAME_IMAGE_BUFFER_SIZE (2048 * 2048 * 2)
 # define IMAGE_LINK_ID ":if:"
+
+// Resilience tunables for partial receives and stale single-client sessions.
+# define FRAME_MONITOR_HEADER_TIMEOUT_MS 5000
+# define FRAME_MONITOR_FRAME_TIMEOUT_MS  10000
+# define FRAME_MONITOR_IDLE_EVICTION_MS  3000
 
 class ImageFrameServer;
 
@@ -87,6 +93,10 @@ public:
     void ProcessImage();
     void ReadFrame();
     void OnSocketEvent(wxSocketEvent& event);
+
+    // Milliseconds since the last byte received, used for idle eviction.
+    long long IdleMs() const;
+
     ImageFrameServer *imgServer;
     wxSocketBase *imgSock;
 
@@ -96,6 +106,12 @@ private:
     char *imgBuffer;
     uint32_t bytesReceived;
     bool headerReceived;
+
+    // Last received-byte timestamp; read by the main thread, written by worker.
+    std::atomic<long long> m_lastByteAtMs;
+
+    // Start timestamp for the current partial header/frame body.
+    long long m_partialStartMs;
 
     void SetSocketOptions();
     void ResetState();
@@ -163,16 +179,21 @@ wxBEGIN_EVENT_TABLE(ImageFrameClientHandler, wxEvtHandler) EVT_SOCKET(wxID_ANY, 
     wxEND_EVENT_TABLE()
 
 ImageFrameClientHandler::ImageFrameClientHandler(wxSocketBase *sock, ImageFrameServer *server)
-    : imgSock(sock), imgServer(server)
+    : imgSock(sock), imgServer(server),
+      m_lastByteAtMs(::wxGetUTCTimeMillis().GetValue()),
+      m_partialStartMs(0)
 {
     imgBuffer = new char[FRAME_IMAGE_BUFFER_SIZE];
     assert(imgBuffer);
+    SetSocketOptions();
+    ResetState();
+
+    // Register before enabling socket notifications so events see a client.
+    server->AddClient(this, sock);
+
     imgSock->SetEventHandler(*this, wxID_ANY);
     imgSock->SetNotify(wxSOCKET_LOST_FLAG);
     imgSock->Notify(true);
-    server->AddClient(this, sock);
-    SetSocketOptions();
-    ResetState();
 }
 
 ImageFrameClientHandler::~ImageFrameClientHandler()
@@ -183,12 +204,15 @@ ImageFrameClientHandler::~ImageFrameClientHandler()
 void ImageFrameClientHandler::Destroy()
 {
     Disconnect(wxEVT_SOCKET, wxSocketEventHandler(ImageFrameClientHandler::OnSocketEvent), NULL, this);
+
+    // Remove from server state before destroying the socket.
+    imgServer->RemoveClient(this);
+
     if (imgSock)
     {
         imgSock->Destroy();
         imgSock = nullptr;
     }
-    imgServer->RemoveClient(this);
     CallAfter([this]() { delete this; });
 }
 
@@ -197,6 +221,15 @@ void ImageFrameClientHandler::ResetState()
     hdr.dataLength = 0;
     bytesReceived = 0;
     headerReceived = false;
+    m_partialStartMs = 0;
+}
+
+long long ImageFrameClientHandler::IdleMs() const
+{
+    long long now = ::wxGetUTCTimeMillis().GetValue();
+    long long last = m_lastByteAtMs.load(std::memory_order_relaxed);
+    long long diff = now - last;
+    return diff > 0 ? diff : 0;
 }
 
 void ImageFrameClientHandler::ProcessImage()
@@ -220,6 +253,11 @@ void ImageFrameClientHandler::SetSocketOptions()
     int size = 65536, opt = 1;
     imgSock->SetOption(SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
     imgSock->SetOption(IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
+
+    // Let the OS eventually surface dead-without-FIN peers.
+    int keepalive = 1;
+    imgSock->SetOption(SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
+
     imgSock->SetTimeout(1);
 }
 
@@ -233,10 +271,38 @@ void ImageFrameClientHandler::ReadFrame()
         if (imgServer->IsServerStopping() || imgServer->IsClientStopping())
             break;
 
+        // Tear down wedged partial transfers instead of waiting for socket loss.
+        if (m_partialStartMs != 0)
+        {
+            long long now = ::wxGetUTCTimeMillis().GetValue();
+            long long elapsed = now - m_partialStartMs;
+            long long budget = headerReceived
+                ? (long long) FRAME_MONITOR_FRAME_TIMEOUT_MS
+                : (long long) FRAME_MONITOR_HEADER_TIMEOUT_MS;
+            if (elapsed > budget)
+            {
+                Debug.Write(wxString::Format(
+                    FRAME_MONITOR_CAMERA ": partial-receive watchdog: %s "
+                    "incomplete after %lld ms (budget %lld ms), closing\n",
+                    headerReceived ? "frame" : "header", elapsed, budget));
+                imgServer->StopClient(true);
+                break;
+            }
+        }
+
         if (!headerReceived)
         {
             imgSock->Read(header + bytesReceived, headerSize - bytesReceived);
-            bytesReceived += imgSock->LastReadCount();
+            uint32_t got = imgSock->LastReadCount();
+            // Update partial-transfer and idle-eviction timestamps.
+            if (got > 0)
+            {
+                long long now = ::wxGetUTCTimeMillis().GetValue();
+                m_lastByteAtMs.store(now, std::memory_order_relaxed);
+                if (m_partialStartMs == 0)
+                    m_partialStartMs = now;
+            }
+            bytesReceived += got;
 
             if (bytesReceived < sizeof(hdr))
                 continue;
@@ -258,6 +324,8 @@ void ImageFrameClientHandler::ReadFrame()
 
             headerReceived = true;
             bytesReceived = 0;
+            // Re-arm the watchdog for the frame body.
+            m_partialStartMs = ::wxGetUTCTimeMillis().GetValue();
             continue;
         }
 
@@ -265,13 +333,17 @@ void ImageFrameClientHandler::ReadFrame()
         if (bytesReceived < limit)
         {
             imgSock->Read(imgBuffer + bytesReceived, limit - bytesReceived);
-            bytesReceived += imgSock->LastReadCount();
+            uint32_t got = imgSock->LastReadCount();
+            if (got > 0)
+                m_lastByteAtMs.store(::wxGetUTCTimeMillis().GetValue(),
+                                     std::memory_order_relaxed);
+            bytesReceived += got;
         }
 
         if (bytesReceived == hdr.dataLength)
         {
             ProcessImage();
-            ResetState();
+            ResetState();   // also clears m_partialStartMs
             break;
         }
     } while (imgSock->WaitForRead(0, 100) && imgSock->IsConnected() && !imgSock->IsClosed());
@@ -462,17 +534,37 @@ void ImageFrameServer::OnServerEvent(wxSocketEvent& event)
     if (socket == nullptr)
         return;
 
+    // Single-client policy: wait for stopping clients, evict idle ones,
+    // and reject a second active client.
     if (client)
     {
-        if (!IsClientStopping())
+        if (IsClientStopping())
         {
-            socket->Destroy();
-            return;
+            while (!stop_flag && WaitClientStopped(100))
+                ;
         }
-
-        StopClient(true);
-        while (!stop_flag && WaitClientStopped(100))
-            ;
+        else
+        {
+            long long idle = client->IdleMs();
+            if (idle > FRAME_MONITOR_IDLE_EVICTION_MS)
+            {
+                Debug.Write(wxString::Format(
+                    FRAME_MONITOR_CAMERA ": evicting idle client "
+                    "(idle %lld ms > %d ms threshold) to accept new "
+                    "connection\n", idle, FRAME_MONITOR_IDLE_EVICTION_MS));
+                StopClient(true);
+                while (!stop_flag && WaitClientStopped(100))
+                    ;
+            }
+            else
+            {
+                Debug.Write(wxString::Format(
+                    FRAME_MONITOR_CAMERA ": rejecting new connection; "
+                    "existing client still active (idle %lld ms)\n", idle));
+                socket->Destroy();
+                return;
+            }
+        }
     }
 
     if (stop_flag)
@@ -511,12 +603,15 @@ wxThread::ExitCode ImageServerThread::Entry()
     {
         bool doWait = true;
         {
+            // Keep client/clientSock stable while the worker reads frames.
+            wxCriticalSectionLocker locker(imgServer->clientsLock);
+            ImageFrameClientHandler *cli = imgServer->client;
             wxSocketBase *sock = imgServer->clientSock;
-            if (sock && sock->IsConnected() && !imgServer->IsClientStopping() && imgServer->client)
+            if (cli && sock && sock->IsConnected() && !imgServer->IsClientStopping())
             {
                 imgServer->connected_flag = true;
                 if (sock->WaitForRead(0, 100))
-                    imgServer->client->ReadFrame();
+                    cli->ReadFrame();
                 doWait = false;
             }
             else
