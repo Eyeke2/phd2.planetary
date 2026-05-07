@@ -2290,27 +2290,46 @@ static void get_site_coords(JObj& response, const json_value *params)
 
 static void get_mount_tracking(JObj& response, const json_value *params)
 {
-    JObj rslt;
-
-    if (pPointingSource && pPointingSource->IsConnected() && pFrame->pGuider)
-    {
-        wxString rate;
-        bool trackingValid;
-        bool tracking;
-        bool rateValid = pFrame->pGuider->m_SolarSystemObject.GetMountTrackingState(trackingValid, tracking, rate);
-        if (trackingValid)
-            rslt << NV("tracking", tracking);
-        if (rateValid)
-            rslt << NV("rate", rate);
-        if (trackingValid || rateValid)
-            response << jrpc_result(rslt);
-        else
-            response << jrpc_error(1, "mount tracking not available");
-    }
-    else
+    if (!pPointingSource || !pPointingSource->IsConnected() || !pFrame->pGuider)
     {
         response << jrpc_error(1, "mount not connected");
+        return;
     }
+
+    bool trackingValid = false;
+    bool tracking = false;
+    wxString rate = "Sidereal";
+    bool rateValid = false;
+
+    // Structured fields for newer clients
+    bool offsetsValid = false;
+    double raOffset = 0.0;
+    double decOffset = 0.0;
+
+    rateValid = pFrame->pGuider->m_SolarSystemObject.GetMountTrackingState(trackingValid, tracking, rate,
+        offsetsValid, raOffset, decOffset);
+
+    if (!trackingValid && !rateValid)
+    {
+        response << jrpc_error(1, "mount tracking not available");
+        return;
+    }
+
+    JObj rslt;
+
+    if (trackingValid)
+        rslt << NV("tracking", tracking);
+
+    if (rateValid)
+        rslt << NV("rate", rate);
+
+    if (offsetsValid)
+    {
+        rslt << NV("ra_offset", raOffset);
+        rslt << NV("dec_offset", decOffset);
+    }
+
+    response << jrpc_result(rslt);
 }
 
 static void set_mount_tracking(JObj& response, const json_value *params)
