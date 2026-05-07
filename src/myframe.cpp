@@ -2416,6 +2416,9 @@ void MyFrame::OnClose(wxCloseEvent& event)
 
     StopCapturing();
 
+    // Stop socket events before worker shutdown drains pending events.
+    StartServer(false);
+
     bool killed = StopWorkerThread(m_pPrimaryWorkerThread);
     if (StopWorkerThread(m_pSecondaryWorkerThread))
         killed = true;
@@ -2424,9 +2427,6 @@ void MyFrame::OnClose(wxCloseEvent& event)
     pGearDialog->Shutdown(killed);
 
     PHD2Updater::StopUpdater();
-
-    // stop the socket server and event server
-    StartServer(false);
 
     GuideLog.CloseGuideLog();
 

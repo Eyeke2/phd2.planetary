@@ -3170,6 +3170,14 @@ void EventServer::EventServerStop()
     if (!m_serverSocket)
         return;
 
+    // Stop socket events before destroying clients; queued events can outlive
+    // ClientData when wxSocket destruction is delayed.
+    for (CliSockSet::const_iterator it = m_eventServerClients.begin(); it != m_eventServerClients.end(); ++it)
+    {
+        (*it)->Notify(false);
+    }
+    DeletePendingEvents();
+
     for (CliSockSet::const_iterator it = m_eventServerClients.begin(); it != m_eventServerClients.end(); ++it)
     {
         destroy_client(*it);
