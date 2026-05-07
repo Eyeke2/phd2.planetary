@@ -44,6 +44,7 @@
 #include "phdupdate.h"
 #include "pierflip_tool.h"
 #include "Refine_DefMap.h"
+#include "ui_safety.h"
 
 #include <algorithm>
 #include <memory>
@@ -1772,32 +1773,59 @@ bool MyFrame::StopWorkerThread(WorkerThread *& pWorkerThread)
 
     wxCriticalSectionLocker lock(m_CSpWorkerThread);
 
-    Debug.Write(wxString::Format("StopWorkerThread(0x%p) begins\n", pWorkerThread));
+    // StopWorkerThread may run during an RPC. Drain only pending wx events,
+    // not the full OS message loop, while waiting for worker completion.
+    ::ui_safety::VettedScope vettedScope;
+
+    enum
+    {
+        TIMEOUT_MS = 1000,
+        DRAIN_SLEEP_MS = 5,    // worker run quantum between event-drain passes
+    };
+
+    wxStopWatch totalSwatch;   // for end-of-function diagnostic logging
+
+    Debug.Write(wxString::Format("StopWorkerThread(%s, 0x%p) begins; activity=%s\n",
+                                 pWorkerThread ? pWorkerThread->ThreadName() : "(null)",
+                                 pWorkerThread,
+                                 pWorkerThread ? WorkerThread::ActivityName(pWorkerThread->GetActivity()) : "n/a"));
 
     if (pWorkerThread && pWorkerThread->IsRunning())
     {
         pWorkerThread->EnqueueWorkerThreadTerminateRequest();
 
-        enum
-        {
-            TIMEOUT_MS = 1000
-        };
         wxStopWatch swatch;
         while (pWorkerThread->IsAlive() && swatch.Time() < TIMEOUT_MS)
-            wxGetApp().Yield();
+        {
+            // Drain worker->main events without entering a nested OS event loop.
+            ProcessPendingEvents();
+            wxMilliSleep(DRAIN_SLEEP_MS);
+        }
 
         if (pWorkerThread->IsAlive())
         {
             while (pWorkerThread->IsAlive() && !pWorkerThread->IsKillable())
             {
-                Debug.Write(wxString::Format("Worker thread 0x%p is not killable, waiting...\n", pWorkerThread));
+                Debug.Write(wxString::Format(
+                    "Worker thread %s 0x%p is not killable (activity=%s), waiting...\n",
+                    pWorkerThread->ThreadName(), pWorkerThread,
+                    WorkerThread::ActivityName(pWorkerThread->GetActivity())));
                 wxStopWatch swatch2;
                 while (pWorkerThread->IsAlive() && !pWorkerThread->IsKillable() && swatch2.Time() < TIMEOUT_MS)
-                    wxGetApp().Yield();
+                {
+                    ProcessPendingEvents();
+                    wxMilliSleep(DRAIN_SLEEP_MS);
+                }
             }
             if (pWorkerThread->IsAlive())
             {
-                Debug.Write(wxString::Format("StopWorkerThread(0x%p) thread did not terminate, force kill\n", pWorkerThread));
+                // Force-kill is a last resort; queued worker requests are
+                // guarded below before their stack pointers are dereferenced.
+                Debug.Write(wxString::Format(
+                    "StopWorkerThread(%s, 0x%p) thread did not terminate after %ld ms"
+                    " (activity=%s), force kill\n",
+                    pWorkerThread->ThreadName(), pWorkerThread, totalSwatch.Time(),
+                    WorkerThread::ActivityName(pWorkerThread->GetActivity())));
                 pWorkerThread->Kill();
                 killed = true;
             }
@@ -1805,11 +1833,19 @@ bool MyFrame::StopWorkerThread(WorkerThread *& pWorkerThread)
         else
         {
             wxThread::ExitCode threadExitCode = pWorkerThread->Wait();
-            Debug.Write(wxString::Format("StopWorkerThread() threadExitCode=%d\n", threadExitCode));
+            Debug.Write(wxString::Format(
+                "StopWorkerThread(%s) clean exit, threadExitCode=%p, elapsed=%ld ms\n",
+                pWorkerThread->ThreadName(), threadExitCode, totalSwatch.Time()));
         }
     }
 
-    Debug.Write(wxString::Format("StopWorkerThread(0x%p) ends\n", pWorkerThread));
+    // Keep shutdown timing visible in debug logs.
+    {
+        long elapsed = totalSwatch.Time();
+        const char *slowMarker = (elapsed > TIMEOUT_MS) ? " SLOW" : "";
+        Debug.Write(wxString::Format("StopWorkerThread(0x%p) ends; killed=%d elapsed=%ld ms%s\n",
+                                     pWorkerThread, killed ? 1 : 0, elapsed, slowMarker));
+    }
 
     delete pWorkerThread;
     pWorkerThread = nullptr;
@@ -1817,8 +1853,41 @@ bool MyFrame::StopWorkerThread(WorkerThread *& pWorkerThread)
     return killed;
 }
 
+// Reconstruct the worker-thread address packed into a queued request event.
+static WorkerThread *UnpackWorkerAddr(const wxCommandEvent& evt)
+{
+    uintptr_t thrAddr;
+#if defined(_WIN64) || (UINTPTR_MAX > 0xFFFFFFFFu)
+    uintptr_t lo = static_cast<uintptr_t>(static_cast<unsigned int>(evt.GetInt()));
+    uintptr_t hi = static_cast<uintptr_t>(static_cast<unsigned long>(evt.GetExtraLong()));
+    thrAddr = (hi << 32) | lo;
+#else
+    thrAddr = static_cast<uintptr_t>(static_cast<unsigned long>(evt.GetExtraLong()));
+#endif
+    return reinterpret_cast<WorkerThread *>(thrAddr);
+}
+
+// False means the event references a destroyed worker; do not dereference req.
+bool MyFrame::IsLiveWorker(WorkerThread *eventWorker) const
+{
+    return eventWorker != nullptr &&
+           (eventWorker == m_pPrimaryWorkerThread || eventWorker == m_pSecondaryWorkerThread);
+}
+
 void MyFrame::OnRequestExposure(wxCommandEvent& evt)
 {
+    WorkerThread *sender = UnpackWorkerAddr(evt);
+    if (!IsLiveWorker(sender))
+    {
+        Debug.Write(wxString::Format(
+            "OnRequestExposure event from stale worker %p; "
+            "current workers are primary=%p secondary=%p. Worker was "
+            "force-killed; skipping handler for req=%p.\n",
+            sender, m_pPrimaryWorkerThread, m_pSecondaryWorkerThread,
+            evt.GetClientData()));
+        return;
+    }
+
     EXPOSE_REQUEST *req = (EXPOSE_REQUEST *) evt.GetClientData();
     bool error = GuideCamera::Capture(pCamera, *req->pImage, req->captureParams);
     req->error = error;
@@ -1827,6 +1896,18 @@ void MyFrame::OnRequestExposure(wxCommandEvent& evt)
 
 void MyFrame::OnRequestMountMove(wxCommandEvent& evt)
 {
+    WorkerThread *sender = UnpackWorkerAddr(evt);
+    if (!IsLiveWorker(sender))
+    {
+        Debug.Write(wxString::Format(
+            "OnRequestMountMove event from stale worker %p; "
+            "but current workers are primary=%p secondary=%p. Worker was "
+            "force-killed; skipping handler for request=%p.\n",
+            sender, m_pPrimaryWorkerThread, m_pSecondaryWorkerThread,
+            evt.GetClientData()));
+        return;
+    }
+
     MOVE_REQUEST *request = (MOVE_REQUEST *) evt.GetClientData();
 
     Debug.Write("OnRequestMountMove() begins\n");

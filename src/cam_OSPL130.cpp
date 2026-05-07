@@ -89,6 +89,15 @@ bool CameraOpticstarPL130::Capture(usImage& img, const CaptureParams& capturePar
     if (duration > 100)
     {
         wxMilliSleep(duration - 100); // wait until near end of exposure, nicely
+        // FIXME(ui-safety): wxApp::Yield() pumps the wx event loop reentrantly
+        // and can deadlock against a remote-control client via wx's internal
+        // wxFindWindowAtPoint() hit-test. See src/ui_safety.h and the
+        // threading-rule comment block above handle_request() in
+        // src/event_server.cpp. This site runs ONCE PER EXPOSURE on the
+        // OSPL130 capture path, so the deadlock surface is large under any
+        // workload that has a connected remote-control client. Real fix is
+        // per-driver-thread for OSPL130 capture; UI_SAFE_YIELD() would
+        // only LOG the violation, not remove it.
         wxGetApp().Yield();
         //      if (Abort) {
         //          MeadeCam->AbortImage();
@@ -99,6 +108,10 @@ bool CameraOpticstarPL130::Capture(usImage& img, const CaptureParams& capturePar
     { // wait for image to finish and d/l
         wxMilliSleep(20);
         OSPL130_IsExposing(&still_going);
+        // FIXME(ui-safety): worst offender in this file -- wxApp::Yield()
+        // here runs once per ~20 ms polling iteration during EVERY image
+        // download. Same deadlock class as the per-exposure yield above;
+        // see src/ui_safety.h for the full rationale.
         wxGetApp().Yield();
     }
     // Download

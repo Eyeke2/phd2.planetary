@@ -124,6 +124,7 @@ bool StepGuiderSxAO::Connect()
             throw ERROR_INFO("StepGuiderSxAO::Connect: serial port connect failed");
         }
 
+        // FIXME(ui-safety): wxYield() can re-enter the event loop from RPC paths.
         wxYield();
 
         pConfig->Profile.SetString("/stepguider/sxao/serialport", m_serialPortName);
@@ -133,6 +134,7 @@ bool StepGuiderSxAO::Connect()
             throw ERROR_INFO("StepGuiderSxAO::Connect: SetReceiveTimeout failed");
         }
 
+        // FIXME(ui-safety): same reentrancy risk as above.
         wxYield();
 
         unsigned int version;

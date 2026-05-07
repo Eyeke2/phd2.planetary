@@ -318,8 +318,12 @@ bool Guider::SetOverlayMode(int overlayMode)
         bError = true;
     }
 
+    // Refresh-only: do NOT call Update() here. A synchronous WM_PAINT can
+    // reach wx's internal wxFindWindowAtPoint() hit-test which uses
+    // cross-process SendMessage, and may deadlock when invoked indirectly
+    // from an event-server RPC handler (see event_server.cpp threading rule
+    // and myframe.cpp ~1238). The next idle pass will paint the overlay.
     Refresh();
-    Update();
 
     return bError;
 }
@@ -396,8 +400,7 @@ void Guider::SetOverlaySlitCoords(const wxPoint& center, const wxSize& size, int
         m_overlaySlitCoords.corners[4] = m_overlaySlitCoords.corners[0];
     }
 
-    Refresh();
-    Update();
+    Refresh(); // not Update(); see event_server.cpp threading rule
 }
 
 void Guider::EnableFastRecenter(bool enable)
@@ -782,15 +785,20 @@ void Guider::UpdateImageDisplay(usImage *pImage)
                          pImage->Size.x, pImage->Size.y, pImage->MinADU, pImage->MaxADU, pImage->MedianADU, pImage->FiltMin,
                          pImage->FiltMax, pFrame->Stretch_gamma));
 
+    // Hot path: this runs after every captured frame from OnExposeComplete.
+    // Refresh-only (no Update()) avoids forcing a synchronous WM_PAINT inside
+    // the event handler -- a synchronous paint can trigger wx's internal
+    // wxFindWindowAtPoint() hit-test (cross-process SendMessage) and deadlock
+    // when interleaved with an event-server RPC. The pending paint is
+    // delivered before the next event loop iteration, well within the
+    // inter-exposure interval. See event_server.cpp threading rule.
     Refresh();
-    Update();
 }
 
 void Guider::SetDefectMapPreview(const DefectMap *defectMap)
 {
     m_defectMapPreview = defectMap;
-    Refresh();
-    Update();
+    Refresh(); // not Update(); see event_server.cpp threading rule
 }
 
 bool Guider::SaveCurrentImage(const wxString& fileName)
@@ -1912,8 +1920,7 @@ void Guider::SetBookmarksShown(bool show)
     m_showBookmarks = show;
     if (prev != show && m_bookmarks.size())
     {
-        Refresh();
-        Update();
+        Refresh(); // not Update(); see event_server.cpp threading rule
     }
 }
 
@@ -1934,8 +1941,7 @@ void Guider::DeleteAllBookmarks()
             SaveBookmarks(m_bookmarks);
             if (m_showBookmarks)
             {
-                Refresh();
-                Update();
+                Refresh(); // not Update(); see event_server.cpp threading rule
             }
         }
     }
@@ -1987,8 +1993,7 @@ void Guider::BookmarkLockPosition()
 {
     if (BookmarkPos(LockPosition(), m_bookmarks) && m_showBookmarks)
     {
-        Refresh();
-        Update();
+        Refresh(); // not Update(); see event_server.cpp threading rule
     }
 }
 
@@ -1996,7 +2001,6 @@ void Guider::BookmarkCurPosition()
 {
     if (BookmarkPos(CurrentPosition(), m_bookmarks) && m_showBookmarks)
     {
-        Refresh();
-        Update();
+        Refresh(); // not Update(); see event_server.cpp threading rule
     }
 }

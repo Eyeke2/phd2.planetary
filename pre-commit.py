@@ -154,6 +154,29 @@ def checkFiles(fileNames):
             print("caught exception {0} processing file {1}".format(ex, fileName), file=sys.stderr)
     return invalidEnding
 
+def runUiSafetyCheck():
+    """Invoke tools/check-ui-safety.py to flag wx operations that risk the
+    cross-process SendMessage deadlock (see src/ui_safety.h). The script
+    is warn-only and never returns non-zero, so this call does not block
+    the commit -- it just surfaces the warnings on stderr alongside the
+    line-ending / whitespace checks above.
+    """
+    scriptDir = os.path.dirname(os.path.abspath(__file__))
+    script = os.path.join(scriptDir, "tools", "check-ui-safety.py")
+    if not os.path.exists(script):
+        # Tool absent (older checkout?); skip silently.
+        return False
+    # Pass through whatever Python is running this hook.
+    cmd = "{0} {1}".format(sys.executable, script)
+    (returnCode, stdoutData, stderrData) = runCmd(cmd)
+    if stdoutData:
+        sys.stdout.write(stdoutData.decode("utf-8", errors="replace") if isinstance(stdoutData, bytes) else stdoutData)
+    if stderrData:
+        sys.stderr.write(stderrData.decode("utf-8", errors="replace") if isinstance(stderrData, bytes) else stderrData)
+    # check-ui-safety is warn-only by design -- do NOT propagate its
+    # exit code as a commit rejection.
+    return False
+
 def checkCommit():
     if runCmdBool("git rev-parse --quiet --verify HEAD"):
         against = "HEAD"
@@ -163,6 +186,10 @@ def checkCommit():
     stdoutData = runCmdOK("git diff --cached --name-only {0}".format(against))
     files = stdoutData.split()
     reject = checkFiles(files)
+
+    # UI-safety scan (warn-only): report any wx-pumping operations being
+    # introduced in this commit. See tools/check-ui-safety.py for details.
+    runUiSafetyCheck()
 
     if len(files) == 0:
         print("No cached git files found -- did you forget a directory name?")

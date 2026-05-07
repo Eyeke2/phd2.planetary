@@ -95,6 +95,17 @@ public:
     void NotifyMouseClick(PHD_Point& point);
     void NotifyAutoSelect();
 
+    // Returns true when the calling thread is currently executing an RPC
+    // request handler (any depth -- batch RPCs nest). Used by ui_safety.h
+    // to detect operations that would pump the wx event loop reentrantly
+    // and risk the cross-process SendMessage deadlock documented above
+    // handle_request() in event_server.cpp.
+    //
+    // Implemented as a thread-local depth counter set by the RpcEntryGuard
+    // RAII helper inside handle_request, so the check is a single load on
+    // the fast path.
+    static bool InRpcCall();
+
 private:
     void OnEventServerEvent(wxSocketEvent& evt);
     void OnEventServerClientEvent(wxSocketEvent& evt);

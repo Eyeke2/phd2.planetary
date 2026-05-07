@@ -1190,8 +1190,7 @@ void GuiderMultiStar::OnLClick(wxMouseEvent& mevent)
             if (pFrame->GetStarFindMode() == Star::FIND_PLANET)
                 m_SolarSystemObject.RefreshMinMaxDiameters();
 
-            Refresh();
-            Update();
+            Refresh(); // not Update(); see event_server.cpp threading rule
         }
     }
     catch (const wxString& Msg)
