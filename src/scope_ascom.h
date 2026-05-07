@@ -60,6 +60,7 @@ class ScopeASCOM : public Scope
     DISPID dispid_sitelongitude;
     DISPID dispid_siteelevation;
     DISPID dispid_slewtocoordinates;
+    DISPID dispid_slewtocoordinates_async;
     DISPID dispid_raguiderate;
     DISPID dispid_decguiderate;
     DISPID dispid_sideofpier;
@@ -73,7 +74,10 @@ class ScopeASCOM : public Scope
     bool m_canGetGuideRates;
     bool m_canSlew;
     bool m_canSlewAsync;
+    bool m_canAbortSlew;
     bool m_canPulseGuide;
+    bool m_canPark;
+    bool m_canUnpark;
 
     bool m_abortSlewWhenGuidingStuck;
     bool m_checkForSyncPulseGuide;
@@ -84,7 +88,7 @@ class ScopeASCOM : public Scope
     bool Create(DispatchObj& obj);
     bool IsGuiding(DispatchObj *pScopeDriver);
     bool IsSlewing(DispatchObj *pScopeDriver);
-    void AbortSlew(DispatchObj *pScopeDriver);
+    bool AbortSlew(DispatchObj *pScopeDriver);
 
 public:
     ScopeASCOM(const wxString& choice);
@@ -112,17 +116,25 @@ public:
     bool SetTrackingRateOffsets(double raRateOffset, double decRateOffset) override;
     bool GetGuideRates(double *pRAGuideRate, double *pDecGuideRate) override;
     bool GetCoordinates(double *ra, double *dec, double *siderealTime) override;
+    bool GetMountAltAz(double *alt, double *az) override;
     bool GetSiteLatLong(double *latitude, double *longitude) override;
     bool GetSiteElevation(double *elevation) override;
     bool CanSlew() override;
     bool CanSlewAsync() override;
     bool CanReportPosition() override;
     bool CanPulseGuide() override;
+    bool CanPark() override { return m_canPark; }
+    bool CanUnpark() override { return m_canUnpark; }
+    bool Park() override;
+    bool Unpark() override;
     bool SlewToCoordinates(double ra, double dec) override;
     bool SlewToCoordinatesAsync(double ra, double dec) override;
-    void AbortSlew() override;
+    bool AbortSlew() override;
     bool CanCheckSlewing() override;
     bool Slewing() override;
+    bool IsParked(bool *parked) override;
+    bool GetEquatorialSystem(int *system) override;
+    bool DoesRefraction(bool *refraction) override;
     PierSide SideOfPier() override;
 };
 

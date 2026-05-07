@@ -126,14 +126,13 @@ public:
     bool CanSlew() override { return coord_prop ? true : false; }
     bool CanSlewAsync() override;
     bool CanCheckSlewing() override { return coord_prop ? true : false; }
-
     double GetDeclinationRadians() override;
     bool GetGuideRates(double *pRAGuideRate, double *pDecGuideRate) override;
     bool GetCoordinates(double *ra, double *dec, double *siderealTime) override;
     bool GetSiteLatLong(double *latitude, double *longitude) override;
     bool SlewToCoordinates(double ra, double dec) override;
     bool SlewToCoordinatesAsync(double ra, double dec) override;
-    void AbortSlew() override;
+    bool AbortSlew() override;
     bool Slewing() override;
     PierSide SideOfPier() override;
 };
@@ -910,13 +909,15 @@ bool ScopeINDI::SlewToCoordinatesAsync(double ra, double dec)
     return err;
 }
 
-void ScopeINDI::AbortSlew()
+bool ScopeINDI::AbortSlew()
 {
     if (AbortMotion_prop && Abort_prop)
     {
         Abort_prop->s = ISS_ON;
         sendNewSwitch(AbortMotion_prop);
+        return true;
     }
+    return false;
 }
 
 bool ScopeINDI::Slewing()

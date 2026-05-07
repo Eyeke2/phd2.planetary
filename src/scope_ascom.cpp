@@ -69,6 +69,7 @@ ScopeASCOM::ScopeASCOM(const wxString& choice)
     dispid_sitelongitude = DISPID_UNKNOWN;
     dispid_siteelevation = DISPID_UNKNOWN;
     dispid_slewtocoordinates = DISPID_UNKNOWN;
+    dispid_slewtocoordinates_async = DISPID_UNKNOWN;
     dispid_raguiderate = DISPID_UNKNOWN;
     dispid_decguiderate = DISPID_UNKNOWN;
     dispid_sideofpier = DISPID_UNKNOWN;
@@ -326,10 +327,11 @@ bool ScopeASCOM::Connect()
             dispid_sideofpier = DISPID_UNKNOWN;
         }
 
+        m_canAbortSlew = true;
         if (!pScopeDriver.GetDispatchId(&dispid_abortslew, L"AbortSlew"))
         {
             Debug.Write("cannot get dispid_abortslew\n");
-            dispid_abortslew = DISPID_UNKNOWN;
+            m_canAbortSlew = false;
         }
 
         struct ConnectInBg : public ConnectMountInBg
@@ -420,6 +422,35 @@ bool ScopeASCOM::Connect()
 
             m_canSlewAsync = pScopeDriver.GetProp(&vRes, L"CanSlewAsync") && vRes.boolVal == VARIANT_TRUE;
             Debug.Write(wxString::Format("ASCOM scope CanSlewAsync is %s\n", m_canSlewAsync ? "true" : "false"));
+
+            if (!pScopeDriver.GetDispatchId(&dispid_slewtocoordinates_async, L"SlewToCoordinatesAsync"))
+            {
+                m_canSlewAsync = false;
+                Debug.Write("cannot get dispid_slewtocoordinates_async\n");
+            }
+        }
+
+        m_canPark = true;
+        if (!pScopeDriver.GetProp(&vRes, L"CanPark"))
+        {
+            Debug.Write(wxString::Format("ASCOM scope got error invoking CanPark: %s\n", ExcepMsg(pScopeDriver.Excep())));
+            m_canPark = false;
+        }
+        else if (vRes.boolVal != VARIANT_TRUE)
+        {
+            Debug.Write("ASCOM scope reports CanPark = false\n");
+            m_canPark = false;
+        }
+        m_canUnpark = true;
+        if (!pScopeDriver.GetProp(&vRes, L"CanUnpark"))
+        {
+            Debug.Write(wxString::Format("ASCOM scope got error invoking CanUnpark: %s\n", ExcepMsg(pScopeDriver.Excep())));
+            m_canUnpark = false;
+        }
+        else if (vRes.boolVal != VARIANT_TRUE)
+        {
+            Debug.Write("ASCOM scope reports CanUnpark = false\n");
+            m_canUnpark = false;
         }
 
         if (!pScopeDriver.GetProp(&vRes, L"CanSetTracking"))
@@ -979,14 +1010,20 @@ bool ScopeASCOM::IsSlewing(DispatchObj *scope)
     return result;
 }
 
-void ScopeASCOM::AbortSlew(DispatchObj *scope)
+bool ScopeASCOM::AbortSlew(DispatchObj *scope)
 {
     Debug.Write("ScopeASCOM: AbortSlew\n");
     Variant vRes;
-    if (!scope->InvokeMethod(&vRes, dispid_abortslew))
+    if (m_canAbortSlew)
     {
-        pFrame->Alert(_("ASCOM driver failed calling AbortSlew, see the debug log for more information."));
+        if (!scope->InvokeMethod(&vRes, dispid_abortslew))
+        {
+            pFrame->Alert(_("ASCOM driver failed calling AbortSlew, see the debug log for more information."));
+            return true;
+        }
+        return false;
     }
+    return true;
 }
 
 bool ScopeASCOM::CanCheckSlewing()
@@ -1015,6 +1052,85 @@ bool ScopeASCOM::Slewing()
     }
 
     return bReturn;
+}
+
+bool ScopeASCOM::GetEquatorialSystem(int* system)
+{
+    bool bError = false;
+    *system = 0;
+    try
+    {
+        if (!IsConnected())
+        {
+            throw ERROR_INFO("ASCOM Scope: Cannot get EquatorialSystem when not connected to mount");
+        }
+        GITObjRef scope(m_gitEntry);
+        Variant vRes;
+        if (!scope.GetProp(&vRes, L"EquatorialSystem"))
+        {
+            throw ERROR_INFO("ASCOM Scope: GetEquatorialSystem failed: " + ExcepMsg(scope.Excep()));
+        }
+        *system = vRes.iVal;
+    }
+    catch (const wxString& Msg)
+    {
+        POSSIBLY_UNUSED(Msg);
+        bError = true;
+    }
+    return bError;
+}
+
+bool ScopeASCOM::DoesRefraction(bool *refraction)
+{
+    bool bError = false;
+    *refraction = false;
+    try
+    {
+        if (!IsConnected())
+        {
+            throw ERROR_INFO("ASCOM Scope: Cannot get DoesRefraction when not connected to mount");
+        }
+        GITObjRef scope(m_gitEntry);
+        Variant vRes;
+        if (!scope.GetProp(&vRes, L"DoesRefraction"))
+        {
+            throw ERROR_INFO("ASCOM Scope: DoesRefraction failed: " + ExcepMsg(scope.Excep()));
+        }
+        *refraction = vRes.boolVal == VARIANT_TRUE;
+    }
+    catch (const wxString& Msg)
+    {
+        POSSIBLY_UNUSED(Msg);
+        bError = true;
+    }
+    return bError;
+}
+
+bool ScopeASCOM::IsParked(bool* parked)
+{
+    bool bError = false;
+
+    try
+    {
+        if (!IsConnected())
+        {
+            throw ERROR_INFO("ASCOM Scope: Cannot check Parked when not connected to mount");
+        }
+
+        GITObjRef scope(m_gitEntry);
+        Variant vRes;
+        if (!scope.GetProp(&vRes, L"AtPark"))
+        {
+            throw ERROR_INFO("ASCOM Scope: IsParked failed: " + ExcepMsg(scope.Excep()));
+        }
+        *parked = vRes.boolVal == VARIANT_TRUE;
+    }
+    catch (const wxString& Msg)
+    {
+        POSSIBLY_UNUSED(Msg);
+        bError = true;
+    }
+    return bError;
 }
 
 bool ScopeASCOM::HasNonGuiMove()
@@ -1367,6 +1483,43 @@ bool ScopeASCOM::GetCoordinates(double *ra, double *dec, double *siderealTime)
     return bError;
 }
 
+bool ScopeASCOM::GetMountAltAz(double *alt, double *az)
+{
+    bool bError = false;
+
+    try
+    {
+        if (!IsConnected())
+        {
+            throw ERROR_INFO("ASCOM Scope: cannot get alt/az coordinates when not connected");
+        }
+
+        GITObjRef scope(m_gitEntry);
+
+        Variant vAlt;
+        if (!scope.GetProp(&vAlt, L"Altitude"))
+        {
+            throw ERROR_INFO("ASCOM Scope: get altitude failed: " + ExcepMsg(scope.Excep()));
+        }
+
+        Variant vAz;
+        if (!scope.GetProp(&vAz, L"Azimuth"))
+        {
+            throw ERROR_INFO("ASCOM Scope: get azimuth failed: " + ExcepMsg(scope.Excep()));
+        }
+
+        *alt = vAlt.dblVal;
+        *az = vAz.dblVal;
+    }
+    catch (const wxString& Msg)
+    {
+        bError = true;
+        POSSIBLY_UNUSED(Msg);
+    }
+
+    return bError;
+}
+
 bool ScopeASCOM::GetSiteLatLong(double *latitude, double *longitude)
 {
     if (dispid_sitelatitude == DISPID_UNKNOWN || dispid_sitelongitude == DISPID_UNKNOWN)
@@ -1489,6 +1642,74 @@ bool ScopeASCOM::CanPulseGuide()
     return m_canPulseGuide;
 }
 
+bool ScopeASCOM::Park()
+{
+    bool bError = false;
+
+    try
+    {
+        if (!IsConnected())
+        {
+            throw ERROR_INFO("ASCOM Scope: cannot park when not connected");
+        }
+
+        if (!m_canPark)
+        {
+            throw THROW_INFO("ASCOM Scope: not capable of parking");
+        }
+
+        GITObjRef scope(m_gitEntry);
+
+        Variant vRes;
+
+        if (!scope.InvokeMethod(&vRes, L"Park"))
+        {
+            throw ERROR_INFO("ASCOM Scope: Park failed");
+        }
+    }
+    catch (const wxString& Msg)
+    {
+        POSSIBLY_UNUSED(Msg);
+        bError = true;
+    }
+
+    return bError;
+}
+
+bool ScopeASCOM::Unpark()
+{
+    bool bError = false;
+
+    try
+    {
+        if (!IsConnected())
+        {
+            throw ERROR_INFO("ASCOM Scope: cannot unpark when not connected");
+        }
+
+        if (!m_canUnpark)
+        {
+            throw THROW_INFO("ASCOM Scope: not capable of unparking");
+        }
+
+        GITObjRef scope(m_gitEntry);
+
+        Variant vRes;
+
+        if (!scope.InvokeMethod(&vRes, L"Unpark"))
+        {
+            throw ERROR_INFO("ASCOM Scope: Unpark failed");
+        }
+    }
+    catch (const wxString& Msg)
+    {
+        POSSIBLY_UNUSED(Msg);
+        bError = true;
+    }
+
+    return bError;
+}
+
 bool ScopeASCOM::SlewToCoordinates(double ra, double dec)
 {
     bool bError = false;
@@ -1543,7 +1764,7 @@ bool ScopeASCOM::SlewToCoordinatesAsync(double ra, double dec)
 
         Variant vRes;
 
-        if (!scope.InvokeMethod(&vRes, L"SlewToCoordinatesAsync", ra, dec))
+        if (!scope.InvokeMethod(&vRes, dispid_slewtocoordinates_async, ra, dec))
         {
             throw ERROR_INFO("ASCOM Scope: async slew to coordinates failed");
         }
@@ -1557,11 +1778,11 @@ bool ScopeASCOM::SlewToCoordinatesAsync(double ra, double dec)
     return bError;
 }
 
-void ScopeASCOM::AbortSlew()
+bool ScopeASCOM::AbortSlew()
 {
     GITObjRef scope(m_gitEntry);
     Variant vRes;
-    scope.InvokeMethod(&vRes, L"AbortSlew");
+    return !scope.InvokeMethod(&vRes, L"AbortSlew");
 }
 
 PierSide ScopeASCOM::SideOfPier()
