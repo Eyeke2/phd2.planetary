@@ -57,6 +57,8 @@ ScopeASCOM::ScopeASCOM(const wxString& choice)
 {
     m_choice = choice;
     m_canPulseGuide = false; // will get updated in Connect()
+    m_canSetDeclinationRate = false;
+    m_canSetRightAscensionRate = false;
 
     dispid_connected = DISPID_UNKNOWN;
     dispid_ispulseguiding = DISPID_UNKNOWN;
@@ -403,6 +405,20 @@ bool ScopeASCOM::Connect()
         {
             Debug.Write("Connecting to ASCOM scope that does not support PulseGuide\n");
             m_canPulseGuide = false;
+        }
+
+        m_canSetDeclinationRate = true;
+        if (!pScopeDriver.GetProp(&vRes, L"CanSetDeclinationRate") || vRes.boolVal != VARIANT_TRUE)
+        {
+            Debug.Write("ASCOM scope does not support setting declination guide rate\n");
+            m_canSetDeclinationRate = false;
+        }
+
+        m_canSetRightAscensionRate = true;
+        if (!pScopeDriver.GetProp(&vRes, L"CanSetRightAscensionRate") || vRes.boolVal != VARIANT_TRUE)
+        {
+            Debug.Write("ASCOM scope does not support setting right ascension guide rate\n");
+            m_canSetRightAscensionRate = false;
         }
 
         // see if scope can slew
@@ -1616,20 +1632,23 @@ bool ScopeASCOM::CanSlew()
 
 bool ScopeASCOM::CanSlewAsync()
 {
-    try
-    {
-        if (!IsConnected())
-        {
-            throw ERROR_INFO("ASCOM Scope: cannot get CanSlewAsync property when not connected to mount");
-        }
-
-        return m_canSlewAsync;
-    }
-    catch (const wxString& Msg)
-    {
-        POSSIBLY_UNUSED(Msg);
+    if (!IsConnected())
         return false;
-    }
+    return m_canSlewAsync;
+}
+
+bool ScopeASCOM::CanSetDeclinationRate()
+{
+    if (!IsConnected())
+        return false;
+    return m_canSetDeclinationRate;
+}
+
+bool ScopeASCOM::CanSetRightAscensionRate()
+{
+    if (!IsConnected())
+        return false;
+    return m_canSetRightAscensionRate;
 }
 
 bool ScopeASCOM::CanReportPosition()
