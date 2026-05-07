@@ -497,7 +497,48 @@ if(USE_SYSTEM_LIBINDI)
   list(APPEND PHD_LINK_EXTERNAL ${NOVA_LIBRARIES})
 else()
   include(ExternalProject)
-  set(indi_INSTALL_DIR ${CMAKE_BINARY_DIR}/libindi)
+
+  # Per-config install dir for libindi.
+  #
+  # libindi is a static library (INDI_BUILD_SHARED=OFF). On Windows MSVC
+  # (multi-config generator) and any other multi-config generator, the
+  # parent project builds Debug and Release out of the SAME ${CMAKE_BINARY_DIR},
+  # so a single-config install dir for libindi caused the two configs to
+  # overwrite each other in ${CMAKE_BINARY_DIR}/libindi/lib/, producing
+  # CRT-runtime mismatches (LNK2038 _ITERATOR_DEBUG_LEVEL / RuntimeLibrary)
+  # and STL ABI mismatches whenever the developer switched configs
+  # without manually deleting the libindi tree.
+  #
+  # The fix: install to a per-config subdirectory. Generator expressions
+  # in CMAKE_INSTALL_PREFIX are evaluated by ExternalProject at parent-
+  # build time, and target_link_libraries (used downstream via
+  # PHD_LINK_EXTERNAL) supports them too -- so $<CONFIG> resolves to the
+  # active config for both the install and the link line.
+  if(CMAKE_CONFIGURATION_TYPES)
+    # Multi-config generators (Visual Studio, Xcode): config picked at build time.
+    set(indi_INSTALL_DIR ${CMAKE_BINARY_DIR}/libindi/$<CONFIG>)
+  else()
+    # Single-config generators (Make, Ninja): config picked at configure time.
+    if(NOT CMAKE_BUILD_TYPE)
+      set(CMAKE_BUILD_TYPE Release)
+    endif()
+    set(indi_INSTALL_DIR ${CMAKE_BINARY_DIR}/libindi/${CMAKE_BUILD_TYPE})
+  endif()
+
+  # Compose CXX flags for the libindi sub-build by APPENDING to MSVC's
+  # defaults rather than replacing them. The previous implementation
+  # passed -DCMAKE_CXX_FLAGS=-D_CRT_SECURE_NO_WARNINGS, which entirely
+  # overrode CMake's default for that variable on MSVC (which includes
+  # /EHsc, /DWIN32, /D_WINDOWS, /W3, /GR). The lost /EHsc caused warning
+  # C4530 ("C++ exception handler used, but unwind semantics are not
+  # enabled") in any libindi TU that uses try/catch -- visible in the
+  # Player One / ASI / OSPL130 builds.
+  if(MSVC)
+    set(_indi_cxx_flags "/EHsc /D_CRT_SECURE_NO_WARNINGS")
+  else()
+    set(_indi_cxx_flags "-D_CRT_SECURE_NO_WARNINGS")
+  endif()
+
   ExternalProject_Add(
     indi
     GIT_REPOSITORY https://github.com/indilib/indi.git
@@ -509,10 +550,17 @@ else()
       -DINDI_BUILD_QT5_CLIENT=OFF
       -DINDI_BUILD_SHARED=OFF
       -DCMAKE_PREFIX_PATH=${VCPKG_PREFIX}
-      -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libindi
-      -DCMAKE_CXX_FLAGS=-D_CRT_SECURE_NO_WARNINGS
+      -DCMAKE_INSTALL_PREFIX=${indi_INSTALL_DIR}
+      "-DCMAKE_CXX_FLAGS=${_indi_cxx_flags}"
       -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+    # Forward the active config to the libindi sub-build so its CRT
+    # runtime (MD vs MDd) matches the parent's. On multi-config
+    # generators $<CONFIG> resolves at build time; on single-config
+    # generators it resolves to the configure-time CMAKE_BUILD_TYPE.
+    BUILD_COMMAND   ${CMAKE_COMMAND} --build   <BINARY_DIR> --config $<CONFIG>
+    INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR> --config $<CONFIG>
   )
+
   include_directories(${indi_INSTALL_DIR}/include)
   if (WIN32)
     list(APPEND PHD_LINK_EXTERNAL ${indi_INSTALL_DIR}/lib/indiclient.lib)
@@ -529,10 +577,19 @@ else()
     ## Define LIBNOVA when building Indi from source.
     add_definitions("-DLIBNOVA")
   endif()
-  # adding indi as a dependency allows a developer to build phd2 in
-  # the IDE without explicitly building anything else first, but this
-  # slows down incremental development
-  # list(APPEND PHD_EXTERNAL_PROJECT_DEPENDENCIES indi)
+
+  # Make phd2 depend on the indi ExternalProject so that cold builds and
+  # IDE builds (where the developer hits "build phd2" without first
+  # building the indi target manually) work without #include <libindi/...>
+  # failing because ${indi_INSTALL_DIR}/include does not yet exist.
+  #
+  # This was previously commented out with a worry that it would slow
+  # incremental development. The cost is actually negligible -- once
+  # libindi is built and stamped, subsequent builds spend milliseconds
+  # verifying the stamp, not rebuilding. The cost of a broken cold
+  # build (cryptic "cannot open include file" on a fresh checkout) is
+  # much higher than the cost of one stamp check per build.
+  list(APPEND PHD_EXTERNAL_PROJECT_DEPENDENCIES indi)
 endif()
 
 #############################################
