@@ -489,6 +489,7 @@ ImageServerThread::~ImageServerThread() { }
 
 wxThread::ExitCode ImageServerThread::Entry()
 {
+    SetThreadName("PHD2 FrameMon Server");
     wxIPV4address addr;
     addr.Hostname("127.0.0.1");
     addr.Service(imgServer->imgPort);

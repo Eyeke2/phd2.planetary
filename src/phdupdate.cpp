@@ -735,6 +735,7 @@ UpdaterThread::~UpdaterThread()
 
 wxThread::ExitCode UpdaterThread::Entry()
 {
+    SetThreadName("PHD2 Updater");
     Debug.Write("UPD: updater thread entry\n");
     m_upd->UpdateApp(false);
     Debug.Write("UPD: updater thread exit\n");

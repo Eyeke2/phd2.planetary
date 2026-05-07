@@ -940,6 +940,7 @@ public:
     // A thread function to run HoughCircles method
     wxThread::ExitCode Entry()
     {
+        SetThreadName("PHD2 Planetary Score");
         for (const Point2f& point : points)
         {
             float score = ::CalcContourScore(radius, point, contour, minRadius, maxRadius);

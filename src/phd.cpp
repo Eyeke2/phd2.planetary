@@ -63,6 +63,35 @@ GuidingLog GuideLog;
 int XWinSize = 640;
 int YWinSize = 512;
 
+#if defined(__WINDOWS__) && defined(_DEBUG)
+struct THREADNAME_INFO
+{
+    DWORD dwType;
+    LPCSTR szName;
+    DWORD dwThreadID;
+    DWORD dwFlags;
+};
+
+void SetThreadName(const char* threadName)
+{
+    DWORD dwThreadID = GetCurrentThreadId();
+    THREADNAME_INFO info;
+    info.dwType = 0x1000;
+    info.szName = threadName;
+    info.dwThreadID = dwThreadID;
+    info.dwFlags = 0;
+
+    __try
+    {
+#define MS_VC_EXCEPTION 0x406D1388
+        RaiseException(MS_VC_EXCEPTION, 0, sizeof(info) / sizeof(ULONG_PTR), (ULONG_PTR *) &info);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+    }
+}
+#endif
+
 static const wxCmdLineEntryDesc cmdLineDesc[] = {
     { wxCMD_LINE_SWITCH, "?", "help", "display this help and exit" },
     { wxCMD_LINE_OPTION, "i", "instanceNumber", "sets the PHD2 instance number (default = 1)", wxCMD_LINE_VAL_NUMBER,
@@ -481,6 +510,8 @@ struct EarlyLogger : public wxLog
 
 bool PhdApp::OnInit()
 {
+    SetThreadName("PHD2 Main");
+
 #ifdef __APPLE__
     // for newer versions of OSX the app will hang if the wx log code
     // tries to display a message box in OnOnit.  As a workaround send
