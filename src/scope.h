@@ -51,11 +51,12 @@ enum DEC_GUIDE_MODE
 // Well known telescope tracking rates
 enum DriveRates
 {
-    driveSidereal = 0, // Sidereal tracking rate(15.041 arcseconds per second).
-    driveLunar = 1, // Lunar tracking rate(14.685 arcseconds per second).
-    driveSolar = 2, // Solar tracking rate(15.0 arcseconds per second).
-    driveKing = 3, // King tracking rate(15.0369 arcseconds per second).
-    driveMaxRate = 4 // Maximum tracking rate
+    driveSidereal = 0,  // Sidereal tracking rate(15.041 arcseconds per second).
+    driveLunar = 1,     // Lunar tracking rate(14.685 arcseconds per second).
+    driveSolar = 2,     // Solar tracking rate(15.0 arcseconds per second).
+    driveKing = 3,      // King tracking rate(15.0369 arcseconds per second).
+    driveCustom = 4,    // Custom tracking rate set using offsets from sidereal
+    driveMaxRate = 5    // Maximum tracking rate
 };
 
 // RA offsets relataive to sidereal rate for lunar and solar tracking
@@ -179,7 +180,7 @@ public:
     {
         wxString name;
         bool canSet;
-    } m_mountRates[4];
+    } m_mountRates[driveMaxRate];
 
     // Things related to the Advanced Config Dialog
 protected:

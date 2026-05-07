@@ -310,6 +310,7 @@ public:
     wxWindow *pNudgeLock;
     wxWindow *pCometTool;
     wxWindow *pPlanetTool;
+    bool m_planetToolCustomRatesEnabled;
     wxWindow *pGuidingAssistant;
     wxWindow *pierFlipToolWin;
     RefineDefMap *pRefineDefMap;

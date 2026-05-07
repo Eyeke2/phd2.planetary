@@ -75,6 +75,7 @@ SolarSystemObject::SolarSystemObject()
     m_focusSharpness = 0;
     m_paramNoiseFilterState = false;
     m_updateDiameters = false;
+    m_disableCustomRateOverride = false;
     m_remoteData = false;
     m_surf.trackingQuality = 0;
 
@@ -144,7 +145,6 @@ SolarSystemObject::SolarSystemObject()
 #ifdef DEVELOPER_MODE
     SetNoiseFilterState(pConfig->Profile.GetBoolean("/PlanetTool/noise_filter", false));
 #endif
-
     // Enforce valid range limits on solar system object detection parameters while restoring from configuration
     m_paramMinRadius = pConfig->Profile.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT);
     m_paramMinRadius = wxMax(PT_RADIUS_MIN, wxMin(PT_RADIUS_MAX, m_paramMinRadius));
@@ -1523,7 +1523,7 @@ bool SolarSystemObject::GetMountTrackingState(bool& trackingValid, bool& trackin
         rate = "Solar";
         break;
     case driveKing:
-        rate = "Custom";
+        rate = "King";
         break;
     }
 
@@ -1539,6 +1539,8 @@ bool SolarSystemObject::SetMountTrackingRate(const wxString& rateStr, double ra_
         Debug.Write(wxString::Format("Failed to set tracking rate %s: no pointing source\n", rateStr));
         return false;
     }
+
+    SetDisableCustomRateOverride();
 
     DriveRates trackingRate = driveSidereal;
     wxString rate = rateStr.Lower();

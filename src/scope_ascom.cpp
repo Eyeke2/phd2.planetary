@@ -505,6 +505,13 @@ bool ScopeASCOM::Disconnect()
     return bError;
 }
 
+// Check if rates are close enough
+static bool rates_match(DriveRates rate, double ra_offset, double dec_offset, double curr_ra_rate, double curr_dec_rate)
+{
+    const double rateTolerance = 0.01;
+    return rate == driveSidereal && fabs(ra_offset - curr_ra_rate) < rateTolerance && fabs(dec_offset - curr_dec_rate) < rateTolerance;
+}
+
 // Enumerate all supported tracking rates
 void ScopeASCOM::EnumerateTrackingRates()
 {
@@ -584,7 +591,10 @@ void ScopeASCOM::EnumerateTrackingRates()
             const int timeout = 3000;
             wxStopWatch sWatch;
 
+            // Custom rate is not a real tracking mount rate
             testRate = (enum DriveRates) i;
+            if (i == driveCustom)
+                testRate = driveSidereal;
             Debug.Write(wxString::Format("ASCOM scope: testing tracking rate %d\n", testRate));
             if (!SetTrackingRate(testRate))
             {
@@ -601,6 +611,43 @@ void ScopeASCOM::EnumerateTrackingRates()
                     Debug.Write(wxString::Format("ASCOM scope: can get/set tracking rate: %d [t=%d msec]\n", testRate,
                                                  (int) sWatch.Time()));
                     m_mountRates[i].canSet = true;
+
+                    // Testing if custom rate offsets are supported by the mount
+                    testRate = (enum DriveRates) i;
+                    if (testRate == driveCustom)
+                    {
+                        // Test setting tracking rate offsets
+                        double test_ra_offset = 0.1;
+                        double test_dec_offset = 0.1;
+                        if (!SetTrackingRateOffsets(test_ra_offset, test_dec_offset))
+                        {
+                            // Wait up to 3 seconds for mount to change tracking rate
+                            sWatch.Start();
+                            double curr_ra_rate = 0;
+                            double curr_dec_rate = 0;
+                            bool ratesOk = false;
+                            do
+                            {
+                                wxMilliSleep(100);
+                                bErr = GetTrackingRate(&currRate, &curr_ra_rate, &curr_dec_rate, true);
+                                if (!bErr)
+                                    ratesOk = rates_match(currRate, test_ra_offset, test_dec_offset, curr_ra_rate, curr_dec_rate);
+                            } while ((bErr || !ratesOk && (sWatch.Time() <= timeout)));
+                            SetTrackingRateOffsets(0, 0);
+                            if (!bErr && ratesOk)
+                            {
+                                Debug.Write(wxString::Format("ASCOM scope: can get/set tracking rate: %d [t=%d msec]\n", testRate, (int) sWatch.Time()));
+                            }
+                            else
+                            {
+                                m_mountRates[i].canSet = false;
+                            }
+                        }
+                        else
+                        {
+                            m_mountRates[i].canSet = false;
+                        }
+                    }
                 }
             }
             else
@@ -620,8 +667,10 @@ void ScopeASCOM::EnumerateTrackingRates()
                 m_mountRates[testRate].name = _("Solar");
                 break;
             case driveKing:
-                if (m_mountRates[testRate].name == wxEmptyString)
-                    m_mountRates[testRate].name = _("Custom");
+                m_mountRates[testRate].name = _("King");
+                break;
+            case driveCustom:
+                m_mountRates[testRate].name = _("Custom");
                 break;
             }
         }

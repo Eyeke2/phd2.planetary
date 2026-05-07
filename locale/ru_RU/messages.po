@@ -35,7 +35,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: open-phd-guiding 2.3.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-06 11:22+0300\n"
+"POT-Creation-Date: 2026-04-08 21:33+0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Konstantin Menshikoff <konstantin.menshikoff@gmail.com>\n"
 "Language-Team: \n"
@@ -47,7 +47,7 @@ msgstr ""
 "10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Generator: Poedit 2.2.4\n"
 
-#: about_dialog.cpp:47 myframe.cpp:587
+#: about_dialog.cpp:47 myframe.cpp:588
 #, c-format
 msgid "About %s"
 msgstr "О программе %s"
@@ -62,8 +62,8 @@ msgstr "Общие"
 msgid "Camera"
 msgstr "Камера"
 
-#: advanced_dialog.cpp:102 advanced_dialog.cpp:181 myframe.cpp:1845
-#: myframe.cpp:2409 scope_manual_pointing.cpp:70
+#: advanced_dialog.cpp:102 advanced_dialog.cpp:181 myframe.cpp:1846
+#: myframe.cpp:2410 scope_manual_pointing.cpp:70
 msgid "Guiding"
 msgstr "Гидирование"
 
@@ -75,11 +75,11 @@ msgstr "Алгоритмы"
 msgid "Other Devices"
 msgstr "Другие устройства"
 
-#: advanced_dialog.cpp:120 myframe.cpp:496 myframe.cpp:1039
+#: advanced_dialog.cpp:120 myframe.cpp:497 myframe.cpp:1040
 msgid "Advanced Settings"
 msgstr ""
 
-#: advanced_dialog.cpp:223 guiding_assistant.cpp:534 myframe.cpp:1364
+#: advanced_dialog.cpp:223 guiding_assistant.cpp:534 myframe.cpp:1365
 #: profile_wizard.cpp:411
 msgid "Help"
 msgstr "Справка"
@@ -316,7 +316,7 @@ msgstr "Измерение остановлено"
 #: cam_qhy.cpp:288 camcal_import_dialog.cpp:46 camera.cpp:995
 #: configdialog.cpp:62 configdialog.cpp:237 darks_dialog.cpp:52
 #: gear_simulator.cpp:2022 guide_algorithm_gaussian_process.cpp:189
-#: myframe.cpp:3396 planetary_tool.cpp:137 planetary_tool.cpp:147
+#: myframe.cpp:3397 planetary_tool.cpp:175 planetary_tool.cpp:185
 #: Refine_DefMap.cpp:62 starcross_test.cpp:51
 msgid ": "
 msgstr ":"
@@ -697,7 +697,7 @@ msgid ""
 msgstr ""
 
 #: calibration_assistant.cpp:1112 calibration_assistant.cpp:1298
-#: planetary_tool.cpp:310 planetary_tool.cpp:795 planetary_tool.cpp:812
+#: planetary_tool.cpp:490 planetary_tool.cpp:1335 planetary_tool.cpp:1352
 msgid "Ok"
 msgstr ""
 
@@ -1165,8 +1165,8 @@ msgid "Approximate declination where you will do calibration"
 msgstr "Примерное склонение, для которого проводится калибровка"
 
 #: calstep_dialog.cpp:169 camera.cpp:1001 darks_dialog.cpp:220
-#: gear_simulator.cpp:2361 mount.cpp:281 mount.cpp:334 planetary_tool.cpp:788
-#: planetary_tool.cpp:804 Refine_DefMap.cpp:181 starcross_test.cpp:146
+#: gear_simulator.cpp:2361 mount.cpp:281 mount.cpp:334 planetary_tool.cpp:1328
+#: planetary_tool.cpp:1344 Refine_DefMap.cpp:181 starcross_test.cpp:146
 #: testguide.cpp:105
 msgid "Reset"
 msgstr "Сбросить"
@@ -1241,7 +1241,7 @@ msgstr "Сбой установки разрешения для камеры Alt
 msgid "Memory allocation error"
 msgstr "Ошибка выделения памяти"
 
-#: cam_ascom.cpp:415 scope_ascom.cpp:899
+#: cam_ascom.cpp:415 scope_ascom.cpp:948
 msgid ""
 "ASCOM driver failed checking IsPulseGuiding. See the debug log for more "
 "information."
@@ -2207,7 +2207,7 @@ msgstr ""
 #: gear_dialog.cpp:471 gear_dialog.cpp:475 gear_dialog.cpp:712
 #: gear_dialog.cpp:1157 gear_dialog.cpp:1948 gear_dialog.cpp:1949
 #: gear_dialog.cpp:1950 log_uploader.cpp:190 mount.cpp:165 mount.cpp:190
-#: mount.cpp:886 myframe.cpp:3253 profile_wizard.cpp:429
+#: mount.cpp:886 myframe.cpp:3254 profile_wizard.cpp:429
 #: profile_wizard.cpp:430 profile_wizard.cpp:431 profile_wizard.cpp:680
 #: profile_wizard.cpp:685 profile_wizard.cpp:713 profile_wizard.cpp:909
 #: profile_wizard.cpp:1175 profile_wizard.cpp:1190 profile_wizard.cpp:1225
@@ -3290,7 +3290,7 @@ msgstr "Отключить всё"
 msgid "Disconnect all equipment"
 msgstr "Отключить всё оборудование"
 
-#: gear_dialog.cpp:361 myframe.cpp:1359 polardrift_toolwin.cpp:199
+#: gear_dialog.cpp:361 myframe.cpp:1360 polardrift_toolwin.cpp:199
 #: staticpa_toolwin.cpp:414
 msgid "Close"
 msgstr "Закрыть"
@@ -3607,7 +3607,7 @@ msgstr ""
 msgid " FIT folder"
 msgstr ""
 
-#: gear_simulator.cpp:2200 myframe.cpp:3380
+#: gear_simulator.cpp:2200 myframe.cpp:3381
 msgid "Mode: "
 msgstr "Режим"
 
@@ -3861,7 +3861,7 @@ msgstr ""
 msgid "Side of pier: %s"
 msgstr "Сторона от меридиана: %s"
 
-#: graph-stepguider.cpp:87 myframe.cpp:332 myframe.cpp:396
+#: graph-stepguider.cpp:87 myframe.cpp:333 myframe.cpp:397
 msgid "AO Position"
 msgstr "Позиция АО"
 
@@ -4474,15 +4474,15 @@ msgstr ""
 msgid "star lost"
 msgstr "звезда потеряна"
 
-#: guider.cpp:1436 myframe.cpp:2079
+#: guider.cpp:1436 myframe.cpp:2080
 msgid "Paused"
 msgstr "Остановлено"
 
-#: guider.cpp:1436 myframe.cpp:2079
+#: guider.cpp:1436 myframe.cpp:2080
 msgid "/full"
 msgstr ""
 
-#: guider.cpp:1436 myframe.cpp:2079
+#: guider.cpp:1436 myframe.cpp:2080
 msgid "/looping"
 msgstr ""
 
@@ -4691,7 +4691,7 @@ msgid ""
 "stars."
 msgstr ""
 
-#: guider_multistar.cpp:1544 myframe.cpp:936 myframe.cpp:1012 scope.cpp:271
+#: guider_multistar.cpp:1544 myframe.cpp:937 myframe.cpp:1013 scope.cpp:271
 msgid "Auto"
 msgstr "Авто"
 
@@ -5022,8 +5022,8 @@ msgstr "мсек (тест неудачен)"
 msgid "Apply"
 msgstr "Применить"
 
-#: guiding_assistant.cpp:1378 guiding_assistant.cpp:2099 myframe.cpp:3336
-#: myframe.cpp:3348
+#: guiding_assistant.cpp:1378 guiding_assistant.cpp:2099 myframe.cpp:3337
+#: myframe.cpp:3349
 msgid " "
 msgstr " "
 
@@ -5536,544 +5536,544 @@ msgstr ""
 msgid "Calibration was too far from equator, recalibration is needed."
 msgstr "Откалибровано слишком далеко от экватора, нужно повторить."
 
-#: myframe.cpp:326 myframe.cpp:394
+#: myframe.cpp:327 myframe.cpp:395
 msgid "History"
 msgstr "История"
 
-#: myframe.cpp:329 myframe.cpp:395
+#: myframe.cpp:330 myframe.cpp:396
 msgid "Guide Stats"
 msgstr "Статистика гидирования"
 
-#: myframe.cpp:335 myframe.cpp:397
+#: myframe.cpp:336 myframe.cpp:398
 msgid "Star Profile"
 msgstr "Звёздный профиль"
 
-#: myframe.cpp:338 myframe.cpp:398 target.cpp:52
+#: myframe.cpp:339 myframe.cpp:399 target.cpp:52
 msgid "Target"
 msgstr "Мишень"
 
-#: myframe.cpp:485
+#: myframe.cpp:486
 msgid "&Save Image..."
 msgstr "Сохранить изображение..."
 
-#: myframe.cpp:485
+#: myframe.cpp:486
 msgid "Save current image"
 msgstr "Сохранить текущее изображение"
 
-#: myframe.cpp:486
+#: myframe.cpp:487
 msgid "E&xit\tAlt-X"
 msgstr "Выйти"
 
-#: myframe.cpp:486
+#: myframe.cpp:487
 msgid "Quit this program"
 msgstr "Выйти из программы"
 
-#: myframe.cpp:489
+#: myframe.cpp:490
 msgid "&Connect Equipment\tCtrl-C"
 msgstr "&Подключение оборудования\tCtrl-C"
 
-#: myframe.cpp:489
+#: myframe.cpp:490
 msgid "Connect or disconnect equipment"
 msgstr "Подключить или отключить оборудование"
 
-#: myframe.cpp:490
+#: myframe.cpp:491
 msgid "&Loop Exposures\tCtrl-L"
 msgstr "&Серийная съёмка\tCtrl-L"
 
-#: myframe.cpp:490
+#: myframe.cpp:491
 msgid "Begin looping exposures"
 msgstr "Начать серийную съёмку"
 
-#: myframe.cpp:492
+#: myframe.cpp:493
 msgid "&Guide\tCtrl-G"
 msgstr "&Гидирование\tCtrl-G"
 
-#: myframe.cpp:492
+#: myframe.cpp:493
 msgid "Begin guiding"
 msgstr "Начать гидирование"
 
-#: myframe.cpp:494
+#: myframe.cpp:495
 msgid "&Stop\tCtrl-S"
 msgstr "&Остановка\tCtrl-S"
 
-#: myframe.cpp:494 myframe.cpp:1034
+#: myframe.cpp:495 myframe.cpp:1035
 msgid "Stop looping and guiding"
 msgstr "Остановить съёмку и гидирование"
 
-#: myframe.cpp:496
+#: myframe.cpp:497
 msgid "&Advanced Settings\tCtrl-A"
 msgstr "&Настройки системы\tCtrl-A"
 
-#: myframe.cpp:497
+#: myframe.cpp:498
 msgid "&Camera Settings"
 msgstr "&Настройки камеры"
 
-#: myframe.cpp:497 myframe.cpp:1040 planetary_tool.cpp:275
+#: myframe.cpp:498 myframe.cpp:1041 planetary_tool.cpp:444
 msgid "Camera settings"
 msgstr "Настройки камеры"
 
-#: myframe.cpp:501
+#: myframe.cpp:502
 msgid "&Manual Guide"
 msgstr "&Ручное гидирование"
 
-#: myframe.cpp:501
+#: myframe.cpp:502
 msgid "Manual / test guide dialog"
 msgstr "Ручной/тестовый диалог гидирования"
 
-#: myframe.cpp:502
+#: myframe.cpp:503
 msgid "&Auto-select Star\tAlt-S"
 msgstr "Автоматический выбор звезды"
 
-#: myframe.cpp:502
+#: myframe.cpp:503
 msgid "Automatically select star"
 msgstr "Выбрать звезду автоматически"
 
-#: myframe.cpp:503 myframe_events.cpp:1106 myframe_events.cpp:1113
+#: myframe.cpp:504 myframe_events.cpp:1106 myframe_events.cpp:1113
 msgid "Calibration Assistant..."
 msgstr ""
 
-#: myframe.cpp:503
+#: myframe.cpp:504
 msgid "Slew to a preferred calibration position"
 msgstr ""
 
-#: myframe.cpp:504
+#: myframe.cpp:505
 msgid "&Review Calibration Data\tAlt-C"
 msgstr "Проверка данных калибровки\tAlt-C"
 
-#: myframe.cpp:505
+#: myframe.cpp:506
 msgid "Review calibration data from last successful calibration"
 msgstr "Проверить данные калибровки из последней успешной"
 
-#: myframe.cpp:508
+#: myframe.cpp:509
 msgid "Restore Calibration Data..."
 msgstr "Восстановить данные калибровки..."
 
-#: myframe.cpp:509
+#: myframe.cpp:510
 msgid "Restore calibration data from last successful calibration"
 msgstr "Восстановить данные калибровки из последней успешной"
 
-#: myframe.cpp:510
+#: myframe.cpp:511
 msgid "Enter Calibration Data..."
 msgstr "Ввести калибровочные данные"
 
-#: myframe.cpp:510
+#: myframe.cpp:511
 msgid "Manually enter the calibration data"
 msgstr "Ввести калибровочные данные вручную"
 
-#: myframe.cpp:511
+#: myframe.cpp:512
 msgid "Flip Calibration Now"
 msgstr "Переложить калибровку"
 
-#: myframe.cpp:511
+#: myframe.cpp:512
 msgid "Flip the calibration data now"
 msgstr "Переложить калибровочные данные"
 
-#: myframe.cpp:512
+#: myframe.cpp:513
 msgid "Clear Calibration Data..."
 msgstr "Сбросить калибровочные данные"
 
-#: myframe.cpp:512
+#: myframe.cpp:513
 msgid "Clear calibration data currently in use"
 msgstr "Сбросить используемые данные калибровки"
 
-#: myframe.cpp:513
+#: myframe.cpp:514
 msgid "Modify Calibration"
 msgstr "Изменение калибровки"
 
-#: myframe.cpp:516
+#: myframe.cpp:517
 msgid "Adjust &Lock Position"
 msgstr "Уточнение положения звезды"
 
-#: myframe.cpp:516
+#: myframe.cpp:517
 msgid "Adjust the lock position"
 msgstr "Задать выбранную позицию"
 
-#: myframe.cpp:517
+#: myframe.cpp:518
 msgid "&Comet Tracking"
 msgstr "Отслеживание комет"
 
-#: myframe.cpp:517
+#: myframe.cpp:518
 msgid "Run the Comet Tracking tool"
 msgstr "Запустить отслеживание комет"
 
-#: myframe.cpp:518
+#: myframe.cpp:519
 msgid "&Planetary and Solar Guiding Tool\tCtrl-P"
 msgstr ""
 
-#: myframe.cpp:519
+#: myframe.cpp:520
 msgid "Run the solar/lunar/planetary guiding tool"
 msgstr ""
 
-#: myframe.cpp:520 myframe_events.cpp:1231 starcross_test.cpp:75
+#: myframe.cpp:521 myframe_events.cpp:1231 starcross_test.cpp:75
 msgid "Star-Cross Test"
 msgstr "Перекрёстный тест звезды"
 
-#: myframe.cpp:520
+#: myframe.cpp:521
 msgid "Run a star-cross test for mount diagnostics"
 msgstr "Запустить перекрёстный тест звезды чтобы проверить монтировку"
 
-#: myframe.cpp:521
+#: myframe.cpp:522
 msgid "Calibrate meridian flip"
 msgstr "Калибровка перекладки меридиана"
 
-#: myframe.cpp:522
+#: myframe.cpp:523
 msgid "Automatically determine the correct meridian flip settings"
 msgstr "Автоматическое определение правильных настроек перекладки меридиана"
 
-#: myframe.cpp:523
+#: myframe.cpp:524
 msgid "&Guiding Assistant"
 msgstr "Помощник гидирования"
 
-#: myframe.cpp:523
+#: myframe.cpp:524
 msgid "Run the Guiding Assistant"
 msgstr "Запустить помощник гидирования"
 
-#: myframe.cpp:524
+#: myframe.cpp:525
 msgid "&Drift Align"
 msgstr "Установка полюса дрейфом"
 
-#: myframe.cpp:525
+#: myframe.cpp:526
 msgid "Align by analyzing star drift near the celestial equator (Accurate)"
 msgstr ""
 
-#: myframe.cpp:526
+#: myframe.cpp:527
 msgid "&Polar Drift Align"
 msgstr "Установка полюса полярным дрейфом"
 
-#: myframe.cpp:527
+#: myframe.cpp:528
 msgid "Align by analyzing star drift near the celestial pole (Simple)"
 msgstr ""
 
-#: myframe.cpp:528
+#: myframe.cpp:529
 msgid "&Static Polar Align"
 msgstr "Статическая установка полюса"
 
-#: myframe.cpp:529
+#: myframe.cpp:530
 msgid "Align by measuring the RA axis offset from the celestial pole (Fast)"
 msgstr "Выровнять путём измерения оси α от небесного полюса (быстро)"
 
-#: myframe.cpp:531
+#: myframe.cpp:532
 msgid "Enable Server"
 msgstr "Включить сервер"
 
-#: myframe.cpp:531
+#: myframe.cpp:532
 msgid "Enable PHD2 server capability"
 msgstr "Включить сервер PHD2"
 
-#: myframe.cpp:532 nudge_lock.cpp:163
+#: myframe.cpp:533 nudge_lock.cpp:163
 msgid "Sticky Lock Position"
 msgstr "Сохранять положение звезды"
 
-#: myframe.cpp:533
+#: myframe.cpp:534
 msgid "Keep the same lock position when guiding starts"
 msgstr "Выбрать позицию по гидируемой звезде"
 
-#: myframe.cpp:536
+#: myframe.cpp:537
 msgid "Display Toolbar"
 msgstr "Показать панель инструментов"
 
-#: myframe.cpp:536
+#: myframe.cpp:537
 msgid "Enable / disable tool bar"
 msgstr "Включить/выключить панель инструментов"
 
-#: myframe.cpp:537
+#: myframe.cpp:538
 msgid "Display &Graph"
 msgstr "Показать график"
 
-#: myframe.cpp:537
+#: myframe.cpp:538
 msgid "Enable / disable graph"
 msgstr "Включить/выключить графику"
 
-#: myframe.cpp:538
+#: myframe.cpp:539
 msgid "Display &Stats"
 msgstr "Показать статистику"
 
-#: myframe.cpp:538
+#: myframe.cpp:539
 msgid "Enable / disable guide stats"
 msgstr "Включить/выключить статистику гидирования"
 
-#: myframe.cpp:539
+#: myframe.cpp:540
 msgid "Display &AO Graph"
 msgstr "Показать график АО"
 
-#: myframe.cpp:539
+#: myframe.cpp:540
 msgid "Enable / disable AO graph"
 msgstr "Включить/выключить график АО"
 
-#: myframe.cpp:540
+#: myframe.cpp:541
 msgid "Display &Target"
 msgstr "Показать цель"
 
-#: myframe.cpp:540
+#: myframe.cpp:541
 msgid "Enable / disable target"
 msgstr "Включить/выключить цель"
 
-#: myframe.cpp:541
+#: myframe.cpp:542
 msgid "Display Star &Profile"
 msgstr "Показать звёздный профиль"
 
-#: myframe.cpp:541
+#: myframe.cpp:542
 msgid "Enable / disable star profile view"
 msgstr "Включить/выключить просмотр звёздного профиля"
 
-#: myframe.cpp:543
+#: myframe.cpp:544
 msgid "&No Overlay"
 msgstr "Без сетки"
 
-#: myframe.cpp:543
+#: myframe.cpp:544
 msgid "No additional crosshairs"
 msgstr "Без дополнительного перекрестия"
 
-#: myframe.cpp:544
+#: myframe.cpp:545
 msgid "&Bullseye"
 msgstr "Мишень"
 
-#: myframe.cpp:544
+#: myframe.cpp:545
 msgid "Centered bullseye overlay"
 msgstr "Мишень по центру кадра"
 
-#: myframe.cpp:545
+#: myframe.cpp:546
 msgid "&Fine Grid"
 msgstr "Мелкая сетка"
 
-#: myframe.cpp:545 myframe.cpp:546
+#: myframe.cpp:546 myframe.cpp:547
 msgid "Grid overlay"
 msgstr "Сетка"
 
-#: myframe.cpp:546
+#: myframe.cpp:547
 msgid "&Coarse Grid"
 msgstr "Крупная сетка"
 
-#: myframe.cpp:547
+#: myframe.cpp:548
 msgid "&RA/Dec"
 msgstr "Сеть координат"
 
-#: myframe.cpp:547
+#: myframe.cpp:548
 msgid "RA and Dec overlay"
 msgstr "Линии α и δ"
 
-#: myframe.cpp:548
+#: myframe.cpp:549
 msgid "Spectrograph S&lit"
 msgstr "Щель спектрографа"
 
-#: myframe.cpp:548
+#: myframe.cpp:549
 msgid "Spectrograph slit overlay"
 msgstr "Наложение щели спектрографа"
 
-#: myframe.cpp:550
+#: myframe.cpp:551
 msgid "Slit Position..."
 msgstr "Положение щели..."
 
-#: myframe.cpp:552
+#: myframe.cpp:553
 msgid "Restore Window Positions"
 msgstr "Восстановить положение окон"
 
-#: myframe.cpp:553
+#: myframe.cpp:554
 msgid "Restore all windows to their default/docked positions"
 msgstr "Восстановить расположение всех окон"
 
-#: myframe.cpp:556
+#: myframe.cpp:557
 msgid "Dark &Library..."
 msgstr "Библиотека темновых кадров"
 
-#: myframe.cpp:556
+#: myframe.cpp:557
 msgid "Build a dark library for this profile"
 msgstr "Создать темновую библиотеку для этого профиля"
 
-#: myframe.cpp:557
+#: myframe.cpp:558
 msgid "Bad-pixel &Map..."
 msgstr "Карта дефектных пикселей..."
 
-#: myframe.cpp:558
+#: myframe.cpp:559
 msgid "Adjust parameters to create or modify the bad-pixel map"
 msgstr "Задать параметры для создания или изменения карты битых пикселей"
 
-#: myframe.cpp:559
+#: myframe.cpp:560
 msgid "Import From Profile..."
 msgstr "Импортировать из профиля"
 
-#: myframe.cpp:560
+#: myframe.cpp:561
 msgid "Import existing dark library/bad-pixel map from a different profile"
 msgstr ""
 "Импортировать существующую библиотеку темновых кадров/дефектных пикселей из "
 "другого профиля"
 
-#: myframe.cpp:563
+#: myframe.cpp:564
 msgid "Use &Dark Library"
 msgstr "Использовать библиотеку темновых кадров"
 
-#: myframe.cpp:563
+#: myframe.cpp:564
 msgid "Use the the dark library for this profile"
 msgstr "Использовать библиотеку темновых кадров для этого профиля"
 
-#: myframe.cpp:565
+#: myframe.cpp:566
 msgid "Use &Bad-pixel Map"
 msgstr "Использовать карту дефектных пикселей"
 
-#: myframe.cpp:565
+#: myframe.cpp:566
 msgid "Use the bad-pixel map for this profile"
 msgstr "Использовать карту битых пикселей для этого профиля"
 
-#: myframe.cpp:570
+#: myframe.cpp:571
 msgid "&Save settings"
 msgstr "&Сохранить настройки"
 
-#: myframe.cpp:570
+#: myframe.cpp:571
 msgid "Save current camera settings"
 msgstr "Сохранить текущие настройки камеры"
 
-#: myframe.cpp:571
+#: myframe.cpp:572
 msgid "&Restore settings"
 msgstr "&Восстановить настройки"
 
-#: myframe.cpp:571
+#: myframe.cpp:572
 msgid "Restore camera settings"
 msgstr "Восстановить настройки камеры"
 
-#: myframe.cpp:576
+#: myframe.cpp:577
 msgid "Show &Bookmarks\tb"
 msgstr "Показать закладки"
 
-#: myframe.cpp:576
+#: myframe.cpp:577
 msgid "Hide or show bookmarks"
 msgstr "Скрывать или показывать закладки"
 
-#: myframe.cpp:579
+#: myframe.cpp:580
 msgid "Bookmark &Lock Pos\tShift-B"
 msgstr "Запомнить выбранное положение"
 
-#: myframe.cpp:580
+#: myframe.cpp:581
 msgid "Set a bookmark at the current lock position"
 msgstr "Запомнить текущую выбранную позицию"
 
-#: myframe.cpp:582
+#: myframe.cpp:583
 msgid "Bookmark &Star Pos"
 msgstr "Запомнить положение звезды"
 
-#: myframe.cpp:583
+#: myframe.cpp:584
 msgid "Set a bookmark at the position of the currently selected star"
 msgstr "Запомнить позицию выбранной сейчас звезды"
 
-#: myframe.cpp:584
+#: myframe.cpp:585
 msgid "&Delete all\tCtrl-B"
 msgstr "Удалить всё"
 
-#: myframe.cpp:584
+#: myframe.cpp:585
 msgid "Remove all bookmarks"
 msgstr "Удалить все закладки"
 
-#: myframe.cpp:587
+#: myframe.cpp:588
 msgid "&About..."
 msgstr "О программе"
 
-#: myframe.cpp:588
+#: myframe.cpp:589
 msgid "&Check for updates"
 msgstr "Проверить обновления"
 
-#: myframe.cpp:588
+#: myframe.cpp:589
 msgid "Check for PHD2 software updates"
 msgstr "Проверить обновления PHD2"
 
-#: myframe.cpp:589
+#: myframe.cpp:590
 msgid "Online Support"
 msgstr "Онлайн поддержка"
 
-#: myframe.cpp:589
+#: myframe.cpp:590
 msgid "Ask for help in the PHD2 Forum"
 msgstr "Попросить о помощи на форуме PHD2"
 
-#: myframe.cpp:590
+#: myframe.cpp:591
 msgid "Open Log Folder"
 msgstr "Открыть папку логов"
 
-#: myframe.cpp:590
+#: myframe.cpp:591
 msgid "Open the log folder"
 msgstr "Открыть папку логов"
 
-#: myframe.cpp:591
+#: myframe.cpp:592
 msgid "Upload Log Files..."
 msgstr "Загрузить лог-файлы"
 
-#: myframe.cpp:591
+#: myframe.cpp:592
 msgid "Upload log files for review"
 msgstr "Загрузить лог-файлы для просмотра"
 
-#: myframe.cpp:592
+#: myframe.cpp:593
 msgid "&Contents...\tF1"
 msgstr "Оглавление...\tF1"
 
-#: myframe.cpp:592
+#: myframe.cpp:593
 msgid "Full help"
 msgstr "Полная справка"
 
-#: myframe.cpp:593
+#: myframe.cpp:594
 msgid "&Impatient Instructions"
 msgstr "&Инструкции для нетерпеливых"
 
-#: myframe.cpp:593
+#: myframe.cpp:594
 msgid "Quick instructions for the impatient"
 msgstr "Быстрое руководство для нетерпеливых"
 
-#: myframe.cpp:596
+#: myframe.cpp:597
 msgid "&File"
 msgstr "Данные"
 
-#: myframe.cpp:597
+#: myframe.cpp:598
 msgid "&Guide"
 msgstr "&Гидирование"
 
-#: myframe.cpp:606
+#: myframe.cpp:607
 msgid "&Tools"
 msgstr "&Инструменты"
 
-#: myframe.cpp:607
+#: myframe.cpp:608
 msgid "&View"
 msgstr "&Вид"
 
-#: myframe.cpp:608
+#: myframe.cpp:609
 msgid "&Darks"
 msgstr "&Темновые кадры"
 
-#: myframe.cpp:609
+#: myframe.cpp:610
 msgid "&Bookmarks"
 msgstr "&Закладки"
 
-#: myframe.cpp:610
+#: myframe.cpp:611
 msgid "&Help"
 msgstr "&Справка"
 
-#: myframe.cpp:650
+#: myframe.cpp:651
 msgid "Custom: 0.999 s"
 msgstr ""
 
-#: myframe.cpp:684 myframe.cpp:917 myframe.cpp:1015
+#: myframe.cpp:685 myframe.cpp:918 myframe.cpp:1016
 #, c-format
 msgid "Custom: %g s"
 msgstr "Задано: %g сек."
 
-#: myframe.cpp:817
+#: myframe.cpp:818
 #, c-format
 msgid "%g s"
 msgstr "%g сек"
 
-#: myframe.cpp:820
+#: myframe.cpp:821
 #, c-format
 msgid "%.*f s"
 msgstr "%.*f s"
 
-#: myframe.cpp:1016
+#: myframe.cpp:1017
 msgid "Edit Custom..."
 msgstr "Изменить..."
 
-#: myframe.cpp:1020
+#: myframe.cpp:1021
 msgid "Camera exposure duration"
 msgstr "Длительность экспозиции камеры"
 
-#: myframe.cpp:1025
+#: myframe.cpp:1026
 msgid "Screen gamma (brightness)"
 msgstr "Яркость экрана"
 
-#: myframe.cpp:1028
+#: myframe.cpp:1029
 msgid ""
 "Connect to equipment. Shift-click to reconnect the same equipment last "
 "connected."
@@ -6081,42 +6081,42 @@ msgstr ""
 "Подключить оборудование. При нажатой кнопке Shift подключается последнее "
 "использованное."
 
-#: myframe.cpp:1029
+#: myframe.cpp:1030
 msgid "Begin looping exposures for frame and focus"
 msgstr "Начать серийную съёмку"
 
-#: myframe.cpp:1031
+#: myframe.cpp:1032
 msgid "Auto-select Star. Shift-click to de-select star."
 msgstr ""
 
-#: myframe.cpp:1033
+#: myframe.cpp:1034
 msgid "Begin guiding (PHD). Shift-click to force calibration."
 msgstr ""
 "Начать гидирование в PHD. При нажатой клавише Shift запускается "
 "принудительная калибровка "
 
-#: myframe.cpp:1036
+#: myframe.cpp:1037
 msgid "Exposure duration"
 msgstr "Длительность экспозиции"
 
-#: myframe.cpp:1037
+#: myframe.cpp:1038
 msgid "Gamma"
 msgstr "Яркость экрана"
 
-#: myframe.cpp:1041 myframe.cpp:1042
+#: myframe.cpp:1042 myframe.cpp:1043
 msgid "Planetary and Solar Guiding Tool"
 msgstr ""
 
-#: myframe.cpp:1106
+#: myframe.cpp:1107
 #, c-format
 msgid "Could not find help file %s"
 msgstr "Файл справки %s не найден"
 
-#: myframe.cpp:1321
+#: myframe.cpp:1322
 msgid "Trouble-shooting and Analysis"
 msgstr "Анализ и решение проблем"
 
-#: myframe.cpp:1349
+#: myframe.cpp:1350
 msgid ""
 "Don't show\n"
 " again"
@@ -6124,23 +6124,23 @@ msgstr ""
 "Больше не\n"
 "показывать"
 
-#: myframe.cpp:1847 myframe.cpp:2124
+#: myframe.cpp:1848 myframe.cpp:2125
 msgid "Looping"
 msgstr "Серия"
 
-#: myframe.cpp:1977
+#: myframe.cpp:1978
 msgid "Capturing single exposure"
 msgstr "Захват одиночного кадра"
 
-#: myframe.cpp:2047
+#: myframe.cpp:2048
 msgid "Waiting for devices..."
 msgstr "Поиск устройств..."
 
-#: myframe.cpp:2093
+#: myframe.cpp:2094
 msgid "Resumed"
 msgstr "Возобновлено"
 
-#: myframe.cpp:2142
+#: myframe.cpp:2143
 msgid ""
 "Cannot guide while refining a Bad-pixel Map. Please close the Refine Bad-"
 "pixel Map window."
@@ -6148,30 +6148,30 @@ msgstr ""
 "Гидирование невозможно во время улучшения карты битых пикселей. Закройте "
 "окно улучшения карты битых пикселей."
 
-#: myframe.cpp:2254
+#: myframe.cpp:2255
 #, c-format
 msgid "Dither by %.2f,%.2f"
 msgstr "Подвижка на %.2f,%.2f"
 
-#: myframe.cpp:2302
+#: myframe.cpp:2303
 msgid "Are you sure you want to exit while capturing is active?"
 msgstr "Вы уверены, что хотите выйти при активном захвате?"
 
-#: myframe.cpp:2303
+#: myframe.cpp:2304
 msgid "Confirm Exit"
 msgstr "Подтвердить выход"
 
-#: myframe.cpp:2612
+#: myframe.cpp:2613
 #, c-format
 msgid "FITS file is not of an image: %s"
 msgstr "Файл FITS не содержит изображения: %s"
 
-#: myframe.cpp:2620 usImage.cpp:465
+#: myframe.cpp:2621 usImage.cpp:465
 #, c-format
 msgid "Unsupported type or read error loading FITS file %s"
 msgstr "Неизвестный тип или ошибка чтения файла FITS %s "
 
-#: myframe.cpp:2630
+#: myframe.cpp:2631
 msgid ""
 "Existing dark library has frames with incompatible formats - please rebuild "
 "the dark library from scratch."
@@ -6179,79 +6179,79 @@ msgstr ""
 "В существующей темновой библиотеке есть кадры в несовместимых форматах - "
 "пересоздайте новую."
 
-#: myframe.cpp:2642
+#: myframe.cpp:2643
 #, c-format
 msgid "Memory allocation error reading FITS file %s"
 msgstr "Ошибка выделения памяти при чтении файла FITS %s"
 
-#: myframe.cpp:2649
+#: myframe.cpp:2650
 #, c-format
 msgid "Error reading data from %s"
 msgstr "Ошибка чтения данных из %s"
 
-#: myframe.cpp:2701 usImage.cpp:520
+#: myframe.cpp:2702 usImage.cpp:520
 #, c-format
 msgid "Error opening FITS file %s"
 msgstr "Ошибка при открытии файла FITS %s"
 
-#: myframe.cpp:2767
+#: myframe.cpp:2768
 msgid ""
 "Dark library does not match the camera in this profile. Check that you are "
 "connected to the camera you want to use for guiding."
 msgstr ""
 
-#: myframe.cpp:2820
+#: myframe.cpp:2821
 msgid ""
 "Dark library and bad-pixel maps don't match the current camera. Check that "
 "you are connected to the camera you want to use for guiding."
 msgstr ""
 
-#: myframe.cpp:2858
+#: myframe.cpp:2859
 msgid "You must connect a camera before loading dark frames"
 msgstr ""
 "Перед загрузкой библиотеки темновых кадров необходимо подключить камеру"
 
-#: myframe.cpp:2865
+#: myframe.cpp:2866
 msgid "Darks not loaded"
 msgstr "Темновые кадры не загружены"
 
-#: myframe.cpp:2872
+#: myframe.cpp:2873
 msgid "Darks loaded"
 msgstr "Темновые кадры загружены"
 
-#: myframe.cpp:2885
+#: myframe.cpp:2886
 #, c-format
 msgid "Error saving darks FITS file %s"
 msgstr "Ошибка записи темнового файла FITS %s"
 
-#: myframe.cpp:3086
+#: myframe.cpp:3087
 msgid ""
 "Binning or camera pixel size changed unexpectedly. You should use separate "
 "profiles for different image scales."
 msgstr ""
 
-#: myframe.cpp:3096
+#: myframe.cpp:3097
 msgid "Global Settings"
 msgstr "Общие настройки"
 
-#: myframe.cpp:3143
+#: myframe.cpp:3144
 #, c-format
 msgid "Enter a focal length in millimeters, between %.f and %.f"
 msgstr ""
 
-#: myframe.cpp:3193 myframe.cpp:3278
+#: myframe.cpp:3194 myframe.cpp:3279
 msgid "System default"
 msgstr "Настройки системы по умолчанию"
 
-#: myframe.cpp:3205
+#: myframe.cpp:3206
 msgid "Language-Name"
 msgstr "Русский"
 
-#: myframe.cpp:3246
+#: myframe.cpp:3247
 msgid "Reset Configuration"
 msgstr "Сброс конфигурации"
 
-#: myframe.cpp:3248
+#: myframe.cpp:3249
 msgid ""
 "Reset all configuration and program settings to fresh install status. This "
 "will require restarting PHD2"
@@ -6259,38 +6259,38 @@ msgstr ""
 "Сбросить все настройки для обновление статуса установки. Требует "
 "перезагрузки PHD2"
 
-#: myframe.cpp:3249
+#: myframe.cpp:3250
 msgid "Reset \"Don't Show Again\" messages"
 msgstr "Сброс сообщений \"Больше не показывать\""
 
-#: myframe.cpp:3251
+#: myframe.cpp:3252
 msgid ""
 "Restore any messages that were hidden when you checked \"Don't show this "
 "again\"."
 msgstr ""
 "Показать сообщения, которые были скрыты при нажатии \"Больше не показывать\""
 
-#: myframe.cpp:3253
+#: myframe.cpp:3254
 msgid "2x2 mean"
 msgstr "2x2 среднее"
 
-#: myframe.cpp:3253
+#: myframe.cpp:3254
 msgid "3x3 median"
 msgstr "3x3 медиана"
 
-#: myframe.cpp:3259
+#: myframe.cpp:3260
 msgid "Noise Reduction"
 msgstr "Уменьшение шума"
 
-#: myframe.cpp:3260
+#: myframe.cpp:3261
 msgid "Technique to reduce noise in images"
 msgstr "Способ уменьшения шумов изображения"
 
-#: myframe.cpp:3266 planetary_tool.cpp:297
+#: myframe.cpp:3267 planetary_tool.cpp:477
 msgid "Time Lapse (ms)"
 msgstr "Частота замедленной видеосъёмки (мсек)"
 
-#: myframe.cpp:3267
+#: myframe.cpp:3268
 msgid ""
 "How long should PHD wait between guide frames? Default = 0ms, useful when "
 "using very short exposures (e.g., using a video camera) but wanting to send "
@@ -6300,11 +6300,11 @@ msgstr ""
 "экспозициях (например, при съёмках видеокамерой), но при этом команды "
 "гидирования будут посылаться реже"
 
-#: myframe.cpp:3275
+#: myframe.cpp:3276
 msgid "Focal length (mm)"
 msgstr "Фокусное расстояние в мм"
 
-#: myframe.cpp:3276
+#: myframe.cpp:3277
 msgid ""
 "Guider telescope focal length, used with the camera pixel size to display "
 "guiding error in arc-sec."
@@ -6312,73 +6312,73 @@ msgstr ""
 "Фокусное расстояние гидирующего телескопа, используется вместе с размером "
 "пикселей камеры для показа ошибки гидирования в арксек."
 
-#: myframe.cpp:3281
+#: myframe.cpp:3282
 msgid "Language"
 msgstr "Язык"
 
-#: myframe.cpp:3282
+#: myframe.cpp:3283
 #, c-format
 msgid "%s Language. You'll have to restart PHD to take effect."
 msgstr "Язык: %s. Перегрузитесь, чтобы изменения вступили в силу."
 
-#: myframe.cpp:3287 phdupdate.cpp:942 phdupdate.cpp:948
+#: myframe.cpp:3288 phdupdate.cpp:942 phdupdate.cpp:948
 msgid "Software Update"
 msgstr "Обновление ПО"
 
-#: myframe.cpp:3288
+#: myframe.cpp:3289
 msgid "Automatically check for updates"
 msgstr "Проверять обновления автоматически"
 
-#: myframe.cpp:3289
+#: myframe.cpp:3290
 msgid "Check for software updates when PHD2 starts (recommended)"
 msgstr "Проверять обновления при запуске PHD2"
 
-#: myframe.cpp:3291
+#: myframe.cpp:3292
 msgid "Only check for major releases"
 msgstr "Проверять только основные выпуски"
 
-#: myframe.cpp:3292
+#: myframe.cpp:3293
 msgid "Ignore minor (development) releases when checking for updates"
 msgstr "При проверке обновлений игнорировать разработческие выпуски"
 
-#: myframe.cpp:3299
+#: myframe.cpp:3300
 msgid "Log File Location"
 msgstr "Расположение лог-файла"
 
-#: myframe.cpp:3302
+#: myframe.cpp:3303
 msgid ""
 "Folder for guide and debug logs; empty string to restore the default location"
 msgstr "Место для логов гидирования и отладки; если не указано - по умолчанию"
 
-#: myframe.cpp:3303
+#: myframe.cpp:3304
 msgid "Browse..."
 msgstr "Просмотр..."
 
-#: myframe.cpp:3316
+#: myframe.cpp:3317
 msgid "Enable diagnostic image logging"
 msgstr "Включить диагностическое логгирование изображений"
 
-#: myframe.cpp:3317
+#: myframe.cpp:3318
 msgid "Save guider images based on options below"
 msgstr "Сохранить гидирующие изображения согласно следующему параметру"
 
-#: myframe.cpp:3320
+#: myframe.cpp:3321
 msgid "Save Guider Images"
 msgstr "Сохранить гидирующие изображения"
 
-#: myframe.cpp:3323
+#: myframe.cpp:3324
 msgid "For all lost-star frames"
 msgstr "Для всех кадров с потерянной звездой"
 
-#: myframe.cpp:3324
+#: myframe.cpp:3325
 msgid "Save guider image whenever a lost-star event occurs"
 msgstr "Сохранять гидирующее изображение всякий раз при потере звезды"
 
-#: myframe.cpp:3326
+#: myframe.cpp:3327
 msgid "For all Auto-select Star frames"
 msgstr "Для всех кадров автовыбора звезды"
 
-#: myframe.cpp:3327
+#: myframe.cpp:3328
 msgid ""
 "Save guider image when a star auto-selection is made. Note: the image is "
 "always saved when star auto-selection fails, regardless of this setting."
@@ -6386,11 +6386,11 @@ msgstr ""
 "Сохранять гидирующее изображение при автовыборе звезды. Если автовыбор "
 "завершится ошибкой, изображение сохранится в любом случае."
 
-#: myframe.cpp:3331
+#: myframe.cpp:3332
 msgid "When relative error exceeds"
 msgstr "Порог относительной ошибки"
 
-#: myframe.cpp:3333
+#: myframe.cpp:3334
 msgid ""
 "Save guider images when the error for the current frame exceeds the average "
 "error by this factor. For example, if the average (RMS) error is 0.5 pixels, "
@@ -6400,7 +6400,7 @@ msgstr ""
 "среднюю. Например, если среднеквадратичная ошибка равна 0.5 пикселя, а "
 "ошибка текущего кадра 1.5 пикселя, относительная ошибка равна 3"
 
-#: myframe.cpp:3339
+#: myframe.cpp:3340
 msgid ""
 "Relative error threshold. Relative error is the ratio between the current "
 "frame's error and the average error"
@@ -6408,11 +6408,11 @@ msgstr ""
 "Порог относительной ошибки. Относительная ошибка - это отношение ошибки "
 "текущего кадра к средней"
 
-#: myframe.cpp:3344
+#: myframe.cpp:3345
 msgid "When absolute error exceeds (pixels)"
 msgstr "Порог абсолютной ошибки (в пикселях)"
 
-#: myframe.cpp:3346
+#: myframe.cpp:3347
 msgid ""
 "Save guider images when the distance between the guide star and the lock "
 "position exceeds this many pixels"
@@ -6420,68 +6420,68 @@ msgstr ""
 "Сохранить кадры гидирования если расстояние между опорной звездой и "
 "выбранной позицией больше этих пикселей"
 
-#: myframe.cpp:3350
+#: myframe.cpp:3351
 msgid "Absolute error threshold in pixels"
 msgstr "Порог абсолютной ошибки в пикселях"
 
-#: myframe.cpp:3355
+#: myframe.cpp:3356
 msgid "Until this count is reached"
 msgstr "Количество итераций"
 
-#: myframe.cpp:3356
+#: myframe.cpp:3357
 msgid ""
 "Save each guider image until the specified number of images have been saved"
 msgstr ""
 "Сохранять каждое изображение пока требуемое количество не будет достигнуто"
 
-#: myframe.cpp:3359
+#: myframe.cpp:3360
 msgid "Number of images to save"
 msgstr "Количество сохраняемых изображений"
 
-#: myframe.cpp:3374
+#: myframe.cpp:3375
 msgid "Dither Settings"
 msgstr "Настройки подвижек"
 
-#: myframe.cpp:3375
+#: myframe.cpp:3376
 msgid "Random"
 msgstr "Случайный"
 
-#: myframe.cpp:3376
+#: myframe.cpp:3377
 msgid ""
 "Each dither command moves the lock position a random distance on each axis"
 msgstr ""
 "Команды подвижки изменяют выбранное положение на случайную величину по "
 "каждой из осей"
 
-#: myframe.cpp:3377
+#: myframe.cpp:3378
 msgid "Spiral"
 msgstr "Спираль"
 
-#: myframe.cpp:3378
+#: myframe.cpp:3379
 msgid "Each dither command moves the lock position along a spiral path"
 msgstr "Команды подвижки изменяют выбранное положение по спиральному пути"
 
-#: myframe.cpp:3385
+#: myframe.cpp:3386
 msgid "RA only"
 msgstr "Только α"
 
-#: myframe.cpp:3386
+#: myframe.cpp:3387
 msgid "Constrain dither to RA only"
 msgstr "Ограничить подвижки осью α"
 
-#: myframe.cpp:3392
+#: myframe.cpp:3393
 msgid "Scaling for dither commands. Default = 1.0 (0.1-100.0)"
 msgstr ""
 
-#: myframe.cpp:3396 testguide.cpp:126
+#: myframe.cpp:3397 testguide.cpp:126
 msgid "Scale"
 msgstr "Масштаб"
 
-#: myframe.cpp:3404 profile_wizard.cpp:396
+#: myframe.cpp:3405 profile_wizard.cpp:396
 msgid "Auto restore calibration"
 msgstr "Автовосстановление калибровки"
 
-#: myframe.cpp:3407
+#: myframe.cpp:3408
 msgid ""
 "For this equipment profile, automatically restore data from last successful "
 "calibration after gear is connected."
@@ -6489,79 +6489,79 @@ msgstr ""
 "Для этого профиля оборудования после подключения будут восстановлены данные "
 "последней успешной калибровки."
 
-#: myframe.cpp:3424 scope.cpp:2152
+#: myframe.cpp:3425 scope.cpp:2152
 msgid "Min"
 msgstr "Мин."
 
-#: myframe.cpp:3424
+#: myframe.cpp:3425
 msgid "Auto exposure minimum duration"
 msgstr "Минимальная продолжительность автоэкспозиции"
 
-#: myframe.cpp:3425 scope.cpp:2155
+#: myframe.cpp:3426 scope.cpp:2155
 msgid "Max"
 msgstr "Макс."
 
-#: myframe.cpp:3425
+#: myframe.cpp:3426
 msgid "Auto exposure maximum duration"
 msgstr "Максимальная продолжительность автоэкспозиции"
 
-#: myframe.cpp:3427
+#: myframe.cpp:3428
 msgid "Target SNR"
 msgstr "Cигнал/шум звезды"
 
-#: myframe.cpp:3427
+#: myframe.cpp:3428
 msgid "Auto exposure target SNR value"
 msgstr "Соотношение сигнал/шум при автоэкспозиции"
 
-#: myframe.cpp:3429
+#: myframe.cpp:3430
 msgid "Auto Exposure"
 msgstr "Автоэкспозиция"
 
-#: myframe.cpp:3437
+#: myframe.cpp:3438
 msgid "Use Variable Exposure Delays"
 msgstr ""
 
-#: myframe.cpp:3439
+#: myframe.cpp:3440
 msgid ""
 "Use \"short\" delay for calibration, looping, dithering, GA, \"long\" delay "
 "for normal guiding"
 msgstr ""
 
-#: myframe.cpp:3446
+#: myframe.cpp:3447
 msgid "Short delay (sec)"
 msgstr ""
 
-#: myframe.cpp:3447
+#: myframe.cpp:3448
 msgid "Short delay for calibration, looping, dithering, GA"
 msgstr ""
 
-#: myframe.cpp:3448
+#: myframe.cpp:3449
 msgid "Long delay (sec)"
 msgstr ""
 
-#: myframe.cpp:3449
+#: myframe.cpp:3450
 msgid "Long delay for normal guiding"
 msgstr ""
 
-#: myframe.cpp:3451
+#: myframe.cpp:3452
 msgid "Variable Exposure Delay (High-precision encoder mounts)"
 msgstr ""
 
-#: myframe.cpp:3543
+#: myframe.cpp:3544
 msgid ""
 "This will reset all PHD2 configuration values and restart the program.  Are "
 "you sure?"
 msgstr "Конфигурация будет сброшена и PHD2 перезагрузится. Вы уверены?"
 
-#: myframe.cpp:3544
+#: myframe.cpp:3545
 msgid "Confirmation"
 msgstr "Подтверждение"
 
-#: myframe.cpp:3577
+#: myframe.cpp:3578
 msgid "Restart PHD2"
 msgstr "Перезагрузить PH2"
 
-#: myframe.cpp:3578
+#: myframe.cpp:3579
 msgid ""
 "You must restart PHD2 for the language change to take effect.\n"
 "Would you like to restart PHD2 now?"
@@ -7273,125 +7273,125 @@ msgstr ""
 msgid "PHD2"
 msgstr ""
 
-#: planetary.cpp:1494 planetary_tool.cpp:530 scope.cpp:339
+#: planetary.cpp:1494 planetary_tool.cpp:1013 scope.cpp:339
 msgid "INDI Mount"
 msgstr "Монтировка INDI"
 
-#: planetary.cpp:1625
+#: planetary.cpp:1627
 msgid "Object not found"
 msgstr ""
 
-#: planetary.cpp:1671
+#: planetary.cpp:1673
 msgid ""
 "ERROR: camera frame size exceeds maximum limit. Please apply binning to "
 "reduce the frame size."
 msgstr ""
 
-#: planetary.cpp:1744
+#: planetary.cpp:1746
 msgid ""
 "ERROR: exception occurred during image processing: change detection "
 "parameters"
 msgstr ""
 
-#: planetary.cpp:1750
+#: planetary.cpp:1752
 msgid "ERROR: unknown exception occurred in solar system object detection"
 msgstr ""
 
-#: planetary_tool.cpp:44
+#: planetary_tool.cpp:43
 msgid ""
 "Planetary detection paused : do not stop guiding to keep the original lock "
 "position!"
 msgstr ""
 
-#: planetary_tool.cpp:122
+#: planetary_tool.cpp:160
 msgid "Planetary and solar guiding | disabled"
 msgstr ""
 
-#: planetary_tool.cpp:123
+#: planetary_tool.cpp:161
 msgid "Planetary and solar guiding | enabled"
 msgstr ""
 
-#: planetary_tool.cpp:124
+#: planetary_tool.cpp:162
 msgid "Planetary and solar guiding | paused"
 msgstr ""
 
-#: planetary_tool.cpp:176
+#: planetary_tool.cpp:275
 msgid "Enable planetary and solar guiding"
 msgstr ""
 
-#: planetary_tool.cpp:177
+#: planetary_tool.cpp:276
 msgid "Toggle between star and solar/lunar/planetary guiding modes"
 msgstr ""
 
-#: planetary_tool.cpp:181
+#: planetary_tool.cpp:280
 msgid "Enable noise suppression filter (experimental)"
 msgstr ""
 
-#: planetary_tool.cpp:182
+#: planetary_tool.cpp:281
 msgid ""
 "Enable noise filtering only for extremely noisy images. Use this option "
 "cautiously, as it's recommended only when absolutely necessary."
 msgstr ""
 
-#: planetary_tool.cpp:186
+#: planetary_tool.cpp:285
 msgid ""
 "For initial guess of possible radius range connect the gear and set correct "
 "focal length."
 msgstr ""
 
-#: planetary_tool.cpp:195
+#: planetary_tool.cpp:294
 #, c-format
 msgid ""
 "Hint: for solar/lunar detection (pixel size=%.2f, binning=x%d, FL=%d mm) set "
 "the radius to approximately %.0f-%.0f."
 msgstr ""
 
-#: planetary_tool.cpp:203
+#: planetary_tool.cpp:302
 msgid "Min radius:"
 msgstr ""
 
-#: planetary_tool.cpp:207
+#: planetary_tool.cpp:306
 msgid ""
 "Minimum planet radius (in pixels). Set this a few pixels lower than the "
 "actual planet radius. "
 msgstr ""
 
-#: planetary_tool.cpp:209
+#: planetary_tool.cpp:308
 msgid "Max radius:"
 msgstr ""
 
-#: planetary_tool.cpp:213
+#: planetary_tool.cpp:312
 msgid ""
 "Maximum planet radius (in pixels). Set this a few pixels higher than the "
 "actual planet radius. "
 msgstr ""
 
-#: planetary_tool.cpp:226
+#: planetary_tool.cpp:325
 msgid "Edge Detection Threshold:"
 msgstr ""
 
-#: planetary_tool.cpp:229
+#: planetary_tool.cpp:328
 msgid ""
 "Higher values reduce sensitivity to weaker edges, resulting in cleaner "
 "contour. This is displayed in red when the display of internal contour edges "
 "is enabled."
 msgstr ""
 
-#: planetary_tool.cpp:232
+#: planetary_tool.cpp:331
 msgid "Enable ROI"
 msgstr ""
 
-#: planetary_tool.cpp:234
+#: planetary_tool.cpp:333
 msgid ""
 "Enable automatically selected Region Of Interest (ROI) for improved "
 "processing speed and reduced CPU usage."
 msgstr ""
 
-#: planetary_tool.cpp:237
+#: planetary_tool.cpp:336
 msgid "Display internal edges"
 msgstr ""
 
-#: planetary_tool.cpp:238
+#: planetary_tool.cpp:337
 msgid ""
 "Toggle the visibility of internally detected edges and tune detection "
 "parameters to maintain a manageable number of these features while keeping "
@@ -7399,111 +7399,222 @@ msgid ""
 "guiding mode."
 msgstr ""
 
-#: planetary_tool.cpp:257
+#: planetary_tool.cpp:356
 msgid "Mount settings"
 msgstr ""
 
-#: planetary_tool.cpp:259
+#: planetary_tool.cpp:358
 msgid "Tracking"
 msgstr ""
 
-#: planetary_tool.cpp:260
+#: planetary_tool.cpp:359
 msgid "Press and hold CTRL key to toggle mount tracking state"
 msgstr ""
 
-#: planetary_tool.cpp:262 planetary_tool.cpp:573 planetary_tool.cpp:650
-#: scope_ascom.cpp:542 scope_ascom.cpp:614
+#: planetary_tool.cpp:361 planetary_tool.cpp:1059 planetary_tool.cpp:1180
+#: scope_ascom.cpp:549 scope_ascom.cpp:661
 msgid "Sidereal"
 msgstr ""
 
-#: planetary_tool.cpp:270
+#: planetary_tool.cpp:369
 msgid "Tracking rate"
 msgstr ""
 
-#: planetary_tool.cpp:271
+#: planetary_tool.cpp:370
 msgid "Select the desired tracking rate for the mount"
 msgstr ""
 
-#: planetary_tool.cpp:286
+#: planetary_tool.cpp:374
+msgid "Enable custom tracking rates"
+msgstr ""
+
+#: planetary_tool.cpp:375
+msgid "Enable custom tracking rates for the Custom tracking mode"
+msgstr ""
+
+#: planetary_tool.cpp:376
+msgid "Custom rates"
+msgstr ""
+
+#: planetary_tool.cpp:378
+msgid "Apply custom mount track rates"
+msgstr ""
+
+#: planetary_tool.cpp:381
+msgid ""
+"Apply the rates below directly to the mount RA and Dec tracking rates "
+"(relative to sidereal). This mode requires mount support for custom tracking "
+"rates via the ASCOM interface. Use when guiding directly on large non "
+"stellar targets such as the Sun, Moon, or planets. When guiding on stars, "
+"select the Comet/Minor Body tracking mode instead."
+msgstr ""
+
+#: planetary_tool.cpp:386
+msgid "Comet/Minor Body tracking mode"
+msgstr ""
+
+#: planetary_tool.cpp:388
+msgid ""
+"Use the rates below when guiding on stars while tracking minor body motion. "
+"This option is available only when guiding is active. This mode keeps the "
+"comet nucleus or minor body fixed in the frame while stars are naturally "
+"elongated. Note: Using direct RA and Dec tracking offsets (intended for "
+"tracking large solar system bodies) while guiding on stars will cause the "
+"guiding algorithm to oppose the applied rates, leading to inefficient "
+"guiding and tracking."
+msgstr ""
+
+#: planetary_tool.cpp:415
+msgid "Apply custom rate"
+msgstr ""
+
+#: planetary_tool.cpp:416
+msgid ""
+"Apply the custom mount tracking rates shown above when Tracking rate is set "
+"to Custom."
+msgstr ""
+
+#: planetary_tool.cpp:418 planetary_tool.cpp:861
+msgid "Start minor body tracking"
+msgstr ""
+
+#: planetary_tool.cpp:419
+msgid ""
+"Track a comet, asteroid, or other minor body while guiding on stars. Uses "
+"the rates below without changing the mount tracking rate."
+msgstr ""
+
+#: planetary_tool.cpp:422
+msgid "Stop minor body tracking"
+msgstr ""
+
+#: planetary_tool.cpp:424
+msgid "Stop minor body tracking started here or from the Comet Tracking tool."
+msgstr ""
+
+#: planetary_tool.cpp:426
+msgid "Open Horizons Web Application"
+msgstr ""
+
+#: planetary_tool.cpp:428
+msgid ""
+"Open the JPL Horizons Web Application in your default browser. In Observer "
+"Table Settings, select item 3 (Rates; RA & DEC) to get values that can be "
+"used directly here. Other fields are optional. These rates are valid only "
+"when the telescope is pointed at the intended target and the current UTC "
+"time matches the selected ephemeris entry. Please use the service reasonably "
+"and follow the Horizons fair use guidelines."
+msgstr ""
+
+#: planetary_tool.cpp:455
 msgid "Enable video log"
 msgstr ""
 
-#: planetary_tool.cpp:287
+#: planetary_tool.cpp:456
 msgid ""
 "Enable recording camera frames to video log file during guiding (using SER "
 "format)"
 msgstr ""
 
-#: planetary_tool.cpp:294
+#: planetary_tool.cpp:474
 msgid "Exposure (ms)"
 msgstr ""
 
-#: planetary_tool.cpp:294
+#: planetary_tool.cpp:474
 msgid "Camera exposure in milliseconds)"
 msgstr ""
 
-#: planetary_tool.cpp:295
+#: planetary_tool.cpp:475
 msgid "Gain"
 msgstr ""
 
-#: planetary_tool.cpp:295
+#: planetary_tool.cpp:475
 msgid "Camera gain (0-100)"
 msgstr ""
 
-#: planetary_tool.cpp:298
+#: planetary_tool.cpp:478
 msgid ""
 "How long should PHD wait between guide frames? Useful when using very short "
 "exposures but wanting to send guide commands less frequently"
 msgstr ""
 
-#: planetary_tool.cpp:300
+#: planetary_tool.cpp:480
 msgid "Binning"
 msgstr "Биннинг"
 
-#: planetary_tool.cpp:301
+#: planetary_tool.cpp:481
 msgid "Camera binning. For solar/planetary guiding 1x1 is recommended."
 msgstr ""
 
-#: planetary_tool.cpp:311 planetary_tool.cpp:373 planetary_tool.cpp:519
-#: planetary_tool.cpp:837
+#: planetary_tool.cpp:491 planetary_tool.cpp:555 planetary_tool.cpp:1002
+#: planetary_tool.cpp:1377
 msgid "Pause"
 msgstr ""
 
-#: planetary_tool.cpp:313
+#: planetary_tool.cpp:493
 msgid ""
 "Use this button to pause/resume detection during clouds or totality instead "
 "of stopping guiding. It preserves object lock position, allowing PHD2 to "
 "realign the object without losing its original position"
 msgstr ""
 
-#: planetary_tool.cpp:373 planetary_tool.cpp:519 planetary_tool.cpp:837
+#: planetary_tool.cpp:555 planetary_tool.cpp:1002 planetary_tool.cpp:1377
 msgid "Resume"
 msgstr ""
 
-#: planetary_tool.cpp:573 planetary_tool.cpp:587 planetary_tool.cpp:652
-#: scope_ascom.cpp:546 scope_ascom.cpp:617
-msgid "Lunar"
-msgstr ""
-
-#: planetary_tool.cpp:574 planetary_tool.cpp:594 planetary_tool.cpp:657
-#: scope_ascom.cpp:550 scope_ascom.cpp:620
-msgid "Solar"
-msgstr ""
-
-#: planetary_tool.cpp:575 planetary_tool.cpp:662
-msgid "King"
-msgstr ""
-
-#: planetary_tool.cpp:575 planetary_tool.cpp:600 planetary_tool.cpp:662
-#: scope_ascom.cpp:554 scope_ascom.cpp:624
+#: planetary_tool.cpp:574 planetary_tool.cpp:709 planetary_tool.cpp:800
+#: planetary_tool.cpp:1087 planetary_tool.cpp:1094 planetary_tool.cpp:1099
+#: planetary_tool.cpp:1102 planetary_tool.cpp:1176 planetary_tool.cpp:1178
+#: scope_ascom.cpp:561 scope_ascom.cpp:673
 msgid "Custom"
 msgstr ""
 
-#: planetary_tool.cpp:679
+#: planetary_tool.cpp:819
+msgid "dRA*cosD/dt"
+msgstr ""
+
+#: planetary_tool.cpp:819 planetary_tool.cpp:820
+msgid ":"
+msgstr ""
+
+#: planetary_tool.cpp:820
+msgid "d(DEC)"
+msgstr ""
+
+#: planetary_tool.cpp:822
+msgid ""
+"Horizons RA*cos(Dec) rate, arcsec/hour. Apply it only when the mount is "
+"synced to the target, or the mount RA rate will be wrong. Limit is 5x "
+"sidereal rate."
+msgstr ""
+
+#: planetary_tool.cpp:824
+msgid "Horizons rate of change in Dec, arcsec/hour. Limit is 5x sidereal rate."
+msgstr ""
+
+#: planetary_tool.cpp:861
+msgid "Update minor body rate"
+msgstr ""
+
+#: planetary_tool.cpp:1060 planetary_tool.cpp:1074 planetary_tool.cpp:1182
+#: scope_ascom.cpp:553 scope_ascom.cpp:664
+msgid "Lunar"
+msgstr ""
+
+#: planetary_tool.cpp:1061 planetary_tool.cpp:1081 planetary_tool.cpp:1187
+#: scope_ascom.cpp:557 scope_ascom.cpp:667
+msgid "Solar"
+msgstr ""
+
+#: planetary_tool.cpp:1062 planetary_tool.cpp:1192 scope_ascom.cpp:670
+msgid "King"
+msgstr ""
+
+#: planetary_tool.cpp:1217
 msgid "EQMOD ASCOM"
 msgstr ""
 
-#: planetary_tool.cpp:900
+#: planetary_tool.cpp:1440
 msgid ""
 "Warning: the sum of camera exposure and time lapse duration must be at least "
 "500 msec (recommended 2000-3000 msec)!"
@@ -8780,35 +8891,35 @@ msgid ""
 "information"
 msgstr "Проблема драйвера ASCOM при отключении, см. лог отладки"
 
-#: scope_ascom.cpp:703
+#: scope_ascom.cpp:752
 msgid ""
 "ASCOM driver does not support PulseGuide. Check your ASCOM driver settings."
 msgstr ""
 "Драйвер ASCOM не поддерживает импульсное гидирование. Проверьте настройки "
 "драйвера."
 
-#: scope_ascom.cpp:867
+#: scope_ascom.cpp:916
 msgid ""
 "PulseGuide command to mount has failed - guiding is likely to be ineffective."
 msgstr "Сбой команды PulseGuide - гидирование, вероятно, не будет правильным."
 
-#: scope_ascom.cpp:875
+#: scope_ascom.cpp:924
 msgid "Guiding stopped: the scope started slewing."
 msgstr "Гидирование остановлено из-за начавшегося перемещения телескопа"
 
-#: scope_ascom.cpp:922
+#: scope_ascom.cpp:971
 msgid ""
 "ASCOM driver failed checking for slewing, see the debug log for more "
 "information."
 msgstr "Сбой драйвера ASCOM при проверке наведения, см. лог отладки."
 
-#: scope_ascom.cpp:939
+#: scope_ascom.cpp:988
 msgid ""
 "ASCOM driver failed calling AbortSlew, see the debug log for more "
 "information."
 msgstr "Сбой драйвера ASCOM при вызове AbortSlew, см. лог отладки."
 
-#: scope_ascom.cpp:1249
+#: scope_ascom.cpp:1298
 msgid ""
 "The mount's ASCOM driver is reporting invalid guide speeds. Some guiding "
 "functions including PPEC will be impaired. Contact the ASCOM driver provider "

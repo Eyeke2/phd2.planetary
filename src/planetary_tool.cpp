@@ -36,12 +36,14 @@
 #include "phd.h"
 #include "planetary_tool.h"
 
-#include <wx/valnum.h>
 #include <wx/tooltip.h>
 
 static bool pauseAlert = false;
 static wxString planetaryPauseAlertMsg =
     _("Planetary detection paused : do not stop guiding to keep the original lock position!");
+static constexpr double SIDEREAL_RATE_ARCSEC_PER_SEC = 15.041;
+static constexpr double MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR = 5.0 * SIDEREAL_RATE_ARCSEC_PER_SEC * 3600.0;
+static constexpr double MAX_MOUNT_TRACK_RATE_OFFSET = 10.0 * 3600.0 / (15.0 * 0.9973);
 
 struct PlanetToolWin : public wxDialog
 {
@@ -72,6 +74,22 @@ struct PlanetToolWin : public wxDialog
     wxCheckBox *m_mountTrackigCheckBox;
     Scope *m_prevPointingSource;
     bool m_prevMountConnected;
+    bool m_prevMountCustomRateNonZero;
+
+    // Custom rate controls
+    wxStaticBoxSizer *m_mountGroup;
+    wxStaticBoxSizer *m_customRatesGroup;
+    wxCheckBox *m_overrideCustomRate;
+    wxRadioButton *m_customMountTrackingMode;
+    wxRadioButton *m_minorBodyTrackingMode;
+    wxStaticText *m_customRateRaLabel;
+    wxStaticText *m_customRateDecLabel;
+    wxSpinCtrlDouble *m_Horizons_dRaCosDRate;
+    wxSpinCtrlDouble *m_Horizons_dDecRate;
+    wxButton *m_applyCustomRateButton;
+    wxButton *m_minorBodyTrackingButton;
+    wxButton *m_stopMinorBodyTrackingButton;
+    bool m_updatingCustomRateFields;
 
     wxButton *m_CloseButton;
     wxButton *m_PauseButton;
@@ -105,8 +123,15 @@ struct PlanetToolWin : public wxDialog
     void OnNoiseFilterClick(wxCommandEvent& event);
 #endif
     void OnMountTrackingClick(wxCommandEvent& event);
+    void OnOverrideCustomRateClick(wxCommandEvent& event);
     void OnMountTrackingRateClick(wxCommandEvent& event);
     void OnTrackingRateMouseWheel(wxMouseEvent& event);
+    void OnMinorBodyTrackingModeClick(wxCommandEvent& event);
+    void OnHorizonsRateChanged(wxSpinDoubleEvent& event);
+    void OnCustomRateChar(wxKeyEvent& event);
+    void OnApplyCustomRateClick(wxCommandEvent& event);
+    void OnMinorBodyTrackingClick(wxCommandEvent& event);
+    void OnStopMinorBodyTrackingClick(wxCommandEvent& event);
 
     void OnExposureChanged(wxSpinDoubleEvent& event);
     void OnDelayChanged(wxSpinDoubleEvent& event);
@@ -114,6 +139,17 @@ struct PlanetToolWin : public wxDialog
     void OnBinningSelected(wxCommandEvent& event);
     void OnSaveVideoLog(wxCommandEvent& event);
 
+    bool CanEditCustomRates() const;
+    void UpdateCustomRateLabels();
+    void UpdateCustomRateRanges();
+    void UpdateCustomRateControlsEnabled();
+    void SetCustomRateFieldHighlight(bool applied);
+    void ApplyCurrentCustomRate();
+    bool GetCurrentCustomRateMountOffsets(double *raOffset, double *decOffset) const;
+    bool GetCurrentCustomRateShiftRates(double *raRate, double *decRate) const;
+    bool MinorBodyTrackingActive() const;
+    void RefreshCustomRateShiftReadback(double declination, double raRate, double decRate);
+    void RefreshCustomRateReadback(double declination, double raRate, double decRate);
     void SyncCameraExposure(bool init = false);
     void CheckMinExposureDuration();
     void UpdateStatus();
@@ -159,6 +195,67 @@ static wxSpinCtrlDouble *NewSpinner(wxWindow *parent, wxString formatstr, double
                                                             wxSP_ARROW_KEYS, minval, maxval, val, inc);
     pNewCtrl->SetDigits(0);
     return pNewCtrl;
+}
+
+static bool HorizonsRatesToMountOffsets(double decRadians, double horizonsRaCosDRate, double horizonsDecRate,
+                                        double *raOffset, double *decOffset)
+{
+    if (!raOffset || !decOffset || decRadians == UNKNOWN_DECLINATION)
+        return false;
+
+    double const cosDec = cos(decRadians);
+    if (fabs(cosDec) < 1e-4)
+        return false;
+
+    *raOffset = horizonsRaCosDRate / (15.0 * 3600.0 * cosDec);
+    *decOffset = horizonsDecRate / 3600.0;
+    if (fabs(*raOffset) > MAX_MOUNT_TRACK_RATE_OFFSET || fabs(*decOffset) > MAX_MOUNT_TRACK_RATE_OFFSET)
+        return false;
+    return true;
+}
+
+static bool MountOffsetsToHorizonsRates(double decRadians, double raOffset, double decOffset,
+                                        double *horizonsRaCosDRate, double *horizonsDecRate)
+{
+    if (!horizonsRaCosDRate || !horizonsDecRate || decRadians == UNKNOWN_DECLINATION)
+        return false;
+
+    *horizonsRaCosDRate = raOffset * 15.0 * cos(decRadians) * 3600.0;
+    *horizonsDecRate = decOffset * 3600.0;
+    return true;
+}
+
+static bool HorizonsRatesToShiftRates(double decRadians, double horizonsRaCosDRate, double horizonsDecRate,
+                                      double *raRate, double *decRate)
+{
+    if (!raRate || !decRate || decRadians == UNKNOWN_DECLINATION)
+        return false;
+
+    double const cosDec = cos(decRadians);
+    if (fabs(cosDec) < 1e-4)
+        return false;
+
+    *raRate = horizonsRaCosDRate / cosDec;
+    *decRate = horizonsDecRate;
+    if (fabs(*raRate) > MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR || fabs(*decRate) > MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR)
+        return false;
+    return true;
+}
+
+static bool ShiftRatesToHorizonsRates(double decRadians, double raRate, double decRate,
+                                      double *horizonsRaCosDRate, double *horizonsDecRate)
+{
+    if (!horizonsRaCosDRate || !horizonsDecRate || decRadians == UNKNOWN_DECLINATION)
+        return false;
+
+    *horizonsRaCosDRate = raRate * cos(decRadians);
+    *horizonsDecRate = decRate;
+    return true;
+}
+
+static bool IsCustomRateInputKey(int keyCode)
+{
+    return (keyCode >= '0' && keyCode <= '9') || keyCode == '.' || keyCode == '+' || keyCode == '-';
 }
 
 PlanetToolWin::PlanetToolWin()
@@ -254,7 +351,7 @@ PlanetToolWin::PlanetToolWin()
     m_planetPanel->Layout();
 
     // Mount settings group
-    wxStaticBoxSizer *pMountGroup = new wxStaticBoxSizer(wxHORIZONTAL, this, _("Mount settings"));
+    m_mountGroup = new wxStaticBoxSizer(wxVERTICAL, this, _("Mount settings"));
     wxFlexGridSizer *pMountTable = new wxFlexGridSizer(1, 6, 10, 10);
     m_mountTrackigCheckBox = new wxCheckBox(this, wxID_ANY, _("Tracking"));
     m_mountTrackigCheckBox->SetToolTip(_("Press and hold CTRL key to toggle mount tracking state"));
@@ -269,7 +366,70 @@ PlanetToolWin::PlanetToolWin()
     pMountTable->Add(m_mountTrackigCheckBox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 10);
     AddTableEntryPair(this, pMountTable, _("Tracking rate"), m_mountGuidingRate,
                       _("Select the desired tracking rate for the mount"));
-    pMountGroup->Add(pMountTable);
+    m_mountGroup->Add(pMountTable);
+
+    ///////////////////////
+    m_overrideCustomRate = new wxCheckBox(this, wxID_ANY, _("Enable custom tracking rates"));
+    m_overrideCustomRate->SetToolTip(_("Enable custom tracking rates for the Custom tracking mode"));
+    m_customRatesGroup = new wxStaticBoxSizer(wxVERTICAL, this, _("Custom rates"));
+    wxBoxSizer *trackingModeSizer = new wxBoxSizer(wxVERTICAL);
+    m_customMountTrackingMode = new wxRadioButton(this, wxID_ANY, _("Apply custom mount track rates"), wxDefaultPosition,
+                                                  wxDefaultSize, wxRB_GROUP);
+    m_customMountTrackingMode->SetToolTip(
+        _("Apply the rates below directly to the mount RA and Dec tracking rates (relative to sidereal). "
+          "This mode requires mount support for custom tracking rates via the ASCOM interface. "
+          "Use when guiding directly on large non stellar targets such as the Sun, Moon, or planets. "
+          "When guiding on stars, select the Comet/Minor Body tracking mode instead."));
+    m_customMountTrackingMode->SetValue(true);
+    m_minorBodyTrackingMode = new wxRadioButton(this, wxID_ANY, _("Comet/Minor Body tracking mode"));
+    m_minorBodyTrackingMode->SetToolTip(
+        _("Use the rates below when guiding on stars while tracking minor body motion. "
+          "This option is available only when guiding is active. "
+          "This mode keeps the comet nucleus or minor body fixed in the frame while stars are naturally elongated. "
+          "Note: Using direct RA and Dec tracking offsets (intended for tracking large solar system bodies) while "
+          "guiding on stars will cause the guiding algorithm to oppose the applied rates, "
+          "leading to inefficient guiding and tracking."));
+    trackingModeSizer->Add(m_customMountTrackingMode, 0, wxBOTTOM | wxALIGN_CENTER_VERTICAL, 4);
+    trackingModeSizer->Add(m_minorBodyTrackingMode, 0, wxALIGN_CENTER_VERTICAL);
+    wxFlexGridSizer *HorizonsGrid = new wxFlexGridSizer(2, 2, 6, 25);
+    m_customRateRaLabel = new wxStaticText(this, wxID_ANY, wxEmptyString);
+    HorizonsGrid->Add(m_customRateRaLabel, 0, wxALIGN_CENTER_VERTICAL);
+    wxSize horizonsSize = wxSize(StringWidth(this, _T("-0000.000000")), -1);
+    m_Horizons_dRaCosDRate = pFrame->MakeSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, horizonsSize,
+                                                        wxSP_ARROW_KEYS, -MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR,
+                                                        MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR, 0.0, 1.0);
+    m_Horizons_dRaCosDRate->SetDigits(6);
+    m_Horizons_dRaCosDRate->Enable(false);
+    HorizonsGrid->Add(m_Horizons_dRaCosDRate, 0, wxALIGN_CENTER_VERTICAL);
+
+    m_customRateDecLabel = new wxStaticText(this, wxID_ANY, wxEmptyString);
+    HorizonsGrid->Add(m_customRateDecLabel, 0, wxALIGN_CENTER_VERTICAL);
+    m_Horizons_dDecRate = pFrame->MakeSpinCtrlDouble(this, wxID_ANY, wxEmptyString, wxDefaultPosition, horizonsSize,
+                                                     wxSP_ARROW_KEYS, -MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR,
+                                                     MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR, 0.0, 1.0);
+    m_Horizons_dDecRate->SetDigits(6);
+    m_Horizons_dDecRate->Enable(false);
+    HorizonsGrid->Add(m_Horizons_dDecRate, 0, wxALIGN_CENTER_VERTICAL);
+    m_applyCustomRateButton = new wxButton(this, wxID_ANY, _("Apply custom rate"));
+    m_applyCustomRateButton->SetToolTip(_("Apply the custom mount tracking rates shown above when Tracking rate is set to Custom."));
+    m_applyCustomRateButton->Enable(false);
+    m_minorBodyTrackingButton = new wxButton(this, wxID_ANY, _("Start minor body tracking"));
+    m_minorBodyTrackingButton->SetToolTip(_("Track a comet, asteroid, or other minor body while guiding on stars. Uses the "
+                                           "rates below without changing the mount tracking rate."));
+    m_minorBodyTrackingButton->Enable(false);
+    m_stopMinorBodyTrackingButton = new wxButton(this, wxID_ANY, _("Stop minor body tracking"));
+    m_stopMinorBodyTrackingButton->SetToolTip(
+        _("Stop minor body tracking started here or from the Comet Tracking tool."));
+    m_stopMinorBodyTrackingButton->Enable(false);
+
+    m_mountGroup->Add(m_overrideCustomRate, 0, wxALL | wxALIGN_CENTER_VERTICAL, 10);
+    m_customRatesGroup->Add(trackingModeSizer, 0, wxALL | wxALIGN_CENTER_VERTICAL, 10);
+    m_customRatesGroup->Add(HorizonsGrid, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxALIGN_LEFT, 10);
+    m_customRatesGroup->Add(m_applyCustomRateButton, 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM | wxEXPAND, 10);
+    m_customRatesGroup->Add(m_minorBodyTrackingButton, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 10);
+    m_customRatesGroup->Add(m_stopMinorBodyTrackingButton, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 10);
+    m_mountGroup->Add(m_customRatesGroup, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 10);
+    ///////////////////////
 
     // Camera settings group
     wxStaticBoxSizer *pCamGroup = new wxStaticBoxSizer(wxVERTICAL, this, _("Camera settings"));
@@ -290,6 +450,16 @@ PlanetToolWin::PlanetToolWin()
     m_GainCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnGainChanged, this);
     m_DelayCtrl->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnDelayChanged, this);
     m_BinningCtrl->Bind(wxEVT_CHOICE, &PlanetToolWin::OnBinningSelected, this);
+    m_overrideCustomRate->Bind(wxEVT_CHECKBOX, &PlanetToolWin::OnOverrideCustomRateClick, this);
+    m_customMountTrackingMode->Bind(wxEVT_RADIOBUTTON, &PlanetToolWin::OnMinorBodyTrackingModeClick, this);
+    m_minorBodyTrackingMode->Bind(wxEVT_RADIOBUTTON, &PlanetToolWin::OnMinorBodyTrackingModeClick, this);
+    m_Horizons_dRaCosDRate->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnHorizonsRateChanged, this);
+    m_Horizons_dDecRate->Bind(wxEVT_SPINCTRLDOUBLE, &PlanetToolWin::OnHorizonsRateChanged, this);
+    m_Horizons_dRaCosDRate->Bind(wxEVT_CHAR, &PlanetToolWin::OnCustomRateChar, this);
+    m_Horizons_dDecRate->Bind(wxEVT_CHAR, &PlanetToolWin::OnCustomRateChar, this);
+    m_applyCustomRateButton->Bind(wxEVT_BUTTON, &PlanetToolWin::OnApplyCustomRateClick, this);
+    m_minorBodyTrackingButton->Bind(wxEVT_BUTTON, &PlanetToolWin::OnMinorBodyTrackingClick, this);
+    m_stopMinorBodyTrackingButton->Bind(wxEVT_BUTTON, &PlanetToolWin::OnStopMinorBodyTrackingClick, this);
     pCamSizer1->AddSpacer(5);
     AddTableEntryPair(this, pCamSizer1, _("Exposure (ms)"), 20, m_ExposureCtrl, 20, _("Camera exposure in milliseconds)"));
     AddTableEntryPair(this, pCamSizer1, _("Gain"), 35, m_GainCtrl, 0, _("Camera gain (0-100)"));
@@ -327,7 +497,7 @@ PlanetToolWin::PlanetToolWin()
 #endif
     topSizer->Add(m_planetPanel, 0, wxEXPAND | wxALL, 5);
     topSizer->AddSpacer(10);
-    topSizer->Add(pMountGroup, 0, wxEXPAND | wxALL, 5);
+    topSizer->Add(m_mountGroup, 0, wxEXPAND | wxALL, 5);
     topSizer->Add(pCamGroup, 0, wxEXPAND | wxALL, 5);
     topSizer->Add(ButtonSizer, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
 
@@ -367,6 +537,8 @@ PlanetToolWin::PlanetToolWin()
     m_enableCheckBox->SetValue(pSolarSystemObj->Get_SolarSystemObjMode());
     m_BinningCtrl->Select(pCamera ? pCamera->GetBinning() - 1 : 0);
     m_saveVideoLogCheckBox->SetValue(pSolarSystemObj->GetVideoLogging());
+    m_overrideCustomRate->SetValue(pFrame->m_planetToolCustomRatesEnabled);
+    UpdateCustomRateLabels();
     SetEnabledState(this, pSolarSystemObj->Get_SolarSystemObjMode());
 
     // Set the initial state of the pause button
@@ -376,8 +548,29 @@ PlanetToolWin::PlanetToolWin()
     m_driveRate = (enum DriveRates) - 1;
     m_prevPointingSource = nullptr;
     m_prevMountConnected = false;
+    m_prevMountCustomRateNonZero = false;
+    m_updatingCustomRateFields = false;
     wxTimerEvent dummyEvent;
     OnPlanetaryTimer(dummyEvent);
+    if (MinorBodyTrackingActive())
+    {
+        LockPosShiftParams const& shift = pFrame->pGuider->GetLockPosShiftParams();
+        RefreshCustomRateShiftReadback(pPointingSource && pPointingSource->IsConnected() ?
+                                           pPointingSource->GetDeclinationRadians() : UNKNOWN_DECLINATION,
+                                       shift.shiftRate.X, shift.shiftRate.Y);
+    }
+    else if (m_overrideCustomRate->IsChecked() &&
+             m_mountGuidingRate->GetSelection() != wxNOT_FOUND &&
+             m_mountGuidingRate->GetStringSelection() == _("Custom") &&
+             pPointingSource && pPointingSource->IsConnected())
+    {
+        enum DriveRates driveRate = driveSidereal;
+        double raRate = 0.0;
+        double decRate = 0.0;
+        pPointingSource->GetTrackingRate(&driveRate, &raRate, &decRate, false);
+        RefreshCustomRateReadback(pPointingSource->GetDeclinationRadians(), raRate, decRate);
+    }
+    UpdateCustomRateControlsEnabled();
 
     // Update camera settings
     m_DelayCtrl->SetValue(pFrame->GetTimeLapse());
@@ -404,6 +597,7 @@ PlanetToolWin::~PlanetToolWin(void)
 {
     wxMutexLocker lock(pFrame->planetLock);
     m_planetaryTimer.Stop();
+    pFrame->m_planetToolCustomRatesEnabled = m_overrideCustomRate->IsChecked();
     pFrame->pPlanetTool = nullptr;
 }
 
@@ -498,19 +692,289 @@ void PlanetToolWin::OnMountTrackingClick(wxCommandEvent& event)
     m_mountTrackigCheckBox->SetValue(tracking);
 }
 
+void PlanetToolWin::OnOverrideCustomRateClick(wxCommandEvent& event)
+{
+    if (event.IsChecked())
+    {
+        int const customSel = m_mountGuidingRate->FindString(_("Custom"));
+        if (customSel != wxNOT_FOUND)
+            m_mountGuidingRate->SetSelection(customSel);
+    }
+
+    UpdateCustomRateControlsEnabled();
+}
+
+void PlanetToolWin::OnMinorBodyTrackingModeClick(wxCommandEvent& event)
+{
+    SetCustomRateFieldHighlight(false);
+    UpdateCustomRateControlsEnabled();
+}
+
+void PlanetToolWin::OnHorizonsRateChanged(wxSpinDoubleEvent& event)
+{
+    if (!m_updatingCustomRateFields)
+        SetCustomRateFieldHighlight(false);
+}
+
+void PlanetToolWin::OnCustomRateChar(wxKeyEvent& event)
+{
+    int const keyCode = event.GetKeyCode();
+    if (keyCode < WXK_SPACE || keyCode == WXK_DELETE || keyCode == WXK_BACK || keyCode == WXK_TAB ||
+        keyCode == WXK_LEFT || keyCode == WXK_RIGHT || keyCode == WXK_HOME || keyCode == WXK_END)
+    {
+        event.Skip();
+        return;
+    }
+
+    if (IsCustomRateInputKey(keyCode))
+    {
+        event.Skip();
+        return;
+    }
+}
+
+void PlanetToolWin::OnApplyCustomRateClick(wxCommandEvent& event)
+{
+    ApplyCurrentCustomRate();
+}
+
+void PlanetToolWin::OnMinorBodyTrackingClick(wxCommandEvent& event)
+{
+    if (!pFrame->pGuider->IsGuiding() || !CanEditCustomRates())
+        return;
+
+    double raRate = 0.0;
+    double decRate = 0.0;
+    if (!GetCurrentCustomRateShiftRates(&raRate, &decRate))
+    {
+        Debug.Write("Solar/planetary: failed to convert custom rates for minor body tracking\n");
+        return;
+    }
+
+    if (pPointingSource && pPointingSource->IsConnected())
+    {
+        pPointingSource->SetTrackingRate(driveSidereal);
+        pPointingSource->SetTrackingRateOffsets(0.0, 0.0);
+    }
+
+    pFrame->pGuider->SetLockPosShiftRate(PHD_Point(raRate, decRate), UNIT_ARCSEC, true, false);
+    pFrame->pGuider->EnableLockPosShift(true);
+    m_prevMountCustomRateNonZero = false;
+    Debug.Write(wxString::Format(
+        "Solar/planetary: started minor body tracking via lock-position shift ra=%.6f dec=%.6f arcsec/hr\n",
+        raRate, decRate));
+    SetCustomRateFieldHighlight(true);
+    UpdateCustomRateControlsEnabled();
+}
+
+void PlanetToolWin::OnStopMinorBodyTrackingClick(wxCommandEvent& event)
+{
+    if (!MinorBodyTrackingActive())
+        return;
+
+    pFrame->pGuider->EnableLockPosShift(false);
+    Debug.Write("Solar/planetary: stopped minor body tracking via lock-position shift\n");
+    SetCustomRateFieldHighlight(false);
+    UpdateCustomRateControlsEnabled();
+}
+
+bool PlanetToolWin::CanEditCustomRates() const
+{
+    return m_overrideCustomRate->IsChecked() &&
+           m_mountGuidingRate->GetSelection() != wxNOT_FOUND &&
+           (m_mountGuidingRate->GetStringSelection() == _("Custom") || MinorBodyTrackingActive());
+}
+
+void PlanetToolWin::UpdateCustomRateRanges()
+{
+    m_Horizons_dRaCosDRate->SetRange(-MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR, MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR);
+    m_Horizons_dDecRate->SetRange(-MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR, MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR);
+    m_Horizons_dRaCosDRate->SetDigits(3);
+    m_Horizons_dDecRate->SetDigits(3);
+    m_updatingCustomRateFields = true;
+    m_Horizons_dRaCosDRate->SetValue(wxClip(m_Horizons_dRaCosDRate->GetValue(), -MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR,
+                                            MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR));
+    m_Horizons_dDecRate->SetValue(wxClip(m_Horizons_dDecRate->GetValue(), -MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR,
+                                         MAX_HORIZONS_TRACK_RATE_ARCSEC_PER_HOUR));
+    m_updatingCustomRateFields = false;
+}
+
+void PlanetToolWin::UpdateCustomRateLabels()
+{
+    m_customRateRaLabel->SetLabel(_("dRA*cosD/dt") + _(":"));
+    m_customRateDecLabel->SetLabel(_("d(DEC)") + _(":"));
+    m_customRateRaLabel->SetToolTip(
+        _("Horizons RA*cos(Dec) rate, arcsec/hour. Apply it only when the mount is synced to the target, or "
+          "the mount RA rate will be wrong. Limit is 5x sidereal rate."));
+    m_customRateDecLabel->SetToolTip(_("Horizons rate of change in Dec, arcsec/hour. Limit is 5x sidereal rate."));
+    m_Horizons_dRaCosDRate->UnsetToolTip();
+    m_Horizons_dDecRate->UnsetToolTip();
+    UpdateCustomRateRanges();
+    Layout();
+}
+
+void PlanetToolWin::UpdateCustomRateControlsEnabled()
+{
+    bool const editable = CanEditCustomRates();
+    bool const shiftActive = MinorBodyTrackingActive();
+    bool const customRatesVisible = m_overrideCustomRate->IsChecked();
+    if (shiftActive && !m_minorBodyTrackingMode->GetValue())
+        m_minorBodyTrackingMode->SetValue(true);
+    bool const minorBodyMode = m_minorBodyTrackingMode->GetValue() || shiftActive;
+    bool const showApplyButton = customRatesVisible && !minorBodyMode;
+    bool const showMinorBodyButtons = customRatesVisible && minorBodyMode;
+    bool const visibilityChanged = m_mountGroup->IsShown(m_customRatesGroup) != customRatesVisible;
+    bool const applyButtonVisibilityChanged = m_customRatesGroup->IsShown(m_applyCustomRateButton) != showApplyButton;
+    bool const minorBodyButtonsVisibilityChanged =
+        m_customRatesGroup->IsShown(m_minorBodyTrackingButton) != showMinorBodyButtons ||
+        m_customRatesGroup->IsShown(m_stopMinorBodyTrackingButton) != showMinorBodyButtons;
+    bool const layoutChanged = visibilityChanged || applyButtonVisibilityChanged ||
+                               minorBodyButtonsVisibilityChanged;
+    if (visibilityChanged)
+        m_mountGroup->Show(m_customRatesGroup, customRatesVisible, true);
+    m_Horizons_dRaCosDRate->Enable(editable);
+    m_Horizons_dDecRate->Enable(editable);
+    m_customRatesGroup->Show(m_applyCustomRateButton, showApplyButton, true);
+    m_customRatesGroup->Show(m_minorBodyTrackingButton, showMinorBodyButtons, true);
+    m_customRatesGroup->Show(m_stopMinorBodyTrackingButton, showMinorBodyButtons, true);
+    m_applyCustomRateButton->Enable(editable && !shiftActive && !minorBodyMode);
+    m_minorBodyTrackingButton->Enable(editable && minorBodyMode && pFrame->pGuider->IsGuiding());
+    m_minorBodyTrackingButton->SetLabel(shiftActive ? _("Update minor body rate") : _("Start minor body tracking"));
+    m_stopMinorBodyTrackingButton->Enable(minorBodyMode && shiftActive);
+    if (layoutChanged && GetSizer())
+        GetSizer()->Layout();
+    if (layoutChanged)
+        Layout();
+    if (layoutChanged && GetSizer())
+    {
+        SetSizerAndFit(GetSizer());
+        SendSizeEvent(wxSEND_EVENT_POST);
+    }
+}
+
+void PlanetToolWin::SetCustomRateFieldHighlight(bool applied)
+{
+    wxColour const color = applied ? wxColour(220, 255, 220) : wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
+    m_Horizons_dRaCosDRate->SetBackgroundColour(color);
+    m_Horizons_dDecRate->SetBackgroundColour(color);
+    m_Horizons_dRaCosDRate->Refresh();
+    m_Horizons_dDecRate->Refresh();
+}
+
+void PlanetToolWin::ApplyCurrentCustomRate()
+{
+    if (!CanEditCustomRates() || !pPointingSource || !pPointingSource->IsConnected())
+        return;
+
+    double ra_offset = 0.0;
+    double dec_offset = 0.0;
+    if (!GetCurrentCustomRateMountOffsets(&ra_offset, &dec_offset))
+    {
+        Debug.Write("Solar/planetary: failed to convert custom tracking rates\n");
+        return;
+    }
+
+    Debug.Write(wxString::Format(
+        "Solar/planetary: applying custom tracking rates (%s) ra=%.6f dec=%.6f -> mount ra=%.9f dec=%.9f\n",
+        "Horizons", m_Horizons_dRaCosDRate->GetValue(), m_Horizons_dDecRate->GetValue(), ra_offset, dec_offset));
+    pPointingSource->SetTrackingRate(driveSidereal);
+    pPointingSource->SetTrackingRateOffsets(ra_offset, dec_offset);
+    m_driveRate = driveCustom;
+    SetCustomRateFieldHighlight(true);
+}
+
+bool PlanetToolWin::GetCurrentCustomRateMountOffsets(double *raOffset, double *decOffset) const
+{
+    if (!raOffset || !decOffset || !pPointingSource || !pPointingSource->IsConnected())
+        return false;
+
+    return HorizonsRatesToMountOffsets(pPointingSource->GetDeclinationRadians(), m_Horizons_dRaCosDRate->GetValue(),
+                                       m_Horizons_dDecRate->GetValue(), raOffset, decOffset);
+}
+
+bool PlanetToolWin::GetCurrentCustomRateShiftRates(double *raRate, double *decRate) const
+{
+    if (!raRate || !decRate || !pPointingSource || !pPointingSource->IsConnected())
+        return false;
+
+    return HorizonsRatesToShiftRates(pPointingSource->GetDeclinationRadians(), m_Horizons_dRaCosDRate->GetValue(),
+                                     m_Horizons_dDecRate->GetValue(), raRate, decRate);
+}
+
+bool PlanetToolWin::MinorBodyTrackingActive() const
+{
+    LockPosShiftParams const& shift = pFrame->pGuider->GetLockPosShiftParams();
+    return shift.shiftEnabled && shift.shiftUnits == UNIT_ARCSEC && shift.shiftIsMountCoords;
+}
+
+void PlanetToolWin::RefreshCustomRateShiftReadback(double declination, double raRate, double decRate)
+{
+    double customRaRate = 0.0;
+    double customDecRate = 0.0;
+    bool converted = pPointingSource && pPointingSource->IsConnected() &&
+                     ShiftRatesToHorizonsRates(declination, raRate, decRate, &customRaRate, &customDecRate);
+
+    if (converted)
+    {
+        m_updatingCustomRateFields = true;
+        m_Horizons_dRaCosDRate->SetValue(customRaRate);
+        m_Horizons_dDecRate->SetValue(customDecRate);
+        m_updatingCustomRateFields = false;
+    }
+    else
+    {
+        m_updatingCustomRateFields = true;
+        m_Horizons_dRaCosDRate->SetValue(0.0);
+        m_Horizons_dDecRate->SetValue(0.0);
+        m_updatingCustomRateFields = false;
+    }
+}
+
+void PlanetToolWin::RefreshCustomRateReadback(double declination, double raRate, double decRate)
+{
+    double customRaRate = 0.0;
+    double customDecRate = 0.0;
+    bool converted = pPointingSource && pPointingSource->IsConnected() &&
+                     MountOffsetsToHorizonsRates(declination, raRate, decRate, &customRaRate, &customDecRate);
+
+    if (converted)
+    {
+        m_updatingCustomRateFields = true;
+        m_Horizons_dRaCosDRate->SetValue(customRaRate);
+        m_Horizons_dDecRate->SetValue(customDecRate);
+        m_updatingCustomRateFields = false;
+    }
+    else
+    {
+        m_updatingCustomRateFields = true;
+        m_Horizons_dRaCosDRate->SetValue(0.0);
+        m_Horizons_dDecRate->SetValue(0.0);
+        m_updatingCustomRateFields = false;
+    }
+}
+
 // Called once in a while to update the UI controls
 void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
 {
     enum DriveRates driveRate = driveSidereal;
     double raRate = 0, decRate = 0;
+    double declination = UNKNOWN_DECLINATION;
     bool tracking = false;
     bool need_update = false;
+    bool const shiftActive = MinorBodyTrackingActive();
 
     // Update UI controls which can be changed via event server
     if (pSolarSystemObj->GetPlanetaryModeUpdate())
     {
         pSolarSystemObj->SetPlanetaryModeUpdate(false);
         m_enableCheckBox->SetValue(pSolarSystemObj->Get_SolarSystemObjMode());
+    }
+
+    if (pSolarSystemObj->GetDisableCustomRateOverride())
+    {
+        m_overrideCustomRate->SetValue(false);
+        UpdateCustomRateControlsEnabled();
+        Debug.Write("Solar/planetary: custom tracking override disabled by external tracking-rate update\n");
     }
 
     // Update pause button state to sync with guiding state
@@ -535,8 +999,9 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
         }
         pPointingSource->GetTracking(&tracking);
         pPointingSource->GetTrackingRate(&driveRate, &raRate, &decRate, false);
+        declination = pPointingSource->GetDeclinationRadians();
         m_mountTrackigCheckBox->Enable(true);
-        m_mountGuidingRate->Enable(tracking);
+        m_mountGuidingRate->Enable(tracking && !shiftActive);
     }
     else
     {
@@ -549,12 +1014,13 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
     if (m_prevPointingSource != pPointingSource ||
         (m_prevMountConnected != (pPointingSource && pPointingSource->IsConnected())))
     {
+        m_prevMountCustomRateNonZero = false;
         m_mountGuidingRate->Clear();
         if (pPointingSource && pPointingSource->IsConnected())
         {
             for (int i = 0; i < driveMaxRate; i++)
             {
-                enum DriveRates driveRate = (enum DriveRates) i;
+                enum DriveRates rate = (enum DriveRates) i;
                 m_mountGuidingRate->Append(pPointingSource->m_mountRates[i].name);
             }
         }
@@ -566,15 +1032,17 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
     // Iterate through the available rates in the m_mountGuidingRate combo box and select the current rate
     int new_selection = -1;
     wxString rateStr = wxEmptyString;
+    bool mountCustomRateNonZero = false;
     for (int i = 0; i < m_mountGuidingRate->GetCount(); i++)
     {
         rateStr = m_mountGuidingRate->GetString(i);
         const double tolerance = 0.00001;
-        if ((rateStr == _("Sidereal") && driveRate == driveSidereal) || (rateStr == _("Lunar") && driveRate == driveLunar) ||
+        if ((rateStr == _("Sidereal") && driveRate == driveSidereal) ||
+            (rateStr == _("Lunar") && driveRate == driveLunar) ||
             (rateStr == _("Solar") && driveRate == driveSolar) ||
-            ((rateStr == _("King") || rateStr == _("Custom")) && driveRate == driveKing))
+            (rateStr == _("King")  && driveRate == driveKing))
         {
-            // Special handling of EQMOD using RA/DEC offsets from SideReal rate
+            // Special handling of custom RA/DEC offsets from SideReal rate
             if (driveRate == driveSidereal)
             {
                 // Compensate for possible reversal in South hemisphere
@@ -598,7 +1066,22 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
                 else if ((fabs(raRate) > tolerance) || (fabs(decRate) > tolerance))
                 {
                     rateStr = _("Custom");
-                    new_selection = driveRate = driveKing; // custom rate
+                    mountCustomRateNonZero = true;
+                    new_selection = driveRate = driveCustom; // custom rate
+                    break;
+                }
+                else if (shiftActive)
+                {
+                    rateStr = _("Custom");
+                    new_selection = driveRate = driveCustom;
+                    break;
+                }
+                else if (m_mountGuidingRate->GetSelection() != wxNOT_FOUND &&
+                         m_mountGuidingRate->GetStringSelection() == _("Custom") &&
+                         !m_prevMountCustomRateNonZero)
+                {
+                    rateStr = _("Custom");
+                    new_selection = driveRate = driveCustom;
                     break;
                 }
             }
@@ -613,7 +1096,29 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
         Debug.Write(wxString::Format("solar/planetary: mount tracking rate = %s\n", rateStr));
         m_mountGuidingRate->SetSelection(new_selection);
     }
+    if (driveRate != driveCustom &&
+        (driveRate == driveLunar || driveRate == driveSolar || driveRate == driveKing ||
+         (driveRate == driveSidereal && m_prevMountCustomRateNonZero && !mountCustomRateNonZero)))
+    {
+        m_updatingCustomRateFields = true;
+        m_Horizons_dRaCosDRate->SetValue(0.0);
+        m_Horizons_dDecRate->SetValue(0.0);
+        m_updatingCustomRateFields = false;
+    }
     m_driveRate = driveRate;
+    m_prevMountCustomRateNonZero = mountCustomRateNonZero;
+    UpdateCustomRateControlsEnabled();
+
+    if (!m_overrideCustomRate->IsChecked())
+    {
+        if (MinorBodyTrackingActive())
+        {
+            LockPosShiftParams const& shift = pFrame->pGuider->GetLockPosShiftParams();
+            RefreshCustomRateShiftReadback(declination, shift.shiftRate.X, shift.shiftRate.Y);
+        }
+        else
+            RefreshCustomRateReadback(declination, raRate, decRate);
+    }
 
     // Update camera binning
     if (pCamera)
@@ -638,15 +1143,21 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
 
 void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
 {
+    SetCustomRateFieldHighlight(false);
     enum DriveRates driveRate = driveSidereal;
     if (pPointingSource && pPointingSource->IsConnected())
     {
         wxString rateStr = "Sidereal";
         double ra_offset = 0.0;
+        double dec_offset = 0.0;
         int sel = m_mountGuidingRate->GetSelection();
         if (sel != wxNOT_FOUND)
         {
             rateStr = m_mountGuidingRate->GetString(sel);
+            if (rateStr == _("Custom") && !m_overrideCustomRate->IsChecked())
+                m_overrideCustomRate->SetValue(true);
+            if (rateStr != _("Custom") && m_overrideCustomRate->IsChecked())
+                m_overrideCustomRate->SetValue(false);
             if (rateStr == _("Sidereal"))
                 driveRate = driveSidereal;
             else if (rateStr == _("Lunar"))
@@ -659,15 +1170,23 @@ void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
                 driveRate = driveSolar;
                 ra_offset = RA_SOLAR_RATE_OFFSET;
             }
-            else if (rateStr == _("King") || rateStr == _("Custom"))
+            else if (rateStr == _("King"))
                 driveRate = driveKing;
+            else
+            {
+                driveRate = driveCustom;
+            }
         }
+
+        UpdateCustomRateControlsEnabled();
 
         Debug.Write(wxString::Format("Solar/planetary: setting mount tracking rate to %s\n", rateStr));
         if (pPointingSource->m_mountRates[driveRate].canSet)
         {
-            pPointingSource->SetTrackingRateOffsets(0, 0);
-            pPointingSource->SetTrackingRate(driveRate);
+            pPointingSource->SetTrackingRate(driveRate == driveCustom ? driveSidereal : driveRate);
+            if (!(driveRate == driveCustom && m_overrideCustomRate->IsChecked() && pSolarSystemObj->Get_SolarSystemObjMode()))
+                pPointingSource->SetTrackingRateOffsets(0, 0);
+
             m_driveRate = driveRate;
         }
         else
@@ -676,7 +1195,8 @@ void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
         }
 
         // Set custom rate offsets for EQMOD mounts
-        if (pPointingSource->Name().StartsWith(_("EQMOD ASCOM")))
+        if (pPointingSource->Name().StartsWith(_("EQMOD ASCOM")) &&
+            !(driveRate == driveCustom && m_overrideCustomRate->IsChecked() && pSolarSystemObj->Get_SolarSystemObjMode()))
         {
             Debug.Write(wxString::Format("Solar/planetary: setting RA tracking offset %.6f for EQMOD ASCOM\n", ra_offset));
             pPointingSource->SetTrackingRateOffsets(ra_offset, 0);
@@ -759,6 +1279,7 @@ void PlanetToolWin::UpdateStatus()
     m_NoiseFilter->Enable(enabled);
 #endif
     m_saveVideoLogCheckBox->Enable(enabled);
+    m_overrideCustomRate->Enable(true);
 
     // Update slider states
     m_thresholdSlider->Enable(enabled && enableLocalControls && !surfaceTracking);

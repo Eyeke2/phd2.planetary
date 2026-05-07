@@ -218,7 +218,8 @@ struct FileDropTarget : public wxFileDropTarget
 // ---------------------- Main Frame -------------------------------------
 // frame constructor
 MyFrame::MyFrame()
-    : wxFrame(nullptr, wxID_ANY, wxEmptyString), pGuider(nullptr), pPlanetTool(nullptr), m_showBookmarksAccel(0),
+    : wxFrame(nullptr, wxID_ANY, wxEmptyString), pGuider(nullptr), pPlanetTool(nullptr), m_planetToolCustomRatesEnabled(false),
+      m_showBookmarksAccel(0),
       m_bookmarkLockPosAccel(0), pStatsWin(nullptr)
 {
     m_mgr.SetManagedWindow(this);
