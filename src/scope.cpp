@@ -1956,6 +1956,16 @@ bool Scope::Slewing()
     return false;
 }
 
+bool Scope::CanSetDeclinationRate()
+{
+    return false;
+}
+
+bool Scope::CanSetRightAscensionRate()
+{
+    return false;
+}
+
 bool Scope::GetEquatorialSystem(int* system)
 {
     *system = 0;

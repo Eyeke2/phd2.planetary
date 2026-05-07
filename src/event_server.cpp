@@ -2223,6 +2223,30 @@ static void get_equatorial_system(JObj& response, const json_value *params)
         response << jrpc_error(1, "failed to get equatorial system");
 }
 
+static void get_mount_caps(JObj& response, const json_value* params)
+{
+    if (!pPointingSource || !pPointingSource->IsConnected())
+    {
+        response << jrpc_error(1, "mount not connected");
+        return;
+    }
+
+    int system = 0;
+    bool async = false;
+    if (!pPointingSource->GetEquatorialSystem(&system))
+        response << NV("EquatorialSystem", system);
+    response << NV("CanSlewAsync", pPointingSource->CanSlewAsync());
+    response << NV("CanSlew", pPointingSource->CanSlew());
+    response << NV("CanUnpark", pPointingSource->CanUnpark());
+    response << NV("CanCheckSlewing", pPointingSource->CanCheckSlewing());
+    response << NV("CanSetRightAscensionRate", pPointingSource->CanSetRightAscensionRate());
+    response << NV("CanSetDeclinationRate", pPointingSource->CanSetDeclinationRate());
+    bool refraction = false;
+    if (!pPointingSource->DoesRefraction(&refraction))
+        response << NV("DoesRefraction", refraction);
+    response << jrpc_result(0);
+}
+
 static void does_refraction(JObj& response, const json_value *params)
 {
     if (!pPointingSource || !pPointingSource->IsConnected())
@@ -2231,7 +2255,7 @@ static void does_refraction(JObj& response, const json_value *params)
         return;
     }
 
-    bool refraction = 0;
+    bool refraction = false;
     if (!pPointingSource->DoesRefraction(&refraction))
         response << jrpc_result(refraction);
     else
@@ -3153,8 +3177,10 @@ static bool handle_request(JRpcCall& call)
         { "park", &park },
         { "unpark", &unpark },
         { "slew_to_coordinates", &slew_to_coordinates },
+        { "get_axis_rates", &get_axis_rates },
         { "poll_mount_slewing", &poll_mount_slewing },
         { "abort_slew", &abort_slew },
+        { "get_mount_caps", &get_mount_caps },
         { "get_equatorial_system", &get_equatorial_system },
         { "does_refraction", &does_refraction },
     };

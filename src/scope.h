@@ -294,6 +294,8 @@ public:
     virtual bool SlewToCoordinatesAsync(double ra, double dec);
     virtual bool AbortSlew();
     virtual bool CanCheckSlewing();
+    virtual bool CanSetDeclinationRate();
+    virtual bool CanSetRightAscensionRate();
     virtual bool Slewing();
     virtual bool GetEquatorialSystem(int *system);
     virtual bool DoesRefraction(bool *refraction);

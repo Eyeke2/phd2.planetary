@@ -78,6 +78,8 @@ class ScopeASCOM : public Scope
     bool m_canPulseGuide;
     bool m_canPark;
     bool m_canUnpark;
+    bool m_canSetDeclinationRate;
+    bool m_canSetRightAscensionRate;
 
     bool m_abortSlewWhenGuidingStuck;
     bool m_checkForSyncPulseGuide;
@@ -125,12 +127,14 @@ public:
     bool CanPulseGuide() override;
     bool CanPark() override { return m_canPark; }
     bool CanUnpark() override { return m_canUnpark; }
+    bool CanCheckSlewing() override;
+    bool CanSetDeclinationRate() override;
+    bool CanSetRightAscensionRate() override;
     bool Park() override;
     bool Unpark() override;
     bool SlewToCoordinates(double ra, double dec) override;
     bool SlewToCoordinatesAsync(double ra, double dec) override;
     bool AbortSlew() override;
-    bool CanCheckSlewing() override;
     bool Slewing() override;
     bool IsParked(bool *parked) override;
     bool GetEquatorialSystem(int *system) override;
