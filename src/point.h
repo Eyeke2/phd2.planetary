@@ -36,6 +36,34 @@
 #ifndef POINT_H_INCLUDED
 #define POINT_H_INCLUDED
 
+class HighResTimer
+{
+public:
+    HighResTimer()
+    {
+        QueryPerformanceFrequency(&m_freq);
+        Reset();
+    }
+
+    void Reset() { QueryPerformanceCounter(&m_start); }
+
+    double ElapsedSeconds() const
+    {
+        LARGE_INTEGER now;
+        QueryPerformanceCounter(&now);
+
+        return static_cast<double>(now.QuadPart - m_start.QuadPart) / static_cast<double>(m_freq.QuadPart);
+    }
+
+    double ElapsedMilliseconds() const { return ElapsedSeconds() * 1000.0; }
+
+    double ElapsedMicroseconds() const { return ElapsedSeconds() * 1000000.0; }
+
+private:
+    LARGE_INTEGER m_freq {};
+    LARGE_INTEGER m_start {};
+};
+
 class PHD_Point
 {
     bool m_valid;
@@ -186,7 +214,7 @@ class ShiftPoint : public PHD_Point
     PHD_Point m_rate; // rate of change (per second)
     double m_x0; // initial x position
     double m_y0; // initial y position
-    wxLongLong_t m_t0; // initial time (seconds)
+    HighResTimer m_timer;
 
 public:
     ShiftPoint() { }
@@ -203,7 +231,7 @@ public:
         {
             m_x0 = X;
             m_y0 = Y;
-            m_t0 = ::wxGetUTCTimeMillis().GetValue();
+            m_timer.Reset();
         }
     }
 
@@ -213,7 +241,7 @@ public:
     {
         if (IsValid() && m_rate.IsValid())
         {
-            double dt = (double) (::wxGetUTCTimeMillis().GetValue() - m_t0) / 1000.;
+            double dt = m_timer.ElapsedSeconds();
             X = m_x0 + m_rate.X * dt;
             Y = m_y0 + m_rate.Y * dt;
         }
