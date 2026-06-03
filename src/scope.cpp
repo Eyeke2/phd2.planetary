@@ -1950,6 +1950,15 @@ bool Scope::SlewToCoordinatesAsync(double ra, double dec)
     return true; // error
 }
 
+bool Scope::SyncToCoordinates(double ra, double dec, wxString *errMsg)
+{
+    POSSIBLY_UNUSED(ra);
+    POSSIBLY_UNUSED(dec);
+    if (errMsg)
+        *errMsg = "mount does not support sync to coordinates";
+    return true; // error
+}
+
 bool Scope::AbortSlew()
 {
     return true; // error

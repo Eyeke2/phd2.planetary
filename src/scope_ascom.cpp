@@ -1895,6 +1895,44 @@ bool ScopeASCOM::SlewToCoordinatesAsync(double ra, double dec)
     return bError;
 }
 
+bool ScopeASCOM::SyncToCoordinates(double ra, double dec, wxString *errMsg)
+{
+    bool bError = false;
+    if (errMsg)
+        errMsg->Clear();
+
+    try
+    {
+        if (!IsConnected())
+        {
+            throw ERROR_INFO("ASCOM Scope: cannot sync when not connected");
+        }
+
+        if (!m_canSync)
+        {
+            throw THROW_INFO("ASCOM Scope: not capable of sync");
+        }
+
+        GITObjRef scope(m_gitEntry);
+
+        Variant vRes;
+
+        if (!scope.InvokeMethod(&vRes, L"SyncToCoordinates", ra, dec))
+        {
+            throw ERROR_INFO("ASCOM Scope: sync to coordinates failed: " + ExcepMsg(scope.Excep()));
+        }
+    }
+    catch (const wxString& Msg)
+    {
+        POSSIBLY_UNUSED(Msg);
+        if (errMsg)
+            *errMsg = Msg;
+        bError = true;
+    }
+
+    return bError;
+}
+
 bool ScopeASCOM::AbortSlew()
 {
     GITObjRef scope(m_gitEntry);

@@ -297,6 +297,7 @@ public:
     virtual bool CanUnpark();
     virtual bool SlewToCoordinates(double ra, double dec);
     virtual bool SlewToCoordinatesAsync(double ra, double dec);
+    virtual bool SyncToCoordinates(double ra, double dec, wxString *errMsg = nullptr);
     virtual bool ASCOM_MoveAxis(GuideAxis axis, double rate, wxString *errMsg = nullptr);
     virtual bool GetAxisRates(GuideAxis axis, std::vector<AxisRate> *rates);
     virtual bool AbortSlew();

@@ -2476,6 +2476,37 @@ static void slew_to_coordinates(JObj& response, const json_value* params)
     }
 }
 
+static void sync_coordinates(JObj& response, const json_value* params)
+{
+    Params p("ra", "dec", params);
+    const json_value *raVal = p.param("ra");
+    const json_value *decVal = p.param("dec");
+    double ra, dec;
+    if (!raVal || !float_param(raVal, &ra) || !decVal || !float_param(decVal, &dec))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected ra and dec params");
+        return;
+    }
+
+    if (!pPointingSource || !pPointingSource->IsConnected())
+    {
+        response << jrpc_error(1, "mount not connected");
+        return;
+    }
+
+    if (!pPointingSource->CanSync())
+    {
+        response << jrpc_error(1, "mount does not support sync to coordinates");
+        return;
+    }
+
+    wxString errMsg;
+    if (!pPointingSource->SyncToCoordinates(ra, dec, &errMsg))
+        response << jrpc_result(0);
+    else
+        response << jrpc_error(1, errMsg.empty() ? "failed to sync to coordinates" : errMsg);
+}
+
 static wxMutex s_moveAxisLock;
 static unsigned int s_moveAxisGeneration[2] = { 0, 0 };
 static unsigned int s_moveAxisActive[2] = { 0, 0 };
@@ -3699,6 +3730,7 @@ static bool handle_request(JRpcCall& call)
         { "park", &park },
         { "unpark", &unpark },
         { "slew_to_coordinates", &slew_to_coordinates },
+        { "sync_coordinates", &sync_coordinates },
         { "move_axis", &move_axis },
         { "get_axis_rates", &get_axis_rates },
         { "poll_mount_slewing", &poll_mount_slewing },
