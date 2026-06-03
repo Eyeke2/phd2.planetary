@@ -40,9 +40,10 @@ void Check(const char *op, const char *file, int line)
     // which uses ProcessPendingEvents instead of wxYield) from the
     // genuinely-unsafe ones we want to fix.
     const bool vetted = s_vettedDepth > 0;
+    const char *logFile = PhdLogSourceFile(file);
     Debug.Write(wxString::Format(
         "UI-SAFETY: %s '%s' invoked from event-server RPC handler at %s:%d\n",
-        vetted ? "(vetted)" : "unsafe", op, file, line));
+        vetted ? "(vetted)" : "unsafe", op, logFile, line));
 
     // Vetted scope: the audit asserts this site does not actually pump
     // the OS message queue, so neither the developer-facing assertion
@@ -59,7 +60,7 @@ void Check(const char *op, const char *file, int line)
     // add a confusing 'false' literal to the message; wxFAIL_MSG conveys
     // intent more clearly.
     wxFAIL_MSG(wxString::Format(
-        "UI-SAFETY: unsafe '%s' from RPC handler (%s:%d) -- see ui_safety.h", op, file, line));
+        "UI-SAFETY: unsafe '%s' from RPC handler (%s:%d) -- see ui_safety.h", op, logFile, line));
 #endif
 
     // Soft-fail visible cue (both build types): a status-bar message,
