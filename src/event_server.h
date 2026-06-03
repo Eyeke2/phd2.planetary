@@ -107,6 +107,7 @@ public:
     // RAII helper inside handle_request, so the check is a single load on
     // the fast path.
     static bool InRpcCall();
+    static void CancelMoveAxisWorkers(Scope *scope);
 
 private:
     void OnEventServerEvent(wxSocketEvent& evt);

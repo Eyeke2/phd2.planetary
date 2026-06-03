@@ -35,6 +35,7 @@
 #include "phd.h"
 #include "guiding_assistant.h"
 
+#include <cmath>
 #include <wx/sstream.h>
 #include <wx/sckstrm.h>
 #include <sstream>
@@ -2475,6 +2476,292 @@ static void slew_to_coordinates(JObj& response, const json_value* params)
     }
 }
 
+static wxMutex s_moveAxisLock;
+static unsigned int s_moveAxisGeneration[2] = { 0, 0 };
+static unsigned int s_moveAxisActive[2] = { 0, 0 };
+static bool s_moveAxisCancelRequested[2] = { false, false };
+static Scope *s_moveAxisScope[2] = { nullptr, nullptr };
+
+static unsigned int register_move_axis_worker(Scope *scope, GuideAxis axis)
+{
+    wxMutexLocker lock(s_moveAxisLock);
+    unsigned int generation = ++s_moveAxisGeneration[axis];
+    ++s_moveAxisActive[axis];
+    s_moveAxisCancelRequested[axis] = false;
+    s_moveAxisScope[axis] = scope;
+    return generation;
+}
+
+static void unregister_move_axis_worker(Scope *scope, GuideAxis axis, unsigned int generation)
+{
+    wxMutexLocker lock(s_moveAxisLock);
+    if (s_moveAxisActive[axis] > 0)
+        --s_moveAxisActive[axis];
+    if (s_moveAxisActive[axis] == 0 && s_moveAxisScope[axis] == scope)
+    {
+        s_moveAxisCancelRequested[axis] = false;
+        s_moveAxisScope[axis] = nullptr;
+    }
+}
+
+static bool should_start_move_axis(Scope *scope, GuideAxis axis, unsigned int generation)
+{
+    wxMutexLocker lock(s_moveAxisLock);
+    return s_moveAxisScope[axis] == scope && s_moveAxisGeneration[axis] == generation &&
+           !s_moveAxisCancelRequested[axis];
+}
+
+static bool should_continue_move_axis(Scope *scope, GuideAxis axis, unsigned int generation)
+{
+    wxMutexLocker lock(s_moveAxisLock);
+    return s_moveAxisScope[axis] == scope && s_moveAxisGeneration[axis] == generation &&
+           !s_moveAxisCancelRequested[axis];
+}
+
+static bool should_stop_move_axis(Scope *scope, GuideAxis axis, unsigned int generation)
+{
+    wxMutexLocker lock(s_moveAxisLock);
+    return s_moveAxisScope[axis] == scope && s_moveAxisGeneration[axis] == generation;
+}
+
+static bool request_move_axis_stop(Scope *scope, GuideAxis axis)
+{
+    wxMutexLocker lock(s_moveAxisLock);
+    if (s_moveAxisScope[axis] == scope && s_moveAxisActive[axis] > 0)
+    {
+        s_moveAxisCancelRequested[axis] = true;
+        return true;
+    }
+    return false;
+}
+
+void EventServer::CancelMoveAxisWorkers(Scope *scope)
+{
+    if (!scope)
+        return;
+
+    {
+        wxMutexLocker lock(s_moveAxisLock);
+        for (int axis = GUIDE_RA; axis <= GUIDE_DEC; ++axis)
+        {
+            if (s_moveAxisScope[axis] == scope && s_moveAxisActive[axis] > 0)
+                s_moveAxisCancelRequested[axis] = true;
+        }
+    }
+
+    bool loggedWait = false;
+    wxStopWatch swatch;
+    while (true)
+    {
+        bool active = false;
+        {
+            wxMutexLocker lock(s_moveAxisLock);
+            for (int axis = GUIDE_RA; axis <= GUIDE_DEC; ++axis)
+            {
+                if (s_moveAxisScope[axis] == scope && s_moveAxisActive[axis] > 0)
+                {
+                    active = true;
+                    break;
+                }
+            }
+        }
+
+        if (!active)
+            return;
+
+        if (!loggedWait && swatch.Time() >= 5000)
+        {
+            Debug.Write("EventServer::CancelMoveAxisWorkers still waiting for move-axis workers\n");
+            loggedWait = true;
+        }
+
+        wxMilliSleep(10);
+    }
+}
+
+class ASCOMMoveAxisThread : public wxThread
+{
+    Scope *m_scope;
+    GuideAxis m_axis;
+    double m_rate;
+    int m_durationMs;
+    unsigned int m_generation;
+
+public:
+    ASCOMMoveAxisThread(Scope *scope, GuideAxis axis, double rate, int durationMs, unsigned int generation)
+        : wxThread(wxTHREAD_DETACHED), m_scope(scope), m_axis(axis), m_rate(rate), m_durationMs(durationMs),
+          m_generation(generation)
+    {
+    }
+
+    wxThread::ExitCode Entry() override
+    {
+#if defined(__WINDOWS__)
+        HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+        Debug.Write(wxString::Format("ASCOMMoveAxisThread CoInitializeEx returns %x\n", hr));
+#endif
+
+        bool sendStop = false;
+        bool startMove = m_rate == 0.0 ? should_stop_move_axis(m_scope, m_axis, m_generation) :
+                                         should_start_move_axis(m_scope, m_axis, m_generation);
+        if (startMove && m_scope && m_scope->IsConnected())
+        {
+            wxString errMsg;
+            bool moveError = m_scope->ASCOM_MoveAxis(m_axis, m_rate, &errMsg);
+            if (moveError)
+                Debug.Write(wxString::Format("ASCOMMoveAxisThread: MoveAxis(%d, %.9g) failed: %s\n", (int) m_axis,
+                                             m_rate, errMsg));
+
+            if (!moveError && m_rate != 0.0)
+            {
+                int elapsed = 0;
+                while (elapsed < m_durationMs && should_continue_move_axis(m_scope, m_axis, m_generation))
+                {
+                    int sleepMs = wxMin(50, m_durationMs - elapsed);
+                    wxMilliSleep(sleepMs);
+                    elapsed += sleepMs;
+                }
+
+                sendStop = should_stop_move_axis(m_scope, m_axis, m_generation);
+            }
+        }
+        else if (m_rate != 0.0)
+        {
+            sendStop = should_stop_move_axis(m_scope, m_axis, m_generation);
+        }
+
+        if (sendStop && m_scope && m_scope->IsConnected())
+        {
+            wxString errMsg;
+            if (m_scope->ASCOM_MoveAxis(m_axis, 0.0, &errMsg))
+                Debug.Write(wxString::Format("ASCOMMoveAxisThread: MoveAxis(%d, 0) failed: %s\n", (int) m_axis,
+                                             errMsg));
+        }
+
+#if defined(__WINDOWS__)
+        if (SUCCEEDED(hr))
+            CoUninitialize();
+#endif
+
+        unregister_move_axis_worker(m_scope, m_axis, m_generation);
+
+        return (wxThread::ExitCode) 0;
+    }
+};
+
+static bool start_ascom_move_axis_thread(Scope *scope, GuideAxis axis, double rate, int durationMs, unsigned int generation,
+                                         wxString *error)
+{
+    ASCOMMoveAxisThread *thread = new ASCOMMoveAxisThread(scope, axis, rate, durationMs, generation);
+    if (thread->Create() != wxTHREAD_NO_ERROR)
+    {
+        unregister_move_axis_worker(scope, axis, generation);
+        delete thread;
+        *error = "failed to create move axis thread";
+        return false;
+    }
+    thread->SetPriority(WXTHREAD_MAX_PRIORITY);
+    if (thread->Run() != wxTHREAD_NO_ERROR)
+    {
+        unregister_move_axis_worker(scope, axis, generation);
+        delete thread;
+        *error = "failed to start move axis thread";
+        return false;
+    }
+    return true;
+}
+
+static void move_axis(JObj& response, const json_value *params)
+{
+    Params p("axis", "rate", "duration", params);
+    GuideAxis a;
+
+    const json_value *axisVal = p.param("axis");
+    if (!axisVal || !(axisVal->type == JSON_INT) || axisVal->int_value < 0 || axisVal->int_value > 1)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS,
+                               "invalid axis: expected 0 (RA/primary) or 1 (Dec/secondary)");
+        return;
+    }
+    a = (GuideAxis) axisVal->int_value;
+
+    const json_value *rateVal = p.param("rate");
+    double rate;
+    if (!rateVal || !float_param(rateVal, &rate))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected numeric rate param");
+        return;
+    }
+    if (!std::isfinite(rate))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "invalid rate: expected finite numeric value");
+        return;
+    }
+
+    int durationMs = 0;
+    const json_value *durationVal = p.param("duration");
+    if (rate != 0.0)
+    {
+        if (!durationVal || durationVal->type != JSON_INT || durationVal->int_value < 0)
+        {
+            response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected non-negative duration param");
+            return;
+        }
+        durationMs = durationVal->int_value;
+    }
+
+    if (!pPointingSource || !pPointingSource->IsConnected())
+    {
+        response << jrpc_error(1, "mount not connected");
+        return;
+    }
+    if (pPointingSource->CanMoveAxis(a))
+    {
+        if (rate == 0.0 && request_move_axis_stop(pPointingSource, a))
+        {
+            response << jrpc_result(0);
+            return;
+        }
+
+        if (rate != 0.0)
+        {
+            std::vector<Scope::AxisRate> axisRates;
+            if (pPointingSource->GetAxisRates(a, &axisRates))
+            {
+                response << jrpc_error(1, "failed to get axis rates for MoveAxis rate validation");
+                return;
+            }
+
+            double remappedRate = rate;
+            if (!axis_rate_supported(axisRates, rate, &remappedRate))
+            {
+                response << jrpc_error(
+                    JSONRPC_INVALID_PARAMS,
+                    wxString::Format("invalid rate %.9g for axis %d; supported absolute rate ranges are %s", rate,
+                                     (int) a, axis_rate_ranges_string(axisRates)));
+                return;
+            }
+            if (remappedRate != rate)
+            {
+                Debug.Write(wxString::Format("EventServer::move_axis remapped axis %d rate %.9g to %.9g\n", (int) a,
+                                             rate, remappedRate));
+                rate = remappedRate;
+            }
+        }
+
+        unsigned int generation = register_move_axis_worker(pPointingSource, a);
+        wxString error;
+        if (start_ascom_move_axis_thread(pPointingSource, a, rate, durationMs, generation, &error))
+            response << jrpc_result(0);
+        else
+            response << jrpc_error(1, error);
+    }
+    else
+    {
+        response << jrpc_error(1, "mount does not support moving axes at variable rates");
+    }
+}
+
 static void get_axis_rates(JObj& response, const json_value *params)
 {
     Params p("axis", params);
@@ -3412,6 +3699,7 @@ static bool handle_request(JRpcCall& call)
         { "park", &park },
         { "unpark", &unpark },
         { "slew_to_coordinates", &slew_to_coordinates },
+        { "move_axis", &move_axis },
         { "get_axis_rates", &get_axis_rates },
         { "poll_mount_slewing", &poll_mount_slewing },
         { "abort_slew", &abort_slew },

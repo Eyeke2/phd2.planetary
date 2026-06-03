@@ -92,7 +92,10 @@ ScopeASCOM::ScopeASCOM(const wxString& choice)
     dispid_trackingrate = DISPID_UNKNOWN;
 }
 
-ScopeASCOM::~ScopeASCOM() { }
+ScopeASCOM::~ScopeASCOM()
+{
+    EventServer::CancelMoveAxisWorkers(this);
+}
 
 static wxString displayName(const wxString& ascomName)
 {
@@ -569,6 +572,8 @@ bool ScopeASCOM::Disconnect()
         {
             throw ERROR_INFO("ASCOM Scope: attempt to disconnect when not connected");
         }
+
+        EventServer::CancelMoveAxisWorkers(this);
 
         // Setting the Connected property to false will cause the scope to be disconnected for all
         // ASCOM clients that are connected to the scope, and we do not want this!
@@ -1895,6 +1900,43 @@ bool ScopeASCOM::AbortSlew()
     GITObjRef scope(m_gitEntry);
     Variant vRes;
     return !scope.InvokeMethod(&vRes, L"AbortSlew");
+}
+
+bool ScopeASCOM::ASCOM_MoveAxis(GuideAxis axis, double rate, wxString *errMsg)
+{
+    bool bError = false;
+    if (errMsg)
+        errMsg->Clear();
+
+    try
+    {
+        if (!IsConnected())
+        {
+            throw ERROR_INFO("ASCOM Scope: cannot move axis when not connected");
+        }
+
+        if (!CanMoveAxis(axis))
+        {
+            throw THROW_INFO("ASCOM Scope: not capable of moving axis");
+        }
+
+        GITObjRef scope(m_gitEntry);
+
+        Variant vRes;
+
+        if (!scope.InvokeMethod(&vRes, L"MoveAxis", (LONG) axis, rate))
+        {
+            throw ERROR_INFO("ASCOM Scope: MoveAxis failed: " + ExcepMsg(scope.Excep()));
+        }
+    }
+    catch (const wxString& Msg)
+    {
+        if (errMsg)
+            *errMsg = Msg;
+        bError = true;
+    }
+
+    return bError;
 }
 
 bool ScopeASCOM::GetAxisRates(GuideAxis axis, std::vector<AxisRate> *rates)
