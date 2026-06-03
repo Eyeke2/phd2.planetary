@@ -176,6 +176,8 @@ Guider::Guider(wxWindow *parent, int xSize, int ySize)
     m_lockPosShift.shiftRate.SetXY(0., 0.);
     m_lockPosShift.shiftUnits = UNIT_ARCSEC;
     m_lockPosShift.shiftIsMountCoords = true;
+    m_lockPosShift.decValid = false;
+    m_lockPosShift.dec = 0;
     m_lockPosIsSticky = false;
     m_ignoreLostStarLooping = false;
     m_forceFullFrame = false;
@@ -1621,6 +1623,31 @@ void Guider::SetLockPosShiftRate(const PHD_Point& rate, GRAPH_UNITS units, bool 
     m_lockPosShift.shiftRate = rate;
     m_lockPosShift.shiftUnits = units;
     m_lockPosShift.shiftIsMountCoords = isMountCoords;
+    m_lockPosShift.dec = 0.;
+    m_lockPosShift.decValid = false;
+
+    CometTool::UpdateCometToolControls(updateToolWin);
+
+    if (m_state == STATE_CALIBRATED || m_state == STATE_GUIDING)
+    {
+        UpdateLockPosShiftCameraCoords();
+        if (LockPosShiftEnabled())
+        {
+            GuideLog.NotifyLockShiftParams(m_lockPosShift, m_lockPosition.ShiftRate());
+        }
+    }
+}
+
+void Guider::SetLockPosShiftRate(const LockPosShiftParams& shift, bool updateToolWin)
+{
+    Debug.Write(wxString::Format("SetLockPosShiftRate: rate = %.2f,%.2f units = %d isMountCoords = %d, Dec: %.2f (valid=%d)\n",
+        shift.shiftRate.X, shift.shiftRate.Y, shift.shiftUnits, shift.shiftIsMountCoords, shift.dec, shift.decValid));
+
+    m_lockPosShift.shiftRate = shift.shiftRate;
+    m_lockPosShift.shiftUnits = shift.shiftUnits;
+    m_lockPosShift.shiftIsMountCoords = shift.shiftIsMountCoords;
+    m_lockPosShift.dec = shift.dec;
+    m_lockPosShift.decValid = shift.decValid;
 
     CometTool::UpdateCometToolControls(updateToolWin);
 
@@ -1704,7 +1731,7 @@ void Guider::UpdateLockPosShiftCameraCoords()
                 // account for scope declination
                 if (pPointingSource)
                 {
-                    double dec = pPointingSource->GetDeclinationRadians();
+                    double dec = m_lockPosShift.decValid ? radians(m_lockPosShift.dec) : pPointingSource->GetDeclinationRadians();
                     if (dec != UNKNOWN_DECLINATION)
                     {
                         radec_rates.X *= cos(dec);

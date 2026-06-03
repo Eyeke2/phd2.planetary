@@ -1280,6 +1280,8 @@ static void get_lock_shift_params(JObj& response, const json_value *params)
         tmp.shiftRate = lock.ShiftRate() * 3600; // px/sec => px/hr
         tmp.shiftUnits = UNIT_PIXELS;
         tmp.shiftIsMountCoords = false;
+        tmp.decValid = lockShift.decValid;
+        tmp.dec = lockShift.dec;
         rslt << tmp;
     }
     else
@@ -1329,7 +1331,7 @@ static bool parse_lock_shift_params(LockPosShiftParams *shift, const json_value 
     if (params && params->type == JSON_ARRAY)
         params = params->first_child;
 
-    Params p("rate", "units", "axes", params);
+    Params p("rate", "units", "axes", "dec", params);
 
     shift->shiftUnits = UNIT_ARCSEC;
     shift->shiftIsMountCoords = true;
@@ -1377,6 +1379,15 @@ static bool parse_lock_shift_params(LockPosShiftParams *shift, const json_value 
         return false;
     }
 
+    j = p.param("dec");
+    double dec;
+    shift->decValid = false;
+    if (j && float_param(j, &dec))
+    {
+        shift->dec = dec;
+        shift->decValid = true;
+    }
+
     return true;
 }
 
@@ -1392,7 +1403,7 @@ static void set_lock_shift_params(JObj& response, const json_value *params)
 
     VERIFY_GUIDER(response);
 
-    pFrame->pGuider->SetLockPosShiftRate(shift.shiftRate, shift.shiftUnits, shift.shiftIsMountCoords, true);
+    pFrame->pGuider->SetLockPosShiftRate(shift, true);
 
     response << jrpc_result(0);
 }
