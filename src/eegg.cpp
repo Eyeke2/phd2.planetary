@@ -113,6 +113,15 @@ void MyFrame::OnEEGG(wxCommandEvent& evt)
             if (manualcal.ShowModal() == wxID_OK)
             {
                 manualcal.GetValues(&cal);
+                Scope *scope = TheScope();
+                if (scope == pMount && scope->GetDecGuideMode() == DEC_NONE && cal.yRate == 0.0)
+                    cal.yRate = CALIBRATION_RATE_UNCALIBRATED;
+                wxString errMsg;
+                if (!Mount::IsCalibrationValid(cal, &errMsg))
+                {
+                    pFrame->Alert(wxString::Format(_("Invalid calibration data: %s"), errMsg));
+                    return;
+                }
                 pMount->SetCalibration(cal);
                 EvtServer.NotifyCalibrationUpdate();
             }

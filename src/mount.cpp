@@ -38,8 +38,11 @@
 #include "guiding_assistant.h"
 #include "gaussian_process_guider.h"
 
-#include <wx/tokenzr.h>
+#include <cmath>
 #include <cstdarg>
+#include <exception>
+
+#include <wx/tokenzr.h>
 
 enum
 {
@@ -1537,6 +1540,46 @@ bool Mount::IsCalibrated() const
     return bReturn;
 }
 
+bool Mount::IsCalibrationValid(const Calibration& cal, wxString *errMsg)
+{
+    auto invalid = [errMsg](const wxString& msg) {
+        if (errMsg)
+            *errMsg = msg;
+        return false;
+    };
+
+    if (!cal.isValid)
+        return invalid(_("calibration is not marked valid"));
+    if (!std::isfinite(cal.xRate) || cal.xRate <= 0.0)
+        return invalid(_("RA rate is invalid"));
+    if (!std::isfinite(cal.yRate) || cal.yRate <= 0.0)
+        return invalid(_("Dec rate is invalid"));
+    if (!std::isfinite(cal.xAngle))
+        return invalid(_("RA angle is invalid"));
+    if (!std::isfinite(cal.yAngle))
+        return invalid(_("Dec angle is invalid"));
+    if (cal.binning == 0)
+        return invalid(_("camera binning is invalid"));
+    if (cal.declination != UNKNOWN_DECLINATION && !std::isfinite(cal.declination))
+        return invalid(_("declination is invalid"));
+    if (cal.rotatorAngle != Rotator::POSITION_UNKNOWN && !std::isfinite(cal.rotatorAngle))
+        return invalid(_("rotator angle is invalid"));
+
+    return true;
+}
+
+bool Mount::ValidateCalibration(wxString *errMsg) const
+{
+    if (!m_calibrated)
+    {
+        if (errMsg)
+            *errMsg = _("mount is not calibrated");
+        return false;
+    }
+
+    return IsCalibrationValid(m_cal, errMsg);
+}
+
 void Mount::ClearCalibration()
 {
     m_calibrated = false;
@@ -1552,6 +1595,14 @@ void Mount::SetCalibration(const Calibration& cal)
                                  GetMountClassName(), degrees(cal.xAngle), degrees(cal.yAngle), cal.xRate * 1000.0,
                                  cal.yRate * 1000.0, cal.binning, DeclinationStr(cal.declination), cal.pierSide,
                                  ParityStr(cal.raGuideParity), ParityStr(cal.decGuideParity), RotAngleStr(cal.rotatorAngle)));
+
+    wxString errMsg;
+    if (!IsCalibrationValid(cal, &errMsg))
+    {
+        Debug.Write(wxString::Format("Mount::SetCalibration (%s) rejected invalid calibration: %s\n", GetMountClassName(), errMsg));
+        ClearCalibration();
+        return;
+    }
 
     // we do the rates first, since they just get stored
     m_cal.xRate = cal.xRate;

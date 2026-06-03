@@ -336,6 +336,8 @@ public:
 
     void GetLastCalibration(Calibration *cal) const;
     BacklashComp *GetBacklashComp() const { return m_backlashComp; }
+    static bool IsCalibrationValid(const Calibration& cal, wxString *errMsg = nullptr);
+    bool ValidateCalibration(wxString *errMsg = nullptr) const;
 
     // virtual functions -- these CAN be overridden by a subclass, which should
     // consider whether they need to call the base class functions as part of
