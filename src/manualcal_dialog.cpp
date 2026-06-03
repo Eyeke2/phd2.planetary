@@ -36,6 +36,8 @@
 #include "phd.h"
 #include "manualcal_dialog.h"
 
+#include <limits>
+
 ManualCalDialog::ManualCalDialog(const Calibration& cal)
     : wxDialog(pFrame, wxID_ANY, _("Manual Calibration"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
 {
@@ -102,16 +104,21 @@ int ManualCalDialog::StringWidth(const wxString& string)
 
 void ManualCalDialog::GetValues(Calibration *cal)
 {
-    double t;
-    m_pXRate->GetValue().ToDouble(&t);
+    double t = std::numeric_limits<double>::quiet_NaN();
+    if (!m_pXRate->GetValue().ToDouble(&t))
+        t = std::numeric_limits<double>::quiet_NaN();
     cal->xRate = t / 1000.0;
-    m_pYRate->GetValue().ToDouble(&t);
+    if (!m_pYRate->GetValue().ToDouble(&t))
+        t = std::numeric_limits<double>::quiet_NaN();
     cal->yRate = t / 1000.0;
-    m_pXAngle->GetValue().ToDouble(&t);
+    if (!m_pXAngle->GetValue().ToDouble(&t))
+        t = std::numeric_limits<double>::quiet_NaN();
     cal->xAngle = radians(t);
-    m_pYAngle->GetValue().ToDouble(&t);
+    if (!m_pYAngle->GetValue().ToDouble(&t))
+        t = std::numeric_limits<double>::quiet_NaN();
     cal->yAngle = radians(t);
-    m_pDeclination->GetValue().ToDouble(&cal->declination);
+    if (!m_pDeclination->GetValue().ToDouble(&cal->declination))
+        cal->declination = std::numeric_limits<double>::quiet_NaN();
     cal->binning = m_binning->GetSelection() + 1;
 }
 

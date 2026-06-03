@@ -506,7 +506,8 @@ bool StepGuider::BeginCalibration(const PHD_Point& currentLocation)
 
 void StepGuider::SetCalibration(const Calibration& cal)
 {
-    m_calibration = cal;
+    if (Mount::IsCalibrationValid(cal))
+        m_calibration = cal;
     Mount::SetCalibration(cal);
 }
 
@@ -756,6 +757,7 @@ bool StepGuider::UpdateCalibrationState(const PHD_Point& currentLocation)
             m_calibration.raGuideParity = m_calibration.decGuideParity = GUIDE_PARITY_UNKNOWN;
             m_calibration.rotatorAngle = Rotator::RotatorPosition();
             m_calibration.binning = pCamera->GetBinning();
+            m_calibration.isValid = true;
             SetCalibration(m_calibration);
             SetCalibrationDetails(m_calibrationDetails, m_calibration.xAngle, m_calibration.yAngle, m_calibration.binning);
             status0 = _("Calibration complete");

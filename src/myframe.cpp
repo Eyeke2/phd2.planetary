@@ -2235,6 +2235,19 @@ bool MyFrame::StartGuiding()
 
     if (pMount && pMount->IsConnected() && pCamera && pCamera->Connected && pGuider->GetState() >= STATE_SELECTED)
     {
+        wxString errMsg;
+        if (pMount->IsCalibrated() && !pMount->ValidateCalibration(&errMsg))
+        {
+            Alert(wxString::Format(_("Invalid calibration data: %s. Please clear calibration and recalibrate."), errMsg));
+            return error;
+        }
+        if (pSecondaryMount && pSecondaryMount->IsConnected() && pSecondaryMount->IsCalibrated() &&
+            !pSecondaryMount->ValidateCalibration(&errMsg))
+        {
+            Alert(wxString::Format(_("Invalid calibration data: %s. Please clear calibration and recalibrate."), errMsg));
+            return error;
+        }
+
         pGuider->StartGuiding();
         StartCapturing();
         UpdateButtonsStatus();

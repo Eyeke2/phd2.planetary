@@ -1120,7 +1120,8 @@ bool Scope::BeginCalibration(const PHD_Point& currentLocation)
 
 void Scope::SetCalibration(const Calibration& cal)
 {
-    m_calibration = cal;
+    if (Mount::IsCalibrationValid(cal))
+        m_calibration = cal;
     Mount::SetCalibration(cal);
 }
 
@@ -1789,6 +1790,7 @@ bool Scope::UpdateCalibrationState(const PHD_Point& currentLocation)
             cal.pierSide = pPointingSource->SideOfPier();
             cal.rotatorAngle = Rotator::RotatorPosition();
             cal.binning = pCamera->GetBinning();
+            cal.isValid = true;
             SetCalibration(cal);
             m_calibrationDetails.raStepCount = m_raSteps;
             m_calibrationDetails.decStepCount = m_decSteps;
