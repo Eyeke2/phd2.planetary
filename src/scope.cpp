@@ -1955,6 +1955,15 @@ bool Scope::AbortSlew()
     return true; // error
 }
 
+bool Scope::ASCOM_MoveAxis(GuideAxis axis, double rate, wxString *errMsg)
+{
+    POSSIBLY_UNUSED(axis);
+    POSSIBLY_UNUSED(rate);
+    if (errMsg)
+        *errMsg = "mount does not support ASCOM MoveAxis";
+    return true; // error
+}
+
 bool Scope::GetAxisRates(GuideAxis axis, std::vector<AxisRate> *rates)
 {
     POSSIBLY_UNUSED(axis);

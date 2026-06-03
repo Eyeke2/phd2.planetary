@@ -133,6 +133,7 @@ public:
     bool CanSetDeclinationRate() override;
     bool CanSetRightAscensionRate() override;
     bool CanMoveAxis(GuideAxis axis) override;
+    bool ASCOM_MoveAxis(GuideAxis axis, double rate, wxString *errMsg = nullptr) override;
     bool GetAxisRates(GuideAxis axis, std::vector<AxisRate> *rates) override;
     bool CanSync() override;
     bool Park() override;

@@ -1086,6 +1086,18 @@ Mount::MOVE_RESULT Mount::MoveOffset(GuiderOffset *ofs, unsigned int moveOptions
         if (result == MOVE_OK)
             result = MOVE_ERROR;
     }
+    catch (const std::exception& err)
+    {
+        Debug.Write(wxString::Format("MoveOffset: exception: %s\n", wxString(err.what())));
+        if (result == MOVE_OK)
+            result = MOVE_ERROR;
+    }
+    catch (...)
+    {
+        Debug.Write("MoveOffset: unknown exception\n");
+        if (result == MOVE_OK)
+            result = MOVE_ERROR;
+    }
 
     return result;
 }
