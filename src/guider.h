@@ -102,6 +102,8 @@ struct LockPosShiftParams
     PHD_Point shiftRate;
     GRAPH_UNITS shiftUnits;
     bool shiftIsMountCoords;
+    bool decValid;
+    double dec;
 };
 
 class DefectMap;
@@ -228,6 +230,7 @@ public:
     bool ShiftLockPosition();
     void EnableLockPosShift(bool enable);
     void SetLockPosShiftRate(const PHD_Point& rate, GRAPH_UNITS units, bool isMountCoords, bool updateToolWin);
+    void SetLockPosShiftRate(const LockPosShiftParams& shift, bool updateToolWin);
     bool LockPosShiftEnabled() const { return m_lockPosShift.shiftEnabled; }
     void SetLockPosIsSticky(bool isSticky) { m_lockPosIsSticky = isSticky; }
     bool LockPosIsSticky() const { return m_lockPosIsSticky; }

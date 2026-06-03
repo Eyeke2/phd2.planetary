@@ -79,7 +79,7 @@ void ProfileWindow::OnRClick(wxMouseEvent& mevent)
 {
     if (mevent.GetX() > imageLeftMargin && mevent.GetY() <= imageBottom)
     {
-        ShiftPoint pos = pFrame->pGuider->LockPosition();
+        const ShiftPoint& pos = pFrame->pGuider->LockPosition();
         if (!pFrame->pGuider->IsGuiding() && pos.IsValid())
             pFrame->pGuider->SetLockPosToStarAtPosition(pos);
     }

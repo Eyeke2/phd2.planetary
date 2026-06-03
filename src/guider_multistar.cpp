@@ -1203,7 +1203,7 @@ void GuiderMultiStar::OnRClick(wxMouseEvent& mevent)
 {
     if (GetState() <= STATE_SELECTED)
     {
-        ShiftPoint pos = pFrame->pGuider->LockPosition();
+        const ShiftPoint& pos = pFrame->pGuider->LockPosition();
         if (pos.IsValid())
             pFrame->pGuider->SetLockPosToStarAtPosition(pos);
     }

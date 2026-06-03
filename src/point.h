@@ -211,6 +211,7 @@ class ShiftPoint : public PHD_Point
 {
     typedef PHD_Point super;
 
+    wxMutex m_mutex;
     PHD_Point m_rate; // rate of change (per second)
     double m_x0; // initial x position
     double m_y0; // initial y position
@@ -221,6 +222,7 @@ public:
 
     void SetShiftRate(double xrate, double yrate)
     {
+        wxMutexLocker locker(m_mutex);
         m_rate.SetXY(xrate, yrate);
         BeginShift();
     }
@@ -229,6 +231,7 @@ public:
     {
         if (IsValid())
         {
+            wxMutexLocker locker(m_mutex);
             m_x0 = X;
             m_y0 = Y;
             m_timer.Reset();
@@ -241,6 +244,7 @@ public:
     {
         if (IsValid() && m_rate.IsValid())
         {
+            wxMutexLocker locker(m_mutex);
             double dt = m_timer.ElapsedSeconds();
             X = m_x0 + m_rate.X * dt;
             Y = m_y0 + m_rate.Y * dt;
@@ -249,6 +253,7 @@ public:
 
     void SetXY(double x, double y)
     {
+        wxMutexLocker locker(m_mutex);
         super::SetXY(x, y);
         BeginShift();
     }

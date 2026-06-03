@@ -139,6 +139,7 @@ struct PlanetToolWin : public wxDialog
     void OnBinningSelected(wxCommandEvent& event);
     void OnSaveVideoLog(wxCommandEvent& event);
 
+    bool CanApplyCustomMountRates() const;
     bool CanEditCustomRates() const;
     void UpdateCustomRateLabels();
     void UpdateCustomRateRanges();
@@ -385,10 +386,7 @@ PlanetToolWin::PlanetToolWin()
     m_minorBodyTrackingMode->SetToolTip(
         _("Use the rates below when guiding on stars while tracking minor body motion. "
           "This option is available only when guiding is active. "
-          "This mode keeps the comet nucleus or minor body fixed in the frame while stars are naturally elongated. "
-          "Note: Using direct RA and Dec tracking offsets (intended for tracking large solar system bodies) while "
-          "guiding on stars will cause the guiding algorithm to oppose the applied rates, "
-          "leading to inefficient guiding and tracking."));
+          "This mode keeps the comet nucleus or minor body fixed in the frame while stars are naturally elongated."));
     trackingModeSizer->Add(m_customMountTrackingMode, 0, wxBOTTOM | wxALIGN_CENTER_VERTICAL, 4);
     trackingModeSizer->Add(m_minorBodyTrackingMode, 0, wxALIGN_CENTER_VERTICAL);
     wxFlexGridSizer *HorizonsGrid = new wxFlexGridSizer(2, 2, 6, 25);
@@ -778,6 +776,13 @@ void PlanetToolWin::OnStopMinorBodyTrackingClick(wxCommandEvent& event)
     UpdateCustomRateControlsEnabled();
 }
 
+bool PlanetToolWin::CanApplyCustomMountRates() const
+{
+    return pPointingSource && pPointingSource->IsConnected() &&
+           pPointingSource->CanSetRightAscensionRate() &&
+           pPointingSource->CanSetDeclinationRate();
+}
+
 bool PlanetToolWin::CanEditCustomRates() const
 {
     return m_overrideCustomRate->IsChecked() &&
@@ -818,10 +823,11 @@ void PlanetToolWin::UpdateCustomRateControlsEnabled()
     bool const editable = CanEditCustomRates();
     bool const shiftActive = MinorBodyTrackingActive();
     bool const customRatesVisible = m_overrideCustomRate->IsChecked();
-    if (shiftActive && !m_minorBodyTrackingMode->GetValue())
+    bool const canApplyCustomMountRates = CanApplyCustomMountRates();
+    if ((shiftActive || !canApplyCustomMountRates) && !m_minorBodyTrackingMode->GetValue())
         m_minorBodyTrackingMode->SetValue(true);
     bool const minorBodyMode = m_minorBodyTrackingMode->GetValue() || shiftActive;
-    bool const showApplyButton = customRatesVisible && !minorBodyMode;
+    bool const showApplyButton = customRatesVisible && canApplyCustomMountRates && !minorBodyMode;
     bool const showMinorBodyButtons = customRatesVisible && minorBodyMode;
     bool const visibilityChanged = m_mountGroup->IsShown(m_customRatesGroup) != customRatesVisible;
     bool const applyButtonVisibilityChanged = m_customRatesGroup->IsShown(m_applyCustomRateButton) != showApplyButton;
@@ -832,6 +838,8 @@ void PlanetToolWin::UpdateCustomRateControlsEnabled()
                                minorBodyButtonsVisibilityChanged;
     if (visibilityChanged)
         m_mountGroup->Show(m_customRatesGroup, customRatesVisible, true);
+    m_customMountTrackingMode->Enable(customRatesVisible && canApplyCustomMountRates && !shiftActive);
+    m_minorBodyTrackingMode->Enable(customRatesVisible);
     m_Horizons_dRaCosDRate->Enable(editable);
     m_Horizons_dDecRate->Enable(editable);
     m_customRatesGroup->Show(m_applyCustomRateButton, showApplyButton, true);
@@ -866,19 +874,88 @@ void PlanetToolWin::ApplyCurrentCustomRate()
     if (!CanEditCustomRates() || !pPointingSource || !pPointingSource->IsConnected())
         return;
 
+    auto showFailure = [](const wxString& msg) {
+        Debug.Write(wxString::Format("Solar/planetary: %s\n", msg));
+        pFrame->Alert(msg, wxICON_WARNING);
+    };
+
+    auto unsupportedMessage = [](bool ra, bool dec) {
+        if (ra && dec)
+            return _("Setting custom tracking rate failed: driver doesn't support custom RA or Dec tracking rate.");
+        if (ra)
+            return _("Setting custom tracking rate failed: driver doesn't support custom RA tracking rate.");
+        return _("Setting custom tracking rate failed: driver doesn't support custom Dec tracking rate.");
+    };
+
+    auto invalidRateMessage = []() {
+        return _("Setting custom tracking rate failed: rate parameter is invalid.");
+    };
+
+    auto isInvalidRateError = [](const wxString& error) {
+        wxString lower = error.Lower();
+        return lower.Contains("invalid") || lower.Contains("not valid");
+    };
+
+    if (!CanApplyCustomMountRates())
+    {
+        SetCustomRateFieldHighlight(false);
+        showFailure(unsupportedMessage(!pPointingSource->CanSetRightAscensionRate(),
+                                       !pPointingSource->CanSetDeclinationRate()));
+        UpdateCustomRateControlsEnabled();
+        return;
+    }
+
     double ra_offset = 0.0;
     double dec_offset = 0.0;
     if (!GetCurrentCustomRateMountOffsets(&ra_offset, &dec_offset))
     {
-        Debug.Write("Solar/planetary: failed to convert custom tracking rates\n");
+        SetCustomRateFieldHighlight(false);
+        showFailure(invalidRateMessage());
         return;
     }
 
     Debug.Write(wxString::Format(
         "Solar/planetary: applying custom tracking rates (%s) ra=%.6f dec=%.6f -> mount ra=%.9f dec=%.9f\n",
         "Horizons", m_Horizons_dRaCosDRate->GetValue(), m_Horizons_dDecRate->GetValue(), ra_offset, dec_offset));
-    pPointingSource->SetTrackingRate(driveSidereal);
-    pPointingSource->SetTrackingRateOffsets(ra_offset, dec_offset);
+
+    const double rateTolerance = 1e-12;
+    bool const needsRa = fabs(ra_offset) > rateTolerance;
+    bool const needsDec = fabs(dec_offset) > rateTolerance;
+    bool const missingRa = needsRa && !pPointingSource->CanSetRightAscensionRate();
+    bool const missingDec = needsDec && !pPointingSource->CanSetDeclinationRate();
+    if (missingRa || missingDec)
+    {
+        SetCustomRateFieldHighlight(false);
+        showFailure(unsupportedMessage(missingRa, missingDec));
+        return;
+    }
+
+    wxString setRateError;
+    if (pPointingSource->SetTrackingRate(driveSidereal, &setRateError))
+    {
+        SetCustomRateFieldHighlight(false);
+        showFailure(_("Setting custom tracking rate failed."));
+        return;
+    }
+
+    wxString setOffsetsError;
+    if (pPointingSource->SetTrackingRateOffsets(ra_offset, dec_offset, &setOffsetsError))
+    {
+        SetCustomRateFieldHighlight(false);
+        if (isInvalidRateError(setOffsetsError))
+            showFailure(invalidRateMessage());
+        else
+        {
+            bool const unsupportedRa = needsRa && !pPointingSource->CanSetRightAscensionRate();
+            bool const unsupportedDec = needsDec && !pPointingSource->CanSetDeclinationRate();
+            if (unsupportedRa || unsupportedDec)
+                showFailure(unsupportedMessage(unsupportedRa, unsupportedDec));
+            else
+                showFailure(_("Setting custom tracking rate failed."));
+        }
+        return;
+    }
+
     m_driveRate = driveCustom;
     SetCustomRateFieldHighlight(true);
 }
@@ -960,6 +1037,7 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
     double raRate = 0, decRate = 0;
     double declination = UNKNOWN_DECLINATION;
     bool tracking = false;
+    bool mountRateValid = false;
     bool need_update = false;
     bool const shiftActive = MinorBodyTrackingActive();
 
@@ -998,7 +1076,7 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
             return;
         }
         pPointingSource->GetTracking(&tracking);
-        pPointingSource->GetTrackingRate(&driveRate, &raRate, &decRate, false);
+        mountRateValid = !pPointingSource->GetTrackingRate(&driveRate, &raRate, &decRate, false);
         declination = pPointingSource->GetDeclinationRadians();
         m_mountTrackigCheckBox->Enable(true);
         m_mountGuidingRate->Enable(tracking && !shiftActive);
@@ -1033,7 +1111,7 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
     int new_selection = -1;
     wxString rateStr = wxEmptyString;
     bool mountCustomRateNonZero = false;
-    for (int i = 0; i < m_mountGuidingRate->GetCount(); i++)
+    for (int i = 0; mountRateValid && i < m_mountGuidingRate->GetCount(); i++)
     {
         rateStr = m_mountGuidingRate->GetString(i);
         const double tolerance = 0.00001;
