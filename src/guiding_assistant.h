@@ -39,12 +39,35 @@ class GuidingAssistant
 {
     GuidingAssistant(); // not implemented
 public:
+    struct DriftMeasurement
+    {
+        bool valid;
+        wxString startTime;
+        wxString endTime;
+        double duration;
+        int sampleCount;
+        double pixelScale;
+        bool usedStepGuider;
+        wxString calibrationSource;
+        Calibration calibration;
+        PHD_Point cameraRatePxPerMin;
+        PHD_Point mountRatePxPerMin;
+        PHD_Point cameraRateArcsecPerMin;
+        PHD_Point mountRateArcsecPerMin;
+
+        DriftMeasurement()
+            : valid(false), duration(0.0), sampleCount(0), pixelScale(0.0), usedStepGuider(false)
+        {
+        }
+    };
+
     static wxWindow *CreateDialogBox();
     static void NotifyGuideStep(const GuideStepInfo& info);
     static void NotifyFrameDropped(const FrameDroppedInfo& info);
     static void NotifyBacklashStep(const PHD_Point& camLoc);
     static void NotifyBacklashError();
     static void UpdateUIControls();
+    static bool GetLastDriftMeasurement(DriftMeasurement *measurement);
 };
 
 #endif

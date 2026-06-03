@@ -33,6 +33,7 @@
  */
 
 #include "phd.h"
+#include "guiding_assistant.h"
 
 #include <wx/sstream.h>
 #include <wx/sckstrm.h>
@@ -2262,7 +2263,6 @@ static void does_refraction(JObj& response, const json_value *params)
         response << jrpc_error(1, "failed to get refraction");
 }
 
-
 static void is_parked(JObj& response, const json_value *params)
 {
     if (!pPointingSource || !pPointingSource->IsConnected())
@@ -2626,6 +2626,83 @@ static void get_cal_data(JObj& response, const json_value *params)
     {
         response << jrpc_error(1, "mount not calibrated");
     }
+}
+
+static void get_drift_measurement(JObj& response, const json_value *params)
+{
+    GuidingAssistant::DriftMeasurement measurement;
+    JObj rslt;
+    if (!GuidingAssistant::GetLastDriftMeasurement(&measurement))
+    {
+        rslt << NV("available", false);
+        response << jrpc_result(rslt);
+        return;
+    }
+
+    JObj cameraPxPerMin;
+    cameraPxPerMin << NV("x", measurement.cameraRatePxPerMin.X) << NV("y", measurement.cameraRatePxPerMin.Y);
+
+    JObj mountPxPerMin;
+    mountPxPerMin << NV("ra", measurement.mountRatePxPerMin.X) << NV("dec", measurement.mountRatePxPerMin.Y);
+
+    JObj cameraArcsecPerMin;
+    cameraArcsecPerMin << NV("x", measurement.cameraRateArcsecPerMin.X) << NV("y", measurement.cameraRateArcsecPerMin.Y);
+
+    JObj mountArcsecPerMin;
+    mountArcsecPerMin << NV("ra", measurement.mountRateArcsecPerMin.X) << NV("dec", measurement.mountRateArcsecPerMin.Y);
+
+    const Calibration& cal = measurement.calibration;
+    JObj calibration;
+    calibration << NV("source", measurement.calibrationSource);
+    calibration << NV("used_step_guider", measurement.usedStepGuider);
+    calibration << NV("is_valid", cal.isValid);
+    if (cal.isValid)
+    {
+        calibration << NV("x_angle", cal.xAngle);
+        calibration << NV("y_angle", cal.yAngle);
+        calibration << NV("x_angle_degrees", degrees(cal.xAngle));
+        calibration << NV("y_angle_degrees", degrees(cal.yAngle));
+        calibration << NV("orthogonality_error_degrees", degrees(fabs(fabs(norm_angle(cal.xAngle - cal.yAngle)) - M_PI / 2.)));
+        calibration << NV("x_rate", cal.xRate);
+        calibration << NV("y_rate", cal.yRate);
+        calibration << NV("x_rate_px_per_sec", cal.xRate * 1000.0);
+        calibration << NV("y_rate_px_per_sec", cal.yRate * 1000.0);
+        if (cal.declination == UNKNOWN_DECLINATION)
+        {
+            calibration << NV("declination", NULL_VALUE);
+            calibration << NV("declination_degrees", NULL_VALUE);
+        }
+        else
+        {
+            calibration << NV("declination", cal.declination);
+            calibration << NV("declination_degrees", degrees(cal.declination));
+        }
+        calibration << NV("rotator_angle", cal.rotatorAngle);
+        calibration << NV("binning", cal.binning);
+        if (cal.pierSide == PIER_SIDE_UNKNOWN)
+            calibration << NV("pier_side", "?");
+        else
+            calibration << NV("pier_side", cal.pierSide == PIER_SIDE_EAST ? "east" : "west");
+        calibration << NV("ra_guide_parity", cal.raGuideParity == GUIDE_PARITY_EVEN ? "+" :
+                                                 cal.raGuideParity == GUIDE_PARITY_ODD ? "-" : "?");
+        calibration << NV("dec_guide_parity", cal.decGuideParity == GUIDE_PARITY_EVEN ? "+" :
+                                                  cal.decGuideParity == GUIDE_PARITY_ODD ? "-" : "?");
+        calibration << NV("timestamp", cal.timestamp);
+    }
+
+    rslt << NV("available", true);
+    rslt << NV("start_time", measurement.startTime);
+    rslt << NV("end_time", measurement.endTime);
+    rslt << NV("duration", measurement.duration);
+    rslt << NV("samples", measurement.sampleCount);
+    rslt << NV("pixel_scale", measurement.pixelScale);
+    rslt << NV("camera_rate_px_per_min", cameraPxPerMin);
+    rslt << NV("mount_rate_px_per_min", mountPxPerMin);
+    rslt << NV("camera_rate_arcsec_per_min", cameraArcsecPerMin);
+    rslt << NV("mount_rate_arcsec_per_min", mountArcsecPerMin);
+    rslt << NV("calibration", calibration);
+
+    response << jrpc_result(rslt);
 }
 
 // Use with caution: this will clear the calibration
@@ -3172,6 +3249,7 @@ static bool handle_request(JRpcCall& call)
         { "set_iflink", &set_iflink },
         { "set_iflink_cam", &set_iflink_cam },
         { "get_cal_data", &get_cal_data },
+        { "get_drift_measurement", &get_drift_measurement },
 
         { "is_parked", &is_parked },
         { "park", &park },
