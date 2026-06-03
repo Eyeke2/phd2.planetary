@@ -1861,13 +1861,20 @@ bool Scope::GetTrackingRate(enum DriveRates *rate, double *ra_rate, double *dec_
     return false;
 }
 
-bool Scope::SetTrackingRate(enum DriveRates rate)
+bool Scope::SetTrackingRate(enum DriveRates rate, wxString *errMsg)
 {
+    POSSIBLY_UNUSED(rate);
+    if (errMsg)
+        *errMsg = "mount does not support setting tracking rate";
     return true; // error
 }
 
-bool Scope::SetTrackingRateOffsets(double raRateOffset, double decRateOffset)
+bool Scope::SetTrackingRateOffsets(double raRateOffset, double decRateOffset, wxString *errMsg)
 {
+    POSSIBLY_UNUSED(raRateOffset);
+    POSSIBLY_UNUSED(decRateOffset);
+    if (errMsg)
+        *errMsg = "mount does not support setting tracking rate offsets";
     return true; // error
 }
 
@@ -1948,6 +1955,13 @@ bool Scope::AbortSlew()
     return true; // error
 }
 
+bool Scope::GetAxisRates(GuideAxis axis, std::vector<AxisRate> *rates)
+{
+    POSSIBLY_UNUSED(axis);
+    rates->clear();
+    return true; // error
+}
+
 bool Scope::CanCheckSlewing()
 {
     return false;
@@ -1959,6 +1973,17 @@ bool Scope::Slewing()
 }
 
 bool Scope::CanSetDeclinationRate()
+{
+    return false;
+}
+
+bool Scope::CanMoveAxis(GuideAxis axis)
+{
+    POSSIBLY_UNUSED(axis);
+    return false;
+}
+
+bool Scope::CanSync()
 {
     return false;
 }

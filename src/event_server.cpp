@@ -2224,6 +2224,103 @@ static void get_equatorial_system(JObj& response, const json_value *params)
         response << jrpc_error(1, "failed to get equatorial system");
 }
 
+static JAry axis_rates_json(const std::vector<Scope::AxisRate>& rates)
+{
+    JAry ary;
+    for (const auto& rate : rates)
+    {
+        JObj item;
+        item << NV("Minimum", rate.minimum) << NV("Maximum", rate.maximum);
+        ary << item;
+    }
+    return ary;
+}
+
+static bool axis_rate_supported(const std::vector<Scope::AxisRate>& rates, double rate, double *remappedRate)
+{
+    double absRate = std::fabs(rate);
+    if (remappedRate)
+        *remappedRate = rate;
+    if (absRate == 0.0)
+        return true;
+
+    bool supported = false;
+    double bestAbsRate = absRate;
+    double bestDiff = 0.0;
+    for (const auto& supportedRate : rates)
+    {
+        double minimum = wxMin(supportedRate.minimum, supportedRate.maximum);
+        double maximum = wxMax(supportedRate.minimum, supportedRate.maximum);
+        double candidateAbsRate = absRate;
+        bool rateMatches = false;
+
+        if (absRate >= minimum && absRate <= maximum)
+        {
+            rateMatches = true;
+        }
+        else if (absRate < minimum)
+        {
+            double tolerance = wxMax(1e-12, minimum * 0.001);
+            if (minimum - absRate <= tolerance)
+            {
+                candidateAbsRate = minimum;
+                rateMatches = true;
+            }
+        }
+        else
+        {
+            double tolerance = wxMax(1e-12, maximum * 0.001);
+            if (absRate - maximum <= tolerance)
+            {
+                candidateAbsRate = maximum;
+                rateMatches = true;
+            }
+        }
+
+        if (rateMatches)
+        {
+            double diff = std::fabs(candidateAbsRate - absRate);
+            if (!supported || diff < bestDiff)
+            {
+                supported = true;
+                bestAbsRate = candidateAbsRate;
+                bestDiff = diff;
+            }
+        }
+    }
+
+    if (!supported)
+        return false;
+
+    if (remappedRate)
+        *remappedRate = std::signbit(rate) ? -bestAbsRate : bestAbsRate;
+    return true;
+}
+
+static wxString axis_rate_ranges_string(const std::vector<Scope::AxisRate>& rates)
+{
+    if (rates.empty())
+        return "none";
+
+    wxString ranges;
+    for (size_t i = 0; i < rates.size(); ++i)
+    {
+        if (!ranges.empty())
+            ranges += ", ";
+        ranges += wxString::Format("[%.9g, %.9g]", rates[i].minimum, rates[i].maximum);
+    }
+
+    return ranges;
+}
+
+static JAry strings_json(const std::vector<wxString>& strings)
+{
+    JAry ary;
+    for (const auto& str : strings)
+        ary << str;
+    return ary;
+}
+
 static void get_mount_caps(JObj& response, const json_value* params)
 {
     if (!pPointingSource || !pPointingSource->IsConnected())
@@ -2236,12 +2333,29 @@ static void get_mount_caps(JObj& response, const json_value* params)
     bool async = false;
     if (!pPointingSource->GetEquatorialSystem(&system))
         response << NV("EquatorialSystem", system);
+    bool canMoveAxisRA = pPointingSource->CanMoveAxis(GUIDE_RA);
+    bool canMoveAxisDec = pPointingSource->CanMoveAxis(GUIDE_DEC);
     response << NV("CanSlewAsync", pPointingSource->CanSlewAsync());
     response << NV("CanSlew", pPointingSource->CanSlew());
     response << NV("CanUnpark", pPointingSource->CanUnpark());
     response << NV("CanCheckSlewing", pPointingSource->CanCheckSlewing());
     response << NV("CanSetRightAscensionRate", pPointingSource->CanSetRightAscensionRate());
     response << NV("CanSetDeclinationRate", pPointingSource->CanSetDeclinationRate());
+    response << NV("CanMoveAxis", canMoveAxisRA || canMoveAxisDec);
+    response << NV("CanMoveAxisRA", canMoveAxisRA);
+    response << NV("CanMoveAxisDec", canMoveAxisDec);
+    response << NV("CanSync", pPointingSource->CanSync());
+    std::vector<Scope::AxisRate> axisRates;
+    if (!pPointingSource->GetAxisRates(GUIDE_RA, &axisRates))
+    {
+        JAry ary = axis_rates_json(axisRates);
+        response << NV("AxisRatesRA", ary);
+    }
+    if (!pPointingSource->GetAxisRates(GUIDE_DEC, &axisRates))
+    {
+        JAry ary = axis_rates_json(axisRates);
+        response << NV("AxisRatesDec", ary);
+    }
     bool refraction = false;
     if (!pPointingSource->DoesRefraction(&refraction))
         response << NV("DoesRefraction", refraction);
@@ -2347,6 +2461,38 @@ static void slew_to_coordinates(JObj& response, const json_value* params)
     else
     {
         response << jrpc_error(1, "mount does not support slewing to coordinates");
+    }
+}
+
+static void get_axis_rates(JObj& response, const json_value *params)
+{
+    Params p("axis", params);
+    GuideAxis a;
+
+    const json_value *axisVal = p.param("axis");
+    if (!axisVal || !(axisVal->type == JSON_INT) || axisVal->int_value < 0 || axisVal->int_value > 1)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS,
+                               "invalid axis: expected 0 (RA/primary) or 1 (Dec/secondary)");
+        return;
+    }
+    a = (GuideAxis) axisVal->int_value;
+
+    if (!pPointingSource || !pPointingSource->IsConnected())
+    {
+        response << jrpc_error(1, "mount not connected");
+        return;
+    }
+
+    std::vector<Scope::AxisRate> axisRates;
+    if (!pPointingSource->GetAxisRates(a, &axisRates))
+    {
+        JAry ary = axis_rates_json(axisRates);
+        response << jrpc_result(ary);
+    }
+    else
+    {
+        response << jrpc_error(1, "failed to get axis rates");
     }
 }
 

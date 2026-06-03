@@ -38,6 +38,8 @@
 #include <set>
 #include "json_parser.h"
 
+class Scope;
+
 class EventServer : public wxEvtHandler
 {
 public:
