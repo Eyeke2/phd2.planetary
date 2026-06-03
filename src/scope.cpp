@@ -1905,6 +1905,13 @@ bool Scope::GetSiteElevation(double *elevation)
     return true; // error
 }
 
+PierSide Scope::DestinationSideOfPier(double ra, double dec)
+{
+    POSSIBLY_UNUSED(ra);
+    POSSIBLY_UNUSED(dec);
+    return PIER_SIDE_UNKNOWN;
+}
+
 bool Scope::CanSlew()
 {
     return false;

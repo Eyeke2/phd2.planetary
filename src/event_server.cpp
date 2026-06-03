@@ -944,6 +944,41 @@ static bool bool_param(const json_value *jv, bool *val)
     return true;
 }
 
+static bool valid_sidereal_time(double siderealTime)
+{
+    return std::isfinite(siderealTime) && siderealTime >= 0.0 && siderealTime < 24.0;
+}
+
+static bool valid_ra(double ra)
+{
+    return std::isfinite(ra) && ra >= 0.0 && ra < 24.0;
+}
+
+static double hour_angle(double ra, double siderealTime)
+{
+    return norm(siderealTime - ra, -12.0, 12.0);
+}
+
+static wxString hour_angle_log_value(double ra, double siderealTime)
+{
+    if (valid_sidereal_time(siderealTime) && valid_ra(ra))
+        return wxString::Format("%.6f", hour_angle(ra, siderealTime));
+    return "N/A";
+}
+
+static const char *pier_side_name(PierSide side)
+{
+    switch (side)
+    {
+    case PIER_SIDE_EAST:
+        return "east";
+    case PIER_SIDE_WEST:
+        return "west";
+    default:
+        return "unknown";
+    }
+}
+
 static void get_paused(JObj& response, const json_value *params)
 {
     VERIFY_GUIDER(response);
@@ -2913,6 +2948,17 @@ static void set_planet_size(JObj& response, const json_value *params)
 
 static void get_mount_coords(JObj& response, const json_value *params)
 {
+    Params p("pier_side", params);
+    bool includePierSide = false;
+    if (const json_value *val = p.param("pier_side"))
+    {
+        if (!bool_param(val, &includePierSide))
+        {
+            response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected boolean pier_side");
+            return;
+        }
+    }
+
     JObj rslt;
     double ra, dec, st;
     bool haveCoords = false;
@@ -2925,6 +2971,22 @@ static void get_mount_coords(JObj& response, const json_value *params)
     if (!pPointingSource->GetCoordinates(&ra, &dec, &st))
     {
         rslt << NV("ra", ra) << NV("dec", dec) << NV("sidereal", st);
+        wxString ha = hour_angle_log_value(ra, st);
+        if (ha != "N/A")
+            rslt << NV("ha", hour_angle(ra, st));
+        if (includePierSide)
+        {
+            PierSide pierSide = pPointingSource->SideOfPier();
+            wxString pierSideLog = pier_side_name(pierSide);
+            rslt << NV("pier_side", pierSideLog);
+            Debug.Write(wxString::Format("get_mount_coords ra=%.6f dec=%.6f sidereal=%.6f ha=%s pier_side=%s\n", ra, dec, st,
+                                         ha, pierSideLog));
+        }
+        else
+        {
+            Debug.Write(wxString::Format("get_mount_coords ra=%.6f dec=%.6f sidereal=%.6f ha=%s\n", ra, dec, st, ha));
+        }
+
         haveCoords = true;
     }
 
@@ -2938,6 +3000,56 @@ static void get_mount_coords(JObj& response, const json_value *params)
         response << jrpc_result(rslt);
     else
         response << jrpc_error(1, "failed to get mount coordinates");
+}
+
+static void get_mount_side_of_pier(JObj& response, const json_value *params)
+{
+    if (!pPointingSource || !pPointingSource->IsConnected())
+    {
+        response << jrpc_error(1, "mount not connected");
+        return;
+    }
+
+    PierSide side = pPointingSource->SideOfPier();
+    if (side == PIER_SIDE_UNKNOWN)
+    {
+        response << jrpc_error(1, "mount does not support side of pier");
+        return;
+    }
+
+    JObj rslt;
+    rslt << NV("pier_side", pier_side_name(side));
+    response << jrpc_result(rslt);
+}
+
+static void get_mount_destination_side_of_pier(JObj& response, const json_value *params)
+{
+    Params p("ra", "dec", params);
+    const json_value *raVal = p.param("ra");
+    const json_value *decVal = p.param("dec");
+    double ra, dec;
+    if (!raVal || !float_param(raVal, &ra) || !decVal || !float_param(decVal, &dec))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected ra and dec params");
+        return;
+    }
+
+    if (!pPointingSource || !pPointingSource->IsConnected())
+    {
+        response << jrpc_error(1, "mount not connected");
+        return;
+    }
+
+    PierSide side = pPointingSource->DestinationSideOfPier(ra, dec);
+    if (side == PIER_SIDE_UNKNOWN)
+    {
+        response << jrpc_error(1, "mount does not support destination side of pier");
+        return;
+    }
+
+    JObj rslt;
+    rslt << NV("pier_side", pier_side_name(side));
+    response << jrpc_result(rslt);
 }
 
 static void get_site_coords(JObj& response, const json_value *params)
@@ -3713,6 +3825,8 @@ static bool handle_request(JRpcCall& call)
         { "set_planetary_mode", &set_planetary_mode },
         { "get_cal_settings", &get_cal_settings },
         { "get_mount_coords", &get_mount_coords },
+        { "get_mount_side_of_pier", &get_mount_side_of_pier },
+        { "get_mount_destination_side_of_pier", &get_mount_destination_side_of_pier },
         { "get_site_coords", &get_site_coords },
         { "get_mount_tracking", &get_mount_tracking },
         { "set_mount_tracking", &set_mount_tracking },
