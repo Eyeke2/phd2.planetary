@@ -38,6 +38,8 @@
 #include "guiding_stats.h"
 #include "optionsbutton.h"
 
+#include <cmath>
+
 #include <wx/textwrapper.h>
 #include <wx/tokenzr.h>
 
@@ -79,6 +81,8 @@ struct GADetails
     wxString BLTAmount;
     wxString Recommendations;
 };
+
+static GuidingAssistant::DriftMeasurement s_lastDriftMeasurement;
 
 inline static void StartRow(int& row, int& column)
 {
@@ -249,6 +253,10 @@ struct GuidingAsstWin : public wxDialog
     DescriptiveStats m_hpfDecStats;
     AxisStats m_decAxisStats;
     AxisStats m_raAxisStats;
+    AxisStats m_driftXAxisStats;
+    AxisStats m_driftYAxisStats;
+    AxisStats m_driftRAAxisStats;
+    AxisStats m_driftDecAxisStats;
     long m_axisTimebase;
     HighPassFilter m_raHPF;
     LowPassFilter m_raLPF;
@@ -317,6 +325,7 @@ struct GuidingAsstWin : public wxDialog
     void EndBacklashTest(bool completed);
     void BacklashError();
     void StatsReset();
+    void SaveDriftMeasurement();
     void LoadGAResults(const wxString& TimeStamp, GADetails *Details);
     void SaveGAResults(const wxString *AllRecommendations);
     int GetGAHistoryCount();
@@ -632,6 +641,10 @@ void GuidingAsstWin::StatsReset()
     m_hpfDecStats.ClearAll();
     m_decAxisStats.ClearAll();
     m_raAxisStats.ClearAll();
+    m_driftXAxisStats.ClearAll();
+    m_driftYAxisStats.ClearAll();
+    m_driftRAAxisStats.ClearAll();
+    m_driftDecAxisStats.ClearAll();
 }
 
 static bool GetGridToolTip(int gridNum, const wxGridCellCoords& coords, wxString *s)
@@ -1002,6 +1015,68 @@ void GuidingAsstWin::LogResults()
                            m_othergrid->GetCellValue(m_dec_peak_loc), m_othergrid->GetCellValue(m_pae_loc));
     GuideLog.NotifyGAResult(str);
     Debug.Write(str);
+}
+
+static bool LinearFitRatePxPerMin(const AxisStats& stats, double *rate)
+{
+    if (stats.GetCount() <= 1)
+    {
+        return false;
+    }
+
+    double slope = 0.0;
+    double intercept = 0.0;
+    stats.GetLinearFitResults(&slope, &intercept);
+    if (!std::isfinite(slope))
+    {
+        return false;
+    }
+
+    *rate = 60.0 * slope;
+    return true;
+}
+
+void GuidingAsstWin::SaveDriftMeasurement()
+{
+    GuidingAssistant::DriftMeasurement measurement;
+    double xRate = 0.0;
+    double yRate = 0.0;
+    double raRate = 0.0;
+    double decRate = 0.0;
+
+    double duration = m_driftXAxisStats.GetLastEntry().DeltaTime;
+    if (duration <= 0.0 || !LinearFitRatePxPerMin(m_driftXAxisStats, &xRate) ||
+        !LinearFitRatePxPerMin(m_driftYAxisStats, &yRate) || !LinearFitRatePxPerMin(m_driftRAAxisStats, &raRate) ||
+        !LinearFitRatePxPerMin(m_driftDecAxisStats, &decRate))
+    {
+        Debug.Write("GuidingAssistant: drift measurement not saved, insufficient data\n");
+        return;
+    }
+
+    double pxScale = pFrame ? pFrame->GetCameraPixelScale() : 0.0;
+    measurement.valid = true;
+    measurement.startTime = startStr;
+    measurement.endTime = wxDateTime::Now().FormatISOCombined(' ');
+    measurement.duration = duration;
+    measurement.sampleCount = m_driftXAxisStats.GetCount();
+    measurement.pixelScale = pxScale;
+    measurement.usedStepGuider = pMount && pMount->IsStepGuider();
+    Scope *scope = TheScope();
+    if (scope)
+    {
+        measurement.calibrationSource = scope->Name();
+        measurement.calibration = scope->MountCal();
+        measurement.calibration.isValid = scope->IsCalibrated();
+    }
+    measurement.cameraRatePxPerMin = PHD_Point(xRate, yRate);
+    measurement.mountRatePxPerMin = PHD_Point(raRate, decRate);
+    measurement.cameraRateArcsecPerMin = PHD_Point(xRate * pxScale, yRate * pxScale);
+    measurement.mountRateArcsecPerMin = PHD_Point(raRate * pxScale, decRate * pxScale);
+
+    s_lastDriftMeasurement = measurement;
+    Debug.Write(wxString::Format("GuidingAssistant: saved drift measurement, x=%+.3f y=%+.3f ra=%+.3f dec=%+.3f px/min, "
+                                 "duration=%.1fs, samples=%d\n",
+                                 xRate, yRate, raRate, decRate, measurement.duration, measurement.sampleCount));
 }
 
 // Get info regarding any saved GA sessions that include a BLT
@@ -1574,6 +1649,7 @@ void GuidingAsstWin::MakeRecommendations()
     }
 
     GuideLog.NotifyGACompleted();
+    SaveDriftMeasurement();
     SaveGAResults(&allRecommendations);
     m_recommend_group->Show(true);
 
@@ -2006,7 +2082,14 @@ void GuidingAsstWin::UpdateInfo(const GuideStepInfo& info)
     }
     // Update the time measures
     wxLongLong_t elapsedms = ::wxGetUTCTimeMillis().GetValue() - m_startTime;
-    m_elapsedSecs = (double) elapsedms / 1000.0;
+    double elapsedSecs = (double) elapsedms / 1000.0;
+    m_elapsedSecs = elapsedSecs;
+
+    m_driftXAxisStats.AddGuideInfo(elapsedSecs, info.cameraOffset.X, 0);
+    m_driftYAxisStats.AddGuideInfo(elapsedSecs, info.cameraOffset.Y, 0);
+    m_driftRAAxisStats.AddGuideInfo(elapsedSecs, ra, 0);
+    m_driftDecAxisStats.AddGuideInfo(elapsedSecs, dec, 0);
+
     // add offset info to various stats accumulations
     m_hpfRAStats.AddValue(m_raHPF.AddValue(ra));
     double prevRAlpf = m_raLPF.GetCurrentLPF();
@@ -2157,4 +2240,13 @@ void GuidingAssistant::UpdateUIControls()
         event.SetEventObject(pFrame);
         wxPostEvent(pFrame->pGuidingAssistant, event);
     }
+}
+
+bool GuidingAssistant::GetLastDriftMeasurement(GuidingAssistant::DriftMeasurement *measurement)
+{
+    if (measurement)
+    {
+        *measurement = s_lastDriftMeasurement;
+    }
+    return s_lastDriftMeasurement.valid;
 }
