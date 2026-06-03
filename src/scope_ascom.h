@@ -80,6 +80,8 @@ class ScopeASCOM : public Scope
     bool m_canUnpark;
     bool m_canSetDeclinationRate;
     bool m_canSetRightAscensionRate;
+    bool m_canMoveAxis[2];
+    bool m_canSync;
 
     bool m_abortSlewWhenGuidingStuck;
     bool m_checkForSyncPulseGuide;
@@ -114,8 +116,8 @@ public:
     bool CanSetTracking() override;
     bool GetTrackingRate(enum DriveRates *rate, bool verbose) override;
     bool GetTrackingRate(enum DriveRates *rate, double *ra_rate, double *dec_rate, bool verbose) override;
-    bool SetTrackingRate(enum DriveRates rate) override;
-    bool SetTrackingRateOffsets(double raRateOffset, double decRateOffset) override;
+    bool SetTrackingRate(enum DriveRates rate, wxString *errMsg = nullptr) override;
+    bool SetTrackingRateOffsets(double raRateOffset, double decRateOffset, wxString *errMsg = nullptr) override;
     bool GetGuideRates(double *pRAGuideRate, double *pDecGuideRate) override;
     bool GetCoordinates(double *ra, double *dec, double *siderealTime) override;
     bool GetMountAltAz(double *alt, double *az) override;
@@ -130,6 +132,9 @@ public:
     bool CanCheckSlewing() override;
     bool CanSetDeclinationRate() override;
     bool CanSetRightAscensionRate() override;
+    bool CanMoveAxis(GuideAxis axis) override;
+    bool GetAxisRates(GuideAxis axis, std::vector<AxisRate> *rates) override;
+    bool CanSync() override;
     bool Park() override;
     bool Unpark() override;
     bool SlewToCoordinates(double ra, double dec) override;

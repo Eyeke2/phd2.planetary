@@ -181,6 +181,11 @@ public:
         wxString name;
         bool canSet;
     } m_mountRates[driveMaxRate];
+    struct AxisRate
+    {
+        double minimum;
+        double maximum;
+    };
 
     // Things related to the Advanced Config Dialog
 protected:
@@ -292,9 +297,12 @@ public:
     virtual bool CanUnpark();
     virtual bool SlewToCoordinates(double ra, double dec);
     virtual bool SlewToCoordinatesAsync(double ra, double dec);
+    virtual bool GetAxisRates(GuideAxis axis, std::vector<AxisRate> *rates);
     virtual bool AbortSlew();
     virtual bool CanCheckSlewing();
     virtual bool CanSetDeclinationRate();
+    virtual bool CanMoveAxis(GuideAxis axis);
+    virtual bool CanSync();
     virtual bool CanSetRightAscensionRate();
     virtual bool Slewing();
     virtual bool GetEquatorialSystem(int *system);
@@ -313,8 +321,8 @@ public:
     virtual bool SetTracking(bool tracking);
     virtual bool GetTrackingRate(enum DriveRates *rate, bool verbose = false);
     virtual bool GetTrackingRate(enum DriveRates *rate, double *ra_rate, double *dec_rate, bool verbose);
-    virtual bool SetTrackingRate(enum DriveRates rate);
-    virtual bool SetTrackingRateOffsets(double raRateOffset, double decRateOffset);
+    virtual bool SetTrackingRate(enum DriveRates rate, wxString *errMsg = nullptr);
+    virtual bool SetTrackingRateOffsets(double raRateOffset, double decRateOffset, wxString *errMsg = nullptr);
     virtual bool CanSetTracking();
 
     void StartDecDrift() override;

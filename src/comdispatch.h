@@ -96,8 +96,11 @@ public:
     bool PutProp(OLECHAR *name, double val);
     bool InvokeMethod(Variant *res, OLECHAR *name);
     bool InvokeMethod(Variant *res, OLECHAR *name, OLECHAR *arg);
+    bool InvokeMethod(Variant *res, OLECHAR *name, LONG arg);
     bool InvokeMethod(Variant *res, OLECHAR *name, double arg1, double arg2);
+    bool InvokeMethod(Variant *res, OLECHAR *name, LONG arg1, double arg2);
     bool InvokeMethod(Variant *res, DISPID dispid, double arg1, double arg2);
+    bool InvokeMethod(Variant *res, DISPID dispid, LONG arg1, double arg2);
     bool InvokeMethod(Variant *res, DISPID dispid);
     const EXCEPINFO& Excep() const { return m_excep; }
     IDispatch *IDisp() const { return m_idisp; }

@@ -343,6 +343,26 @@ bool DispatchObj::InvokeMethod(Variant *res, OLECHAR *name, OLECHAR *arg)
     return SUCCEEDED(hr);
 }
 
+bool DispatchObj::InvokeMethod(Variant *res, OLECHAR *name, LONG arg)
+{
+    DISPID dispid;
+    if (!GetDispatchId(&dispid, name))
+        return false;
+
+    VARIANTARG rgvarg[1];
+    rgvarg[0].vt = VT_I4;
+    rgvarg[0].lVal = arg;
+    DISPPARAMS dispParms;
+    dispParms.cArgs = 1;
+    dispParms.rgvarg = rgvarg;
+    dispParms.cNamedArgs = 0;
+    dispParms.rgdispidNamedArgs = NULL;
+    HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL);
+    if (FAILED(hr))
+        LogExcep(hr, "invoke", name, m_excep);
+    return SUCCEEDED(hr);
+}
+
 bool DispatchObj::InvokeMethod(Variant *res, DISPID dispid, double arg1, double arg2)
 {
     VARIANTARG rgvarg[2];
@@ -361,7 +381,33 @@ bool DispatchObj::InvokeMethod(Variant *res, DISPID dispid, double arg1, double 
     return SUCCEEDED(hr);
 }
 
+bool DispatchObj::InvokeMethod(Variant *res, DISPID dispid, LONG arg1, double arg2)
+{
+    VARIANTARG rgvarg[2];
+    rgvarg[0].vt = VT_R8;
+    rgvarg[0].dblVal = arg2;
+    rgvarg[1].vt = VT_I4;
+    rgvarg[1].lVal = arg1;
+    DISPPARAMS dispParms;
+    dispParms.cArgs = 2;
+    dispParms.rgvarg = rgvarg;
+    dispParms.cNamedArgs = 0;
+    dispParms.rgdispidNamedArgs = NULL;
+    HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL);
+    if (FAILED(hr))
+        LogExcep(hr, "invoke", dispid, m_excep);
+    return SUCCEEDED(hr);
+}
+
 bool DispatchObj::InvokeMethod(Variant *res, OLECHAR *name, double arg1, double arg2)
+{
+    DISPID dispid;
+    if (!GetDispatchId(&dispid, name))
+        return false;
+    return InvokeMethod(res, dispid, arg1, arg2);
+}
+
+bool DispatchObj::InvokeMethod(Variant *res, OLECHAR *name, LONG arg1, double arg2)
 {
     DISPID dispid;
     if (!GetDispatchId(&dispid, name))

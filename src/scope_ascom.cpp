@@ -56,9 +56,21 @@
 ScopeASCOM::ScopeASCOM(const wxString& choice)
 {
     m_choice = choice;
-    m_canPulseGuide = false; // will get updated in Connect()
+
+    m_canCheckPulseGuiding = false;
+    m_canGetCoordinates = false;
+    m_canGetGuideRates = false;
+    m_canSlew = false;
+    m_canSlewAsync = false;
+    m_canAbortSlew = false;
+    m_canPulseGuide = false;
+    m_canPark = false;
+    m_canUnpark = false;
     m_canSetDeclinationRate = false;
     m_canSetRightAscensionRate = false;
+    m_canMoveAxis[GUIDE_RA] = false;
+    m_canMoveAxis[GUIDE_DEC] = false;
+    m_canSync = false;
 
     dispid_connected = DISPID_UNKNOWN;
     dispid_ispulseguiding = DISPID_UNKNOWN;
@@ -421,6 +433,32 @@ bool ScopeASCOM::Connect()
             m_canSetRightAscensionRate = false;
         }
 
+        if (!pScopeDriver.InvokeMethod(&vRes, L"CanMoveAxis", (LONG) GUIDE_RA) || vRes.boolVal != VARIANT_TRUE)
+        {
+            Debug.Write("ASCOM scope does not support moving RA axis\n");
+            m_canMoveAxis[GUIDE_RA] = false;
+        }
+        else
+        {
+            m_canMoveAxis[GUIDE_RA] = true;
+        }
+        if (!pScopeDriver.InvokeMethod(&vRes, L"CanMoveAxis", (LONG) GUIDE_DEC) || vRes.boolVal != VARIANT_TRUE)
+        {
+            Debug.Write("ASCOM scope does not support moving Dec axis\n");
+            m_canMoveAxis[GUIDE_DEC] = false;
+        }
+        else
+        {
+            m_canMoveAxis[GUIDE_DEC] = true;
+        }
+
+        m_canSync = true;
+        if (!pScopeDriver.GetProp(&vRes, L"CanSync") || vRes.boolVal != VARIANT_TRUE)
+        {
+            Debug.Write("ASCOM scope does not support mount sync\n");
+            m_canSync = false;
+        }
+
         // see if scope can slew
         m_canSlewAsync = false;
         if (m_canSlew)
@@ -495,6 +533,16 @@ bool ScopeASCOM::Connect()
 
         Scope::Connect();
 
+        if (m_canSetRightAscensionRate || m_canSetDeclinationRate)
+        {
+            wxString errMsg;
+            if (SetTrackingRateOffsets(0.0, 0.0, &errMsg))
+            {
+                Debug.Write(wxString::Format("ASCOM scope: custom tracking-rate setter verification failed: %s\n",
+                                             errMsg.empty() ? "no driver error text returned" : errMsg));
+            }
+        }
+
         Debug.Write("ASCOM Scope: Connect success\n");
     }
     catch (const wxString& Msg)
@@ -557,6 +605,12 @@ static bool rates_match(DriveRates rate, double ra_offset, double dec_offset, do
 {
     const double rateTolerance = 0.01;
     return rate == driveSidereal && fabs(ra_offset - curr_ra_rate) < rateTolerance && fabs(dec_offset - curr_dec_rate) < rateTolerance;
+}
+
+static bool PropertySetterNotSupported(const wxString& msg)
+{
+    wxString lower = msg.Lower();
+    return lower.Contains("not implemented") || lower.Contains("not supported");
 }
 
 // Enumerate all supported tracking rates
@@ -1249,9 +1303,11 @@ bool ScopeASCOM::GetTrackingRate(enum DriveRates *rate, double *ra_rate, double 
     return bError;
 }
 
-bool ScopeASCOM::SetTrackingRate(enum DriveRates rate)
+bool ScopeASCOM::SetTrackingRate(enum DriveRates rate, wxString *errMsg)
 {
     bool bError = false;
+    if (errMsg)
+        errMsg->Clear();
 
     try
     {
@@ -1270,7 +1326,8 @@ bool ScopeASCOM::SetTrackingRate(enum DriveRates rate)
     catch (const wxString& Msg)
     {
         bError = true;
-        POSSIBLY_UNUSED(Msg);
+        if (errMsg)
+            *errMsg = Msg;
     }
 
     Debug.Write(wxString::Format("ScopeASCOM::SetTrackingRate() returns %s, tracking rate = %d\n", bError ? "error" : "success",
@@ -1279,9 +1336,11 @@ bool ScopeASCOM::SetTrackingRate(enum DriveRates rate)
     return bError;
 }
 
-bool ScopeASCOM::SetTrackingRateOffsets(double raRateOffset, double decRateOffset)
+bool ScopeASCOM::SetTrackingRateOffsets(double raRateOffset, double decRateOffset, wxString *errMsg)
 {
     bool bError = false;
+    if (errMsg)
+        errMsg->Clear();
 
     try
     {
@@ -1290,21 +1349,41 @@ bool ScopeASCOM::SetTrackingRateOffsets(double raRateOffset, double decRateOffse
             throw ERROR_INFO("ASCOM Scope: cannot set tracking rate when not connected");
         }
 
+        if (!m_canSetRightAscensionRate && !m_canSetDeclinationRate)
+        {
+            throw THROW_INFO("ASCOM Scope: cannot set tracking rate offsets");
+        }
+
         GITObjRef scope(m_gitEntry);
 
-        if (!scope.PutProp(L"RightAscensionRate", raRateOffset))
+        wxString errors;
+        if (m_canSetRightAscensionRate && !scope.PutProp(L"RightAscensionRate", raRateOffset))
         {
-            throw ERROR_INFO("ASCOM Scope: SetTrackingRateOffsets(RightAscensionRate) failed: " + ExcepMsg(scope.Excep()));
+            wxString error = ExcepMsg(scope.Excep());
+            if (PropertySetterNotSupported(error))
+                m_canSetRightAscensionRate = false;
+            errors += "ASCOM Scope: SetTrackingRateOffsets(RightAscensionRate) failed: " + error;
         }
-        if (!scope.PutProp(L"DeclinationRate", decRateOffset))
+        if (m_canSetDeclinationRate && !scope.PutProp(L"DeclinationRate", decRateOffset))
         {
-            throw ERROR_INFO("ASCOM Scope: SetTrackingRateOffsets(DeclinationRate) failed: " + ExcepMsg(scope.Excep()));
+            wxString error = ExcepMsg(scope.Excep());
+            if (PropertySetterNotSupported(error))
+                m_canSetDeclinationRate = false;
+            if (!errors.empty())
+                errors += "\n";
+            errors += "ASCOM Scope: SetTrackingRateOffsets(DeclinationRate) failed: " + error;
+        }
+        if (!errors.empty())
+        {
+            Debug.AddLine(wxString::Format("Error thrown from %s:%d->%s", PhdLogSourceFile(__FILE__), __LINE__, errors));
+            throw errors;
         }
     }
     catch (const wxString& Msg)
     {
         bError = true;
-        POSSIBLY_UNUSED(Msg);
+        if (errMsg)
+            *errMsg = Msg;
     }
 
     Debug.Write(wxString::Format("ScopeASCOM::SetTrackingRateOffsets() returns %s\n", bError ? "error" : "success"));
@@ -1651,6 +1730,20 @@ bool ScopeASCOM::CanSetRightAscensionRate()
     return m_canSetRightAscensionRate;
 }
 
+bool ScopeASCOM::CanMoveAxis(GuideAxis axis)
+{
+    if (!IsConnected())
+        return false;
+    return axis == GUIDE_RA || axis == GUIDE_DEC ? m_canMoveAxis[axis] : false;
+}
+
+bool ScopeASCOM::CanSync()
+{
+    if (!IsConnected())
+        return false;
+    return m_canSync;
+}
+
 bool ScopeASCOM::CanReportPosition()
 {
     return true;
@@ -1802,6 +1895,75 @@ bool ScopeASCOM::AbortSlew()
     GITObjRef scope(m_gitEntry);
     Variant vRes;
     return !scope.InvokeMethod(&vRes, L"AbortSlew");
+}
+
+bool ScopeASCOM::GetAxisRates(GuideAxis axis, std::vector<AxisRate> *rates)
+{
+    bool bError = false;
+    rates->clear();
+
+    try
+    {
+        if (!IsConnected())
+        {
+            throw ERROR_INFO("ASCOM Scope: cannot get axis rates when not connected");
+        }
+
+        if (axis != GUIDE_RA && axis != GUIDE_DEC)
+        {
+            throw THROW_INFO("ASCOM Scope: invalid axis for AxisRates");
+        }
+
+        GITObjRef scope(m_gitEntry);
+
+        Variant vAxisRates;
+        if (!scope.InvokeMethod(&vAxisRates, L"AxisRates", (LONG) axis))
+        {
+            throw ERROR_INFO("ASCOM Scope: AxisRates failed: " + ExcepMsg(scope.Excep()));
+        }
+
+        DispatchClass axisRatesClass;
+        DispatchObj axisRates(vAxisRates.pdispVal, &axisRatesClass);
+
+        Variant vCount;
+        if (!axisRates.GetProp(&vCount, L"Count"))
+        {
+            throw ERROR_INFO("ASCOM Scope: AxisRates Count failed: " + ExcepMsg(axisRates.Excep()));
+        }
+
+        unsigned int const ratesCount = vCount.intVal;
+        Debug.Write(wxString::Format("ASCOM scope: reports count=%d of axis rates for axis %d\n", ratesCount, axis));
+
+        DispatchClass rateClass;
+        for (unsigned int i = 1; i <= ratesCount; ++i)
+        {
+            Variant vRate;
+            if (!axisRates.GetProp(&vRate, L"Item", i))
+            {
+                throw ERROR_INFO("ASCOM Scope: AxisRates Item failed: " + ExcepMsg(axisRates.Excep()));
+            }
+
+            DispatchObj rate(vRate.pdispVal, &rateClass);
+            Variant vMinimum;
+            Variant vMaximum;
+            if (!rate.GetProp(&vMinimum, L"Minimum") || !rate.GetProp(&vMaximum, L"Maximum"))
+            {
+                throw ERROR_INFO("ASCOM Scope: AxisRates rate range failed: " + ExcepMsg(rate.Excep()));
+            }
+
+            AxisRate axisRate;
+            axisRate.minimum = vMinimum.dblVal;
+            axisRate.maximum = vMaximum.dblVal;
+            rates->push_back(axisRate);
+        }
+    }
+    catch (const wxString& Msg)
+    {
+        POSSIBLY_UNUSED(Msg);
+        bError = true;
+    }
+
+    return bError;
 }
 
 PierSide ScopeASCOM::SideOfPier()
