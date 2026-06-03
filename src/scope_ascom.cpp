@@ -87,6 +87,7 @@ ScopeASCOM::ScopeASCOM(const wxString& choice)
     dispid_raguiderate = DISPID_UNKNOWN;
     dispid_decguiderate = DISPID_UNKNOWN;
     dispid_sideofpier = DISPID_UNKNOWN;
+    dispid_destinationsideofpier = DISPID_UNKNOWN;
     dispid_abortslew = DISPID_UNKNOWN;
     dispid_tracking = DISPID_UNKNOWN;
     dispid_trackingrate = DISPID_UNKNOWN;
@@ -342,6 +343,12 @@ bool ScopeASCOM::Connect()
         {
             Debug.Write("cannot get dispid_sideofpier\n");
             dispid_sideofpier = DISPID_UNKNOWN;
+        }
+
+        if (!pScopeDriver.GetDispatchId(&dispid_destinationsideofpier, L"DestinationSideOfPier"))
+        {
+            Debug.Write("cannot get dispid_destinationsideofpier\n");
+            dispid_destinationsideofpier = DISPID_UNKNOWN;
         }
 
         m_canAbortSlew = true;
@@ -2087,6 +2094,51 @@ PierSide ScopeASCOM::SideOfPier()
     }
 
     Debug.Write(wxString::Format("ScopeASCOM::SideOfPier() returns %d\n", pierSide));
+
+    return pierSide;
+}
+
+PierSide ScopeASCOM::DestinationSideOfPier(double ra, double dec)
+{
+    PierSide pierSide = PIER_SIDE_UNKNOWN;
+
+    try
+    {
+        if (!IsConnected())
+        {
+            throw ERROR_INFO("ASCOM Scope: cannot get destination side of pier when not connected");
+        }
+
+        if (dispid_destinationsideofpier == DISPID_UNKNOWN)
+        {
+            throw THROW_INFO("ASCOM Scope: not capable of getting destination side of pier");
+        }
+
+        GITObjRef scope(m_gitEntry);
+
+        Variant vRes;
+
+        if (!scope.InvokeMethod(&vRes, dispid_destinationsideofpier, ra, dec))
+        {
+            throw ERROR_INFO("ASCOM Scope: DestinationSideOfPier failed: " + ExcepMsg(scope.Excep()));
+        }
+
+        switch (vRes.intVal)
+        {
+        case 0:
+            pierSide = PIER_SIDE_EAST;
+            break;
+        case 1:
+            pierSide = PIER_SIDE_WEST;
+            break;
+        }
+    }
+    catch (const wxString& Msg)
+    {
+        POSSIBLY_UNUSED(Msg);
+    }
+
+    Debug.Write(wxString::Format("ScopeASCOM::DestinationSideOfPier(%.6f, %.6f) returns %d\n", ra, dec, pierSide));
 
     return pierSide;
 }

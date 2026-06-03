@@ -313,6 +313,7 @@ public:
     virtual bool Park();
     virtual bool Unpark();
     virtual PierSide SideOfPier();
+    virtual PierSide DestinationSideOfPier(double ra, double dec);
     virtual bool CanReportPosition(); // Can report RA, Dec, side-of-pier, etc.
     // Will be called before guiding starts, before any call to GetCoordinates, GetDeclination, or SideOfPier.
     // Does not get called unless guiding was started interactively (by clicking the guide button)

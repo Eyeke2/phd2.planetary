@@ -64,6 +64,7 @@ class ScopeASCOM : public Scope
     DISPID dispid_raguiderate;
     DISPID dispid_decguiderate;
     DISPID dispid_sideofpier;
+    DISPID dispid_destinationsideofpier;
     DISPID dispid_abortslew;
     DISPID dispid_tracking;
     DISPID dispid_trackingrate;
@@ -147,6 +148,7 @@ public:
     bool GetEquatorialSystem(int *system) override;
     bool DoesRefraction(bool *refraction) override;
     PierSide SideOfPier() override;
+    PierSide DestinationSideOfPier(double ra, double dec) override;
 };
 
 #endif // GUIDE_ASCOM
