@@ -54,7 +54,7 @@
 # define DefaultEnableUpdate false
 #endif
 
-static unsigned long DownloadBgMaxBPS = 100 * 1024; // 100 kB/sec
+static const curl_off_t DownloadActiveGuideMaxBPS = 2 * 1024 * 1024; // 2 MiB/sec
 
 struct Updater;
 
@@ -506,17 +506,21 @@ struct Updater
         curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &file);
         curl_easy_setopt(m_curl, CURLOPT_URL, static_cast<const char *>(installer_url.c_str()));
 
-        if (!m_interactive)
+        bool rateLimited = pFrame && pFrame->pGuider &&
+            (pFrame->pGuider->IsGuiding() || pFrame->pGuider->IsCalibrating());
+        if (rateLimited)
         {
-            // limit download speed for background download
-            curl_easy_setopt(m_curl, CURLOPT_MAX_RECV_SPEED_LARGE, (curl_off_t) DownloadBgMaxBPS);
+            Debug.Write(wxString::Format("UPD: limiting installer download to %lld B/sec while guiding or calibrating\n",
+                                         (long long) DownloadActiveGuideMaxBPS));
+            curl_easy_setopt(m_curl, CURLOPT_MAX_RECV_SPEED_LARGE, DownloadActiveGuideMaxBPS);
         }
 
         Debug.Write(wxString::Format("UPD: begin download %s to %s\n", installer_url, filename));
 
         CURLcode res = curl_easy_perform(m_curl);
 
-        curl_easy_setopt(m_curl, CURLOPT_MAX_RECV_SPEED_LARGE, (curl_off_t) 0); // restore unlimited rate
+        if (rateLimited)
+            curl_easy_setopt(m_curl, CURLOPT_MAX_RECV_SPEED_LARGE, (curl_off_t) 0); // restore unlimited rate
 
         if (res != CURLE_OK)
         {
