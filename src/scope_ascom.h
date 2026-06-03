@@ -140,6 +140,7 @@ public:
     bool Unpark() override;
     bool SlewToCoordinates(double ra, double dec) override;
     bool SlewToCoordinatesAsync(double ra, double dec) override;
+    bool SyncToCoordinates(double ra, double dec, wxString *errMsg = nullptr) override;
     bool AbortSlew() override;
     bool Slewing() override;
     bool IsParked(bool *parked) override;
