@@ -1094,13 +1094,15 @@ void MyFrame::SetupHelpFile()
     wxString filename = wxGetApp().GetLocalesDir() + wxFILE_SEP_PATH + wxLocale::GetLanguageCanonicalName(langid) +
         wxFILE_SEP_PATH + _T("PHD2GuideHelp.zip");
 
-    Debug.Write(wxString::Format("SetupHelpFile: langid=%d, locale-specific help = %s\n", langid, filename));
+    Debug.Write(wxString::Format("SetupHelpFile: langid=%d, locale-specific help = %s\n", langid,
+                                 PhdLogPath(filename, wxGetApp().GetPHDResourcesDir())));
 
     if (!wxFileExists(filename))
     {
         filename = wxGetApp().GetPHDResourcesDir() + wxFILE_SEP_PATH + _T("PHD2GuideHelp.zip");
 
-        Debug.Write(wxString::Format("SetupHelpFile: using default help %s\n", filename));
+        Debug.Write(wxString::Format("SetupHelpFile: using default help %s\n",
+                                     PhdLogPath(filename, wxGetApp().GetPHDResourcesDir())));
     }
 
     help = new PHDHelpController();

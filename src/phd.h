@@ -161,10 +161,68 @@ inline void SetThreadName(const char* threadName) { (void) threadName; }
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
-#define THROW_INFO_BASE(intro, file, line) intro " " file ":" TOSTRING(line)
-#define LOG_INFO(s) (Debug.AddLine(wxString(THROW_INFO_BASE("At", __FILE__, __LINE__) "->" s)))
-#define THROW_INFO(s) (Debug.AddLine(wxString(THROW_INFO_BASE("Throw from", __FILE__, __LINE__) "->" s)))
-#define ERROR_INFO(s) (Debug.AddLine(wxString(THROW_INFO_BASE("Error thrown from", __FILE__, __LINE__) "->" s)))
+inline const char *PhdLogSourceFile(const char *file)
+{
+    const char *srcRelative = nullptr;
+    for (const char *p = file; *p; ++p)
+    {
+        bool atPathSegment = p == file || p[-1] == '\\' || p[-1] == '/';
+        if (atPathSegment && p[0] == 's' && p[1] == 'r' && p[2] == 'c' && (p[3] == '\\' || p[3] == '/'))
+            srcRelative = p + 4;
+    }
+    if (srcRelative)
+        return srcRelative;
+
+    const char *base = file;
+    for (const char *p = file; *p; ++p)
+    {
+        if (*p == '\\' || *p == '/')
+            base = p + 1;
+    }
+    return base;
+}
+
+inline wxString PhdLogPath(const wxString& path, const wxString& baseDir)
+{
+    wxString normalizedPath(path);
+    normalizedPath.Replace("\\", "/");
+
+    wxString normalizedBase(baseDir);
+    normalizedBase.Replace("\\", "/");
+    while (normalizedBase.EndsWith("/"))
+        normalizedBase.RemoveLast();
+
+    if (!normalizedBase.empty())
+    {
+        wxString pathCmp(normalizedPath);
+        wxString baseCmp(normalizedBase);
+#if defined(__WINDOWS__)
+        pathCmp.MakeLower();
+        baseCmp.MakeLower();
+#endif
+        if (pathCmp == baseCmp)
+            return ".";
+
+        const wxString basePrefix = baseCmp + "/";
+        if (pathCmp.StartsWith(basePrefix))
+            return normalizedPath.Mid(normalizedBase.Length() + 1);
+    }
+
+    int slash = normalizedPath.Find('/', true);
+    if (slash != wxNOT_FOUND)
+        return normalizedPath.Mid(slash + 1);
+    return normalizedPath;
+}
+
+inline wxString PhdLogPath(const wxString& path)
+{
+    return PhdLogPath(path, wxEmptyString);
+}
+
+#define THROW_INFO_BASE(intro, file, line) wxString::Format("%s %s:%d", intro, PhdLogSourceFile(file), line)
+#define LOG_INFO(s) (Debug.AddLine(THROW_INFO_BASE("At", __FILE__, __LINE__) + "->" s))
+#define THROW_INFO(s) (Debug.AddLine(THROW_INFO_BASE("Throw from", __FILE__, __LINE__) + "->" s))
+#define ERROR_INFO(s) (Debug.AddLine(THROW_INFO_BASE("Error thrown from", __FILE__, __LINE__) + "->" s))
 
 #if defined(__WINDOWS__)
 # define PHD_MESSAGES_CATALOG "messages"

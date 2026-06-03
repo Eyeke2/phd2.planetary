@@ -624,7 +624,7 @@ bool PhdApp::OnInit()
 #endif
 
     wxString ldir = GetLocalesDir();
-    Debug.Write(wxString::Format("locale: using dir %s exists=%d\n", ldir, wxDirExists(ldir)));
+    Debug.Write(wxString::Format("locale: using dir %s exists=%d\n", PhdLogPath(ldir, m_resourcesDir), wxDirExists(ldir)));
     wxLocale::AddCatalogLookupPathPrefix(ldir);
 
     int langid = pConfig->Global.GetInt("/wxLanguage", wxLANGUAGE_DEFAULT);
