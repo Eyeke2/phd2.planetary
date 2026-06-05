@@ -3229,6 +3229,7 @@ void MyFrameConfigDialogPane::LayoutControls(BrainCtrlIdMap& CtrlMap)
     this->Add(GetSizerCtrl(CtrlMap, AD_szSoftwareUpdate), sizer_flags);
     this->Add(GetSizerCtrl(CtrlMap, AD_szLogFileInfo), sizer_flags);
     this->Add(GetSingleCtrl(CtrlMap, AD_cbEnableImageLogging), sizer_flags);
+    this->Add(GetSingleCtrl(CtrlMap, AD_cbGraphTimeCursor), sizer_flags);
     this->Add(GetSizerCtrl(CtrlMap, AD_szImageLoggingOptions), sizer_flags);
     this->Add(GetSizerCtrl(CtrlMap, AD_szDither), sizer_flags);
     Layout();
@@ -3522,6 +3523,11 @@ MyFrameConfigDialogCtrlSet::MyFrameConfigDialogCtrlSet(MyFrame *pFrame, Advanced
 
     AddGroup(CtrlMap, AD_szDither, ditherGroupBox);
 
+    parent = GetParentWindow(AD_cbGraphTimeCursor);
+    m_pGraphTimeCursor = new wxCheckBox(parent, wxID_ANY, _("Show graph time cursor"));
+    AddCtrl(CtrlMap, AD_cbGraphTimeCursor, m_pGraphTimeCursor,
+            _("Show a vertical cursor line in the guiding graph with the timestamp and error values for the cursor position"));
+
     parent = GetParentWindow(AD_cbAutoRestoreCal);
     m_pAutoLoadCalibration = new wxCheckBox(parent, wxID_ANY, _("Auto restore calibration"), wxDefaultPosition, wxDefaultSize);
     AddCtrl(
@@ -3646,6 +3652,7 @@ void MyFrameConfigDialogCtrlSet::LoadValues()
     m_LogAbsErrorThresh->SetValue(imlSettings.guideErrorThreshPx);
     m_LogNextNFrames->SetValue(imlSettings.logNextNFrames);
     m_LogNextNFramesCount->SetValue(imlSettings.logNextNFramesCount);
+    m_pGraphTimeCursor->SetValue(pConfig->Global.GetBoolean("/graph/showTimeCursor", false));
 
     UpdaterSettings updSettings;
     PHD2Updater::GetSettings(&updSettings);
@@ -3746,6 +3753,11 @@ void MyFrameConfigDialogCtrlSet::UnloadValues()
 
         ImageLogger::ApplySettings(imlSettings);
         SaveImageLoggerSettings(imlSettings);
+
+        bool showGraphTimeCursor = m_pGraphTimeCursor->GetValue();
+        pConfig->Global.SetBoolean("/graph/showTimeCursor", showGraphTimeCursor);
+        if (m_pFrame->pGraphLog)
+            m_pFrame->pGraphLog->SetShowTimeCursor(showGraphTimeCursor);
 
         UpdaterSettings updSettings;
         updSettings.enabled = m_updateEnabled->GetValue();

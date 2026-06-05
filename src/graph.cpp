@@ -559,6 +559,11 @@ void GraphLogWindow::EnableTrendLines(bool enable)
     OnCheckboxTrendlines(dummy);
 }
 
+void GraphLogWindow::SetShowTimeCursor(bool show)
+{
+    m_pClient->SetShowTimeCursor(show);
+}
+
 void GraphLogWindow::AppendData(const GuideStepInfo& step)
 {
     if (m_pXControlPane)
@@ -761,6 +766,8 @@ void GraphLogWindow::UpdateHeightButtonLabel()
 wxBEGIN_EVENT_TABLE(GraphLogClientWindow, wxWindow)
     EVT_PAINT(GraphLogClientWindow::OnPaint)
     EVT_LEFT_DOWN(GraphLogClientWindow::OnLeftBtnDown)
+    EVT_MOTION(GraphLogClientWindow::OnMouseMove)
+    EVT_LEAVE_WINDOW(GraphLogClientWindow::OnMouseLeave)
 wxEND_EVENT_TABLE();
 // clang-format on
 
@@ -808,6 +815,9 @@ GraphLogClientWindow::GraphLogClientWindow(wxWindow *parent)
     m_showCorrections = pConfig->Global.GetBoolean("/graph/showCorrections", true);
     m_showStarMass = pConfig->Global.GetBoolean("/graph/showStarMass", false);
     m_showStarSNR = pConfig->Global.GetBoolean("/graph/showStarSNR", false);
+    m_showTimeCursor = pConfig->Global.GetBoolean("/graph/showTimeCursor", false);
+    m_timeCursorActive = false;
+    m_timeCursorX = 0;
     m_correctionsToScale = pConfig->Global.GetBoolean("/graph/correctionsToScale", false);
 }
 
@@ -830,6 +840,7 @@ static void reset_trend_accums(TrendLineAccum accums[4])
 void GraphLogClientWindow::ResetData()
 {
     m_history.clear();
+    m_timeCursorActive = false;
     reset_trend_accums(m_trendLineAccum);
     m_noDitherDec.ClearAll();
     m_noDitherRA.ClearAll();
@@ -1094,6 +1105,16 @@ void GraphLogClientWindow::AppendData(const GuideStepInfo& step)
     pFrame->pStatsWin->UpdateStats();
 }
 
+void GraphLogClientWindow::SetShowTimeCursor(bool show)
+{
+    if (m_showTimeCursor != show)
+    {
+        m_showTimeCursor = show;
+        m_timeCursorActive = false;
+        Refresh();
+    }
+}
+
 void GraphLogClientWindow::AppendData(const FrameDroppedInfo& info)
 {
     ++m_stats.star_lost_cnt;
@@ -1245,6 +1266,139 @@ enum
 {
     GRAPH_BORDER = 5
 };
+
+bool GraphLogClientWindow::TimeCursorItem(int x, unsigned int *item) const
+{
+    if (!m_showTimeCursor || m_history.size() == 0)
+        return false;
+
+    wxSize size(GetClientSize());
+    const int leftEdge = 0;
+    const int rightEdge = size.x - GRAPH_BORDER;
+    if (x < leftEdge || x > rightEdge)
+        return false;
+
+    const double xmag = size.x / (double) m_length;
+    unsigned int plot_length = GetItemCount();
+    unsigned int start_item = m_history.size() - plot_length;
+    unsigned int offset = (unsigned int) floor((double) x / xmag + 0.5);
+    if (offset >= plot_length)
+        offset = plot_length - 1;
+
+    unsigned int i = start_item + offset;
+    if (i >= m_history.size())
+        return false;
+
+    *item = i;
+    return true;
+}
+
+wxString GraphLogClientWindow::TimeCursorLabel(const S_HISTORY& h) const
+{
+    wxLongLong_t elapsedMs = ::wxGetUTCTimeMillis().GetValue() - h.timestamp;
+    if (elapsedMs < 0)
+        elapsedMs = 0;
+
+    long elapsedSec = (long) (elapsedMs / 1000);
+    wxString relative;
+    if (elapsedSec >= 3600)
+        relative = wxString::Format("T-%ld:%02ld:%02ld", elapsedSec / 3600, (elapsedSec / 60) % 60, elapsedSec % 60);
+    else
+        relative = wxString::Format("T-%02ld:%02ld", elapsedSec / 60, elapsedSec % 60);
+
+    wxDateTime sampleTime;
+    sampleTime.Set((time_t) (h.timestamp / 1000));
+    return wxString::Format("%s (%s)", sampleTime.Format("%H:%M:%S"), relative);
+}
+
+wxString GraphLogClientWindow::TimeCursorMetricLabel(const S_HISTORY& h) const
+{
+    const double sampling = pFrame ? pFrame->GetCameraPixelScale() : 1.0;
+    GRAPH_UNITS units = m_heightUnits;
+    if (sampling == 1.0)
+        units = UNIT_PIXELS;
+
+    double v1;
+    double v2;
+    wxString label1;
+    wxString label2;
+    switch (m_mode)
+    {
+    case MODE_RADEC:
+        v1 = h.ra;
+        v2 = h.dec;
+        label1 = "RA";
+        label2 = "Dec";
+        break;
+    case MODE_DXDY:
+    default:
+        v1 = h.dx;
+        v2 = h.dy;
+        label1 = "X";
+        label2 = "Y";
+        break;
+    }
+
+    wxString suffix;
+    if (units == UNIT_ARCSEC)
+    {
+        v1 *= sampling;
+        v2 *= sampling;
+        suffix = "\"";
+    }
+    else
+    {
+        suffix = " px";
+    }
+
+    return wxString::Format("%s %+.2f%s  %s %+.2f%s", label1, v1, suffix, label2, v2, suffix);
+}
+
+void GraphLogClientWindow::DrawTimeCursor(wxDC& dc, int topEdge, int bottomEdge)
+{
+    if (!m_timeCursorActive)
+        return;
+
+    unsigned int item;
+    if (!TimeCursorItem(m_timeCursorX, &item))
+        return;
+
+    wxSize size(GetClientSize());
+    const int leftEdge = 0;
+    const int rightEdge = size.x - GRAPH_BORDER;
+    const double xmag = size.x / (double) m_length;
+    unsigned int plot_length = GetItemCount();
+    unsigned int start_item = m_history.size() - plot_length;
+
+    int x = wxRound((item - start_item) * xmag);
+    if (x > rightEdge)
+        x = rightEdge;
+
+    dc.SetPen(wxPen(wxColour(230, 230, 230), 1, wxPENSTYLE_DOT));
+    dc.DrawLine(x, topEdge, x, bottomEdge);
+
+    const S_HISTORY& h = m_history[item];
+    wxString timeLabel = TimeCursorLabel(h);
+    wxString metricLabel = TimeCursorMetricLabel(h);
+    wxSize timeTextSize = dc.GetTextExtent(timeLabel);
+    wxSize metricTextSize = dc.GetTextExtent(metricLabel);
+    int textWidth = wxMax(timeTextSize.GetWidth(), metricTextSize.GetWidth());
+    int textHeight = timeTextSize.GetHeight() + metricTextSize.GetHeight() + 2;
+    int textX = x + 6;
+    if (textX + textWidth + 6 > rightEdge)
+        textX = x - textWidth - 8;
+    if (textX < leftEdge + 3)
+        textX = leftEdge + 3;
+
+    int textY = topEdge + 4;
+    wxRect textRect(textX - 3, textY - 2, textWidth + 6, textHeight + 4);
+    dc.SetPen(*wxTRANSPARENT_PEN);
+    dc.SetBrush(*wxBLACK_BRUSH);
+    dc.DrawRectangle(textRect);
+    dc.SetTextForeground(*wxWHITE);
+    dc.DrawText(timeLabel, textX, textY);
+    dc.DrawText(metricLabel, textX, textY + timeTextSize.GetHeight() + 2);
+}
 
 void GraphLogClientWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
 {
@@ -1555,6 +1709,8 @@ void GraphLogClientWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
             pFrame->pGuider->IsCalibratingOrGuiding() ? pFrame->pGuider->CurrentPosition() : pFrame->pGuider->LockPosition();
         pFrame->pGuider->SetPolarAlignCircle(center, polarAlignCircleRadius);
 
+        DrawTimeCursor(dc, topEdge, bottomEdge);
+
         m_pRaRMS->SetLabel(rms_label(m_stats.rms_ra, sampling));
         m_pDecRMS->SetLabel(rms_label(m_stats.rms_dec, sampling));
         m_pTotRMS->SetLabel(rms_label(m_stats.rms_tot, sampling));
@@ -1631,6 +1787,44 @@ void GraphLogClientWindow::OnLeftBtnDown(wxMouseEvent& evt)
                 Refresh();
             }
         }
+    }
+
+    evt.Skip();
+}
+
+void GraphLogClientWindow::OnMouseMove(wxMouseEvent& evt)
+{
+    if (!m_showTimeCursor)
+    {
+        evt.Skip();
+        return;
+    }
+
+    wxSize size(GetClientSize());
+    const int leftEdge = 0;
+    const int rightEdge = size.x - GRAPH_BORDER;
+    const int topEdge = GRAPH_BORDER;
+    const int bottomEdge = size.y - GRAPH_BORDER;
+    bool active = evt.GetX() >= leftEdge && evt.GetX() <= rightEdge && evt.GetY() >= topEdge && evt.GetY() <= bottomEdge;
+    unsigned int item;
+    active = active && TimeCursorItem(evt.GetX(), &item);
+
+    if (m_timeCursorActive != active || (active && m_timeCursorX != evt.GetX()))
+    {
+        m_timeCursorActive = active;
+        m_timeCursorX = evt.GetX();
+        Refresh();
+    }
+
+    evt.Skip();
+}
+
+void GraphLogClientWindow::OnMouseLeave(wxMouseEvent& evt)
+{
+    if (m_timeCursorActive)
+    {
+        m_timeCursorActive = false;
+        Refresh();
     }
 
     evt.Skip();

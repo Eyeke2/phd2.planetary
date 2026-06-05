@@ -58,6 +58,7 @@ enum BRAIN_CTRL_IDS
     AD_cbEnableImageLogging,
     AD_szImageLoggingOptions,
     AD_szDither,
+    AD_cbGraphTimeCursor,
     AD_GLOBAL_TAB_BOUNDARY, //-----end of global tab controls
 
     AD_cbUseSubFrames,
