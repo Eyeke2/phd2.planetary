@@ -214,10 +214,14 @@ class GraphLogWindow : public wxWindow
 
     bool m_visible;
     GraphLogClientWindow *m_pClient;
+    OptionsButton *m_recentPopupButton;
+    wxLongLong_t m_recentPopupClosedAt;
 
     int StringWidth(const wxString& string);
     void UpdateHeightButtonLabel();
     void UpdateRADecDxDyLabels();
+    bool SuppressRecentPopupClick(OptionsButton *button) const;
+    void PopupButtonMenu(wxMenu *menu, OptionsButton *button);
 
 public:
     enum

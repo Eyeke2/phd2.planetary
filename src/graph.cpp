@@ -77,6 +77,8 @@ GraphLogWindow::GraphLogWindow(wxWindow *parent)
     : wxWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE, _T("Graph"))
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
+    m_recentPopupButton = nullptr;
+    m_recentPopupClosedAt = 0;
 
     wxBoxSizer *pMainSizer = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *pButtonSizer = new wxBoxSizer(wxVERTICAL);
@@ -270,8 +272,26 @@ int GraphLogWindow::StringWidth(const wxString& string)
     return width;
 }
 
+bool GraphLogWindow::SuppressRecentPopupClick(OptionsButton *button) const
+{
+    if (m_recentPopupButton != button)
+        return false;
+
+    return ::wxGetUTCTimeMillis().GetValue() - m_recentPopupClosedAt < 250;
+}
+
+void GraphLogWindow::PopupButtonMenu(wxMenu *menu, OptionsButton *button)
+{
+    PopupMenu(menu, button->GetPosition().x, button->GetPosition().y + button->GetSize().GetHeight());
+    m_recentPopupButton = button;
+    m_recentPopupClosedAt = ::wxGetUTCTimeMillis().GetValue();
+}
+
 void GraphLogWindow::OnButtonSettings(wxCommandEvent& WXUNUSED(evt))
 {
+    if (SuppressRecentPopupClick(m_pSettingsButton))
+        return;
+
     wxMenu *menu = new wxMenu();
     wxMenuItem *item1, *item2;
 
@@ -323,9 +343,7 @@ void GraphLogWindow::OnButtonSettings(wxCommandEvent& WXUNUSED(evt))
         menu->Append(GRAPH_DECDY_COLOR, _("dy Color..."));
     }
 
-    PopupMenu(menu, m_pSettingsButton->GetPosition().x,
-              m_pSettingsButton->GetPosition().y + m_pSettingsButton->GetSize().GetHeight());
-
+    PopupButtonMenu(menu, m_pSettingsButton);
     delete menu;
 }
 
@@ -456,11 +474,12 @@ wxMenu *GraphLogWindow::GetLengthMenu()
 
 void GraphLogWindow::OnButtonLength(wxCommandEvent& WXUNUSED(evt))
 {
+    if (SuppressRecentPopupClick(m_pLengthButton))
+        return;
+
     wxMenu *menu = GetLengthMenu();
 
-    PopupMenu(menu, m_pLengthButton->GetPosition().x,
-              m_pLengthButton->GetPosition().y + m_pLengthButton->GetSize().GetHeight());
-
+    PopupButtonMenu(menu, m_pLengthButton);
     delete menu;
 }
 
@@ -501,6 +520,9 @@ void GraphLogWindow::SetLength(int length)
 
 void GraphLogWindow::OnButtonHeight(wxCommandEvent& WXUNUSED(evt))
 {
+    if (SuppressRecentPopupClick(m_pHeightButton))
+        return;
+
     wxMenu *menu = new wxMenu();
 
     unsigned int val = m_pClient->m_minHeight;
@@ -514,9 +536,7 @@ void GraphLogWindow::OnButtonHeight(wxCommandEvent& WXUNUSED(evt))
             break;
     }
 
-    PopupMenu(menu, m_pHeightButton->GetPosition().x,
-              m_pHeightButton->GetPosition().y + m_pHeightButton->GetSize().GetHeight());
-
+    PopupButtonMenu(menu, m_pHeightButton);
     delete menu;
 }
 
