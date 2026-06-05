@@ -159,6 +159,7 @@ class MyFrameConfigDialogCtrlSet : public ConfigDialogCtrlSet
     wxSpinCtrlDouble *m_LogRelErrorThresh;
     wxSpinCtrlDouble *m_LogAbsErrorThresh;
     wxSpinCtrl *m_LogNextNFramesCount;
+    wxCheckBox *m_pGraphTimeCursor;
     wxCheckBox *m_pAutoLoadCalibration;
     wxComboBox *m_autoExpDurationMin;
     wxComboBox *m_autoExpDurationMax;

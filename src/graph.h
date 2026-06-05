@@ -39,6 +39,7 @@
 #include "guiding_stats.h"
 
 class GraphControlPane;
+class wxDC;
 
 enum GRAPH_UNITS
 {
@@ -148,6 +149,9 @@ private:
     bool m_showCorrections;
     bool m_showStarMass;
     bool m_showStarSNR;
+    bool m_showTimeCursor;
+    bool m_timeCursorActive;
+    int m_timeCursorX;
 
     friend class GraphLogWindow;
 
@@ -165,15 +169,22 @@ public:
     void AppendData(const DitherInfo& info);
 
     unsigned int GetItemCount() const;
+    void SetShowTimeCursor(bool show);
 
     void ResetData();
 
 private:
     void RecalculateTrendLines();
     void UpdateStats(unsigned int nr, const S_HISTORY *cur);
+    bool TimeCursorItem(int x, unsigned int *item) const;
+    wxString TimeCursorLabel(const S_HISTORY& h) const;
+    wxString TimeCursorMetricLabel(const S_HISTORY& h) const;
+    void DrawTimeCursor(wxDC& dc, int topEdge, int bottomEdge);
 
     void OnPaint(wxPaintEvent& evt);
     void OnLeftBtnDown(wxMouseEvent& evt);
+    void OnMouseMove(wxMouseEvent& evt);
+    void OnMouseLeave(wxMouseEvent& evt);
 
     wxDECLARE_EVENT_TABLE();
 };
@@ -227,6 +238,7 @@ public:
     void UpdateControls();
     void SetState(bool is_active);
     void EnableTrendLines(bool enable);
+    void SetShowTimeCursor(bool show);
     GraphLogClientWindow::GRAPH_MODE SetMode(GraphLogClientWindow::GRAPH_MODE newMode);
     int GetLength() const;
     void SetLength(int length);
