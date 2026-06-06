@@ -44,6 +44,9 @@
 
 # include "comdispatch.h"
 
+# include <climits>
+# include <exception>
+
 # include <wx/msw/ole/oleutils.h>
 # include <comdef.h>
 # include <objbase.h>
@@ -536,33 +539,34 @@ bool ScopeASCOM::Connect()
         if (!pScopeDriver.GetDispatchId(&dispid_tracking, L"Tracking"))
         {
             Debug.Write("cannot get dispid_tracking\n");
-            dispid_trackingrate = DISPID_UNKNOWN;
+            dispid_tracking = DISPID_UNKNOWN;
         }
 
         Debug.Write(wxString::Format("%s connected\n", Name()));
 
         Scope::Connect();
 
-        if (m_canSetRightAscensionRate || m_canSetDeclinationRate)
-        {
-            wxString errMsg;
-            if (SetTrackingRateOffsets(0.0, 0.0, &errMsg))
-            {
-                Debug.Write(wxString::Format("ASCOM scope: custom tracking-rate setter verification failed: %s\n",
-                                             errMsg.empty() ? "no driver error text returned" : errMsg));
-            }
-        }
-
         Debug.Write("ASCOM Scope: Connect success\n");
     }
     catch (const wxString& Msg)
     {
-        POSSIBLY_UNUSED(Msg);
+        Debug.Write("ASCOM Scope: Connect failed: " + Msg + "\n");
+        bError = true;
+    }
+    catch (const std::exception& err)
+    {
+        Debug.Write(wxString::Format("ASCOM Scope: Connect failed with exception: %s\n", err.what()));
+        bError = true;
+    }
+    catch (...)
+    {
+        Debug.Write("ASCOM Scope: Connect failed with unknown exception\n");
         bError = true;
     }
 
     // Enumerate the tracking rates
-    EnumerateTrackingRates();
+    if (!bError)
+        EnumerateTrackingRates();
 
     return bError;
 }
@@ -625,6 +629,298 @@ static bool PropertySetterNotSupported(const wxString& msg)
     return lower.Contains("not implemented") || lower.Contains("not supported");
 }
 
+static bool VariantToInt(const Variant& v, int *value)
+{
+    switch (v.vt)
+    {
+    case VT_I2:
+        *value = v.iVal;
+        return true;
+    case VT_I4:
+        *value = v.lVal;
+        return true;
+    case VT_INT:
+        *value = v.intVal;
+        return true;
+    case VT_UI2:
+        *value = v.uiVal;
+        return true;
+    case VT_UI4:
+        if (v.ulVal <= INT_MAX)
+        {
+            *value = (int) v.ulVal;
+            return true;
+        }
+        return false;
+    case VT_UINT:
+        if (v.uintVal <= INT_MAX)
+        {
+            *value = (int) v.uintVal;
+            return true;
+        }
+        return false;
+    default:
+        return false;
+    }
+}
+
+static bool VariantToDouble(const Variant& v, double *value)
+{
+    switch (v.vt)
+    {
+    case VT_R8:
+        *value = v.dblVal;
+        return true;
+    case VT_R4:
+        *value = v.fltVal;
+        return true;
+    case VT_I2:
+        *value = v.iVal;
+        return true;
+    case VT_I4:
+        *value = v.lVal;
+        return true;
+    case VT_INT:
+        *value = v.intVal;
+        return true;
+    case VT_UI2:
+        *value = v.uiVal;
+        return true;
+    case VT_UI4:
+        *value = v.ulVal;
+        return true;
+    case VT_UINT:
+        *value = v.uintVal;
+        return true;
+    default:
+        return false;
+    }
+}
+
+static bool SetSupportedTrackingRate(Scope *scope, int rateVal)
+{
+    if (rateVal < driveSidereal || rateVal >= driveMaxRate)
+    {
+        Debug.Write(wxString::Format("ASCOM scope: ignoring invalid tracking rate: %d\n", rateVal));
+        return false;
+    }
+
+    enum DriveRates driveRate = (enum DriveRates) rateVal;
+    switch (driveRate)
+    {
+    case driveSidereal:
+        scope->m_mountRates[driveRate].name = _("Sidereal");
+        scope->m_mountRates[driveRate].canSet = true;
+        break;
+    case driveLunar:
+        scope->m_mountRates[driveRate].name = _("Lunar");
+        scope->m_mountRates[driveRate].canSet = true;
+        break;
+    case driveSolar:
+        scope->m_mountRates[driveRate].name = _("Solar");
+        scope->m_mountRates[driveRate].canSet = true;
+        break;
+    case driveKing:
+        scope->m_mountRates[driveRate].name = _("King");
+        scope->m_mountRates[driveRate].canSet = true;
+        break;
+    case driveCustom:
+        // Custom is implemented through sidereal plus RA/Dec offsets, not through ASCOM TrackingRates.
+        Debug.Write("ASCOM scope: ignoring custom tracking rate from TrackingRates collection\n");
+        return false;
+    default:
+        Debug.Write(wxString::Format("ASCOM scope: ignoring invalid tracking rate: %d\n", rateVal));
+        return false;
+    }
+
+    Debug.Write(wxString::Format("ASCOM scope: supports tracking rate: %d\n", driveRate));
+    return true;
+}
+
+static bool EnumerateTrackingRatesWithNewEnum(DispatchObj& trackingRates, Scope *scope)
+{
+    Variant vEnum;
+    Debug.Write("ASCOM scope: getting TrackingRates._NewEnum\n");
+    if (!trackingRates.GetProp(&vEnum, DISPID_NEWENUM))
+    {
+        Debug.Write("ASCOM scope: cannot get TrackingRates._NewEnum\n");
+        return false;
+    }
+
+    IUnknown *unknown = nullptr;
+    if (vEnum.vt == VT_UNKNOWN)
+        unknown = vEnum.punkVal;
+    else if (vEnum.vt == VT_DISPATCH && vEnum.pdispVal)
+        vEnum.pdispVal->QueryInterface(IID_IUnknown, (void **) &unknown);
+
+    if (!unknown)
+    {
+        Debug.Write(wxString::Format("ASCOM scope: TrackingRates._NewEnum returned unexpected variant type %d\n", vEnum.vt));
+        return false;
+    }
+
+    IEnumVARIANT *enumVariant = nullptr;
+    HRESULT hr = unknown->QueryInterface(IID_IEnumVARIANT, (void **) &enumVariant);
+    if (vEnum.vt == VT_DISPATCH)
+        unknown->Release();
+    if (FAILED(hr) || !enumVariant)
+    {
+        Debug.Write(wxString::Format("ASCOM scope: TrackingRates._NewEnum QueryInterface(IEnumVARIANT) failed: [%x]\n", hr));
+        return false;
+    }
+
+    bool gotRates = false;
+    for (int i = 1; i <= driveMaxRate + 8; ++i)
+    {
+        Variant vRate;
+        ULONG fetched = 0;
+        Debug.Write(wxString::Format("ASCOM scope: getting TrackingRates._NewEnum item %d\n", i));
+        hr = enumVariant->Next(1, &vRate, &fetched);
+        if (hr == S_FALSE || fetched == 0)
+            break;
+        if (FAILED(hr))
+        {
+            Debug.Write(wxString::Format("ASCOM scope: TrackingRates._NewEnum Next failed: [%x]\n", hr));
+            break;
+        }
+
+        int rateVal = 0;
+        if (!VariantToInt(vRate, &rateVal))
+        {
+            Debug.Write(wxString::Format("ASCOM scope: TrackingRates._NewEnum item %d returned non-integer type %d\n", i, vRate.vt));
+            continue;
+        }
+
+        gotRates = SetSupportedTrackingRate(scope, rateVal) || gotRates;
+    }
+
+    enumVariant->Release();
+    return gotRates;
+}
+
+static bool AxisRateFromVariant(const Variant& vRate, DispatchClass& rateClass, Scope::AxisRate *axisRate, wxString *errMsg)
+{
+    IDispatch *rateDispatch = nullptr;
+    bool releaseDispatch = false;
+
+    if (vRate.vt == VT_DISPATCH)
+    {
+        rateDispatch = vRate.pdispVal;
+    }
+    else if (vRate.vt == VT_UNKNOWN && vRate.punkVal)
+    {
+        HRESULT hr = vRate.punkVal->QueryInterface(IID_IDispatch, (void **) &rateDispatch);
+        if (FAILED(hr))
+        {
+            if (errMsg)
+                *errMsg = wxString::Format("AxisRate QueryInterface(IDispatch) failed: [%x]", hr);
+            return false;
+        }
+        releaseDispatch = true;
+    }
+
+    if (!rateDispatch)
+    {
+        if (errMsg)
+            *errMsg = wxString::Format("AxisRate item returned unexpected variant type %d", vRate.vt);
+        return false;
+    }
+
+    DispatchObj rate(rateDispatch, &rateClass);
+    if (releaseDispatch)
+        rateDispatch->Release();
+
+    Variant vMinimum;
+    Variant vMaximum;
+    Debug.Write("ASCOM scope: getting AxisRate.Minimum\n");
+    if (!rate.GetProp(&vMinimum, L"Minimum"))
+    {
+        if (errMsg)
+            *errMsg = "AxisRate Minimum failed: " + ExcepMsg(rate.Excep());
+        return false;
+    }
+    Debug.Write("ASCOM scope: getting AxisRate.Maximum\n");
+    if (!rate.GetProp(&vMaximum, L"Maximum"))
+    {
+        if (errMsg)
+            *errMsg = "AxisRate Maximum failed: " + ExcepMsg(rate.Excep());
+        return false;
+    }
+
+    if (!VariantToDouble(vMinimum, &axisRate->minimum) || !VariantToDouble(vMaximum, &axisRate->maximum))
+    {
+        if (errMsg)
+            *errMsg = wxString::Format("AxisRate range returned unexpected variant types %d/%d", vMinimum.vt, vMaximum.vt);
+        return false;
+    }
+
+    return true;
+}
+
+static bool EnumerateAxisRatesWithNewEnum(DispatchObj& axisRates, std::vector<Scope::AxisRate> *rates)
+{
+    Variant vEnum;
+    Debug.Write("ASCOM scope: getting AxisRates._NewEnum\n");
+    if (!axisRates.GetProp(&vEnum, DISPID_NEWENUM))
+    {
+        Debug.Write("ASCOM scope: cannot get AxisRates._NewEnum\n");
+        return false;
+    }
+
+    IUnknown *unknown = nullptr;
+    if (vEnum.vt == VT_UNKNOWN)
+        unknown = vEnum.punkVal;
+    else if (vEnum.vt == VT_DISPATCH && vEnum.pdispVal)
+        vEnum.pdispVal->QueryInterface(IID_IUnknown, (void **) &unknown);
+
+    if (!unknown)
+    {
+        Debug.Write(wxString::Format("ASCOM scope: AxisRates._NewEnum returned unexpected variant type %d\n", vEnum.vt));
+        return false;
+    }
+
+    IEnumVARIANT *enumVariant = nullptr;
+    HRESULT hr = unknown->QueryInterface(IID_IEnumVARIANT, (void **) &enumVariant);
+    if (vEnum.vt == VT_DISPATCH)
+        unknown->Release();
+    if (FAILED(hr) || !enumVariant)
+    {
+        Debug.Write(wxString::Format("ASCOM scope: AxisRates._NewEnum QueryInterface(IEnumVARIANT) failed: [%x]\n", hr));
+        return false;
+    }
+
+    DispatchClass rateClass;
+    bool gotRates = false;
+    for (int i = 1; i <= 64; ++i)
+    {
+        Variant vRate;
+        ULONG fetched = 0;
+        Debug.Write(wxString::Format("ASCOM scope: getting AxisRates._NewEnum item %d\n", i));
+        hr = enumVariant->Next(1, &vRate, &fetched);
+        if (hr == S_FALSE || fetched == 0)
+            break;
+        if (FAILED(hr))
+        {
+            Debug.Write(wxString::Format("ASCOM scope: AxisRates._NewEnum Next failed: [%x]\n", hr));
+            break;
+        }
+
+        Scope::AxisRate axisRate;
+        wxString errMsg;
+        if (!AxisRateFromVariant(vRate, rateClass, &axisRate, &errMsg))
+        {
+            Debug.Write("ASCOM scope: " + errMsg + "\n");
+            continue;
+        }
+
+        rates->push_back(axisRate);
+        gotRates = true;
+    }
+
+    enumVariant->Release();
+    return gotRates;
+}
+
 // Enumerate all supported tracking rates
 void ScopeASCOM::EnumerateTrackingRates()
 {
@@ -638,46 +934,34 @@ void ScopeASCOM::EnumerateTrackingRates()
 
         GITObjRef scope(m_gitEntry);
         Variant vTrackingRates;
+        Debug.Write("ASCOM scope: getting TrackingRates collection\n");
         if (scope.GetProp(&vTrackingRates, L"TrackingRates"))
         {
             // Assuming varTrackingRates now holds the IDispatch* to the TrackingRates collection
             IDispatch *pTrackingRates = vTrackingRates.pdispVal;
+            if (!pTrackingRates)
+                throw ERROR_INFO("ASCOM scope: TrackingRates returned a null collection");
             DispatchClass iListClass;
             DispatchObj iList(pTrackingRates, &iListClass);
 
             Variant vCount;
+            Debug.Write("ASCOM scope: getting TrackingRates.Count\n");
             if (iList.GetProp(&vCount, L"Count"))
             {
-                unsigned int const ratesCount = vCount.intVal;
-                Debug.Write(wxString::Format("ASCOM scope: reports count=%d of tracking rates\n", ratesCount));
-                for (unsigned int i = 1; i <= ratesCount; ++i)
+                int ratesCount = 0;
+                if (!VariantToInt(vCount, &ratesCount))
+                    throw ERROR_INFO("ASCOM scope: TrackingRates Count returned a non-integer value");
+                if (ratesCount < 0 || ratesCount > 32)
                 {
-                    Variant vRate;
-                    if (iList.GetProp(&vRate, L"Item", i))
-                    {
-                        enum DriveRates driveRate = (enum DriveRates) vRate.intVal;
-                        switch (driveRate)
-                        {
-                        case driveSidereal:
-                            m_mountRates[driveRate].name = _("Sidereal");
-                            m_mountRates[driveRate].canSet = true;
-                            break;
-                        case driveLunar:
-                            m_mountRates[driveRate].name = _("Lunar");
-                            m_mountRates[driveRate].canSet = true;
-                            break;
-                        case driveSolar:
-                            m_mountRates[driveRate].name = _("Solar");
-                            m_mountRates[driveRate].canSet = true;
-                            break;
-                        case driveKing:
-                            m_mountRates[driveRate].name = _("Custom");
-                            m_mountRates[driveRate].canSet = true;
-                            break;
-                        }
-                        Debug.Write(wxString::Format("ASCOM scope: supports tracking rate: %d\n", driveRate));
-                    }
+                    wxString msg =
+                        wxString::Format("ASCOM scope: TrackingRates Count returned an invalid value: %d", ratesCount);
+                    Debug.AddLine(msg);
+                    throw msg;
                 }
+
+                Debug.Write(wxString::Format("ASCOM scope: reports count=%d of tracking rates\n", ratesCount));
+                if (!EnumerateTrackingRatesWithNewEnum(iList, this))
+                    Debug.Write("ASCOM scope: could not enumerate TrackingRates with _NewEnum; skipping indexed Item() fallback\n");
             }
             else
             {
@@ -693,7 +977,7 @@ void ScopeASCOM::EnumerateTrackingRates()
         Debug.Write("ASCOM scope: testing if mount supports setting Sidereal/Lunar/Solar tracking rates\n");
         if (GetTrackingRate(&savedRate, true))
         {
-            throw("ASCOM scope: could not get current tracking rate");
+            throw ERROR_INFO("ASCOM scope: could not get current tracking rate");
         }
 
         // If mount doesn't enumerate supported rates, try setting them one by one
@@ -794,7 +1078,15 @@ void ScopeASCOM::EnumerateTrackingRates()
     }
     catch (const wxString& Msg)
     {
-        POSSIBLY_UNUSED(Msg);
+        Debug.Write("ASCOM scope: tracking-rate enumeration failed: " + Msg + "\n");
+    }
+    catch (const std::exception& err)
+    {
+        Debug.Write(wxString::Format("ASCOM scope: tracking-rate enumeration failed with exception: %s\n", err.what()));
+    }
+    catch (...)
+    {
+        Debug.Write("ASCOM scope: tracking-rate enumeration failed with unknown exception\n");
     }
 }
 
@@ -1364,6 +1656,17 @@ bool ScopeASCOM::SetTrackingRateOffsets(double raRateOffset, double decRateOffse
         if (!m_canSetRightAscensionRate && !m_canSetDeclinationRate)
         {
             throw THROW_INFO("ASCOM Scope: cannot set tracking rate offsets");
+        }
+
+        enum DriveRates currRate = driveSidereal;
+        if (GetTrackingRate(&currRate, false))
+        {
+            throw ERROR_INFO("ASCOM Scope: cannot get tracking rate before setting tracking rate offsets");
+        }
+
+        if (currRate != driveSidereal)
+        {
+            throw ERROR_INFO("ASCOM Scope: tracking rate offsets can only be set when tracking at sidereal rate");
         }
 
         GITObjRef scope(m_gitEntry);
@@ -2004,49 +2307,56 @@ bool ScopeASCOM::GetAxisRates(GuideAxis axis, std::vector<AxisRate> *rates)
         GITObjRef scope(m_gitEntry);
 
         Variant vAxisRates;
+        Debug.Write(wxString::Format("ASCOM scope: invoking AxisRates(%d)\n", axis));
         if (!scope.InvokeMethod(&vAxisRates, L"AxisRates", (LONG) axis))
         {
             throw ERROR_INFO("ASCOM Scope: AxisRates failed: " + ExcepMsg(scope.Excep()));
+        }
+
+        if (!vAxisRates.pdispVal)
+        {
+            throw ERROR_INFO("ASCOM Scope: AxisRates returned a null collection");
         }
 
         DispatchClass axisRatesClass;
         DispatchObj axisRates(vAxisRates.pdispVal, &axisRatesClass);
 
         Variant vCount;
+        Debug.Write(wxString::Format("ASCOM scope: getting AxisRates.Count for axis %d\n", axis));
         if (!axisRates.GetProp(&vCount, L"Count"))
         {
             throw ERROR_INFO("ASCOM Scope: AxisRates Count failed: " + ExcepMsg(axisRates.Excep()));
         }
 
-        unsigned int const ratesCount = vCount.intVal;
-        Debug.Write(wxString::Format("ASCOM scope: reports count=%d of axis rates for axis %d\n", ratesCount, axis));
-
-        DispatchClass rateClass;
-        for (unsigned int i = 1; i <= ratesCount; ++i)
+        int ratesCount = 0;
+        if (!VariantToInt(vCount, &ratesCount))
         {
-            Variant vRate;
-            if (!axisRates.GetProp(&vRate, L"Item", i))
-            {
-                throw ERROR_INFO("ASCOM Scope: AxisRates Item failed: " + ExcepMsg(axisRates.Excep()));
-            }
-
-            DispatchObj rate(vRate.pdispVal, &rateClass);
-            Variant vMinimum;
-            Variant vMaximum;
-            if (!rate.GetProp(&vMinimum, L"Minimum") || !rate.GetProp(&vMaximum, L"Maximum"))
-            {
-                throw ERROR_INFO("ASCOM Scope: AxisRates rate range failed: " + ExcepMsg(rate.Excep()));
-            }
-
-            AxisRate axisRate;
-            axisRate.minimum = vMinimum.dblVal;
-            axisRate.maximum = vMaximum.dblVal;
-            rates->push_back(axisRate);
+            throw ERROR_INFO("ASCOM Scope: AxisRates Count returned a non-integer value");
         }
+        if (ratesCount < 0 || ratesCount > 64)
+        {
+            wxString msg = wxString::Format("ASCOM Scope: AxisRates Count returned an invalid value: %d", ratesCount);
+            Debug.AddLine(msg);
+            throw msg;
+        }
+
+        Debug.Write(wxString::Format("ASCOM scope: reports count=%d of axis rates for axis %d\n", ratesCount, axis));
+        if (ratesCount > 0 && !EnumerateAxisRatesWithNewEnum(axisRates, rates))
+            Debug.Write(wxString::Format("ASCOM scope: could not enumerate AxisRates(%d) with _NewEnum; skipping indexed Item() fallback\n", axis));
     }
     catch (const wxString& Msg)
     {
-        POSSIBLY_UNUSED(Msg);
+        Debug.Write("ASCOM Scope: GetAxisRates failed: " + Msg + "\n");
+        bError = true;
+    }
+    catch (const std::exception& err)
+    {
+        Debug.Write(wxString::Format("ASCOM Scope: GetAxisRates failed with exception: %s\n", err.what()));
+        bError = true;
+    }
+    catch (...)
+    {
+        Debug.Write("ASCOM Scope: GetAxisRates failed with unknown exception\n");
         bError = true;
     }
 

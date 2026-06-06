@@ -82,6 +82,43 @@ inline static void FreeExcep(EXCEPINFO& ex)
         SysFreeString(ex.bstrHelpFile);
 }
 
+static int SehInvokeFilter(DWORD code, DWORD *sehCode)
+{
+    if (sehCode)
+        *sehCode = code;
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+static HRESULT SafeDispatchInvoke(IDispatch *idisp, DISPID dispid, WORD flags, DISPPARAMS *dispParms, VARIANT *res,
+                                  EXCEPINFO *excep, UINT *argErr, DWORD *sehCode)
+{
+    if (sehCode)
+        *sehCode = 0;
+
+#if defined(_MSC_VER)
+    __try
+    {
+        return idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, flags, dispParms, res, excep, argErr);
+    }
+    __except (SehInvokeFilter(GetExceptionCode(), sehCode))
+    {
+        return E_UNEXPECTED;
+    }
+#else
+    return idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, flags, dispParms, res, excep, argErr);
+#endif
+}
+
+inline static bool CheckInvokeResult(HRESULT hr, DWORD sehCode, const wxString& source, ExcepInfo *excep)
+{
+    if (sehCode)
+    {
+        Debug.Write(wxString::Format("%s: SEH exception 0x%08x during IDispatch::Invoke\n", source, sehCode));
+        excep->Assign(E_UNEXPECTED, source);
+    }
+    return SUCCEEDED(hr);
+}
+
 void ExcepInfo::Assign(const _com_error& err, const wxString& source)
 {
     FreeExcep(*this);
@@ -192,10 +229,12 @@ bool DispatchObj::GetProp(Variant *res, DISPID dispid)
     dispParms.rgvarg = NULL;
     dispParms.cNamedArgs = 0;
     dispParms.rgdispidNamedArgs = NULL;
-    HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &dispParms, res, &m_excep, NULL);
+    DWORD sehCode = 0;
+    HRESULT hr = SafeDispatchInvoke(m_idisp, dispid, DISPATCH_PROPERTYGET, &dispParms, res, &m_excep, NULL, &sehCode);
+    bool success = CheckInvokeResult(hr, sehCode, wxString::Format("getprop(%08x)", dispid), &m_excep);
     if (FAILED(hr))
         LogExcep(hr, "getprop", dispid, m_excep);
-    return SUCCEEDED(hr);
+    return success;
 }
 
 bool DispatchObj::GetProp(Variant *res, OLECHAR *name)
@@ -221,10 +260,12 @@ bool DispatchObj::GetProp(Variant *res, OLECHAR *name, int arg)
     dispParms.rgvarg = rgvarg;
     dispParms.cNamedArgs = 0;
     dispParms.rgdispidNamedArgs = NULL;
-    HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &dispParms, res, &m_excep, NULL);
+    DWORD sehCode = 0;
+    HRESULT hr = SafeDispatchInvoke(m_idisp, dispid, DISPATCH_PROPERTYGET, &dispParms, res, &m_excep, NULL, &sehCode);
+    bool success = CheckInvokeResult(hr, sehCode, wxString::Format("getprop(%s)", name), &m_excep);
     if (FAILED(hr))
         LogExcep(hr, "getprop", name, m_excep);
-    return SUCCEEDED(hr);
+    return success;
 }
 
 bool DispatchObj::PutProp(OLECHAR *name, OLECHAR *val)
@@ -244,11 +285,13 @@ bool DispatchObj::PutProp(OLECHAR *name, OLECHAR *val)
     dispParms.cNamedArgs = 1;
     dispParms.rgdispidNamedArgs = &dispidNamed;
     Variant res;
-    HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYPUT, &dispParms, &res, &m_excep, NULL);
+    DWORD sehCode = 0;
+    HRESULT hr = SafeDispatchInvoke(m_idisp, dispid, DISPATCH_PROPERTYPUT, &dispParms, &res, &m_excep, NULL, &sehCode);
+    bool success = CheckInvokeResult(hr, sehCode, wxString::Format("putprop(%s)", name), &m_excep);
     SysFreeString(bs);
     if (FAILED(hr))
         LogExcep(hr, "putprop", name, m_excep);
-    return SUCCEEDED(hr);
+    return success;
 }
 
 bool DispatchObj::PutProp(DISPID dispid, bool val)
@@ -263,10 +306,12 @@ bool DispatchObj::PutProp(DISPID dispid, bool val)
     dispParms.cNamedArgs = 1;
     dispParms.rgdispidNamedArgs = &dispidNamed;
     Variant res;
-    HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYPUT, &dispParms, &res, &m_excep, NULL);
+    DWORD sehCode = 0;
+    HRESULT hr = SafeDispatchInvoke(m_idisp, dispid, DISPATCH_PROPERTYPUT, &dispParms, &res, &m_excep, NULL, &sehCode);
+    bool success = CheckInvokeResult(hr, sehCode, wxString::Format("putprop(%08x)", dispid), &m_excep);
     if (FAILED(hr))
         LogExcep(hr, "putprop", dispid, m_excep);
-    return SUCCEEDED(hr);
+    return success;
 }
 
 bool DispatchObj::PutProp(DISPID dispid, double val)
@@ -281,10 +326,12 @@ bool DispatchObj::PutProp(DISPID dispid, double val)
     dispParms.cNamedArgs = 1;
     dispParms.rgdispidNamedArgs = &dispidNamed;
     Variant res;
-    HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYPUT, &dispParms, &res, &m_excep, NULL);
+    DWORD sehCode = 0;
+    HRESULT hr = SafeDispatchInvoke(m_idisp, dispid, DISPATCH_PROPERTYPUT, &dispParms, &res, &m_excep, NULL, &sehCode);
+    bool success = CheckInvokeResult(hr, sehCode, wxString::Format("putprop(%08x)", dispid), &m_excep);
     if (FAILED(hr))
         LogExcep(hr, "putprop", dispid, m_excep);
-    return SUCCEEDED(hr);
+    return success;
 }
 
 bool DispatchObj::PutProp(DISPID dispid, LONG val)
@@ -299,10 +346,12 @@ bool DispatchObj::PutProp(DISPID dispid, LONG val)
     dispParms.cNamedArgs = 1;
     dispParms.rgdispidNamedArgs = &dispidNamed;
     Variant res;
-    HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYPUT, &dispParms, &res, &m_excep, NULL);
+    DWORD sehCode = 0;
+    HRESULT hr = SafeDispatchInvoke(m_idisp, dispid, DISPATCH_PROPERTYPUT, &dispParms, &res, &m_excep, NULL, &sehCode);
+    bool success = CheckInvokeResult(hr, sehCode, wxString::Format("putprop(%08x)", dispid), &m_excep);
     if (FAILED(hr))
         LogExcep(hr, "putprop", dispid, m_excep);
-    return SUCCEEDED(hr);
+    return success;
 }
 
 bool DispatchObj::PutProp(OLECHAR *name, bool val)
@@ -336,11 +385,13 @@ bool DispatchObj::InvokeMethod(Variant *res, OLECHAR *name, OLECHAR *arg)
     dispParms.rgvarg = rgvarg;
     dispParms.cNamedArgs = 0;
     dispParms.rgdispidNamedArgs = NULL;
-    HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL);
+    DWORD sehCode = 0;
+    HRESULT hr = SafeDispatchInvoke(m_idisp, dispid, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL, &sehCode);
+    bool success = CheckInvokeResult(hr, sehCode, wxString::Format("invoke(%s)", name), &m_excep);
     SysFreeString(bs);
     if (FAILED(hr))
         LogExcep(hr, "invoke", name, m_excep);
-    return SUCCEEDED(hr);
+    return success;
 }
 
 bool DispatchObj::InvokeMethod(Variant *res, OLECHAR *name, LONG arg)
@@ -357,10 +408,12 @@ bool DispatchObj::InvokeMethod(Variant *res, OLECHAR *name, LONG arg)
     dispParms.rgvarg = rgvarg;
     dispParms.cNamedArgs = 0;
     dispParms.rgdispidNamedArgs = NULL;
-    HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL);
+    DWORD sehCode = 0;
+    HRESULT hr = SafeDispatchInvoke(m_idisp, dispid, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL, &sehCode);
+    bool success = CheckInvokeResult(hr, sehCode, wxString::Format("invoke(%s)", name), &m_excep);
     if (FAILED(hr))
         LogExcep(hr, "invoke", name, m_excep);
-    return SUCCEEDED(hr);
+    return success;
 }
 
 bool DispatchObj::InvokeMethod(Variant *res, DISPID dispid, double arg1, double arg2)
@@ -375,10 +428,12 @@ bool DispatchObj::InvokeMethod(Variant *res, DISPID dispid, double arg1, double 
     dispParms.rgvarg = rgvarg;
     dispParms.cNamedArgs = 0;
     dispParms.rgdispidNamedArgs = NULL;
-    HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL);
+    DWORD sehCode = 0;
+    HRESULT hr = SafeDispatchInvoke(m_idisp, dispid, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL, &sehCode);
+    bool success = CheckInvokeResult(hr, sehCode, wxString::Format("invoke(%08x)", dispid), &m_excep);
     if (FAILED(hr))
         LogExcep(hr, "invoke", dispid, m_excep);
-    return SUCCEEDED(hr);
+    return success;
 }
 
 bool DispatchObj::InvokeMethod(Variant *res, DISPID dispid, LONG arg1, double arg2)
@@ -393,10 +448,12 @@ bool DispatchObj::InvokeMethod(Variant *res, DISPID dispid, LONG arg1, double ar
     dispParms.rgvarg = rgvarg;
     dispParms.cNamedArgs = 0;
     dispParms.rgdispidNamedArgs = NULL;
-    HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL);
+    DWORD sehCode = 0;
+    HRESULT hr = SafeDispatchInvoke(m_idisp, dispid, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL, &sehCode);
+    bool success = CheckInvokeResult(hr, sehCode, wxString::Format("invoke(%08x)", dispid), &m_excep);
     if (FAILED(hr))
         LogExcep(hr, "invoke", dispid, m_excep);
-    return SUCCEEDED(hr);
+    return success;
 }
 
 bool DispatchObj::InvokeMethod(Variant *res, OLECHAR *name, double arg1, double arg2)
@@ -422,10 +479,12 @@ bool DispatchObj::InvokeMethod(Variant *res, DISPID dispid)
     dispParms.rgvarg = NULL;
     dispParms.cNamedArgs = 0;
     dispParms.rgdispidNamedArgs = NULL;
-    HRESULT hr = m_idisp->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL);
+    DWORD sehCode = 0;
+    HRESULT hr = SafeDispatchInvoke(m_idisp, dispid, DISPATCH_METHOD, &dispParms, res, &m_excep, NULL, &sehCode);
+    bool success = CheckInvokeResult(hr, sehCode, wxString::Format("invoke(%08x)", dispid), &m_excep);
     if (FAILED(hr))
         LogExcep(hr, "invoke", dispid, m_excep);
-    return SUCCEEDED(hr);
+    return success;
 }
 
 bool DispatchObj::InvokeMethod(Variant *res, OLECHAR *name)
