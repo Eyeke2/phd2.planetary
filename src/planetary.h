@@ -230,8 +230,9 @@ public:
     void SetNoiseFilterState(bool enable) { m_paramNoiseFilterState = enable; }
     bool GetNoiseFilterState() { return m_paramNoiseFilterState; }
 #endif
-    void SetVideoLogging(bool enable) { m_videoLogEnabled = enable; }
+    void SetVideoLogging(bool enable);
     bool GetVideoLogging() { return m_videoLogEnabled; }
+    void CloseVideoLog();
 
 public:
     // Displaying visual aid for solar system object parameter tuning
