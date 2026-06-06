@@ -378,6 +378,7 @@ set(phd2_SRC
   ${phd_src_dir}/event_server.h
   ${phd_src_dir}/ui_safety.cpp
   ${phd_src_dir}/ui_safety.h
+  ${phd_src_dir}/ui_utils.h
 
   ${phd_src_dir}/fitsiowrap.cpp
   ${phd_src_dir}/fitsiowrap.h

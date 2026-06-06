@@ -38,6 +38,7 @@
  */
 
 #include "phd.h"
+#include "ui_utils.h"
 #include <wx/dcbuffer.h>
 #include <wx/utils.h>
 #include <wx/colordlg.h>
@@ -162,7 +163,7 @@ GraphLogWindow::GraphLogWindow(wxWindow *parent)
     m_pCheckboxCorrections->SetForegroundColour(*wxLIGHT_GREY);
 #endif
     m_pCheckboxCorrections->SetToolTip(_("Display mount corrections"));
-    m_pCheckboxCorrections->SetValue(m_pClient->m_showCorrections);
+    UpdateBoolValue(m_pCheckboxCorrections, m_pClient->m_showCorrections);
     pButtonSizer->Add(m_pCheckboxCorrections, wxSizerFlags().Expand());
 
     wxBoxSizer *pLabelSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -352,12 +353,12 @@ void GraphLogWindow::UpdateRADecDxDyLabels()
     switch (m_pClient->m_mode)
     {
     case GraphLogClientWindow::MODE_RADEC:
-        m_pLabel1->SetLabel(_("RA"));
-        m_pLabel2->SetLabel(_("Dec"));
+        UpdateLabel(m_pLabel1, _("RA"));
+        UpdateLabel(m_pLabel2, _("Dec"));
         break;
     case GraphLogClientWindow::MODE_DXDY:
-        m_pLabel1->SetLabel(_("dx"));
-        m_pLabel2->SetLabel(_("dy"));
+        UpdateLabel(m_pLabel1, _("dx"));
+        UpdateLabel(m_pLabel2, _("dy"));
         break;
     }
 }
@@ -574,7 +575,7 @@ void GraphLogWindow::SetState(bool is_active)
 
 void GraphLogWindow::EnableTrendLines(bool enable)
 {
-    m_pCheckboxTrendlines->SetValue(enable);
+    UpdateBoolValue(m_pCheckboxTrendlines, enable);
     wxCommandEvent dummy;
     OnCheckboxTrendlines(dummy);
 }
@@ -771,12 +772,12 @@ void GraphLogWindow::UpdateHeightButtonLabel()
         if (val > 0)
         {
             m_pHeightButton->SetLabel(wxString::Format(_T("y: +/-%d px"), m_pClient->m_height));
-            m_pHeightButton->SetToolTip(_("Select the Y-axis scale, pixels per Y division"));
+            UpdateToolTip(m_pHeightButton, _("Select the Y-axis scale, pixels per Y division"));
         }
         else
         {
             m_pHeightButton->SetLabel(wxString::Format(_T("y: +/-%d''"), m_pClient->m_height));
-            m_pHeightButton->SetToolTip(_("Select the Y-axis scale, arc-seconds per Y division"));
+            UpdateToolTip(m_pHeightButton, _("Select the Y-axis scale, arc-seconds per Y division"));
         }
         m_heightButtonLabelVal = val;
     }
@@ -1731,9 +1732,9 @@ void GraphLogClientWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
 
         DrawTimeCursor(dc, topEdge, bottomEdge);
 
-        m_pRaRMS->SetLabel(rms_label(m_stats.rms_ra, sampling));
-        m_pDecRMS->SetLabel(rms_label(m_stats.rms_dec, sampling));
-        m_pTotRMS->SetLabel(rms_label(m_stats.rms_tot, sampling));
+        UpdateLabel(m_pRaRMS, rms_label(m_stats.rms_ra, sampling));
+        UpdateLabel(m_pDecRMS, rms_label(m_stats.rms_dec, sampling));
+        UpdateLabel(m_pTotRMS, rms_label(m_stats.rms_tot, sampling));
 
         if (m_stats.osc_alert)
         {
@@ -1744,7 +1745,7 @@ void GraphLogClientWindow::OnPaint(wxPaintEvent& WXUNUSED(evt))
             m_pOscIndex->SetForegroundColour(*wxLIGHT_GREY);
         }
 
-        m_pOscIndex->SetLabel(wxString::Format("RA Osc: %4.2f", m_stats.osc_index));
+        UpdateLabel(m_pOscIndex, wxString::Format("RA Osc: %4.2f", m_stats.osc_index));
     }
 }
 
