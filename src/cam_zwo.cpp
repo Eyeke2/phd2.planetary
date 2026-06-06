@@ -481,18 +481,15 @@ bool Camera_ZWO::Connect(const wxString& camId)
 
     m_devicePixelSize = info.PixelSize;
 
-    // FIXME(ui-safety): wxYield() pumps the wx event loop reentrantly and
-    // can deadlock against a remote-control client via wx's internal
-    // wxFindWindowAtPoint() hit-test. See src/ui_safety.h and the
-    // threading-rule comment block above handle_request() in
-    // src/event_server.cpp. This site runs at ZWO ASI camera connect (not
-    // per exposure), so the exposure surface is small in normal use, but
-    // it triggers if a remote-control client disconnects/reconnects the
-    // gear while another client is mid-RPC. Real fix is to move ASI
-    // capture onto its own thread (per-driver-thread refactor); wrapping
-    // this in UI_SAFE_YIELD() would only LOG the violation, not remove
-    // the deadlock potential.
-    wxYield();
+    // Brief settle delay after ASIInitCamera before querying camera
+    // controls. This was historically a wxYield(), which pumped the wx
+    // event loop reentrantly and could deadlock against a remote-control
+    // client. Replaced with a deterministic short sleep that provides
+    // the same post-init settle without pumping the event loop, removing
+    // the deadlock hazard. (The sibling SVBony driver, cam_svb.cpp,
+    // performs the identical Init->GetNumOfControls sequence with no
+    // delay at all, so even this sleep is belt-and-suspenders.)
+    wxMilliSleep(100);
 
     int numControls;
     if ((r = ASIGetNumOfControls(m_cameraId, &numControls)) != ASI_SUCCESS)
