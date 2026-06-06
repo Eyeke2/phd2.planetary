@@ -290,6 +290,8 @@ void GraphLogWindow::PopupButtonMenu(wxMenu *menu, OptionsButton *button)
 
 void GraphLogWindow::OnButtonSettings(wxCommandEvent& WXUNUSED(evt))
 {
+    DismissToolTip();
+
     if (SuppressRecentPopupClick(m_pSettingsButton))
         return;
 
@@ -475,6 +477,8 @@ wxMenu *GraphLogWindow::GetLengthMenu()
 
 void GraphLogWindow::OnButtonLength(wxCommandEvent& WXUNUSED(evt))
 {
+    DismissToolTip();
+
     if (SuppressRecentPopupClick(m_pLengthButton))
         return;
 
@@ -521,6 +525,8 @@ void GraphLogWindow::SetLength(int length)
 
 void GraphLogWindow::OnButtonHeight(wxCommandEvent& WXUNUSED(evt))
 {
+    DismissToolTip();
+
     if (SuppressRecentPopupClick(m_pHeightButton))
         return;
 
@@ -684,6 +690,7 @@ void GraphLogWindow::ResetData()
 
 void GraphLogWindow::OnButtonClear(wxCommandEvent& WXUNUSED(evt))
 {
+    DismissToolTip();
     ResetData();
 }
 
