@@ -467,7 +467,12 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
             if ((m_pCurrentImage->BitsPerPixel > 8) && (wlevel < 4096 && (wlevel - blevel) < 16))
                 wlevel += 16;
 
-            m_pCurrentImage->CopyToImage(&m_displayedImage, blevel, wlevel, pFrame->Stretch_gamma);
+            if (m_pCurrentImage->CopyToImage(&m_displayedImage, blevel, wlevel, pFrame->Stretch_gamma))
+            {
+                Debug.Write(wxString::Format("Guider::PaintHelper failed converting image for display, size=%dx%d\n",
+                                             m_pCurrentImage->Size.GetWidth(), m_pCurrentImage->Size.GetHeight()));
+                return true;
+            }
         }
 
         int imageWidth = m_displayedImage->GetWidth();
@@ -729,41 +734,43 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
         PolarDriftTool::PaintHelper(dc, m_scaleFactor);
         StaticPaTool::PaintHelper(dc, m_scaleFactor);
 
+        wxString lowerLeftLabel;
         if (IsPaused())
         {
-            wxString label = _("PAUSED");
-            wxSize textSize = dc.GetTextExtent(label);
-            dc.SetTextForeground(*wxYELLOW);
-            dc.DrawText(label, 10, YWinSize - textSize.GetHeight() - 5);
+            lowerLeftLabel = _("PAUSED");
         }
         else if (pMount && !pMount->GetGuidingEnabled())
         {
-            wxString label = _("Guide output DISABLED");
-            wxSize textSize = dc.GetTextExtent(label);
-            dc.SetTextForeground(*wxYELLOW);
-            dc.DrawText(label, 10, YWinSize - textSize.GetHeight() - 5);
+            lowerLeftLabel = _("Guide output DISABLED");
         }
+
+        wxString imageLabel;
 #if defined(FRAME_MONITOR_CAMERA)
-        else if (pCamera && pCamera->Name == FRAME_MONITOR_CAMERA && pCamera->Connected)
+        if (pCamera && pCamera->Name == FRAME_MONITOR_CAMERA && pCamera->Connected)
         {
             extern wxString GetFrameMonitorLabel();
-            wxString framePath = GetFrameMonitorLabel();
-            if (!framePath.IsEmpty())
-            {
-                wxSize textSize = dc.GetTextExtent(framePath);
-                dc.SetTextForeground(*wxYELLOW);
-                dc.DrawText(framePath, 10, YWinSize - textSize.GetHeight() - 5);
-            }
+            imageLabel = GetFrameMonitorLabel();
         }
 #endif
-        else if (pCamera && pCamera->Name == _T("Simulator") && pCamera->Connected)
+        if (imageLabel.IsEmpty() && pCamera && pCamera->Name == _T("Simulator") && pCamera->Connected)
         {
             wxFileName fileName(pCamera->GetStrProperty("path"));
             if (fileName != wxEmptyString)
-            {
-                dc.SetTextForeground(*wxYELLOW);
-                dc.DrawText(wxString::Format("%s", fileName.GetFullName()), 10, YWinSize - 25);
-            }
+                imageLabel = wxString::Format("%s", fileName.GetFullName());
+        }
+
+        if (!imageLabel.IsEmpty())
+        {
+            if (!lowerLeftLabel.IsEmpty())
+                lowerLeftLabel += " - ";
+            lowerLeftLabel += imageLabel;
+        }
+
+        if (!lowerLeftLabel.IsEmpty())
+        {
+            wxSize textSize = dc.GetTextExtent(lowerLeftLabel);
+            dc.SetTextForeground(*wxYELLOW);
+            dc.DrawText(lowerLeftLabel, 10, YWinSize - textSize.GetHeight() - 5);
         }
     }
     catch (const wxString& Msg)

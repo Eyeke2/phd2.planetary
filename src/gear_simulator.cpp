@@ -169,6 +169,8 @@ wxString SimCamParams::SimFileTemplate = _("C:\\Temp\\phd2\\sim_image.png");
 # define CAM_ANGLE_MAX 360.0
 # define GUIDE_RATE_DEFAULT (1.0 * 15.0) // multiples of sidereal rate, a-s/sec
 # define GUIDE_RATE_MAX (1.0 * 15.0)
+# define SIM_FILE_MAX_DIMENSION 4096
+# define SIM_FILE_MAX_PIXELS (12 * 1000 * 1000)
 # define PIER_SIDE_DEFAULT PIER_SIDE_EAST
 # define REVERSE_DEC_PULSE_ON_WEST_SIDE_DEFAULT true
 # define CLOUDS_OPACITY_DEFAULT 0
@@ -621,6 +623,8 @@ struct SimCamState
     // Used by FITS file simulation
     wxDir dir;
     bool dirStarted;
+    wxArrayString fitFiles;
+    size_t fitFileIndex;
     void CloseDir();
     bool ReadFitImage(usImage& img, wxString& filename, const wxRect& subframe);
 
@@ -721,6 +725,8 @@ void SimCamState::Initialize()
 void SimCamState::CloseDir()
 {
     dirStarted = false;
+    fitFiles.Clear();
+    fitFileIndex = 0;
     if (dir.IsOpened())
         dir.Close();
 }
@@ -728,18 +734,23 @@ void SimCamState::CloseDir()
 // Load image from FIT file
 bool SimCamState::ReadFitImage(usImage& img, wxString& filename, const wxRect& subframe)
 {
-    Debug.Write("Sim file opened: " + filename + "\n");
+    wxString filePath = filename;
+    wxFileName wxf(filePath);
+    if (!wxf.IsAbsolute() && !wxFileName::FileExists(filePath) && dir.IsOpened())
+        filePath = wxFileName(dir.GetName(), filename).GetFullPath();
+
+    Debug.Write("Sim file opened: " + filePath + "\n");
     fitsfile *fptr; // FITS file pointer
     int status = 0; // CFITSIO status value MUST be initialized to zero!
 
-    if (PHD_fits_open_diskfile(&fptr, wxFileName(dir.GetName(), filename).GetFullPath(), READONLY, &status))
+    if (PHD_fits_open_diskfile(&fptr, filePath, READONLY, &status))
         return true;
+    CleanupTask closeFits([&]() { PHD_fits_close_file(fptr); });
 
     int hdutype;
     if (fits_get_hdu_type(fptr, &hdutype, &status) || hdutype != IMAGE_HDU)
     {
         pFrame->Alert(_("FITS file is not of an image"));
-        PHD_fits_close_file(fptr);
         return true;
     }
 
@@ -751,7 +762,6 @@ bool SimCamState::ReadFitImage(usImage& img, wxString& filename, const wxRect& s
     if ((nhdus != 1) || (naxis != 2))
     {
         pFrame->Alert(_("Unsupported type or read error loading FITS file"));
-        PHD_fits_close_file(fptr);
         return true;
     }
 
@@ -760,7 +770,6 @@ bool SimCamState::ReadFitImage(usImage& img, wxString& filename, const wxRect& s
     if (fits_get_img_param(fptr, 10, &bitpix, &naxis, naxes, &status))
     {
         pFrame->Alert(_("Error reading image parameters"));
-        PHD_fits_close_file(fptr);
         return true;
     }
     int scale_shift = (bitpix == 8) ? 8 : 0;
@@ -770,29 +779,38 @@ bool SimCamState::ReadFitImage(usImage& img, wxString& filename, const wxRect& s
 
     int xsize = (int) fits_size[0];
     int ysize = (int) fits_size[1];
+    if (xsize <= 0 || ysize <= 0)
+    {
+        pFrame->Alert(_("Error reading image parameters"));
+        return true;
+    }
 
     if (img.Init(xsize, ysize))
     {
         pFrame->Alert(_("Memory allocation error"));
-        PHD_fits_close_file(fptr);
         return true;
     }
 
-    unsigned short *buf = new unsigned short[img.NPixels];
     bool useSubframe = !subframe.IsEmpty();
     wxRect frame;
     if (useSubframe)
         frame = subframe;
     else
         frame = wxRect(0, 0, xsize, ysize);
+    if (frame.x < 0 || frame.y < 0 || frame.width <= 0 || frame.height <= 0 || frame.GetRight() >= xsize ||
+        frame.GetBottom() >= ysize)
+    {
+        pFrame->Alert(_("Unsupported type or read error loading FITS file"));
+        return true;
+    }
 
     long inc[] = { 1, 1 };
     long fpixel[] = { frame.GetLeft() + 1, frame.GetTop() + 1 };
     long lpixel[] = { frame.GetRight() + 1, frame.GetBottom() + 1 };
-    if (fits_read_subset(fptr, TUSHORT, fpixel, lpixel, inc, nullptr, buf, nullptr, &status))
+    std::vector<unsigned short> buf(frame.width * frame.height);
+    if (fits_read_subset(fptr, TUSHORT, fpixel, lpixel, inc, nullptr, buf.data(), nullptr, &status))
     {
         pFrame->Alert(_("Error reading data"));
-        PHD_fits_close_file(fptr);
         return true;
     }
 
@@ -816,10 +834,6 @@ bool SimCamState::ReadFitImage(usImage& img, wxString& filename, const wxRect& s
         for (unsigned int i = 0; i < img.NPixels; i++)
             img.ImageData[i] = (unsigned short) buf[i] << scale_shift;
     }
-
-    delete[] buf;
-
-    PHD_fits_close_file(fptr);
 
     return false;
 }
@@ -1048,6 +1062,21 @@ static void render_clouds(usImage& img, const wxRect& subframe, int exptime, int
             *p = (unsigned short) (SimCamParams::clouds_opacity * cloud_amt + (1 - SimCamParams::clouds_opacity) * *p);
         }
     }
+}
+
+static void render_clouds_if_needed(usImage& img, const wxRect& subframe, int exptime, int gain, int offset)
+{
+    if (SimCamParams::clouds_opacity <= 0 || !img.ImageData || img.Size.GetWidth() <= 0 || img.Size.GetHeight() <= 0)
+        return;
+
+    wxRect renderRect;
+    if (!subframe.IsEmpty())
+        renderRect = subframe.Intersect(wxRect(0, 0, img.Size.GetWidth(), img.Size.GetHeight()));
+    else
+        renderRect = wxRect(0, 0, img.Size.GetWidth(), img.Size.GetHeight());
+
+    if (!renderRect.IsEmpty())
+        render_clouds(img, renderRect, exptime, gain, offset);
 }
 
 # ifdef SIM_FILE_DISPLACEMENTS
@@ -1364,6 +1393,7 @@ void SimCamState::FillImage(usImage& img, const wxRect& subframe, int exptime, i
 class CameraSimulator : public GuideCamera
 {
     struct SimCamDialog *pCameraSimTool;
+    std::map<wxString, wxString> m_strProperties;
 
 public:
     SimCamState sim;
@@ -1385,6 +1415,8 @@ public:
     bool ST4PulseGuideScope(int direction, int duration) override;
     PierSide SideOfPier() const;
     void FlipPierSide();
+    void SetProperty(const wxString prop, wxString value) override;
+    wxString GetStrProperty(const wxString prop, int timeout = 0) override;
 };
 
 CameraSimulator::CameraSimulator()
@@ -1449,8 +1481,20 @@ bool CameraSimulator::Connect(const wxString& camId)
 bool CameraSimulator::Disconnect()
 {
     sim.CloseDir();
+    m_strProperties.clear();
     Connected = false;
     return false;
+}
+
+void CameraSimulator::SetProperty(const wxString prop, wxString value)
+{
+    m_strProperties[prop] = value;
+}
+
+wxString CameraSimulator::GetStrProperty(const wxString prop, int timeout)
+{
+    auto it = m_strProperties.find(prop);
+    return it == m_strProperties.end() ? wxEmptyString : it->second;
 }
 
 CameraSimulator::~CameraSimulator()
@@ -1480,8 +1524,79 @@ static void fill_noise(usImage& img, const wxRect& subframe, int exptime, int ga
     }
 }
 
+static bool convert_to_mono16(const cv::Mat& image, cv::Mat& mono16)
+{
+    if (image.empty())
+        return false;
+
+    cv::Mat gray;
+    switch (image.channels())
+    {
+    case 1:
+        gray = image;
+        break;
+    case 3:
+        cvtColor(image, gray, cv::COLOR_BGR2GRAY);
+        break;
+    case 4:
+        cvtColor(image, gray, cv::COLOR_BGRA2GRAY);
+        break;
+    default:
+        return false;
+    }
+
+    switch (gray.depth())
+    {
+    case CV_16U:
+        mono16 = gray.isContinuous() ? gray : gray.clone();
+        break;
+    case CV_8U:
+        gray.convertTo(mono16, CV_16UC1, 257.0);
+        break;
+    case CV_16S:
+    case CV_32S:
+    case CV_32F:
+    case CV_64F:
+        gray.convertTo(mono16, CV_16UC1);
+        break;
+    default:
+        return false;
+    }
+
+    return !mono16.empty() && mono16.type() == CV_16UC1 && mono16.isContinuous();
+}
+
+static void limit_simulator_image_size(cv::Mat& image, const wxString& filename)
+{
+    if (image.empty())
+        return;
+
+    double scale = 1.0;
+    int maxDimension = wxMax(image.cols, image.rows);
+    if (maxDimension > SIM_FILE_MAX_DIMENSION)
+        scale = wxMin(scale, SIM_FILE_MAX_DIMENSION / (double) maxDimension);
+
+    int64_t pixels = (int64_t) image.cols * image.rows;
+    if (pixels > SIM_FILE_MAX_PIXELS)
+        scale = wxMin(scale, sqrt(SIM_FILE_MAX_PIXELS / (double) pixels));
+
+    if (scale < 1.0)
+    {
+        cv::Mat resized;
+        cv::resize(image, resized, cv::Size(), scale, scale, cv::INTER_AREA);
+        Debug.Write(wxString::Format("Simulator: scaled image file %s from %dx%d to %dx%d\n", filename, image.cols,
+                                     image.rows, resized.cols, resized.rows));
+        image = resized;
+    }
+}
+
 static double calculateBorderAverage(const cv::Mat& image)
 {
+    if (image.empty())
+        return 0.0;
+    if (image.rows == 1 || image.cols == 1)
+        return cv::mean(image)[0];
+
     double sum = 0;
     int borderPixelCount = 0;
 
@@ -1588,21 +1703,20 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
     }
     case SIMMODE_FILE: // Can be PNG|TIF|BMP|JPG|FIT file
     {
+        sim.CloseDir();
         cv::Mat image;
+        cv::Mat mono16;
         wxString filename = wxString::Format(SimCamParams::SimFileTemplate, SimCamParams::SimFileIndex);
         wxFileName wxf = wxFileName(filename);
         if ((wxf.GetExt().CmpNoCase("fit") == 0) || (wxf.GetExt().CmpNoCase("fits") == 0))
         {
-            sim.dir.Open(wxf.GetPath());
             if (sim.ReadFitImage(img, filename, wxRect()))
             {
-                sim.CloseDir();
                 pFrame->Alert(_("Cannot load FIT image file"));
                 return true;
             }
-            sim.CloseDir();
             image = cv::Mat(img.Size.GetHeight(), img.Size.GetWidth(), CV_16UC1, img.ImageData);
-            if (image.empty())
+            if (!convert_to_mono16(image, mono16))
             {
                 pFrame->Alert(_("Cannot load FIT image file"));
                 return true;
@@ -1611,37 +1725,25 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
         else
         {
             image = cv::imread(filename.ToStdString(), cv::IMREAD_ANYDEPTH | cv::IMREAD_ANYCOLOR);
-            if (image.empty())
+            if (!convert_to_mono16(image, mono16))
             {
                 pFrame->Alert(_("Cannot load image file"));
                 return true;
             }
-            if (img.Init(image.cols, image.rows))
-            {
-                pFrame->Alert(_("Memory allocation error"));
-                return true;
-            }
+        }
+
+        limit_simulator_image_size(mono16, filename);
+        if (img.Init(mono16.cols, mono16.rows))
+        {
+            pFrame->Alert(_("Memory allocation error"));
+            return true;
         }
 
         // Save full frame size
-        FrameSize.x = image.size().width;
-        FrameSize.y = image.size().height;
+        FrameSize.x = mono16.size().width;
+        FrameSize.y = mono16.size().height;
 
-        // Convert to grayscale
-        cv::Mat *disk_image = &image;
-        cv::Mat grayscaleImage;
-        cv::Mat grayscale16;
-
-        if (disk_image->channels() != 1)
-        {
-            cvtColor(image, grayscaleImage, cv::COLOR_BGR2GRAY);
-            disk_image = &grayscaleImage;
-        }
-        if (disk_image->depth() != CV_16U)
-        {
-            disk_image->convertTo(grayscale16, CV_16UC1, 65535.0 / 255.0);
-            disk_image = &grayscale16;
-        }
+        cv::Mat *disk_image = &mono16;
 
         // Simulate scope motion
         double rx, ry;
@@ -1665,16 +1767,11 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
         disk_image = &translatedImage;
 
         // Copy the 16-bit data to result
-        int dataSize = image.cols * image.rows * 2;
+        size_t dataSize = disk_image->cols * disk_image->rows * sizeof(unsigned short);
         memcpy(img.ImageData, disk_image->data, dataSize);
 
         // Finally, render clouds
-        if (SimCamParams::clouds_opacity > 0)
-        {
-            if (pFrame->pGuider->m_SolarSystemObject.Get_SolarSystemObjMode())
-                subframe = wxRect(0, 0, FrameSize.x, FrameSize.y);
-            render_clouds(img, subframe, duration, 30, 100);
-        }
+        render_clouds_if_needed(img, subframe, duration, 30, 100);
         if (pCamera)
             pCamera->SetProperty("path", filename);
         Debug.Write(wxString::Format("Simulator: loaded image file: %s\n", filename));
@@ -1685,27 +1782,25 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
         wxString filename = SimCamParams::SimFileTemplate;
         if (!sim.dir.IsOpened())
         {
-            wxFileName wxf = wxFileName(filename);
-            sim.dir.Open(wxf.GetFullPath());
-        }
-        if (sim.dir.IsOpened())
-        {
-            if (!sim.dirStarted)
+            if (sim.dir.Open(filename))
             {
-                sim.dir.GetFirst(&filename, "*.fit", wxDIR_FILES);
+                wxDir::GetAllFiles(filename, &sim.fitFiles, "*.fit", wxDIR_FILES);
+                wxDir::GetAllFiles(filename, &sim.fitFiles, "*.fits", wxDIR_FILES);
+                wxDir::GetAllFiles(filename, &sim.fitFiles, "*.FIT", wxDIR_FILES);
+                wxDir::GetAllFiles(filename, &sim.fitFiles, "*.FITS", wxDIR_FILES);
+                sim.fitFiles.Sort();
+                sim.fitFileIndex = 0;
                 sim.dirStarted = true;
             }
-            else
-            {
-                if (!sim.dir.GetNext(&filename))
-                    sim.dir.GetFirst(&filename, "*.fit", wxDIR_FILES);
-            }
         }
-        else
+        if (!sim.dir.IsOpened() || sim.fitFiles.IsEmpty())
         {
             pFrame->Alert(_("Cannot open FIT file directory"));
             return true;
         }
+
+        filename = sim.fitFiles[sim.fitFileIndex];
+        sim.fitFileIndex = (sim.fitFileIndex + 1) % sim.fitFiles.GetCount();
 
         if (!UseSubframes)
             subframe = wxRect();
@@ -1715,11 +1810,26 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
             pFrame->Alert(_("Cannot find/open FIT file"));
             return true;
         }
+        if (subframe.IsEmpty())
+        {
+            cv::Mat fitImage(img.Size.GetHeight(), img.Size.GetWidth(), CV_16UC1, img.ImageData);
+            limit_simulator_image_size(fitImage, filename);
+            if (fitImage.cols != img.Size.GetWidth() || fitImage.rows != img.Size.GetHeight())
+            {
+                if (img.Init(fitImage.cols, fitImage.rows))
+                {
+                    pFrame->Alert(_("Memory allocation error"));
+                    return true;
+                }
+                memcpy(img.ImageData, fitImage.data, fitImage.cols * fitImage.rows * sizeof(unsigned short));
+            }
+        }
         if (pCamera)
             pCamera->SetProperty("path", filename);
         Debug.Write(wxString::Format("Simulator: loaded image file: %s\n", filename));
 
         FrameSize = img.Size;
+        render_clouds_if_needed(img, subframe, duration, 30, 100);
         break;
     }
     }
@@ -2419,7 +2529,17 @@ void SimCamDialog::OnPierFlip(wxCommandEvent& event)
 
 void SimCamDialog::OnSimModeChange(wxCommandEvent& event)
 {
-    SimCamParams::SimulatorMode = (SimMode) event.GetInt();
+    SimMode newMode = (SimMode) event.GetInt();
+    if (SimCamParams::SimulatorMode != newMode && pFrame->CaptureActive)
+    {
+        Debug.Write("Simulator: stopping looping exposures because source mode changed\n");
+        pFrame->StopCapturing();
+    }
+
+    SimCamParams::SimulatorMode = newMode;
+    SimCamParams::SimFileTemplate = pSimFile->GetValue();
+    CameraSimulator *simcam = static_cast<CameraSimulator *>(pCamera);
+    simcam->sim.CloseDir();
     SetControlStates(this, pFrame->CaptureActive);
 }
 

@@ -255,16 +255,26 @@ static unsigned char *buildGammaLookupTable(int blevel, int wlevel, double power
 
 bool usImage::CopyToImage(wxImage **rawimg, int blevel, int wlevel, double power)
 {
+    if (!rawimg || !ImageData || Size.GetWidth() <= 0 || Size.GetHeight() <= 0)
+        return true;
+
     wxImage *img = *rawimg;
 
     if (!img || !img->Ok() || (img->GetWidth() != Size.GetWidth()) ||
         (img->GetHeight() != Size.GetHeight())) // can't reuse bitmap
     {
         delete img;
-        img = new wxImage(Size.GetWidth(), Size.GetHeight(), false);
+        img = new (std::nothrow) wxImage(Size.GetWidth(), Size.GetHeight(), false);
+        *rawimg = img;
     }
 
+    if (!img)
+        return true;
+
     unsigned char *ImgPtr = img->GetData();
+    if (!img->Ok() || !ImgPtr)
+        return true;
+
     unsigned short *RawPtr = ImageData;
 
     unsigned char *lutTable = buildGammaLookupTable(blevel, wlevel, power);
