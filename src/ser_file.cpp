@@ -41,6 +41,7 @@
 SERFile::SERFile()
 {
     memset(&m_serHeader, 0, sizeof(m_serHeader));
+    m_fileBuffer = nullptr;
     m_serFile = nullptr;
     m_serFileName = wxEmptyString;
     m_framesWritten = 0;
@@ -55,16 +56,17 @@ SERFile::~SERFile()
 SERFile::SERFile(const wxString& fileName, int width, int height, wxString observerName, wxString instrumentName,
                  wxString telescopeName)
 {
+    m_fileBuffer = nullptr;
     m_serFile = nullptr;
     m_serFileName = fileName;
     m_framesWritten = 0;
 
     // Get the current date and time
     wxDateTime now = wxDateTime::UNow();
-    uint64_t localTimeStamp = DateToTimestamp(now.GetYear(), now.GetMonth(), now.GetDay(), now.GetHour(), now.GetMinute(),
+    uint64_t localTimeStamp = DateToTimestamp(now.GetYear(), now.GetMonth() + 1, now.GetDay(), now.GetHour(), now.GetMinute(),
                                               now.GetSecond(), now.GetMillisecond() * 1000);
     wxDateTime utc = now.ToUTC();
-    uint64_t utcTimeStamp = DateToTimestamp(utc.GetYear(), utc.GetMonth(), utc.GetDay(), utc.GetHour(), utc.GetMinute(),
+    uint64_t utcTimeStamp = DateToTimestamp(utc.GetYear(), utc.GetMonth() + 1, utc.GetDay(), utc.GetHour(), utc.GetMinute(),
                                             utc.GetSecond(), utc.GetMillisecond() * 1000);
 
     // Initialize the SER header
@@ -72,7 +74,7 @@ SERFile::SERFile(const wxString& fileName, int width, int height, wxString obser
     strncpy(m_serHeader.FileID, "LUCAM-RECORDER", sizeof(m_serHeader.FileID));
     m_serHeader.LuID = 0; // Unknown
     m_serHeader.ColorID = 0; // Monochrome
-    m_serHeader.LittleEndian = 1; // Intel
+    m_serHeader.LittleEndian = 0; // Common SER readers use 0 for little-endian pixel data
     m_serHeader.ImageWidth = width;
     m_serHeader.ImageHeight = height;
     m_serHeader.PixelDepth = 8;
@@ -89,17 +91,21 @@ bool SERFile::Open()
     if (!m_serFile)
     {
         const int BUFFER_SIZE = 64 * 1024;
-        m_serFile = fopen(m_serFileName, "wb");
+        m_serFile = wxFopen(m_serFileName, "wb");
+        if (!m_serFile)
+            return false;
         m_fileBuffer = (char *) malloc(BUFFER_SIZE);
         if (m_fileBuffer)
             setvbuf(m_serFile, m_fileBuffer, _IOFBF, BUFFER_SIZE);
+        m_framesWritten = 0;
+        m_serHeader.FrameCount = 0;
+        m_timestamps.clear();
         m_timestamps.reserve(4096);
         Debug.Write(wxString::Format("Start video log file %s\n", m_serFileName));
     }
     if (m_serFile)
     {
         int records = fwrite(&m_serHeader, sizeof(SERHeader), 1, m_serFile);
-        m_framesWritten = 0;
         return records == 1;
     }
     return false;
@@ -109,11 +115,15 @@ void SERFile::Close()
 {
     if (m_serFile)
     {
-        fwrite(m_timestamps.data(), sizeof(uint64_t), m_timestamps.size(), m_serFile);
-        fseek(m_serFile, offsetof(SERHeader, FrameCount), SEEK_SET);
-        fwrite(&m_framesWritten, sizeof(int), 1, m_serFile);
+        if (!m_timestamps.empty())
+            fwrite(m_timestamps.data(), sizeof(uint64_t), m_timestamps.size(), m_serFile);
+        m_serHeader.FrameCount = (uint32_t) m_framesWritten;
+        fseek(m_serFile, 0, SEEK_SET);
+        fwrite(&m_serHeader, sizeof(SERHeader), 1, m_serFile);
         fclose(m_serFile);
-        free(m_fileBuffer);
+        if (m_fileBuffer)
+            free(m_fileBuffer);
+        m_fileBuffer = nullptr;
         m_serFile = nullptr;
         Debug.Write(wxString::Format("Close video log file %s\n", m_serFileName));
     }
@@ -123,9 +133,31 @@ bool SERFile::WriteFrame(const cv::Mat& image)
 {
     if (m_serFile)
     {
-        uint64_t ts = GetCurrentLocalTimestamp();
-        m_timestamps.push_back(ts);
-        fwrite(image.data, image.elemSize() * image.total(), 1, m_serFile);
+        if (image.empty() || image.type() != CV_8UC1 || image.cols != (int) m_serHeader.ImageWidth ||
+            image.rows != (int) m_serHeader.ImageHeight)
+        {
+            Debug.Write(wxString::Format("SERFile::WriteFrame invalid frame for %s\n", m_serFileName));
+            return false;
+        }
+
+        cv::Mat frame = image.isContinuous() ? image : image.clone();
+        uint64_t localTs = 0;
+        uint64_t utcTs = 0;
+        GetCurrentTimestamps(&localTs, &utcTs);
+        size_t frameBytes = frame.elemSize() * frame.total();
+        if (fwrite(frame.data, frameBytes, 1, m_serFile) != 1)
+        {
+            Debug.Write(wxString::Format("SERFile::WriteFrame failed writing frame to %s\n", m_serFileName));
+            return false;
+        }
+
+        if (m_framesWritten == 0)
+        {
+            m_serHeader.DateTime = localTs;
+            m_serHeader.DateTime_UTC = utcTs;
+        }
+
+        m_timestamps.push_back(utcTs);
         m_framesWritten++;
         Debug.Write(wxString::Format("Added image frame in %s\n", m_serFileName));
         return true;
@@ -137,7 +169,7 @@ bool SERFile::WriteFrame(const cv::Mat& image)
 uint64_t SERFile::GetCurrentLocalTimestamp()
 {
     wxDateTime now = wxDateTime::UNow();
-    return DateToTimestamp(now.GetYear(), now.GetMonth(), now.GetDay(), now.GetHour(), now.GetMinute(), now.GetSecond(),
+    return DateToTimestamp(now.GetYear(), now.GetMonth() + 1, now.GetDay(), now.GetHour(), now.GetMinute(), now.GetSecond(),
                            now.GetMillisecond() * 1000);
 }
 
@@ -146,8 +178,20 @@ uint64_t SERFile::GetCurrentUtcTimestamp()
 {
     wxDateTime now = wxDateTime::UNow();
     wxDateTime utc = now.ToUTC();
-    return DateToTimestamp(utc.GetYear(), utc.GetMonth(), utc.GetDay(), utc.GetHour(), utc.GetMinute(), utc.GetSecond(),
+    return DateToTimestamp(utc.GetYear(), utc.GetMonth() + 1, utc.GetDay(), utc.GetHour(), utc.GetMinute(), utc.GetSecond(),
                            utc.GetMillisecond() * 1000);
+}
+
+void SERFile::GetCurrentTimestamps(uint64_t *localTimeStamp, uint64_t *utcTimeStamp)
+{
+    wxDateTime now = wxDateTime::UNow();
+    wxDateTime utc = now.ToUTC();
+    if (localTimeStamp)
+        *localTimeStamp = DateToTimestamp(now.GetYear(), now.GetMonth() + 1, now.GetDay(), now.GetHour(), now.GetMinute(),
+                                          now.GetSecond(), now.GetMillisecond() * 1000);
+    if (utcTimeStamp)
+        *utcTimeStamp = DateToTimestamp(utc.GetYear(), utc.GetMonth() + 1, utc.GetDay(), utc.GetHour(), utc.GetMinute(),
+                                        utc.GetSecond(), utc.GetMillisecond() * 1000);
 }
 
 // ---------------------------------------------------------------------

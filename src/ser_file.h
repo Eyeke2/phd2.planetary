@@ -40,7 +40,7 @@ struct SERHeader
     char FileID[14]; // "LUCAM-RECORDER"
     uint32_t LuID; // Camera identifier, can be set to 0 if unknown
     uint32_t ColorID; // Color format, 0 for monochrome
-    uint32_t LittleEndian; // Byte order, 1 for little endian
+    uint32_t LittleEndian; // Byte order flag; common SER readers use 0 for little endian
     uint32_t ImageWidth; // Width of the image
     uint32_t ImageHeight; // Height of the image
     uint32_t PixelDepth; // Depth of each pixel in bits, 16 for 16-bit
@@ -89,6 +89,7 @@ public:
     bool IsLeapYear(uint32_t year);
     uint64_t GetCurrentUtcTimestamp();
     uint64_t GetCurrentLocalTimestamp();
+    void GetCurrentTimestamps(uint64_t *localTimeStamp, uint64_t *utcTimeStamp);
     uint64_t DateToTimestamp(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t minute, int32_t second,
                              int32_t microsec);
 };

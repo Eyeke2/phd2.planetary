@@ -170,7 +170,7 @@ SolarSystemObject::SolarSystemObject()
 
 SolarSystemObject::~SolarSystemObject()
 {
-    delete m_SER;
+    CloseVideoLog();
 
     // Save all detection parameters
 #ifdef DEVELOPER_MODE
@@ -1410,6 +1410,24 @@ bool SolarSystemObject::FindOrbisCenter(const Mat& src, int minRadius, int maxRa
     return false;
 }
 
+void SolarSystemObject::SetVideoLogging(bool enable)
+{
+    m_videoLogEnabled = enable;
+    if (!enable)
+        CloseVideoLog();
+}
+
+void SolarSystemObject::CloseVideoLog()
+{
+    if (m_SER)
+    {
+        if (m_SER->IsOpen())
+            m_SER->Close();
+        delete m_SER;
+        m_SER = nullptr;
+    }
+}
+
 // Save full 8-bit frame to SER file
 void SolarSystemObject::SaveVideoFrame(const cv::Mat& src, int bppFactor)
 {
@@ -1420,17 +1438,14 @@ void SolarSystemObject::SaveVideoFrame(const cv::Mat& src, int bppFactor)
     if (!m_SER || !m_SER->IsOpen() || (m_SER->FrameWidth() != src.cols) || (m_SER->FrameHeight() != src.rows))
     {
         // Close previous SER file and open a new one
-        if (m_SER && m_SER->IsOpen())
-        {
-            m_SER->Close();
-            delete m_SER;
-        }
+        CloseVideoLog();
 
         // Create new SER file
         wxDateTime dt = wxDateTime::Now();
         const wxString m_serFileName = Debug.GetLogDir() + _("\\") + dt.Format(_T("PHD2_VideoLog_%Y-%m-%d_%H%M%S.ser"));
         m_SER = new SERFile(m_serFileName, src.cols, src.rows, _("PHD2"), pCamera->Name, pMount->Name());
-        m_SER->Open();
+        if (!m_SER->Open())
+            CloseVideoLog();
     }
     if (m_SER && m_SER->IsOpen())
     {
@@ -1725,6 +1740,10 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
     if (GetVideoLogging() && pFrame->pGuider->IsGuiding())
     {
         SaveVideoFrame(FullFrame, bppFactor);
+    }
+    else if (m_SER && m_SER->IsOpen())
+    {
+        CloseVideoLog();
     }
 
     // ROI current state and limit
