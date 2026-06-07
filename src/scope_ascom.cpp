@@ -1100,6 +1100,19 @@ void ScopeASCOM::EnumerateTrackingRates()
          }                                                                                                                     \
      } while (0)
 
+// Reuses an already-resolved DispatchObj, avoiding a fresh GIT lookup. Used reactively from
+// COM-error paths to disambiguate parked-while-moving from other failures.
+static bool IsAtPark(DispatchObj *scope)
+{
+    Variant vRes;
+    if (!scope->GetProp(&vRes, L"AtPark"))
+    {
+        Debug.Write(wxString::Format("ASCOM Scope: AtPark check failed: %s\n", ExcepMsg(scope->Excep())));
+        return false;
+    }
+    return vRes.boolVal == VARIANT_TRUE;
+}
+
 static wxString SlewWarningEnabledKey()
 {
     // we want the key to be under "/Confirm" so ConfirmDialog::ResetAllDontAskAgain() resets it, but we also want the setting
@@ -1214,6 +1227,16 @@ Mount::MOVE_RESULT ScopeASCOM::Guide(GUIDE_DIRECTION direction, int duration)
                                               &vRes, &excep, NULL)))
         {
             Debug.Write(wxString::Format("pulseguide: [%x] %s\n", hr, _com_error(hr).ErrorMessage()));
+
+            // Reactive parked-state detection: ASCOM drivers raise an error from PulseGuide while
+            // parked. Refresh the cached state so the next MoveOffset short-circuits without
+            // hitting the driver, and surface MOVE_ERROR_PARKED to OnMoveComplete.
+            if (IsAtPark(&scope))
+            {
+                SetLastKnownParked(true);
+                result = MOVE_ERROR_PARKED;
+                throw ERROR_INFO("ASCOM Scope: PulseGuide failed because mount is parked");
+            }
 
             // Make sure nothing got by us and the mount can really handle pulse guide - HIGHLY unlikely
             if (scope.GetProp(&vRes, L"CanPulseGuide") && vRes.boolVal != VARIANT_TRUE)
@@ -1498,6 +1521,9 @@ bool ScopeASCOM::IsParked(bool* parked)
             throw ERROR_INFO("ASCOM Scope: IsParked failed: " + ExcepMsg(scope.Excep()));
         }
         *parked = vRes.boolVal == VARIANT_TRUE;
+        // Refresh the cached state so callers (Mount::MoveOffset, event_server is_parked) see
+        // the same answer without re-querying the driver.
+        SetLastKnownParked(*parked);
     }
     catch (const wxString& Msg)
     {
@@ -2148,6 +2174,11 @@ bool ScopeASCOM::SlewToCoordinates(double ra, double dec)
             throw ERROR_INFO("ASCOM Scope: cannot slew when not connected");
         }
 
+        if (IsKnownParked())
+        {
+            throw ERROR_INFO("ASCOM Scope: cannot slew, mount is parked");
+        }
+
         if (!m_canSlew)
         {
             throw THROW_INFO("ASCOM Scope: not capable of slewing");
@@ -2180,6 +2211,11 @@ bool ScopeASCOM::SlewToCoordinatesAsync(double ra, double dec)
         if (!IsConnected())
         {
             throw ERROR_INFO("ASCOM Scope: cannot slew when not connected");
+        }
+
+        if (IsKnownParked())
+        {
+            throw ERROR_INFO("ASCOM Scope: cannot slew, mount is parked");
         }
 
         if (!m_canSlewAsync)
@@ -2263,6 +2299,11 @@ bool ScopeASCOM::ASCOM_MoveAxis(GuideAxis axis, double rate, wxString *errMsg)
             throw ERROR_INFO("ASCOM Scope: cannot move axis when not connected");
         }
 
+        if (IsKnownParked())
+        {
+            throw ERROR_INFO("ASCOM Scope: cannot move axis, mount is parked");
+        }
+
         if (!CanMoveAxis(axis))
         {
             throw THROW_INFO("ASCOM Scope: not capable of moving axis");
@@ -2274,6 +2315,13 @@ bool ScopeASCOM::ASCOM_MoveAxis(GuideAxis axis, double rate, wxString *errMsg)
 
         if (!scope.InvokeMethod(&vRes, L"MoveAxis", (LONG) axis, rate))
         {
+            // Reactive parked-state detection: ASCOM drivers raise an error from MoveAxis while
+            // parked. Refresh the cached state so subsequent guide pulses short-circuit.
+            if (IsAtPark(&scope))
+            {
+                SetLastKnownParked(true);
+                throw ERROR_INFO("ASCOM Scope: MoveAxis failed because mount is parked");
+            }
             throw ERROR_INFO("ASCOM Scope: MoveAxis failed: " + ExcepMsg(scope.Excep()));
         }
     }

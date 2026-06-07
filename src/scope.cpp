@@ -116,6 +116,8 @@ Scope::Scope()
 
     m_hasHPEncoders = pConfig->Profile.GetBoolean("/scope/HiResEncoders", false);
 
+    m_lastKnownParked = false;
+
     m_backlashComp = new BacklashComp(this);
 }
 
@@ -572,6 +574,26 @@ void Scope::EndDecDrift()
 bool Scope::IsDecDrifting() const
 {
     return m_decGuideMode == DEC_NONE;
+}
+
+bool Scope::IsKnownParked()
+{
+    // Fast path: cache says not parked, no driver round-trip.
+    if (!m_lastKnownParked)
+        return false;
+
+    // Cache says parked - re-verify with a fresh poll. The mount may have been unparked
+    // externally (e.g. via the driver's own UI) without notifying PHD2. IsParked() refreshes
+    // m_lastKnownParked as a side effect.
+    bool parked = false;
+    if (IsParked(&parked))
+    {
+        // Poll failed - keep gating on the cached state rather than letting a guide pulse or
+        // slew through on a possibly parked mount.
+        Debug.Write("Scope::IsKnownParked: AtPark verify-poll failed, trusting cached parked state\n");
+        return m_lastKnownParked;
+    }
+    return parked;
 }
 
 Mount::MOVE_RESULT Scope::MoveAxis(GUIDE_DIRECTION direction, int duration, unsigned int moveOptions)

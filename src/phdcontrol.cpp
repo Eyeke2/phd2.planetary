@@ -307,6 +307,18 @@ bool PhdController::CanGuide(wxString *error)
         *error = _T("all equipment must be connected first");
         return false;
     }
+
+    // Refresh and check the scope's parked state. ScopeASCOM::IsParked also updates
+    // Scope::m_lastKnownParked, used by Mount::MoveOffset to short-circuit guide pulses.
+    Scope *scope = TheScope();
+    bool parked = false;
+    if (scope && scope->IsConnected() && !scope->IsParked(&parked) && parked)
+    {
+        Debug.AddLine("PhdController::CanGuide: mount is parked");
+        *error = _T("mount is parked");
+        return false;
+    }
+
     return true;
 }
 

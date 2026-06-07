@@ -984,6 +984,14 @@ Mount::MOVE_RESULT Mount::MoveOffset(GuiderOffset *ofs, unsigned int moveOptions
 
     try
     {
+        // Short-circuit if the mount is known parked. MOVE_ERROR_PARKED is handled in
+        // MyFrame::OnMoveComplete, which stops guiding and alerts.
+        if (IsKnownParked())
+        {
+            Debug.Write("MoveOffset: mount is known parked, skipping guide pulse\n");
+            return MOVE_ERROR_PARKED;
+        }
+
         double xDistance, yDistance;
 
         if (moveOptions & MOVEOPT_ALGO_DEDUCE)
@@ -1039,17 +1047,24 @@ Mount::MOVE_RESULT Mount::MoveOffset(GuiderOffset *ofs, unsigned int moveOptions
 
         int requestedXAmount = ROUND(fabs(xDistance / m_xRate));
         MoveResultInfo xMoveResult;
-        result = MoveAxis(xDirection, requestedXAmount, moveOptions, &xMoveResult);
+        MOVE_RESULT xResult = MoveAxis(xDirection, requestedXAmount, moveOptions, &xMoveResult);
+        result = xResult;
 
         MoveResultInfo yMoveResult;
-        if (result != MOVE_ERROR_SLEWING && result != MOVE_ERROR_AO_LIMIT_REACHED)
+        if (xResult != MOVE_ERROR_SLEWING && xResult != MOVE_ERROR_AO_LIMIT_REACHED && xResult != MOVE_ERROR_PARKED)
         {
             int requestedYAmount = ROUND(fabs(yDistance / m_cal.yRate));
 
             if (m_backlashComp)
                 m_backlashComp->ApplyBacklashComp(moveOptions, yDistance, &requestedYAmount);
 
-            result = MoveAxis(yDirection, requestedYAmount, moveOptions, &yMoveResult);
+            MOVE_RESULT yResult = MoveAxis(yDirection, requestedYAmount, moveOptions, &yMoveResult);
+            // Preserve the first-axis failure if it was a generic MOVE_ERROR; otherwise let the y
+            // result win when y reports a critical condition (SLEWING/AO_LIMIT/PARKED) or when x
+            // succeeded.
+            if (result == MOVE_OK || yResult == MOVE_ERROR_SLEWING || yResult == MOVE_ERROR_AO_LIMIT_REACHED ||
+                yResult == MOVE_ERROR_PARKED)
+                result = yResult;
         }
 
         // Record the info about the guide step. The info will be picked up back in the main UI thread.

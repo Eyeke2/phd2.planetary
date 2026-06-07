@@ -251,6 +251,7 @@ public:
         MOVE_ERROR, // move failed for unspecified reason
         MOVE_ERROR_SLEWING, // move failed due to scope slewing
         MOVE_ERROR_AO_LIMIT_REACHED, // move failed due to AO limit
+        MOVE_ERROR_PARKED, // move failed because the mount is parked
     };
 
     Mount();
@@ -272,6 +273,12 @@ public:
     virtual void DeferPulseLimitAlertCheck();
 
     virtual MOVE_RESULT MoveOffset(GuiderOffset *guiderOffset, unsigned int moveOptions);
+
+    // Returns true if the mount should be gated as parked right now. Cheap when the cached
+    // parked state is false. When the cache says parked, the Scope override re-verifies with
+    // a fresh poll so a stale cache doesn't gate forever (the mount may have been unparked
+    // externally). Default Mount impl always returns false.
+    virtual bool IsKnownParked() { return false; }
 
     bool TransformCameraCoordinatesToMountCoordinates(const PHD_Point& cameraVectorEndpoint, PHD_Point& mountVectorEndpoint,
                                                       bool logged = true);
