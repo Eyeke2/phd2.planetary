@@ -158,6 +158,8 @@ class Scope : public Mount
     bool m_useDecCompensation;
     bool m_hasHPEncoders;
 
+    bool m_lastKnownParked;
+
     enum CALIBRATION_STATE
     {
         CALIBRATION_STATE_CLEARED,
@@ -310,6 +312,8 @@ public:
     virtual bool GetEquatorialSystem(int *system);
     virtual bool DoesRefraction(bool *refraction);
     virtual bool IsParked(bool* parked);
+    bool IsKnownParked() override;
+    void SetLastKnownParked(bool parked) { m_lastKnownParked = parked; }
     virtual bool Park();
     virtual bool Unpark();
     virtual PierSide SideOfPier();

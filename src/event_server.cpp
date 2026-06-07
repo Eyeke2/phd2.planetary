@@ -2447,7 +2447,12 @@ static void park(JObj& response, const json_value *params)
         return;
     }
     if (!pPointingSource->Park())
+    {
+        // Refresh the cached parked state so the next guide pulse / slew / move-axis is gated
+        // by Mount::IsKnownParked() without a separate poll.
+        pPointingSource->SetLastKnownParked(true);
         response << jrpc_result(0);
+    }
     else
         response << jrpc_error(1, "failed to park mount");
 }
@@ -2460,7 +2465,10 @@ static void unpark(JObj& response, const json_value *params)
         return;
     }
     if (!pPointingSource->Unpark())
+    {
+        pPointingSource->SetLastKnownParked(false);
         response << jrpc_result(0);
+    }
     else
         response << jrpc_error(1, "failed to park mount");
 }

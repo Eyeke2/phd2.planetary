@@ -650,6 +650,15 @@ void MyFrame::OnMoveComplete(wxThreadEvent& event_)
                 Debug.Write("mount move error indicates guiding should stop\n");
                 pGuider->StopGuiding();
             }
+            else if (moveResult == Mount::MOVE_ERROR_PARKED)
+            {
+                Debug.Write("mount parked error indicates guiding should stop\n");
+                if (pGuider->IsCalibratingOrGuiding())
+                {
+                    pFrame->Alert(_("Guiding stopped: the mount is parked."));
+                    pGuider->StopGuiding();
+                }
+            }
             else if (moveResult == Mount::MOVE_ERROR_AO_LIMIT_REACHED)
             {
                 const StepInfo& step = TheAO()->GetFailedStepInfo();
