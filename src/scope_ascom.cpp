@@ -1113,6 +1113,20 @@ static bool IsAtPark(DispatchObj *scope)
     return vRes.boolVal == VARIANT_TRUE;
 }
 
+// Same pattern as IsAtPark for the Tracking property. Returns true when the driver reports
+// tracking is on; returns true on query failure too (treat unknown as on, so we don't
+// mis-attribute a generic PulseGuide failure to tracking-stopped).
+static bool IsTrackingOn(DispatchObj *scope)
+{
+    Variant vRes;
+    if (!scope->GetProp(&vRes, L"Tracking"))
+    {
+        Debug.Write(wxString::Format("ASCOM Scope: Tracking check failed: %s\n", ExcepMsg(scope->Excep())));
+        return true;
+    }
+    return vRes.boolVal == VARIANT_TRUE;
+}
+
 static wxString SlewWarningEnabledKey()
 {
     // we want the key to be under "/Confirm" so ConfirmDialog::ResetAllDontAskAgain() resets it, but we also want the setting
@@ -1236,6 +1250,15 @@ Mount::MOVE_RESULT ScopeASCOM::Guide(GUIDE_DIRECTION direction, int duration)
                 SetLastKnownParked(true);
                 result = MOVE_ERROR_PARKED;
                 throw ERROR_INFO("ASCOM Scope: PulseGuide failed because mount is parked");
+            }
+
+            // Reactive tracking-stopped detection: many drivers refuse PulseGuide while tracking
+            // is off. Refresh the cached state and surface MOVE_ERROR_TRACKING_STOPPED.
+            if (!IsTrackingOn(&scope))
+            {
+                SetLastKnownTracking(false);
+                result = MOVE_ERROR_TRACKING_STOPPED;
+                throw ERROR_INFO("ASCOM Scope: PulseGuide failed because mount is not tracking");
             }
 
             // Make sure nothing got by us and the mount can really handle pulse guide - HIGHLY unlikely
@@ -1753,6 +1776,9 @@ bool ScopeASCOM::GetTracking(bool *tracking, bool verbose)
         }
 
         *tracking = vRes.bVal;
+        // Refresh the cached state so Scope::IsKnownTrackingStopped() can short-circuit guide
+        // pulses without re-querying the driver.
+        SetLastKnownTracking(*tracking);
     }
     catch (const wxString& Msg)
     {
@@ -1789,6 +1815,9 @@ bool ScopeASCOM::SetTracking(bool tracking)
         {
             throw ERROR_INFO("ASCOM Scope: SetTracking() failed: " + ExcepMsg(scope.Excep()));
         }
+
+        // Refresh the cached state so Scope::IsKnownTrackingStopped() reflects the new value.
+        SetLastKnownTracking(tracking);
     }
     catch (const wxString& Msg)
     {

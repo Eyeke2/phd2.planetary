@@ -1612,18 +1612,11 @@ void SolarSystemObject::CheckMountTrackingState()
     double raOffset, decOffset;
     bool rateValid = GetMountTrackingState(trackingValid, tracking, rate, offsetsValid, raOffset, decOffset);
 
-    // Issue warning alert when mount tracking is disabled during guiding
-    if (pFrame->pGuider->IsGuiding())
-    {
-        const wxString alertMsg = _T("WARNING: mount tracking is disabled!");
-        if (trackingValid && !tracking)
-        {
-            pFrame->Alert(alertMsg, wxICON_WARNING);
-            Debug.Write("Find solar system object: tracking is disabled during guiding!\n");
-        }
-        if (tracking)
-            pFrame->ClearAlert(alertMsg);
-    }
+    // No tracking-disabled alert here - the parked/tracking gate in Mount::MoveOffset will
+    // surface "Guiding stopped: the mount is not tracking." via OnMoveComplete on the next
+    // pulse, and Scope::SetLastKnownTracking auto-clears it when tracking resumes.
+    if (trackingValid)
+        Debug.Write(wxString::Format("CheckMountTrackingState: tracking=%d\n", tracking));
 
     if (trackingValid && (tracking != m_prevMountTracking))
     {

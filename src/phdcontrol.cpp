@@ -319,6 +319,16 @@ bool PhdController::CanGuide(wxString *error)
         return false;
     }
 
+    // Same check for tracking - guiding requires the mount to be tracking. GetTracking()
+    // refreshes Scope::m_lastKnownTracking as a side effect.
+    bool tracking = true;
+    if (scope && scope->IsConnected() && !scope->GetTracking(&tracking) && !tracking)
+    {
+        Debug.AddLine("PhdController::CanGuide: mount is not tracking");
+        *error = _T("mount is not tracking");
+        return false;
+    }
+
     return true;
 }
 

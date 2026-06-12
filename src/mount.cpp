@@ -992,6 +992,13 @@ Mount::MOVE_RESULT Mount::MoveOffset(GuiderOffset *ofs, unsigned int moveOptions
             return MOVE_ERROR_PARKED;
         }
 
+        // Same gate for tracking - guiding while the mount isn't tracking is pointless.
+        if (IsKnownTrackingStopped())
+        {
+            Debug.Write("MoveOffset: mount is known not tracking, skipping guide pulse\n");
+            return MOVE_ERROR_TRACKING_STOPPED;
+        }
+
         double xDistance, yDistance;
 
         if (moveOptions & MOVEOPT_ALGO_DEDUCE)
@@ -1051,7 +1058,8 @@ Mount::MOVE_RESULT Mount::MoveOffset(GuiderOffset *ofs, unsigned int moveOptions
         result = xResult;
 
         MoveResultInfo yMoveResult;
-        if (xResult != MOVE_ERROR_SLEWING && xResult != MOVE_ERROR_AO_LIMIT_REACHED && xResult != MOVE_ERROR_PARKED)
+        if (xResult != MOVE_ERROR_SLEWING && xResult != MOVE_ERROR_AO_LIMIT_REACHED && xResult != MOVE_ERROR_PARKED &&
+            xResult != MOVE_ERROR_TRACKING_STOPPED)
         {
             int requestedYAmount = ROUND(fabs(yDistance / m_cal.yRate));
 
@@ -1063,7 +1071,7 @@ Mount::MOVE_RESULT Mount::MoveOffset(GuiderOffset *ofs, unsigned int moveOptions
             // result win when y reports a critical condition (SLEWING/AO_LIMIT/PARKED) or when x
             // succeeded.
             if (result == MOVE_OK || yResult == MOVE_ERROR_SLEWING || yResult == MOVE_ERROR_AO_LIMIT_REACHED ||
-                yResult == MOVE_ERROR_PARKED)
+                yResult == MOVE_ERROR_PARKED || yResult == MOVE_ERROR_TRACKING_STOPPED)
                 result = yResult;
         }
 

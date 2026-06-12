@@ -252,6 +252,7 @@ public:
         MOVE_ERROR_SLEWING, // move failed due to scope slewing
         MOVE_ERROR_AO_LIMIT_REACHED, // move failed due to AO limit
         MOVE_ERROR_PARKED, // move failed because the mount is parked
+        MOVE_ERROR_TRACKING_STOPPED, // move failed because the mount is not tracking
     };
 
     Mount();
@@ -279,6 +280,11 @@ public:
     // a fresh poll so a stale cache doesn't gate forever (the mount may have been unparked
     // externally). Default Mount impl always returns false.
     virtual bool IsKnownParked() { return false; }
+
+    // Same pattern as IsKnownParked, but for the Tracking property. Returns true if the cached
+    // tracking state says tracking is off (verified by a fresh poll). Guiding doesn't make
+    // sense when the mount isn't tracking, so MoveOffset gates on this too.
+    virtual bool IsKnownTrackingStopped() { return false; }
 
     bool TransformCameraCoordinatesToMountCoordinates(const PHD_Point& cameraVectorEndpoint, PHD_Point& mountVectorEndpoint,
                                                       bool logged = true);
