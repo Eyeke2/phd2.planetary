@@ -39,6 +39,12 @@
 
 class ScopeOnCamera : public ScopeOnboardST4
 {
+    // In-memory tracking flag, used only when the connected camera is the internal simulator
+    // (Get/SetTracking and CanSetTracking fall through to the base Scope behavior otherwise).
+    // Lets clients exercise the guiding tracking gate added in Mount::MoveOffset against the
+    // simulator, without exposing a flag with no physical effect for real ST4-output cameras.
+    bool m_tracking;
+
 public:
     ScopeOnCamera();
     virtual ~ScopeOnCamera();
@@ -47,6 +53,10 @@ public:
 
     bool RequiresCamera() override;
     bool HasNonGuiMove() override;
+
+    bool GetTracking(bool *tracking, bool verbose = false) override;
+    bool SetTracking(bool tracking) override;
+    bool CanSetTracking() override;
 };
 
 #endif // GUIDE_ONCAMERA
