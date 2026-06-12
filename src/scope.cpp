@@ -117,6 +117,7 @@ Scope::Scope()
     m_hasHPEncoders = pConfig->Profile.GetBoolean("/scope/HiResEncoders", false);
 
     m_lastKnownParked = false;
+    m_lastKnownTracking = true; // assume tracking until told otherwise (CanGuide does a fresh query at guide start)
 
     m_backlashComp = new BacklashComp(this);
 }
@@ -594,6 +595,34 @@ bool Scope::IsKnownParked()
         return m_lastKnownParked;
     }
     return parked;
+}
+
+bool Scope::IsKnownTrackingStopped()
+{
+    // Fast path: cache says tracking is on, no driver round-trip.
+    if (m_lastKnownTracking)
+        return false;
+
+    // Cache says tracking is off - re-verify with a fresh poll. The user may have re-enabled
+    // tracking externally. GetTracking() refreshes m_lastKnownTracking as a side effect.
+    bool tracking = false;
+    if (GetTracking(&tracking))
+    {
+        Debug.Write("Scope::IsKnownTrackingStopped: Tracking verify-poll failed, trusting cached state\n");
+        return !m_lastKnownTracking;
+    }
+    return !tracking;
+}
+
+void Scope::SetLastKnownTracking(bool tracking)
+{
+    bool wasOff = !m_lastKnownTracking;
+    m_lastKnownTracking = tracking;
+    // On tracking off->on transition, clear the "Guiding stopped: the mount is not tracking."
+    // alert (the text must match exactly what MyFrame::OnMoveComplete raised). ClearAlert is a
+    // no-op when the current alert is different, so calling it unconditionally is safe.
+    if (wasOff && tracking && pFrame)
+        pFrame->ClearAlert(_("Guiding stopped: the mount is not tracking."));
 }
 
 Mount::MOVE_RESULT Scope::MoveAxis(GUIDE_DIRECTION direction, int duration, unsigned int moveOptions)

@@ -659,6 +659,15 @@ void MyFrame::OnMoveComplete(wxThreadEvent& event_)
                     pGuider->StopGuiding();
                 }
             }
+            else if (moveResult == Mount::MOVE_ERROR_TRACKING_STOPPED)
+            {
+                Debug.Write("mount not-tracking error indicates guiding should stop\n");
+                if (pGuider->IsCalibratingOrGuiding())
+                {
+                    pFrame->Alert(_("Guiding stopped: the mount is not tracking."));
+                    pGuider->StopGuiding();
+                }
+            }
             else if (moveResult == Mount::MOVE_ERROR_AO_LIMIT_REACHED)
             {
                 const StepInfo& step = TheAO()->GetFailedStepInfo();

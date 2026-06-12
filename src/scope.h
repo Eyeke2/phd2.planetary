@@ -159,6 +159,7 @@ class Scope : public Mount
     bool m_hasHPEncoders;
 
     bool m_lastKnownParked;
+    bool m_lastKnownTracking;
 
     enum CALIBRATION_STATE
     {
@@ -314,6 +315,8 @@ public:
     virtual bool IsParked(bool* parked);
     bool IsKnownParked() override;
     void SetLastKnownParked(bool parked) { m_lastKnownParked = parked; }
+    bool IsKnownTrackingStopped() override;
+    void SetLastKnownTracking(bool tracking);
     virtual bool Park();
     virtual bool Unpark();
     virtual PierSide SideOfPier();
