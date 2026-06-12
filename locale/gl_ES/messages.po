@@ -35,7 +35,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PHD2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 13:28+0300\n"
+"POT-Creation-Date: 2026-06-12 15:11+0300\n"
 "PO-Revision-Date: 2020-06-24 19:32+0200\n"
 "Last-Translator: Javier R. <frjaraur@gmail.com>\n"
 "Language-Team: LL@li.org\n"
@@ -232,12 +232,12 @@ msgid "Measured"
 msgstr "Medido"
 
 #: backlash_comp.cpp:674 guiding_assistant.cpp:1626 polardrift_toolwin.cpp:181
-#: scope.cpp:275 staticpa_toolwin.cpp:340 testguide.cpp:164
+#: scope.cpp:276 staticpa_toolwin.cpp:340 testguide.cpp:164
 msgid "North"
 msgstr "Norte"
 
 #: backlash_comp.cpp:675 guiding_assistant.cpp:1626 polardrift_toolwin.cpp:182
-#: scope.cpp:277 staticpa_toolwin.cpp:341 testguide.cpp:164
+#: scope.cpp:278 staticpa_toolwin.cpp:341 testguide.cpp:164
 msgid "South"
 msgstr "Sur"
 
@@ -1245,7 +1245,7 @@ msgstr "Fallo na resolución da cámara para a Cámara Altair."
 msgid "Memory allocation error"
 msgstr "Erro adquirindo memoria"
 
-#: cam_ascom.cpp:415 scope_ascom.cpp:1376
+#: cam_ascom.cpp:415 scope_ascom.cpp:1399
 msgid ""
 "ASCOM driver failed checking IsPulseGuiding. See the debug log for more "
 "information."
@@ -2314,7 +2314,7 @@ msgstr "Seleccionar o perfil con biblioteca de darks que se quere usar:"
 #: profile_wizard.cpp:685 profile_wizard.cpp:713 profile_wizard.cpp:909
 #: profile_wizard.cpp:1175 profile_wizard.cpp:1190 profile_wizard.cpp:1225
 #: profile_wizard.cpp:1230 profile_wizard.cpp:1256 profile_wizard.cpp:1270
-#: rotator.cpp:56 rotator.cpp:101 scope.cpp:348 scope.cpp:390 scope.cpp:433
+#: rotator.cpp:56 rotator.cpp:101 scope.cpp:349 scope.cpp:391 scope.cpp:434
 #: statswindow.cpp:305 stepguider.cpp:104 stepguider.cpp:125
 msgid "None"
 msgstr "Ningún"
@@ -2551,7 +2551,7 @@ msgid "Comet Tracking - Active"
 msgstr "Seguimento de Cometas - Activado"
 
 #: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1499
-#: scope.cpp:2254
+#: scope.cpp:2283
 msgid "Enable"
 msgstr "Habilitar"
 
@@ -2645,11 +2645,11 @@ msgstr ""
 "Logo fai click en Iniciar para comezar o adestramento."
 
 #: comet_tool.cpp:328 graph.cpp:171 graph.cpp:198 graph.cpp:358
-#: guide_algorithm.cpp:50 scope.cpp:720 statswindow.cpp:73 target.cpp:343
+#: guide_algorithm.cpp:50 scope.cpp:749 statswindow.cpp:73 target.cpp:343
 msgid "RA"
 msgstr "AR"
 
-#: comet_tool.cpp:329 graph.cpp:176 graph.cpp:211 graph.cpp:359 scope.cpp:720
+#: comet_tool.cpp:329 graph.cpp:176 graph.cpp:211 graph.cpp:359 scope.cpp:749
 #: statswindow.cpp:77 target.cpp:344
 msgid "Dec"
 msgstr "Dec"
@@ -2716,7 +2716,7 @@ msgstr ""
 msgid "Other options"
 msgstr "Outras opcións"
 
-#: config_indi.cpp:150 indi_gui.cpp:829 scope.cpp:430
+#: config_indi.cpp:150 indi_gui.cpp:829 scope.cpp:431
 msgid "INDI"
 msgstr "INDI"
 
@@ -3129,7 +3129,7 @@ msgstr "Indo. ..."
 msgid "Coordinates saved."
 msgstr "Coordenadas gardadas."
 
-#: drift_tool.cpp:835 eegg.cpp:291 myframe_events.cpp:891
+#: drift_tool.cpp:835 eegg.cpp:291 myframe_events.cpp:900
 #: polardrift_toolwin.cpp:58 staticpa_toolwin.cpp:103
 msgid "Please connect a camera first."
 msgstr "Conecta antes a cámara."
@@ -3157,7 +3157,7 @@ msgstr ""
 msgid "There is no calibration data available."
 msgstr "Non hai datos de calibración dispoñibles."
 
-#: eegg.cpp:71 eegg.cpp:296 myframe_events.cpp:1223 myframe_events.cpp:1240
+#: eegg.cpp:71 eegg.cpp:296 myframe_events.cpp:1232 myframe_events.cpp:1249
 msgid "Please connect a mount first."
 msgstr "Conecta unha montura primeiro."
 
@@ -4348,7 +4348,7 @@ msgstr ""
 msgid "On"
 msgstr "Aceso"
 
-#: guide_algorithm_gaussian_process.cpp:354 scope.cpp:271
+#: guide_algorithm_gaussian_process.cpp:354 scope.cpp:272
 msgid "Off"
 msgstr "Apagado"
 
@@ -4809,7 +4809,7 @@ msgid ""
 "stars."
 msgstr ""
 
-#: guider_multistar.cpp:1543 myframe.cpp:940 myframe.cpp:1016 scope.cpp:273
+#: guider_multistar.cpp:1543 myframe.cpp:940 myframe.cpp:1016 scope.cpp:274
 msgid "Auto"
 msgstr "Auto"
 
@@ -5621,15 +5621,15 @@ msgstr ""
 msgid "CAL: %s(%.f,%.f)->%s(%.f,%.f)"
 msgstr "CAL: %s(%.f,%.f)->%s(%.f,%.f)"
 
-#: mount.cpp:1258
+#: mount.cpp:1266
 msgid "RA:"
 msgstr "AR:"
 
-#: mount.cpp:1263
+#: mount.cpp:1271
 msgid "DEC:"
 msgstr "DEC:"
 
-#: mount.cpp:1311
+#: mount.cpp:1319
 msgid ""
 "Mount guide speeds are different from those used in last calibration.  Do a "
 "new calibration or reset mount guide speed settings to previous values. "
@@ -5638,7 +5638,7 @@ msgstr ""
 "calibración. Fai unha nova calibración ou restablece os axustes de "
 "velocidade da guía da montura ós valores anteriores. "
 
-#: mount.cpp:1325
+#: mount.cpp:1333
 msgid ""
 "Current calibration did not have side-of-pier information, so PHD2 can't "
 "automatically correct for meridian flips. You should do a fresh calibration "
@@ -5648,7 +5648,7 @@ msgstr ""
 "non se pode corrixir automaticamente para os volteos do meridiano. Debes "
 "facer unha nova calibración para corrixir este problema."
 
-#: mount.cpp:1337
+#: mount.cpp:1345
 msgid ""
 "Profile pixel size doesn't match camera-reported pixel size.  Re-calibrate "
 "to restore correct guiding."
@@ -5656,48 +5656,48 @@ msgstr ""
 "O tamaño do píxel do perfil non coincide co tamaño do píxel informado pola "
 "cámara. Volve calibrar para restaurar o guiado correcto."
 
-#: mount.cpp:1383
+#: mount.cpp:1391
 msgid "Rotator position has changed, recalibration is needed."
 msgstr "A posición de rotado cambiou, cómpre unha recalibración."
 
-#: mount.cpp:1421
+#: mount.cpp:1429
 msgid "Calibration was too far from equator, recalibration is needed."
 msgstr ""
 "A calibración está demasiado lonxe do ecuador, cómpre unha recalibración."
 
-#: mount.cpp:1579
+#: mount.cpp:1587
 msgid "calibration is not marked valid"
 msgstr ""
 
-#: mount.cpp:1581
+#: mount.cpp:1589
 msgid "RA rate is invalid"
 msgstr ""
 
-#: mount.cpp:1583
+#: mount.cpp:1591
 msgid "Dec rate is invalid"
 msgstr ""
 
-#: mount.cpp:1585
+#: mount.cpp:1593
 msgid "RA angle is invalid"
 msgstr ""
 
-#: mount.cpp:1587
+#: mount.cpp:1595
 msgid "Dec angle is invalid"
 msgstr ""
 
-#: mount.cpp:1589
+#: mount.cpp:1597
 msgid "camera binning is invalid"
 msgstr ""
 
-#: mount.cpp:1591
+#: mount.cpp:1599
 msgid "declination is invalid"
 msgstr ""
 
-#: mount.cpp:1593
+#: mount.cpp:1601
 msgid "rotator angle is invalid"
 msgstr ""
 
-#: mount.cpp:1603
+#: mount.cpp:1611
 msgid "mount is not calibrated"
 msgstr ""
 
@@ -5793,7 +5793,7 @@ msgstr "&Autoseleccionar Estrela\tAlt-S"
 msgid "Automatically select star"
 msgstr "Seleccionar Estrela Automaticamente"
 
-#: myframe.cpp:505 myframe_events.cpp:1115 myframe_events.cpp:1122
+#: myframe.cpp:505 myframe_events.cpp:1124 myframe_events.cpp:1131
 msgid "Calibration Assistant..."
 msgstr ""
 
@@ -5869,7 +5869,7 @@ msgstr ""
 msgid "Run the solar/lunar/planetary guiding tool"
 msgstr ""
 
-#: myframe.cpp:522 myframe_events.cpp:1240 starcross_test.cpp:75
+#: myframe.cpp:522 myframe_events.cpp:1249 starcross_test.cpp:75
 msgid "Star-Cross Test"
 msgstr "Test de Cruce de estrelas"
 
@@ -6682,7 +6682,7 @@ msgstr ""
 "Para este perfil de equipo, restaura automaticamente os datos da última "
 "calibración que tivo éxito despois de que o fose estivese conectado."
 
-#: myframe.cpp:3552 scope.cpp:2281
+#: myframe.cpp:3552 scope.cpp:2310
 msgid "Min"
 msgstr "Mín"
 
@@ -6690,7 +6690,7 @@ msgstr "Mín"
 msgid "Auto exposure minimum duration"
 msgstr "Duración mínima de Autoexposición"
 
-#: myframe.cpp:3553 scope.cpp:2284
+#: myframe.cpp:3553 scope.cpp:2313
 msgid "Max"
 msgstr "Máx"
 
@@ -6862,12 +6862,12 @@ msgstr "A imaxe non se puido salvar en %s"
 msgid "%s saved"
 msgstr "%s gardado"
 
-#: myframe_events.cpp:384 myframe_events.cpp:728 myframe_events.cpp:859
+#: myframe_events.cpp:384 myframe_events.cpp:737 myframe_events.cpp:868
 msgid "Please connect to a camera first"
 msgstr "Conecta unha cámara primeiro"
 
-#: myframe_events.cpp:384 myframe_events.cpp:728 myframe_events.cpp:735
-#: myframe_events.cpp:859 myframe_events.cpp:866 myframe_events.cpp:898
+#: myframe_events.cpp:384 myframe_events.cpp:737 myframe_events.cpp:744
+#: myframe_events.cpp:868 myframe_events.cpp:875 myframe_events.cpp:907
 #: Refine_DefMap.cpp:307
 msgid "Info"
 msgstr "Información"
@@ -6890,7 +6890,11 @@ msgstr ""
 msgid "Guiding stopped: the mount is parked."
 msgstr ""
 
-#: myframe_events.cpp:669
+#: myframe_events.cpp:667 scope.cpp:625
+msgid "Guiding stopped: the mount is not tracking."
+msgstr ""
+
+#: myframe_events.cpp:678
 #, c-format
 msgid ""
 "The AO exceeded its travel limit stepping from (%d, %d) to (%d, %d) and "
@@ -6901,7 +6905,7 @@ msgstr ""
 "calibración non pode continuar. Intenta reducir a configuración de "
 "percorrido de OA a %d ou inferior e téntao de novo."
 
-#: myframe_events.cpp:678
+#: myframe_events.cpp:687
 #, c-format
 msgid ""
 "The AO exceeded its travel limit stepping from (%d, %d) to (%d, %d) and has "
@@ -6911,59 +6915,59 @@ msgstr ""
 "centrada de novo. Proba a reducir a configuración de percorrido de OA a %d "
 "ou inferior."
 
-#: myframe_events.cpp:735 myframe_events.cpp:898
+#: myframe_events.cpp:744 myframe_events.cpp:907
 msgid " does not support the Dark Library feature"
 msgstr ""
 
-#: myframe_events.cpp:751
+#: myframe_events.cpp:760
 msgid "You must connect a camera before loading a dark library"
 msgstr "Debes conectar unha cámara antes de cargar unha biblioteca de Darks"
 
-#: myframe_events.cpp:759
+#: myframe_events.cpp:768
 msgid "LoadDarkHandler: "
 msgstr ""
 
-#: myframe_events.cpp:759
+#: myframe_events.cpp:768
 msgid " does not support the Dark Library feature\n"
 msgstr ""
 
-#: myframe_events.cpp:788
+#: myframe_events.cpp:797
 msgid "Dark library unloaded"
 msgstr "Biblioteca de Darks descargada"
 
-#: myframe_events.cpp:804
+#: myframe_events.cpp:813
 msgid "You must connect a camera before loading a bad-pixel map"
 msgstr "Debes conectar unha cámara antes de cargar un mapa de píxeles erróneos"
 
-#: myframe_events.cpp:812
+#: myframe_events.cpp:821
 msgid "LoadDefectMapHandler: "
 msgstr ""
 
-#: myframe_events.cpp:812
+#: myframe_events.cpp:821
 msgid " does not support the Defect Map feature\n"
 msgstr ""
 
-#: myframe_events.cpp:829
+#: myframe_events.cpp:838
 msgid "Defect map loaded"
 msgstr "Mapa de defectos cargado"
 
-#: myframe_events.cpp:833
+#: myframe_events.cpp:842
 msgid "Defect map not loaded"
 msgstr "Mapa de defectos non cargado"
 
-#: myframe_events.cpp:845
+#: myframe_events.cpp:854
 msgid "Bad-pixel map unloaded"
 msgstr "Mapa de píxeles erróneos descargado"
 
-#: myframe_events.cpp:866 Refine_DefMap.cpp:307
+#: myframe_events.cpp:875 Refine_DefMap.cpp:307
 msgid " does not support the Bad Pixel Map feature"
 msgstr ""
 
-#: myframe_events.cpp:1009
+#: myframe_events.cpp:1018
 msgid "Guider"
 msgstr "Guiador"
 
-#: myframe_events.cpp:1096
+#: myframe_events.cpp:1105
 msgid ""
 "For best results, use a Dark Library or a Bad-pixel Map while guiding. This "
 "will help prevent PHD from locking on to a hot pixel. Use the Darks menu to "
@@ -6974,51 +6978,51 @@ msgstr ""
 "quente. Usa o menú de Darks para crear unha librería de Darks ou un mapa de "
 "píxeles erróneos."
 
-#: myframe_events.cpp:1113
+#: myframe_events.cpp:1122
 msgid ""
 "Scope isn't pointing in recommended sky area for calibration - run the "
 "Calibration Assistant to improve results."
 msgstr ""
 
-#: myframe_events.cpp:1115 myframe_events.cpp:1122
+#: myframe_events.cpp:1124 myframe_events.cpp:1131
 msgid "Calibrate here"
 msgstr ""
 
-#: myframe_events.cpp:1118
+#: myframe_events.cpp:1127
 msgid ""
 "With the scope pointing this close to the pole, calibration can be degraded "
 "and may "
 msgstr ""
 
-#: myframe_events.cpp:1119
+#: myframe_events.cpp:1128
 msgid ""
 "fail altogether.  Run the Calibration Assistant and follow the instructions "
 "to eliminate these risks, "
 msgstr ""
 
-#: myframe_events.cpp:1121
+#: myframe_events.cpp:1130
 msgid ""
 "including slewing the scope as close as practical to the recommended "
 "position."
 msgstr ""
 
-#: myframe_events.cpp:1169
+#: myframe_events.cpp:1178
 msgid "Are you sure you want to force recalibration?"
 msgstr ""
 
-#: myframe_events.cpp:1170
+#: myframe_events.cpp:1179
 msgid "Force Recalibration"
 msgstr "Forzar Recalibración"
 
-#: myframe_events.cpp:1223 testguide.cpp:158
+#: myframe_events.cpp:1232 testguide.cpp:158
 msgid "Manual Guide"
 msgstr "Guiado Manual"
 
-#: myframe_events.cpp:1256 pierflip_tool.cpp:78
+#: myframe_events.cpp:1265 pierflip_tool.cpp:78
 msgid "Meridian Flip Calibration Tool"
 msgstr "Ferramenta de Calibración do Volteo de Meridiano"
 
-#: myframe_events.cpp:1315
+#: myframe_events.cpp:1324
 msgid ""
 "With your current setting for Dec guide mode, this version of PHD2 will "
 "dither in Declination. To restore the old behavior you can set the RA-only "
@@ -7028,11 +7032,11 @@ msgstr ""
 "estará definida na Declinación. Para restaurar o comportamento antigo, pode "
 "configurar a opción de AR só na Configuración  no cadro de diálogo avanzado."
 
-#: myframe_events.cpp:1318
+#: myframe_events.cpp:1327
 msgid "Set RA-only now"
 msgstr "Establecer agora a só AR"
 
-#: myframe_events.cpp:1338
+#: myframe_events.cpp:1347
 msgid ""
 "It looks like this is a first-time connection to your camera and mount. The "
 "Setup Wizard can help\n"
@@ -7045,15 +7049,15 @@ msgstr ""
 "y establecer uns parámetros base para a nova configuración.\n"
 "Queres usar o asistente de guiado agora?"
 
-#: myframe_events.cpp:1341 profile_wizard.cpp:1636
+#: myframe_events.cpp:1350 profile_wizard.cpp:1636
 msgid "Yes"
 msgstr "Si"
 
-#: myframe_events.cpp:1341 profile_wizard.cpp:1638
+#: myframe_events.cpp:1350 profile_wizard.cpp:1638
 msgid "No"
 msgstr "Non"
 
-#: myframe_events.cpp:1341
+#: myframe_events.cpp:1350
 msgid "Setup Wizard Recommendation"
 msgstr "Recomendacións do Asistente de Configuración"
 
@@ -7481,27 +7485,27 @@ msgstr ""
 msgid "PHD2"
 msgstr ""
 
-#: planetary.cpp:1509 planetary_tool.cpp:1072 scope.cpp:341
+#: planetary.cpp:1509 planetary_tool.cpp:1072 scope.cpp:342
 msgid "INDI Mount"
 msgstr "Montura INDI"
 
-#: planetary.cpp:1648
+#: planetary.cpp:1641
 msgid "Object not found"
 msgstr ""
 
-#: planetary.cpp:1694
+#: planetary.cpp:1687
 msgid ""
 "ERROR: camera frame size exceeds maximum limit. Please apply binning to "
 "reduce the frame size."
 msgstr ""
 
-#: planetary.cpp:1771
+#: planetary.cpp:1764
 msgid ""
 "ERROR: exception occurred during image processing: change detection "
 "parameters"
 msgstr ""
 
-#: planetary.cpp:1777
+#: planetary.cpp:1770
 msgid "ERROR: unknown exception occurred in solar system object detection"
 msgstr ""
 
@@ -8780,30 +8784,30 @@ msgstr ""
 msgid "The operation was canceled"
 msgstr "A operación foi cancelada"
 
-#: scope.cpp:279
+#: scope.cpp:280
 msgid "Invalid"
 msgstr "Non válido"
 
-#: scope.cpp:341
+#: scope.cpp:342
 #, c-format
 msgid "INDI Mount [%s]"
 msgstr "Montura INDI [%s]"
 
-#: scope.cpp:674
+#: scope.cpp:703
 msgid ""
 "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
 "snags, try re-doing your polar alignment, calibration, and check for "
 "problems with the mount mechanics."
 msgstr ""
 
-#: scope.cpp:680
+#: scope.cpp:709
 msgid ""
 "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
 "snags, try re-doing your polar alignment, calibration, and confirm the ST-4 "
 "cable is working properly."
 msgstr ""
 
-#: scope.cpp:689
+#: scope.cpp:718
 msgid ""
 "PHD2 is not able to make sufficient corrections in Dec.  If the side-of-pier "
 "has changed from where you last calibrated, check to see if the 'Reverse Dec "
@@ -8812,22 +8816,22 @@ msgid ""
 "alignment, calibration, and check for problems with the mount mechanics."
 msgstr ""
 
-#: scope.cpp:699
+#: scope.cpp:728
 msgid ""
 "PHD2 is not able to make sufficient corrections in Dec.  Check for cable "
 "snags, try re-doing your polar alignment, calibration and confirm the ST-4 "
 "cable is working properly."
 msgstr ""
 
-#: scope.cpp:709
+#: scope.cpp:738
 msgid "Max RA Duration setting"
 msgstr "Configuración de duración de Max  AR"
 
-#: scope.cpp:709
+#: scope.cpp:738
 msgid "Max Dec Duration setting"
 msgstr "Configuración de duración de Max  Dec"
 
-#: scope.cpp:712
+#: scope.cpp:741
 #, c-format
 msgid ""
 "Your %s is preventing PHD from making adequate corrections to keep the guide "
@@ -8838,7 +8842,7 @@ msgstr ""
 "guía bloqueada. Intenta restaurar %s ó seu valor predeterminado para "
 "permitir que PHD2 poida facer correccións maiores."
 
-#: scope.cpp:724
+#: scope.cpp:753
 #, c-format
 msgid ""
 "Even using the maximum moves, PHD2 can't properly correct for the large "
@@ -8849,7 +8853,7 @@ msgstr ""
 "os grandes movementos de estrelas guía en %s. O guiado será malo mentres non "
 "elimines a fonte destes problemas."
 
-#: scope.cpp:1004
+#: scope.cpp:1033
 msgid ""
 "Advisory: Calibration completed but few guide steps were used, so accuracy "
 "is questionable"
@@ -8857,7 +8861,7 @@ msgstr ""
 "Aviso: completouse a calibración pero utilizáronse poucos pasos de guiado, "
 "polo que a precisión é cuestionable"
 
-#: scope.cpp:1007
+#: scope.cpp:1036
 msgid ""
 "Advisory: Calibration completed but RA/Dec axis angles are questionable and "
 "guiding may be impaired"
@@ -8865,7 +8869,7 @@ msgstr ""
 "Aviso: a calibración está rematada, pero os ángulos do eixe de AR/Dec son "
 "cuestionables e pode que o guiado poida verse deteriorado"
 
-#: scope.cpp:1010
+#: scope.cpp:1039
 msgid ""
 "Advisory: This calibration is substantially different from the previous one "
 "- have you changed configurations?"
@@ -8873,7 +8877,7 @@ msgstr ""
 "Aviso: esta calibración é substancialmente diferente da anterior - "
 "cambiaches de configuración?"
 
-#: scope.cpp:1014
+#: scope.cpp:1043
 msgid ""
 "Advisory: Calibration completed but RA and Dec rates vary by an unexpected "
 "amount (often caused by large Dec backlash)"
@@ -8881,25 +8885,25 @@ msgstr ""
 "Aviso: a calibración rematou pero as taxas de AR e Dec varían unha cantidade "
 "inesperada (ás veces é causado por un gran backlash en Dec)"
 
-#: scope.cpp:1025
+#: scope.cpp:1054
 msgid "Details..."
 msgstr "Detalles..."
 
-#: scope.cpp:1309
+#: scope.cpp:1338
 msgid "RA Calibration Failed: star did not move enough"
 msgstr "Fallou a calibración de AR: A estrela non se moveu abondo"
 
-#: scope.cpp:1316
+#: scope.cpp:1345
 #, c-format
 msgid "West step %3d, dist=%4.1f"
 msgstr "Paso Oeste %3d, dist=%4.1f"
 
-#: scope.cpp:1389
+#: scope.cpp:1418
 #, c-format
 msgid "East step %3d, dist=%4.1f"
 msgstr "Paso Leste %3d, dist=%4.1f"
 
-#: scope.cpp:1410
+#: scope.cpp:1439
 msgid ""
 "Advisory: Little or no east movement was measured, so guiding will probably "
 "be impaired. Check the guide cable and use the Manual Guide tool to confirm "
@@ -8909,34 +8913,34 @@ msgstr ""
 "probablemente non estea ben. Verifica o cable de guiado e usa a ferramenta "
 "de guiado manual para confirmar o funcionamento básico do soporte."
 
-#: scope.cpp:1473
+#: scope.cpp:1502
 msgid "Clearing backlash step 1"
 msgstr "Limpando backlash, paso 1"
 
-#: scope.cpp:1512
+#: scope.cpp:1541
 #, c-format
 msgid "Clearing backlash step %3d"
 msgstr "Limpando backlash, paso %3d"
 
-#: scope.cpp:1534
+#: scope.cpp:1563
 msgid "Backlash Clearing Failed: star did not move enough"
 msgstr "Fallou a compensación de Backslash: A estrela non se moveu abondo"
 
-#: scope.cpp:1583
+#: scope.cpp:1612
 msgid "DEC Calibration Failed: star did not move enough"
 msgstr "Fallou a calibración de DEC: A estrela no se moveu abondo"
 
-#: scope.cpp:1590
+#: scope.cpp:1619
 #, c-format
 msgid "North step %3d, dist=%4.1f"
 msgstr "Paso Norte %3d, dist=%4.1f"
 
-#: scope.cpp:1681
+#: scope.cpp:1710
 #, c-format
 msgid "South step %3d, dist=%4.1f"
 msgstr "Paso Sur %3d, dist=%4.1f"
 
-#: scope.cpp:1702
+#: scope.cpp:1731
 msgid ""
 "Advisory: Calibration successful but little or no south movement was "
 "measured, so guiding will probably be impaired.\n"
@@ -8946,7 +8950,7 @@ msgid ""
 "types of problems (Manual Guide, Declination backlash)."
 msgstr ""
 
-#: scope.cpp:1709
+#: scope.cpp:1738
 msgid ""
 "Advisory: Calibration successful but little south movement was measured, so "
 "guiding will probably be impaired. \n"
@@ -8962,7 +8966,7 @@ msgstr ""
 "Le a axuda en liña para identificar este tipo de problemas (Guía manual, "
 "backlash en declinación)."
 
-#: scope.cpp:1717
+#: scope.cpp:1746
 msgid ""
 "Advisory: Calibration successful but little south movement was measured, so "
 "guiding may be impaired.\n"
@@ -8978,44 +8982,44 @@ msgstr ""
 "Le a axuda en liña para tratar este tipo de problemas (backlash en "
 "declinación)."
 
-#: scope.cpp:1788
+#: scope.cpp:1817
 #, c-format
 msgid "Nudge South %3d"
 msgstr "Mover ó Sur %3d"
 
-#: scope.cpp:1826 stepguider.cpp:763
+#: scope.cpp:1855 stepguider.cpp:763
 msgid "Calibration complete"
 msgstr "Calibración completada"
 
-#: scope.cpp:2161
+#: scope.cpp:2190
 msgid "Mount Guide Algorithms"
 msgstr "Algoritmos de Guiado da Montura"
 
-#: scope.cpp:2203
+#: scope.cpp:2232
 msgid "Calibration step (ms)"
 msgstr "Pasos de Calibración (ms)"
 
-#: scope.cpp:2204
+#: scope.cpp:2233
 msgid ""
 "How long a guide pulse should be used during calibration? Click \"Advanced..."
 "\" to compute a suitable value."
 msgstr ""
 
-#: scope.cpp:2208
+#: scope.cpp:2237
 msgid "Advanced..."
 msgstr "Avanzado..."
 
-#: scope.cpp:2210
+#: scope.cpp:2239
 msgid ""
 "Click to open the Calibration Calculator Dialog to review or change all "
 "calibration parameters"
 msgstr ""
 
-#: scope.cpp:2222
+#: scope.cpp:2251
 msgid "Reverse Dec output after meridian flip"
 msgstr "Declinación Invertida tralo volteo por paso de meridiano"
 
-#: scope.cpp:2224
+#: scope.cpp:2253
 msgid ""
 "Check if your mount needs Dec output reversed after a meridian flip. "
 "Changing this setting will clear the existing calibration data"
@@ -9024,21 +9028,21 @@ msgstr ""
 "volteo por paso de meridiano. Ó cambiar isto perderanse os datos da "
 "calibración existente"
 
-#: scope.cpp:2232
+#: scope.cpp:2261
 msgid "Stop guiding when mount slews"
 msgstr "Deter o guiado cando a montura se despraza"
 
-#: scope.cpp:2234
+#: scope.cpp:2263
 msgid "When checked, PHD will stop guiding if the mount starts slewing"
 msgstr ""
 "Cando está seleccionado, PHD parará o guiado se a montura comeza a "
 "desprazarse"
 
-#: scope.cpp:2239
+#: scope.cpp:2268
 msgid "Assume Dec orthogonal to RA"
 msgstr "Asumir ortogonalidade de Dec en AR"
 
-#: scope.cpp:2242
+#: scope.cpp:2271
 msgid ""
 "Assume Dec axis is perpendicular to RA axis, regardless of calibration. "
 "Prevents RA periodic error from affecting Dec calibration. Option takes "
@@ -9048,7 +9052,7 @@ msgstr ""
 "Isto prevén que o erro periódico de AR afecte á calibración de Dec. Esta "
 "opción ten efecto cando se calibra DEC."
 
-#: scope.cpp:2256
+#: scope.cpp:2285
 msgid ""
 "Check this if you want to apply a backlash compensation guide pulse when "
 "declination direction is reversed."
@@ -9056,74 +9060,74 @@ msgstr ""
 "Marcar se queres aplicar a compensación de backlash ó pulso guía cando a "
 "dirección de declinación cambia."
 
-#: scope.cpp:2265
+#: scope.cpp:2294
 msgid "Amount"
 msgstr "Cantidade"
 
-#: scope.cpp:2265
+#: scope.cpp:2294
 msgid "Size of backlash compensation guide pulse (mSec)"
 msgstr "Tamaño do pulso de guiado de compensación de backlash (mSeg)"
 
-#: scope.cpp:2269
+#: scope.cpp:2298
 msgid "Mount Backlash Compensation"
 msgstr "Compensación do backlash da Montura"
 
-#: scope.cpp:2269
+#: scope.cpp:2298
 msgid "Backlash Compensation"
 msgstr "Compensación de Backlash"
 
-#: scope.cpp:2282
+#: scope.cpp:2311
 msgid "Minimum length of backlash compensation pulse (mSec)."
 msgstr "Pulso mínimo de compensación de backlash (mSeg)."
 
-#: scope.cpp:2285
+#: scope.cpp:2314
 msgid "Maximum length of backlash compensation pulse (mSec)."
 msgstr "Pulso máximo de compensación de backlash (mSeg)."
 
-#: scope.cpp:2292
+#: scope.cpp:2321
 msgid "Use Dec compensation"
 msgstr "Usar compensación en DEC"
 
-#: scope.cpp:2295
+#: scope.cpp:2324
 msgid "Automatically adjust RA guide rate based on scope declination"
 msgstr ""
 "Axustar automaticamente a taxa de guiado en AR en función da declinación do "
 "telescopio"
 
-#: scope.cpp:2301
+#: scope.cpp:2330
 msgid "Max RA duration"
 msgstr "Duración Máx AR"
 
-#: scope.cpp:2302 scope.cpp:2516
+#: scope.cpp:2331 scope.cpp:2545
 msgid ""
 "Longest length of pulse to send in RA\n"
 "Default = 2500 ms."
 msgstr "Tamaño maior de pulso que se envía en AR. Por defecto = 2500 ms."
 
-#: scope.cpp:2307
+#: scope.cpp:2336
 msgid "Max Dec duration"
 msgstr "Duración Máx DEC"
 
-#: scope.cpp:2308
+#: scope.cpp:2337
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms. NOTE: this will be ignored if backlash compensation is "
 "enabled"
 msgstr ""
 
-#: scope.cpp:2321
+#: scope.cpp:2350
 msgid "Dec guide mode"
 msgstr "Modo de guiado en DEC"
 
-#: scope.cpp:2322 scope.cpp:2535
+#: scope.cpp:2351 scope.cpp:2564
 msgid "Directions in which Dec guide commands will be issued"
 msgstr "Dirección nas que se emitirán os comandos de guía en Dec"
 
-#: scope.cpp:2518
+#: scope.cpp:2547
 msgid "Mx RA"
 msgstr "AR Mx"
 
-#: scope.cpp:2524
+#: scope.cpp:2553
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms.  Increase if drift is fast."
@@ -9131,7 +9135,7 @@ msgstr ""
 "Tamaño maior de pulso que se envía en declinación\n"
 "Por defecto = 2500ms. Incrementar se a deriva é máis rápida."
 
-#: scope.cpp:2526
+#: scope.cpp:2555
 msgid "Mx DEC"
 msgstr "DEC Mx"
 
@@ -9142,32 +9146,32 @@ msgid ""
 msgstr ""
 "Problema do driver ASCOM ó desconectarse, busca no log para máis información"
 
-#: scope_ascom.cpp:1170
+#: scope_ascom.cpp:1184
 msgid ""
 "ASCOM driver does not support PulseGuide. Check your ASCOM driver settings."
 msgstr ""
 "O driver de ASCOM non soporta o PulseGuide. Busca na configuración do drives "
 "de ASCOM."
 
-#: scope_ascom.cpp:1344
+#: scope_ascom.cpp:1367
 msgid ""
 "PulseGuide command to mount has failed - guiding is likely to be ineffective."
 msgstr ""
 "Fallou o comando PulseGuide da montura - probablemente o guiado non é "
 "efectivo."
 
-#: scope_ascom.cpp:1352
+#: scope_ascom.cpp:1375
 msgid "Guiding stopped: the scope started slewing."
 msgstr "Guiado parado: El telescopio comenzó a desplazarse."
 
-#: scope_ascom.cpp:1399
+#: scope_ascom.cpp:1422
 msgid ""
 "ASCOM driver failed checking for slewing, see the debug log for more "
 "information."
 msgstr ""
 "O driver de ASCOM fallou no desprazamento, ver o log para máis información."
 
-#: scope_ascom.cpp:1418
+#: scope_ascom.cpp:1441
 msgid ""
 "ASCOM driver failed calling AbortSlew, see the debug log for more "
 "information."
@@ -9175,7 +9179,7 @@ msgstr ""
 "O driver de ASCOM fallou intentando abortar o desprazamento, ver o log para "
 "máis información."
 
-#: scope_ascom.cpp:1850
+#: scope_ascom.cpp:1879
 msgid ""
 "The mount's ASCOM driver is reporting invalid guide speeds. Some guiding "
 "functions including PPEC will be impaired. Contact the ASCOM driver provider "

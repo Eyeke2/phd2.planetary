@@ -35,7 +35,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-07 13:28+0300\n"
+"POT-Creation-Date: 2026-06-12 15:11+0300\n"
 "PO-Revision-Date: 2020-01-19 14:09+0900\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -227,12 +227,12 @@ msgid "Measured"
 msgstr "측정된"
 
 #: backlash_comp.cpp:674 guiding_assistant.cpp:1626 polardrift_toolwin.cpp:181
-#: scope.cpp:275 staticpa_toolwin.cpp:340 testguide.cpp:164
+#: scope.cpp:276 staticpa_toolwin.cpp:340 testguide.cpp:164
 msgid "North"
 msgstr "북쪽"
 
 #: backlash_comp.cpp:675 guiding_assistant.cpp:1626 polardrift_toolwin.cpp:182
-#: scope.cpp:277 staticpa_toolwin.cpp:341 testguide.cpp:164
+#: scope.cpp:278 staticpa_toolwin.cpp:341 testguide.cpp:164
 msgid "South"
 msgstr "남쪽"
 
@@ -1227,7 +1227,7 @@ msgstr "Altair 카메라의 해상도를 가져오지 못했습니다."
 msgid "Memory allocation error"
 msgstr "메모리 할당 오류"
 
-#: cam_ascom.cpp:415 scope_ascom.cpp:1376
+#: cam_ascom.cpp:415 scope_ascom.cpp:1399
 msgid ""
 "ASCOM driver failed checking IsPulseGuiding. See the debug log for more "
 "information."
@@ -2297,7 +2297,7 @@ msgstr "사용하려는 다크 라이브러리가있는 프로필을 선택하�
 #: profile_wizard.cpp:685 profile_wizard.cpp:713 profile_wizard.cpp:909
 #: profile_wizard.cpp:1175 profile_wizard.cpp:1190 profile_wizard.cpp:1225
 #: profile_wizard.cpp:1230 profile_wizard.cpp:1256 profile_wizard.cpp:1270
-#: rotator.cpp:56 rotator.cpp:101 scope.cpp:348 scope.cpp:390 scope.cpp:433
+#: rotator.cpp:56 rotator.cpp:101 scope.cpp:349 scope.cpp:391 scope.cpp:434
 #: statswindow.cpp:305 stepguider.cpp:104 stepguider.cpp:125
 msgid "None"
 msgstr "없음"
@@ -2529,7 +2529,7 @@ msgid "Comet Tracking - Active"
 msgstr "혜성 추적-활성"
 
 #: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1499
-#: scope.cpp:2254
+#: scope.cpp:2283
 msgid "Enable"
 msgstr "사용가능"
 
@@ -2622,11 +2622,11 @@ msgstr ""
 "그런 다음 시작을 클릭하여 교육을 시작하십시오."
 
 #: comet_tool.cpp:328 graph.cpp:171 graph.cpp:198 graph.cpp:358
-#: guide_algorithm.cpp:50 scope.cpp:720 statswindow.cpp:73 target.cpp:343
+#: guide_algorithm.cpp:50 scope.cpp:749 statswindow.cpp:73 target.cpp:343
 msgid "RA"
 msgstr "적경"
 
-#: comet_tool.cpp:329 graph.cpp:176 graph.cpp:211 graph.cpp:359 scope.cpp:720
+#: comet_tool.cpp:329 graph.cpp:176 graph.cpp:211 graph.cpp:359 scope.cpp:749
 #: statswindow.cpp:77 target.cpp:344
 msgid "Dec"
 msgstr "적위"
@@ -2692,7 +2692,7 @@ msgstr "스트리밍을 지원하지 않는 카메라에 강제로 노출 시간
 msgid "Other options"
 msgstr "기타 옵션"
 
-#: config_indi.cpp:150 indi_gui.cpp:829 scope.cpp:430
+#: config_indi.cpp:150 indi_gui.cpp:829 scope.cpp:431
 msgid "INDI"
 msgstr ""
 
@@ -3096,7 +3096,7 @@ msgstr "이동 중..."
 msgid "Coordinates saved."
 msgstr "좌표가 저장 됨."
 
-#: drift_tool.cpp:835 eegg.cpp:291 myframe_events.cpp:891
+#: drift_tool.cpp:835 eegg.cpp:291 myframe_events.cpp:900
 #: polardrift_toolwin.cpp:58 staticpa_toolwin.cpp:103
 msgid "Please connect a camera first."
 msgstr "먼저 카메라를 연결하십시오."
@@ -3123,7 +3123,7 @@ msgstr ""
 msgid "There is no calibration data available."
 msgstr "사용가능한 교정 데이터가 없습니다."
 
-#: eegg.cpp:71 eegg.cpp:296 myframe_events.cpp:1223 myframe_events.cpp:1240
+#: eegg.cpp:71 eegg.cpp:296 myframe_events.cpp:1232 myframe_events.cpp:1249
 msgid "Please connect a mount first."
 msgstr "먼저 마운트를 연결하십시오."
 
@@ -4284,7 +4284,7 @@ msgstr "식별된 반복 오류에 따라 기간 길이를 자동 조정합니�
 msgid "On"
 msgstr "켜기"
 
-#: guide_algorithm_gaussian_process.cpp:354 scope.cpp:271
+#: guide_algorithm_gaussian_process.cpp:354 scope.cpp:272
 msgid "Off"
 msgstr "끄기"
 
@@ -4729,7 +4729,7 @@ msgid ""
 "stars."
 msgstr ""
 
-#: guider_multistar.cpp:1543 myframe.cpp:940 myframe.cpp:1016 scope.cpp:273
+#: guider_multistar.cpp:1543 myframe.cpp:940 myframe.cpp:1016 scope.cpp:274
 msgid "Auto"
 msgstr "자동"
 
@@ -5511,15 +5511,15 @@ msgstr ""
 msgid "CAL: %s(%.f,%.f)->%s(%.f,%.f)"
 msgstr "교정: %s(%.f,%.f)->%s(%.f,%.f)"
 
-#: mount.cpp:1258
+#: mount.cpp:1266
 msgid "RA:"
 msgstr "적경:"
 
-#: mount.cpp:1263
+#: mount.cpp:1271
 msgid "DEC:"
 msgstr "적위:"
 
-#: mount.cpp:1311
+#: mount.cpp:1319
 msgid ""
 "Mount guide speeds are different from those used in last calibration.  Do a "
 "new calibration or reset mount guide speed settings to previous values. "
@@ -5527,7 +5527,7 @@ msgstr ""
 "마운트의 가이드 속도가 마지막 교정에 사용된 속도와 다릅니다. 새로운 교정을 수"
 "행하거나 가이드 속도 설정을 이전 값으로 재설정하십시오. "
 
-#: mount.cpp:1325
+#: mount.cpp:1333
 msgid ""
 "Current calibration did not have side-of-pier information, so PHD2 can't "
 "automatically correct for meridian flips. You should do a fresh calibration "
@@ -5536,7 +5536,7 @@ msgstr ""
 "현재 교정에는 side-of-pier 정보가 없으므로 PHD2는 자오선 플립에 대한 자동교정"
 "을 할 수 없습니다. 이 문제를 바로잡기 위해 새로운 교정을 해야 합니다."
 
-#: mount.cpp:1337
+#: mount.cpp:1345
 msgid ""
 "Profile pixel size doesn't match camera-reported pixel size.  Re-calibrate "
 "to restore correct guiding."
@@ -5544,47 +5544,47 @@ msgstr ""
 "프로필 픽셀 크기와 카메라의 픽셀 크기가 일치하지 않습니다.  올바른 가이딩을 "
 "복원하려면 다시 교정하십시오."
 
-#: mount.cpp:1383
+#: mount.cpp:1391
 msgid "Rotator position has changed, recalibration is needed."
 msgstr "Rotator 위치가 변경되었기 땨문에 재교정을 해야 합니다."
 
-#: mount.cpp:1421
+#: mount.cpp:1429
 msgid "Calibration was too far from equator, recalibration is needed."
 msgstr "교정이 적도에서 너무 멀기 때문에 재교정을 해야 합니다."
 
-#: mount.cpp:1579
+#: mount.cpp:1587
 msgid "calibration is not marked valid"
 msgstr ""
 
-#: mount.cpp:1581
+#: mount.cpp:1589
 msgid "RA rate is invalid"
 msgstr ""
 
-#: mount.cpp:1583
+#: mount.cpp:1591
 msgid "Dec rate is invalid"
 msgstr ""
 
-#: mount.cpp:1585
+#: mount.cpp:1593
 msgid "RA angle is invalid"
 msgstr ""
 
-#: mount.cpp:1587
+#: mount.cpp:1595
 msgid "Dec angle is invalid"
 msgstr ""
 
-#: mount.cpp:1589
+#: mount.cpp:1597
 msgid "camera binning is invalid"
 msgstr ""
 
-#: mount.cpp:1591
+#: mount.cpp:1599
 msgid "declination is invalid"
 msgstr ""
 
-#: mount.cpp:1593
+#: mount.cpp:1601
 msgid "rotator angle is invalid"
 msgstr ""
 
-#: mount.cpp:1603
+#: mount.cpp:1611
 msgid "mount is not calibrated"
 msgstr ""
 
@@ -5680,7 +5680,7 @@ msgstr "&별 자동 선택\tAlt-S"
 msgid "Automatically select star"
 msgstr "별을 자동으로 선택"
 
-#: myframe.cpp:505 myframe_events.cpp:1115 myframe_events.cpp:1122
+#: myframe.cpp:505 myframe_events.cpp:1124 myframe_events.cpp:1131
 msgid "Calibration Assistant..."
 msgstr ""
 
@@ -5756,7 +5756,7 @@ msgstr ""
 msgid "Run the solar/lunar/planetary guiding tool"
 msgstr ""
 
-#: myframe.cpp:522 myframe_events.cpp:1240 starcross_test.cpp:75
+#: myframe.cpp:522 myframe_events.cpp:1249 starcross_test.cpp:75
 msgid "Star-Cross Test"
 msgstr "스타-크로스 테스터"
 
@@ -6552,7 +6552,7 @@ msgstr ""
 "이 장비 프로필의 경우 장비가 연결된 후 마지막으로 성공한 교정에서 데이터를 자"
 "동으로 복원합니다."
 
-#: myframe.cpp:3552 scope.cpp:2281
+#: myframe.cpp:3552 scope.cpp:2310
 msgid "Min"
 msgstr "최소"
 
@@ -6560,7 +6560,7 @@ msgstr "최소"
 msgid "Auto exposure minimum duration"
 msgstr "자동 노출 최소 기간"
 
-#: myframe.cpp:3553 scope.cpp:2284
+#: myframe.cpp:3553 scope.cpp:2313
 msgid "Max"
 msgstr "최대"
 
@@ -6723,12 +6723,12 @@ msgstr "이미지를 %s 에 저장할 수 없습니다"
 msgid "%s saved"
 msgstr "%s 에 저장 됨"
 
-#: myframe_events.cpp:384 myframe_events.cpp:728 myframe_events.cpp:859
+#: myframe_events.cpp:384 myframe_events.cpp:737 myframe_events.cpp:868
 msgid "Please connect to a camera first"
 msgstr "카메라를 연결하십시오"
 
-#: myframe_events.cpp:384 myframe_events.cpp:728 myframe_events.cpp:735
-#: myframe_events.cpp:859 myframe_events.cpp:866 myframe_events.cpp:898
+#: myframe_events.cpp:384 myframe_events.cpp:737 myframe_events.cpp:744
+#: myframe_events.cpp:868 myframe_events.cpp:875 myframe_events.cpp:907
 #: Refine_DefMap.cpp:307
 msgid "Info"
 msgstr "정보"
@@ -6750,7 +6750,11 @@ msgstr ""
 msgid "Guiding stopped: the mount is parked."
 msgstr ""
 
-#: myframe_events.cpp:669
+#: myframe_events.cpp:667 scope.cpp:625
+msgid "Guiding stopped: the mount is not tracking."
+msgstr ""
+
+#: myframe_events.cpp:678
 #, c-format
 msgid ""
 "The AO exceeded its travel limit stepping from (%d, %d) to (%d, %d) and "
@@ -6760,7 +6764,7 @@ msgstr ""
 "AO가 (%d, %d) 에서 (%d, %d)로 이동 한계를 초과하여 교정을 진행할 수 없습니"
 "다. AO 트래블 설정을 %d 또는 더 낮게 설정하여 다시 시도하십시오."
 
-#: myframe_events.cpp:678
+#: myframe_events.cpp:687
 #, c-format
 msgid ""
 "The AO exceeded its travel limit stepping from (%d, %d) to (%d, %d) and has "
@@ -6769,59 +6773,59 @@ msgstr ""
 "AO가 (%d, %d) 에서 (%d, %d) 로 이동 한계를 초과 한 후 다시 중앙으로 들어 왔습"
 "니다. AO 트래블 설정을 %d 또는 더 낮게 줄이십시오."
 
-#: myframe_events.cpp:735 myframe_events.cpp:898
+#: myframe_events.cpp:744 myframe_events.cpp:907
 msgid " does not support the Dark Library feature"
 msgstr ""
 
-#: myframe_events.cpp:751
+#: myframe_events.cpp:760
 msgid "You must connect a camera before loading a dark library"
 msgstr "다크 라이브러리를 로드하기 전에 카메라를 연결해야 합니다"
 
-#: myframe_events.cpp:759
+#: myframe_events.cpp:768
 msgid "LoadDarkHandler: "
 msgstr ""
 
-#: myframe_events.cpp:759
+#: myframe_events.cpp:768
 msgid " does not support the Dark Library feature\n"
 msgstr ""
 
-#: myframe_events.cpp:788
+#: myframe_events.cpp:797
 msgid "Dark library unloaded"
 msgstr "다크 라이브러리가 로드되지 않음"
 
-#: myframe_events.cpp:804
+#: myframe_events.cpp:813
 msgid "You must connect a camera before loading a bad-pixel map"
 msgstr "불량화소 지도를 로드하기 전에 카메라를 연결해야 합니다"
 
-#: myframe_events.cpp:812
+#: myframe_events.cpp:821
 msgid "LoadDefectMapHandler: "
 msgstr ""
 
-#: myframe_events.cpp:812
+#: myframe_events.cpp:821
 msgid " does not support the Defect Map feature\n"
 msgstr ""
 
-#: myframe_events.cpp:829
+#: myframe_events.cpp:838
 msgid "Defect map loaded"
 msgstr "결함 지도가 로드됨"
 
-#: myframe_events.cpp:833
+#: myframe_events.cpp:842
 msgid "Defect map not loaded"
 msgstr "결함 지도가 로드되지 않음"
 
-#: myframe_events.cpp:845
+#: myframe_events.cpp:854
 msgid "Bad-pixel map unloaded"
 msgstr "불량화소 지도가 로드되지 않음"
 
-#: myframe_events.cpp:866 Refine_DefMap.cpp:307
+#: myframe_events.cpp:875 Refine_DefMap.cpp:307
 msgid " does not support the Bad Pixel Map feature"
 msgstr ""
 
-#: myframe_events.cpp:1009
+#: myframe_events.cpp:1018
 msgid "Guider"
 msgstr "가이드"
 
-#: myframe_events.cpp:1096
+#: myframe_events.cpp:1105
 msgid ""
 "For best results, use a Dark Library or a Bad-pixel Map while guiding. This "
 "will help prevent PHD from locking on to a hot pixel. Use the Darks menu to "
@@ -6831,51 +6835,51 @@ msgstr ""
 "을 하십시오. 이렇게하면 PHD가 핫 픽셀에 고정되는 것을 방지 할 수 있습니다. 다"
 "크 메뉴를 사용하여 다크 라이브러리 또는 불량화소 지도를 만듭니다."
 
-#: myframe_events.cpp:1113
+#: myframe_events.cpp:1122
 msgid ""
 "Scope isn't pointing in recommended sky area for calibration - run the "
 "Calibration Assistant to improve results."
 msgstr ""
 
-#: myframe_events.cpp:1115 myframe_events.cpp:1122
+#: myframe_events.cpp:1124 myframe_events.cpp:1131
 msgid "Calibrate here"
 msgstr ""
 
-#: myframe_events.cpp:1118
+#: myframe_events.cpp:1127
 msgid ""
 "With the scope pointing this close to the pole, calibration can be degraded "
 "and may "
 msgstr ""
 
-#: myframe_events.cpp:1119
+#: myframe_events.cpp:1128
 msgid ""
 "fail altogether.  Run the Calibration Assistant and follow the instructions "
 "to eliminate these risks, "
 msgstr ""
 
-#: myframe_events.cpp:1121
+#: myframe_events.cpp:1130
 msgid ""
 "including slewing the scope as close as practical to the recommended "
 "position."
 msgstr ""
 
-#: myframe_events.cpp:1169
+#: myframe_events.cpp:1178
 msgid "Are you sure you want to force recalibration?"
 msgstr ""
 
-#: myframe_events.cpp:1170
+#: myframe_events.cpp:1179
 msgid "Force Recalibration"
 msgstr "강제로 재교정"
 
-#: myframe_events.cpp:1223 testguide.cpp:158
+#: myframe_events.cpp:1232 testguide.cpp:158
 msgid "Manual Guide"
 msgstr "수동 가이드"
 
-#: myframe_events.cpp:1256 pierflip_tool.cpp:78
+#: myframe_events.cpp:1265 pierflip_tool.cpp:78
 msgid "Meridian Flip Calibration Tool"
 msgstr "자오선 플립 교정 도구"
 
-#: myframe_events.cpp:1315
+#: myframe_events.cpp:1324
 msgid ""
 "With your current setting for Dec guide mode, this version of PHD2 will "
 "dither in Declination. To restore the old behavior you can set the RA-only "
@@ -6885,11 +6889,11 @@ msgstr ""
 "됩니다. 이전 동작을 복원하려면 고급 대화 상자의 디더 설정에서 적경 전용 옵션"
 "을 선택 하십시오."
 
-#: myframe_events.cpp:1318
+#: myframe_events.cpp:1327
 msgid "Set RA-only now"
 msgstr "적경 전용 설정"
 
-#: myframe_events.cpp:1338
+#: myframe_events.cpp:1347
 msgid ""
 "It looks like this is a first-time connection to your camera and mount. The "
 "Setup Wizard can help\n"
@@ -6902,15 +6906,15 @@ msgstr ""
 "가이딩 매개 변수 설정을 도와줄 수 있습니다.\n"
 "지금 설정 마법사를 사용 하시겠습니까?"
 
-#: myframe_events.cpp:1341 profile_wizard.cpp:1636
+#: myframe_events.cpp:1350 profile_wizard.cpp:1636
 msgid "Yes"
 msgstr "예"
 
-#: myframe_events.cpp:1341 profile_wizard.cpp:1638
+#: myframe_events.cpp:1350 profile_wizard.cpp:1638
 msgid "No"
 msgstr "아니오"
 
-#: myframe_events.cpp:1341
+#: myframe_events.cpp:1350
 msgid "Setup Wizard Recommendation"
 msgstr "설정 마법사 권장 사항"
 
@@ -7331,27 +7335,27 @@ msgstr ""
 msgid "PHD2"
 msgstr ""
 
-#: planetary.cpp:1509 planetary_tool.cpp:1072 scope.cpp:341
+#: planetary.cpp:1509 planetary_tool.cpp:1072 scope.cpp:342
 msgid "INDI Mount"
 msgstr "INDI 마운트"
 
-#: planetary.cpp:1648
+#: planetary.cpp:1641
 msgid "Object not found"
 msgstr ""
 
-#: planetary.cpp:1694
+#: planetary.cpp:1687
 msgid ""
 "ERROR: camera frame size exceeds maximum limit. Please apply binning to "
 "reduce the frame size."
 msgstr ""
 
-#: planetary.cpp:1771
+#: planetary.cpp:1764
 msgid ""
 "ERROR: exception occurred during image processing: change detection "
 "parameters"
 msgstr ""
 
-#: planetary.cpp:1777
+#: planetary.cpp:1770
 msgid "ERROR: unknown exception occurred in solar system object detection"
 msgstr ""
 
@@ -8596,30 +8600,30 @@ msgstr ""
 msgid "The operation was canceled"
 msgstr "작업이 취소되었습니다"
 
-#: scope.cpp:279
+#: scope.cpp:280
 msgid "Invalid"
 msgstr "무효"
 
-#: scope.cpp:341
+#: scope.cpp:342
 #, c-format
 msgid "INDI Mount [%s]"
 msgstr "INDI 마운트 [%s]"
 
-#: scope.cpp:674
+#: scope.cpp:703
 msgid ""
 "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
 "snags, try re-doing your polar alignment, calibration, and check for "
 "problems with the mount mechanics."
 msgstr ""
 
-#: scope.cpp:680
+#: scope.cpp:709
 msgid ""
 "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
 "snags, try re-doing your polar alignment, calibration, and confirm the ST-4 "
 "cable is working properly."
 msgstr ""
 
-#: scope.cpp:689
+#: scope.cpp:718
 msgid ""
 "PHD2 is not able to make sufficient corrections in Dec.  If the side-of-pier "
 "has changed from where you last calibrated, check to see if the 'Reverse Dec "
@@ -8628,22 +8632,22 @@ msgid ""
 "alignment, calibration, and check for problems with the mount mechanics."
 msgstr ""
 
-#: scope.cpp:699
+#: scope.cpp:728
 msgid ""
 "PHD2 is not able to make sufficient corrections in Dec.  Check for cable "
 "snags, try re-doing your polar alignment, calibration and confirm the ST-4 "
 "cable is working properly."
 msgstr ""
 
-#: scope.cpp:709
+#: scope.cpp:738
 msgid "Max RA Duration setting"
 msgstr "최대 적경 기간 설정"
 
-#: scope.cpp:709
+#: scope.cpp:738
 msgid "Max Dec Duration setting"
 msgstr "최대 적위 기간 설정"
 
-#: scope.cpp:712
+#: scope.cpp:741
 #, c-format
 msgid ""
 "Your %s is preventing PHD from making adequate corrections to keep the guide "
@@ -8653,7 +8657,7 @@ msgstr ""
 "%s가 PHD를 적절히 교정하지 못하게 하고 있습니다. %s을(를) 기본값으로 복원하"
 "여 PHD2를 더 크게 교정하십시오."
 
-#: scope.cpp:724
+#: scope.cpp:753
 #, c-format
 msgid ""
 "Even using the maximum moves, PHD2 can't properly correct for the large "
@@ -8664,14 +8668,14 @@ msgstr ""
 "없습니다. 이러한 문제의 원인을 제거 할 수있을 때까지 가이드는 정상으로 작동하"
 "지 않을 것 입니다."
 
-#: scope.cpp:1004
+#: scope.cpp:1033
 msgid ""
 "Advisory: Calibration completed but few guide steps were used, so accuracy "
 "is questionable"
 msgstr ""
 "권고: 교정이 완료되었지만 가이드 단계가 적어 정확도에 의문의 여지가 있습니다"
 
-#: scope.cpp:1007
+#: scope.cpp:1036
 msgid ""
 "Advisory: Calibration completed but RA/Dec axis angles are questionable and "
 "guiding may be impaired"
@@ -8679,13 +8683,13 @@ msgstr ""
 "권고: 교정이 완료되었지만 적경/적위 축 각도에 문제가 있습니다. 가이드가 정상"
 "으로 작동하지 않을 수 있습니다"
 
-#: scope.cpp:1010
+#: scope.cpp:1039
 msgid ""
 "Advisory: This calibration is substantially different from the previous one "
 "- have you changed configurations?"
 msgstr "권고: 이 교정은 이전 교정과 크게 다릅니다. 구성을 변경 하셨습니까?"
 
-#: scope.cpp:1014
+#: scope.cpp:1043
 msgid ""
 "Advisory: Calibration completed but RA and Dec rates vary by an unexpected "
 "amount (often caused by large Dec backlash)"
@@ -8693,25 +8697,25 @@ msgstr ""
 "권고: 교정이 완료되었지만 적경 및 적위 속도가 예상치 못한 양으로 달라집니다"
 "(종종 큰 적위 백래시로 인해 발생)"
 
-#: scope.cpp:1025
+#: scope.cpp:1054
 msgid "Details..."
 msgstr "세부 사항..."
 
-#: scope.cpp:1309
+#: scope.cpp:1338
 msgid "RA Calibration Failed: star did not move enough"
 msgstr "적경 교정 실패 : 별이 충분히 움직이지 않았습니다"
 
-#: scope.cpp:1316
+#: scope.cpp:1345
 #, c-format
 msgid "West step %3d, dist=%4.1f"
 msgstr "서쪽 단계 %3d, 거리=%4.1f"
 
-#: scope.cpp:1389
+#: scope.cpp:1418
 #, c-format
 msgid "East step %3d, dist=%4.1f"
 msgstr "동쪽 단계 %3d, 거리=%4.1f"
 
-#: scope.cpp:1410
+#: scope.cpp:1439
 msgid ""
 "Advisory: Little or no east movement was measured, so guiding will probably "
 "be impaired. Check the guide cable and use the Manual Guide tool to confirm "
@@ -8721,34 +8725,34 @@ msgstr ""
 "하지 않을 것 입니다. 가이드 케이블을 확인하고 수동 가이드 도구를 사용하여 마"
 "운트의 기본 작동을 확인하십시오."
 
-#: scope.cpp:1473
+#: scope.cpp:1502
 msgid "Clearing backlash step 1"
 msgstr "백래시 제거 단계 1"
 
-#: scope.cpp:1512
+#: scope.cpp:1541
 #, c-format
 msgid "Clearing backlash step %3d"
 msgstr "백래시 제거 단계 %3d"
 
-#: scope.cpp:1534
+#: scope.cpp:1563
 msgid "Backlash Clearing Failed: star did not move enough"
 msgstr "백래시 지우기 실패: 별이 충분히 움직이지 않았습니다"
 
-#: scope.cpp:1583
+#: scope.cpp:1612
 msgid "DEC Calibration Failed: star did not move enough"
 msgstr "적위 교정 실패 : 별이 충분히 움직이지 않았습니다"
 
-#: scope.cpp:1590
+#: scope.cpp:1619
 #, c-format
 msgid "North step %3d, dist=%4.1f"
 msgstr "북쪽 단계 %3d, 거리=%4.1f"
 
-#: scope.cpp:1681
+#: scope.cpp:1710
 #, c-format
 msgid "South step %3d, dist=%4.1f"
 msgstr "남쪽 단계 %3d, 거리=%4.1f"
 
-#: scope.cpp:1702
+#: scope.cpp:1731
 msgid ""
 "Advisory: Calibration successful but little or no south movement was "
 "measured, so guiding will probably be impaired.\n"
@@ -8758,7 +8762,7 @@ msgid ""
 "types of problems (Manual Guide, Declination backlash)."
 msgstr ""
 
-#: scope.cpp:1709
+#: scope.cpp:1738
 msgid ""
 "Advisory: Calibration successful but little south movement was measured, so "
 "guiding will probably be impaired. \n"
@@ -8774,7 +8778,7 @@ msgstr ""
 "이러한 유형의 문제를 식별하는 방법에 대한 온라인 도움말을 참고 하십시오(수도 "
 "가이드, 적위 백래시)."
 
-#: scope.cpp:1717
+#: scope.cpp:1746
 msgid ""
 "Advisory: Calibration successful but little south movement was measured, so "
 "guiding may be impaired.\n"
@@ -8790,44 +8794,44 @@ msgstr ""
 "이러한 유형의 문제를 처리하는 방법에 대한 온라인 도움말을 참고 하십시오 (적"
 "위 백래시)."
 
-#: scope.cpp:1788
+#: scope.cpp:1817
 #, c-format
 msgid "Nudge South %3d"
 msgstr "남쪽으로 조금씩 움직임 %3d"
 
-#: scope.cpp:1826 stepguider.cpp:763
+#: scope.cpp:1855 stepguider.cpp:763
 msgid "Calibration complete"
 msgstr "교정 완료"
 
-#: scope.cpp:2161
+#: scope.cpp:2190
 msgid "Mount Guide Algorithms"
 msgstr "마운트 가이드 알고리즘"
 
-#: scope.cpp:2203
+#: scope.cpp:2232
 msgid "Calibration step (ms)"
 msgstr "교정 단계(밀리초)"
 
-#: scope.cpp:2204
+#: scope.cpp:2233
 msgid ""
 "How long a guide pulse should be used during calibration? Click \"Advanced..."
 "\" to compute a suitable value."
 msgstr ""
 
-#: scope.cpp:2208
+#: scope.cpp:2237
 msgid "Advanced..."
 msgstr "고급..."
 
-#: scope.cpp:2210
+#: scope.cpp:2239
 msgid ""
 "Click to open the Calibration Calculator Dialog to review or change all "
 "calibration parameters"
 msgstr ""
 
-#: scope.cpp:2222
+#: scope.cpp:2251
 msgid "Reverse Dec output after meridian flip"
 msgstr "자오선 플립 후 역방향 적위 출력"
 
-#: scope.cpp:2224
+#: scope.cpp:2253
 msgid ""
 "Check if your mount needs Dec output reversed after a meridian flip. "
 "Changing this setting will clear the existing calibration data"
@@ -8835,19 +8839,19 @@ msgstr ""
 "자오선 플립 후 역방향 적위 출력이 필요한지 확인하십시오. 이 설정을 변경하면 "
 "기존 교정 데이터가 삭제됩니다"
 
-#: scope.cpp:2232
+#: scope.cpp:2261
 msgid "Stop guiding when mount slews"
 msgstr "마운트가 이동 중에는 가이딩이 중지됩니다"
 
-#: scope.cpp:2234
+#: scope.cpp:2263
 msgid "When checked, PHD will stop guiding if the mount starts slewing"
 msgstr "이 옵션을 선택하면, 마운트가 이동을 시작하면 PHD는 가이딩을 중지합니다"
 
-#: scope.cpp:2239
+#: scope.cpp:2268
 msgid "Assume Dec orthogonal to RA"
 msgstr "적위는 적경과 수직이라 가정"
 
-#: scope.cpp:2242
+#: scope.cpp:2271
 msgid ""
 "Assume Dec axis is perpendicular to RA axis, regardless of calibration. "
 "Prevents RA periodic error from affecting Dec calibration. Option takes "
@@ -8856,7 +8860,7 @@ msgstr ""
 "교정에 관계없이 적위 축이 적영 축에 수직이라고 가정합니다. 적경 주기 오차가 "
 "적위 교정에 영향을 미치지 않도록 방지합니다. 옵션은 적위 교정시 적용됩니다."
 
-#: scope.cpp:2256
+#: scope.cpp:2285
 msgid ""
 "Check this if you want to apply a backlash compensation guide pulse when "
 "declination direction is reversed."
@@ -8864,43 +8868,43 @@ msgstr ""
 "적위 방향이 바뀔 때 백래시 보상 가이드 펄스를 적용하려면 이 옵션을 선택하십시"
 "오."
 
-#: scope.cpp:2265
+#: scope.cpp:2294
 msgid "Amount"
 msgstr "양"
 
-#: scope.cpp:2265
+#: scope.cpp:2294
 msgid "Size of backlash compensation guide pulse (mSec)"
 msgstr "백래시 보상 가이드 펄스 크기 (밀리초)"
 
-#: scope.cpp:2269
+#: scope.cpp:2298
 msgid "Mount Backlash Compensation"
 msgstr "마운트 백래시 보상"
 
-#: scope.cpp:2269
+#: scope.cpp:2298
 msgid "Backlash Compensation"
 msgstr "백래시 보상"
 
-#: scope.cpp:2282
+#: scope.cpp:2311
 msgid "Minimum length of backlash compensation pulse (mSec)."
 msgstr "백래시 보상 펄스의 최소 길이 (밀리초)."
 
-#: scope.cpp:2285
+#: scope.cpp:2314
 msgid "Maximum length of backlash compensation pulse (mSec)."
 msgstr "백래시 보상 펄스의 최대 길이 (밀리초)."
 
-#: scope.cpp:2292
+#: scope.cpp:2321
 msgid "Use Dec compensation"
 msgstr "적위 보상 사용"
 
-#: scope.cpp:2295
+#: scope.cpp:2324
 msgid "Automatically adjust RA guide rate based on scope declination"
 msgstr "망원겨 적위에 따라 적경 가이드 속도를 자동으로 조정 합니다"
 
-#: scope.cpp:2301
+#: scope.cpp:2330
 msgid "Max RA duration"
 msgstr "최대 적경 기간"
 
-#: scope.cpp:2302 scope.cpp:2516
+#: scope.cpp:2331 scope.cpp:2545
 msgid ""
 "Longest length of pulse to send in RA\n"
 "Default = 2500 ms."
@@ -8908,30 +8912,30 @@ msgstr ""
 "적경으로 보낼 가장 긴 펄스 길이\n"
 "기본값 = 2500밀리초."
 
-#: scope.cpp:2307
+#: scope.cpp:2336
 msgid "Max Dec duration"
 msgstr "최대 적위 기간"
 
-#: scope.cpp:2308
+#: scope.cpp:2337
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms. NOTE: this will be ignored if backlash compensation is "
 "enabled"
 msgstr ""
 
-#: scope.cpp:2321
+#: scope.cpp:2350
 msgid "Dec guide mode"
 msgstr "적위 가이드 모드"
 
-#: scope.cpp:2322 scope.cpp:2535
+#: scope.cpp:2351 scope.cpp:2564
 msgid "Directions in which Dec guide commands will be issued"
 msgstr "적위 가이드 명령의 방향"
 
-#: scope.cpp:2518
+#: scope.cpp:2547
 msgid "Mx RA"
 msgstr "최대 적경"
 
-#: scope.cpp:2524
+#: scope.cpp:2553
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms.  Increase if drift is fast."
@@ -8939,7 +8943,7 @@ msgstr ""
 "적위로 보낼 가장 긴 펄스 길이\n"
 "기본값 = 2500밀리초. 빠른 표류가 있으면 증가 시키십시오."
 
-#: scope.cpp:2526
+#: scope.cpp:2555
 msgid "Mx DEC"
 msgstr "최대 적위"
 
@@ -8950,25 +8954,25 @@ msgid ""
 msgstr ""
 "연결 해제 중 아스콤 드라이버 문제. 자세한 정보는 디버그 로그를 확인하십시오"
 
-#: scope_ascom.cpp:1170
+#: scope_ascom.cpp:1184
 msgid ""
 "ASCOM driver does not support PulseGuide. Check your ASCOM driver settings."
 msgstr ""
 "아스콤 드라이버가 펄스가이드를 지원하지 않습니다. 아스콤 드라이버 설정을 확인"
 "하십시오."
 
-#: scope_ascom.cpp:1344
+#: scope_ascom.cpp:1367
 msgid ""
 "PulseGuide command to mount has failed - guiding is likely to be ineffective."
 msgstr ""
 "펄스가이드 명령을 마운트로 보내는 것이 실패했기 때문에 가이드가 효과적이지 않"
 "을 수 있습니다."
 
-#: scope_ascom.cpp:1352
+#: scope_ascom.cpp:1375
 msgid "Guiding stopped: the scope started slewing."
 msgstr "가이딩 중지: 망원경 이동이 시작 되었습니다."
 
-#: scope_ascom.cpp:1399
+#: scope_ascom.cpp:1422
 msgid ""
 "ASCOM driver failed checking for slewing, see the debug log for more "
 "information."
@@ -8976,7 +8980,7 @@ msgstr ""
 "아스콤 드라이버가 망원경 이동을 확인하지 못했습니다. 자세한 내용은 디버그 로"
 "그를 참조하십시오."
 
-#: scope_ascom.cpp:1418
+#: scope_ascom.cpp:1441
 msgid ""
 "ASCOM driver failed calling AbortSlew, see the debug log for more "
 "information."
@@ -8984,7 +8988,7 @@ msgstr ""
 "아스콤 드라이버가 AbortSlew 호출을 실패했습니다. 자세한 정보는 디버그 로그를 "
 "참조하십시오."
 
-#: scope_ascom.cpp:1850
+#: scope_ascom.cpp:1879
 msgid ""
 "The mount's ASCOM driver is reporting invalid guide speeds. Some guiding "
 "functions including PPEC will be impaired. Contact the ASCOM driver provider "
