@@ -6,6 +6,43 @@ pixel_cursor CURSOR "icons/at_curs1.cur"
 area_cursor CURSOR "icons/at_curs3.cur"
 bullseye_cursor CURSOR "icons/bullseye.cur"
 
+#include <winver.h>
+#include "version.h"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION    PHD_VER_MAJOR,PHD_VER_MINOR,PHD_VER_BUILD,PHD_VER_REVISION
+ PRODUCTVERSION PHD_VER_MAJOR,PHD_VER_MINOR,PHD_VER_BUILD,PHD_VER_REVISION
+ FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+ FILEFLAGS VS_FF_DEBUG
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "Open PHD Guiding\0"
+            VALUE "FileDescription", "PHD2 Guiding\0"
+            VALUE "FileVersion", PHD_VER_FULL "\0"
+            VALUE "InternalName", "phd2\0"
+            VALUE "LegalCopyright", "Copyright 2010-2026 openphdguiding.org\0"
+            VALUE "OriginalFilename", "phd2.exe\0"
+            VALUE "ProductName", "PHD2 Guiding\0"
+            VALUE "ProductVersion", PHD_VER_FULL "\0"
+            VALUE "Comments", "Open-source telescope guiding application for astrophotography\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END
+
 #define wxUSE_NO_MANIFEST 1
 
 #include <wx/msw/wx.rc>

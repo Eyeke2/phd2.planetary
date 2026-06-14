@@ -42,27 +42,32 @@ set(_default_locale "en_EN")
 #.rst:
 # .. command:: get_phd_version
 #
-#    Extract the current version from the phd.h and populates the variables
+#    Extract the current version from src/version.h and populates the variables
 #    `VERSION_MAJOR`, `VERSION_MINOR` and `VERSION_PATCH`.
-#    Raises an error if the version cannot be extracted
+#    Raises an error if any of the three macros cannot be found.
 function(get_phd_version)
-  set(filename_to_extract_from ${PHD_PROJECT_ROOT_DIR}/src/phd.h)
-  file(STRINGS ${filename_to_extract_from} file_content
-       #REGEX "PHDVERSION[ _T\\(]+\"(.*)\""
-  )
+  set(filename_to_extract_from ${PHD_PROJECT_ROOT_DIR}/src/version.h)
+  file(STRINGS ${filename_to_extract_from} file_content)
 
+  set(found_major FALSE)
+  set(found_minor FALSE)
+  set(found_patch FALSE)
   foreach(SRC_LINE ${file_content})
-    if("${SRC_LINE}" MATCHES "PHDVERSION[ _T\\(]+\"(([0-9]+)\\.([0-9]+).([0-9]+))\"")
-        # message("Extracted/discovered version '${CMAKE_MATCH_1}'")
-        set(VERSION_MAJOR ${CMAKE_MATCH_2} PARENT_SCOPE)
-        set(VERSION_MINOR ${CMAKE_MATCH_3} PARENT_SCOPE)
-        set(VERSION_PATCH ${CMAKE_MATCH_4} PARENT_SCOPE)
-        return()
+    if("${SRC_LINE}" MATCHES "PHD_VER_MAJOR[ \t]+([0-9]+)")
+        set(VERSION_MAJOR ${CMAKE_MATCH_1} PARENT_SCOPE)
+        set(found_major TRUE)
+    elseif("${SRC_LINE}" MATCHES "PHD_VER_MINOR[ \t]+([0-9]+)")
+        set(VERSION_MINOR ${CMAKE_MATCH_1} PARENT_SCOPE)
+        set(found_minor TRUE)
+    elseif("${SRC_LINE}" MATCHES "PHD_VER_BUILD[ \t]+([0-9]+)")
+        set(VERSION_PATCH ${CMAKE_MATCH_1} PARENT_SCOPE)
+        set(found_patch TRUE)
     endif()
   endforeach()
 
-  message(FATAL_ERROR "Cannot extract version from file '${filename_to_extract_from}'")
-
+  if(NOT (found_major AND found_minor AND found_patch))
+    message(FATAL_ERROR "Cannot extract PHD_VER_MAJOR/MINOR/BUILD from '${filename_to_extract_from}'")
+  endif()
 endfunction()
 
 

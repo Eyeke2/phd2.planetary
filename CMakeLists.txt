@@ -85,7 +85,9 @@ include(cmake_modules/compiler_options.cmake)
 # declare useful functions about documentation
 include(cmake_modules/PHD2BuildDoc.cmake)
 
-# retrieves the version from the source file
+# retrieves the version from the source file. Tell CMake to re-run configure when
+# src/version.h changes so the extracted VERSION_MAJOR/MINOR/PATCH stay fresh.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS src/version.h)
 get_phd_version()
 message(STATUS "PHD2 version '${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}' (extracted from source)")
 
@@ -495,6 +497,7 @@ set(phd2_SRC
   ${phd_src_dir}/testguide.h
   ${phd_src_dir}/usImage.cpp
   ${phd_src_dir}/usImage.h
+  ${phd_src_dir}/version.h
   ${phd_src_dir}/worker_thread.cpp
   ${phd_src_dir}/worker_thread.h
   ${phd_src_dir}/wxled.cpp
