@@ -79,11 +79,16 @@
 
 // This is customized PHD2 project, hosted at https://github.com/Eyeke2/phd2.planetary
 #define CONFIG_CUSTOM_BUILD 1
-// #define CONFIG_HORIZONS 1
+
+#include "version.h"
+
+// Indirection forces PHD_VER_STRING / PHD_VER_SUBSTRING to expand before _T() touches them;
+// without it, some _T() implementations would token-paste the macro name instead of its value.
+#define _PHD_T_EXPAND(x) _T(x)
 
 #define APPNAME _T("PHD2 Guiding")
-#define PHDVERSION _T("2.6.14")
-#define PHDSUBVER _T("-solar.2.8")
+#define PHDVERSION _PHD_T_EXPAND(PHD_VER_STRING)
+#define PHDSUBVER  _PHD_T_EXPAND(PHD_VER_SUBSTRING)
 #ifdef DEVELOPER_MODE
 # define FULLVER PHDVERSION PHDSUBVER _T(" (Developer mode)")
 #else

@@ -137,26 +137,29 @@ update_translations () (
 )
 
 bump_rev () (
-    cur_rev=$(./build/get_phd_version src/phd.h)
+    cur_rev=$(./build/get_phd_version src/version.h)
     if [[ $cur_rev == $rev ]]; then
         echo "version update not neeed"
         return
     fi
-    echo "update phd.h version to $rev"
+    echo "update version.h version to $rev"
     TMP=$(mktemp)
     trap "rm -f '$TMP'" EXIT
-    cp src/phd.h "$TMP"
+    cp src/version.h "$TMP"
     ver=${rev/dev*}
     subver=${rev/$ver}
+    # Only the string forms get rewritten here. PHD_VER_MAJOR/MINOR/BUILD must be bumped
+    # manually if the numeric tuple changes - the resource file's FILEVERSION needs them
+    # as separate integer tokens.
     awk -v q='"' -v VER=$ver -v SUBVER=$subver '
-        /^#define PHDVERSION/ { print "#define PHDVERSION _T(" q VER q ")"; next }
-        /^#define PHDSUBVER/  { print "#define PHDSUBVER _T(" q SUBVER q ")"; next }
-                              { print }
-    ' "$TMP" > src/phd.h
+        /^#define PHD_VER_STRING[ \t]/    { print "#define PHD_VER_STRING     " q VER q;    next }
+        /^#define PHD_VER_SUBSTRING[ \t]/ { print "#define PHD_VER_SUBSTRING  " q SUBVER q; next }
+                                          { print }
+    ' "$TMP" > src/version.h
     # normalize line endings
-    dos2unix src/phd.h
-    unix2dos src/phd.h
-    git add src/phd.h
+    dos2unix src/version.h
+    unix2dos src/version.h
+    git add src/version.h
     # update the debian changelog
     if is_full_release; then
         changelog=ChangeLog-full

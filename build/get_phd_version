@@ -2,12 +2,16 @@
 
 use strict;
 
-# get the phd version number string from phd.h
+# get the phd version number string from src/version.h
+# (legacy callers may still pass phd.h - we tolerate it but it won't match)
 
 my ($PHDVERSION, $PHDSUBVER);
 while (<>) {
-    if (/#\s*define\s+(PHDVERSION|PHDSUBVER)\s.*"([^"]+)"/) {
+    if (/#\s*define\s+(PHD_VER_STRING|PHD_VER_SUBSTRING)\s+"([^"]+)"/) {
         my ($n,$v) = ($1,$2);
+        # map the new names to the legacy variables so the output format is unchanged
+        $n =~ s/^PHD_VER_STRING$/PHDVERSION/;
+        $n =~ s/^PHD_VER_SUBSTRING$/PHDSUBVER/;
         eval "\$$n = \"$v\"";
         last if defined($PHDVERSION) && defined($PHDSUBVER);
     }
