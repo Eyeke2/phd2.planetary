@@ -722,6 +722,11 @@ void MyFrame::OnButtonAutoStar(wxCommandEvent& WXUNUSED(event))
         pGuider->InvalidateCurrentPosition(true);
 }
 
+void MyFrame::OnToggleBeepForLostStar(wxCommandEvent& WXUNUSED(event))
+{
+    SetBeepForLostStar(!GetBeepForLostStar());
+}
+
 void MyFrame::OnGammaSlider(wxScrollEvent& WXUNUSED(event))
 {
     int val = Gamma_Slider->GetValue();

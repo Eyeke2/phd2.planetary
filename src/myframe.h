@@ -257,6 +257,8 @@ private:
     VarDelayCfg m_varDelayConfig;
     int m_focalLength;
     bool m_beepForLostStar;
+    wxBitmap m_muteBmp;
+    wxBitmap m_unmuteBmp;
     double m_sampling;
     bool m_autoLoadCalibration;
 
@@ -371,6 +373,7 @@ public:
     void OnLoadDefectMap(wxCommandEvent& evt);
     void GuideButtonClick(bool interactive, const wxString& context);
     void OnButtonGuide(wxCommandEvent& evt);
+    void OnToggleBeepForLostStar(wxCommandEvent& evt);
     void OnAdvanced(wxCommandEvent& evt);
     void OnIdle(wxIdleEvent& evt);
     void OnTestGuide(wxCommandEvent& evt);
@@ -474,6 +477,7 @@ public:
     static void PlaceWindowOnScreen(wxWindow *window, int x, int y);
     bool GetBeepForLostStar();
     void SetBeepForLostStar(bool beep);
+    void UpdateBeepForLostStarButton();
     int GetGuidingPeriod(int *exposure = nullptr, int *timeLapse = nullptr) const;
 
     MyFrameConfigDialogPane *GetConfigDialogPane(wxWindow *pParent);
@@ -646,6 +650,7 @@ enum
     BUTTON_STOP,
     BUTTON_AUTOSTAR,
     BUTTON_DURATION,
+    BUTTON_BEEP_FOR_LOST_STAR,
     BUTTON_ADVANCED,
     BUTTON_SOLAR_SYSTEM_TOOL,
     BUTTON_CAM_PROPERTIES,
