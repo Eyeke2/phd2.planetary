@@ -24,7 +24,7 @@
 // Use plain ASCII string literals here - phd.h wraps these with _T()
 // for wxWidgets, and rc.exe concatenates them directly.
 #define PHD_VER_STRING     "2.6.14"
-#define PHD_VER_SUBSTRING  "-solar.2.9"
+#define PHD_VER_SUBSTRING  "-solar.2.10"
 #define PHD_VER_FULL       PHD_VER_STRING PHD_VER_SUBSTRING
 
 #endif // PHD_VERSION_H_INCLUDED
