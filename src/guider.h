@@ -227,6 +227,11 @@ public:
     bool MoveLockPosition(const PHD_Point& mountDelta);
     virtual bool SetLockPosition(const PHD_Point& position);
     bool SetLockPosToStarAtPosition(const PHD_Point& starPositionHint);
+    // Set the exact lock position AND refresh m_primaryStar / CurrentPosition by running
+    // Star::Find near it. Use when a client needs the precise pixel locked but also wants
+    // guiding to start from a consistent star/lock pairing (which exact=true alone doesn't
+    // guarantee). Returns the SetLockPosition result; the Star::Find step is best-effort.
+    bool SetLockPositionAndRefreshStar(const PHD_Point& position);
     bool ShiftLockPosition();
     void EnableLockPosShift(bool enable);
     void SetLockPosShiftRate(const PHD_Point& rate, GRAPH_UNITS units, bool isMountCoords, bool updateToolWin);

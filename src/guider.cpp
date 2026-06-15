@@ -883,6 +883,21 @@ bool Guider::SetLockPosToStarAtPosition(const PHD_Point& starPosHint)
     return error;
 }
 
+bool Guider::SetLockPositionAndRefreshStar(const PHD_Point& position)
+{
+    // Lock the exact pixel first - this is the authoritative outcome.
+    if (SetLockPosition(position))
+        return true; // bounds check or other validation failed
+
+    // Best-effort refresh of m_primaryStar / CurrentPosition near the new lock so the next
+    // exposure starts from a consistent star/lock pairing. Failure (no star detectable) is
+    // ignored: the lock is already set as the caller requested.
+    if (m_pCurrentImage)
+        SetCurrentPosition(m_pCurrentImage, position);
+
+    return false;
+}
+
 // distance to nearest edge
 static double edgeDist(const PHD_Point& pt, const wxSize& size)
 {
