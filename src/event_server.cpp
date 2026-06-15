@@ -1121,9 +1121,14 @@ static void get_lock_position(JObj& response, const json_value *params)
 }
 
 // {"method": "set_lock_position", "params": [X, Y, true], "id": 1}
+// Optional 4th param `find_star` (boolean, default false): only meaningful when
+// `exact` is true. When set, PHD2 additionally runs Star::Find near the new lock and
+// refreshes m_primaryStar / CurrentPosition. This lets a client get both the exact pixel
+// lock and a consistent star/lock pairing in a single call (previously two calls were
+// needed: exact=false to refresh the current star, then exact=true to override the lock).
 static void set_lock_position(JObj& response, const json_value *params)
 {
-    Params p("x", "y", "exact", params);
+    Params p("x", "y", "exact", "find_star", params);
     const json_value *p0 = p.param("x"), *p1 = p.param("y");
     double x, y;
 
@@ -1145,14 +1150,33 @@ static void set_lock_position(JObj& response, const json_value *params)
         }
     }
 
+    bool findStar = false;
+    const json_value *p3 = p.param("find_star");
+
+    if (p3)
+    {
+        if (!bool_param(p3, &findStar))
+        {
+            response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected boolean find_star param");
+            return;
+        }
+    }
+
     VERIFY_GUIDER(response);
 
     bool error;
 
     if (exact)
-        error = pFrame->pGuider->SetLockPosition(PHD_Point(x, y));
+    {
+        if (findStar)
+            error = pFrame->pGuider->SetLockPositionAndRefreshStar(PHD_Point(x, y));
+        else
+            error = pFrame->pGuider->SetLockPosition(PHD_Point(x, y));
+    }
     else
+    {
         error = pFrame->pGuider->SetLockPosToStarAtPosition(PHD_Point(x, y));
+    }
 
     if (error)
     {
