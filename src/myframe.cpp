@@ -153,6 +153,7 @@ EVT_MENU(MENU_LOOP, MyFrame::OnButtonLoop)
 EVT_TOOL(BUTTON_STOP, MyFrame::OnButtonStop)
 EVT_TOOL(BUTTON_AUTOSTAR, MyFrame::OnButtonAutoStar)
 EVT_MENU(MENU_STOP, MyFrame::OnButtonStop)
+EVT_TOOL(BUTTON_BEEP_FOR_LOST_STAR, MyFrame::OnToggleBeepForLostStar)
 EVT_TOOL(BUTTON_ADVANCED, MyFrame::OnAdvanced)
 EVT_MENU(MENU_BRAIN, MyFrame::OnAdvanced)
 EVT_TOOL(BUTTON_GUIDE, MyFrame::OnButtonGuide)
@@ -221,7 +222,7 @@ struct FileDropTarget : public wxFileDropTarget
 MyFrame::MyFrame()
     : wxFrame(nullptr, wxID_ANY, wxEmptyString), pGuider(nullptr), pPlanetTool(nullptr), m_planetToolCustomRatesEnabled(false),
       m_showBookmarksAccel(0),
-      m_bookmarkLockPosAccel(0), pStatsWin(nullptr)
+      m_bookmarkLockPosAccel(0), MainToolbar(nullptr), pStatsWin(nullptr)
 {
     m_mgr.SetManagedWindow(this);
 
@@ -943,6 +944,7 @@ void MyFrame::LoadProfileSettings()
     }
     SetExposureDuration(exposureDuration);
     m_beepForLostStar = pConfig->Profile.GetBoolean("/BeepForLostStar", true);
+    UpdateBeepForLostStarButton();
 
     int val = pConfig->Profile.GetInt("/Gamma", GAMMA_DEFAULT);
     if (val < GAMMA_MIN)
@@ -993,6 +995,12 @@ void MyFrame::SetupToolBar()
 #include "icons/brain.png.h"
     wxBitmap brain_bmp(wxBITMAP_PNG_FROM_DATA(brain));
 
+#include "icons/mute.png.h"
+    m_muteBmp = wxBitmap(wxBITMAP_PNG_FROM_DATA(mute));
+
+#include "icons/unmute.png.h"
+    m_unmuteBmp = wxBitmap(wxBITMAP_PNG_FROM_DATA(unmute));
+
 #include "icons/cam_setup.png.h"
     wxBitmap cam_setup_bmp(wxBITMAP_PNG_FROM_DATA(cam_setup));
 
@@ -1039,6 +1047,7 @@ void MyFrame::SetupToolBar()
     MainToolbar->AddSeparator();
     MainToolbar->AddControl(Dur_Choice, _("Exposure duration"));
     MainToolbar->AddControl(Gamma_Slider, _("Gamma"));
+    MainToolbar->AddTool(BUTTON_BEEP_FOR_LOST_STAR, _("Lost-star sound"), m_unmuteBmp, _("Mute lost-star alarm"));
     MainToolbar->AddSeparator();
     MainToolbar->AddTool(BUTTON_ADVANCED, _("Advanced Settings"), brain_bmp, _("Advanced Settings"));
     MainToolbar->AddTool(BUTTON_CAM_PROPERTIES, cam_setup_bmp, cam_setup_bmp_disabled, false, 0, _("Camera settings"));
@@ -3147,10 +3156,23 @@ bool MyFrame::GetBeepForLostStar()
     return m_beepForLostStar;
 }
 
+void MyFrame::UpdateBeepForLostStarButton()
+{
+    if (!MainToolbar)
+        return;
+
+    const bool beep = GetBeepForLostStar();
+    MainToolbar->SetToolBitmap(BUTTON_BEEP_FOR_LOST_STAR, beep ? m_unmuteBmp : m_muteBmp);
+    MainToolbar->SetToolShortHelp(BUTTON_BEEP_FOR_LOST_STAR,
+                                  beep ? _("Mute lost-star alarm") : _("Unmute lost-star alarm"));
+    MainToolbar->Refresh();
+}
+
 void MyFrame::SetBeepForLostStar(bool beep)
 {
     m_beepForLostStar = beep;
     pConfig->Profile.SetBoolean("/BeepForLostStar", beep);
+    UpdateBeepForLostStarButton();
     Debug.Write(wxString::Format("Beep for lost star set to %s\n", beep ? "true" : "false"));
 }
 
