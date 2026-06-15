@@ -77,7 +77,8 @@ add_custom_target(CmakeAdditionalFiles
   ${PHD_PROJECT_ROOT_DIR}/cmake_modules/PHD2GenerateDocScript.cmake
   ${PHD_PROJECT_ROOT_DIR}/cmake_modules/PHD2Removegettextwarning.cmake
   ${PHD_PROJECT_ROOT_DIR}/cmake_modules/compiler_options.cmake
-  ${PHD_PROJECT_ROOT_DIR}/cmake_modules/PHD2Packaging.cmake)
+  ${PHD_PROJECT_ROOT_DIR}/cmake_modules/PHD2Packaging.cmake
+  ${PHD_PROJECT_ROOT_DIR}/tools/png_to_c_header.py)
 
 # compiler options
 include(cmake_modules/compiler_options.cmake)
