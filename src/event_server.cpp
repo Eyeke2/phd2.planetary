@@ -71,7 +71,25 @@ enum
     MSG_PROTOCOL_VERSION = 1,
 };
 
-#define MSG_EXTENTED_PROTOCOL_VERSION "solar.2"
+#define MSG_EXTENTED_PROTOCOL_VERSION_SOLAR1 "solar.1"
+#define MSG_EXTENTED_PROTOCOL_VERSION_SOLAR2 "solar.2"
+
+enum EXT_PROTOCOL_VERSION
+{
+    EXT_PROTOCOL_UNSPECIFIED = 0,
+    EXT_PROTOCOL_SOLAR1 = 1,
+    EXT_PROTOCOL_SOLAR2 = 2,
+};
+
+static const char *ext_protocol_version_name(EXT_PROTOCOL_VERSION version)
+{
+    return version == EXT_PROTOCOL_SOLAR2 ? MSG_EXTENTED_PROTOCOL_VERSION_SOLAR2 : MSG_EXTENTED_PROTOCOL_VERSION_SOLAR1;
+}
+
+static bool protocol_is_solar2(EXT_PROTOCOL_VERSION protocol)
+{
+    return protocol >= EXT_PROTOCOL_SOLAR2;
+}
 
 static const wxString literal_null("null");
 static const wxString literal_true("true");
@@ -311,11 +329,11 @@ struct Ev : public JObj
     }
 };
 
-static Ev ev_message_version()
+static Ev ev_message_version(EXT_PROTOCOL_VERSION protocol)
 {
     Ev ev("Version");
     ev << NV("PHDVersion", PHDVERSION) << NV("PHDSubver", PHDSUBVER) << NV("OverlapSupport", true)
-       << NV("MsgVersion", MSG_PROTOCOL_VERSION) << NV("MsgExtVersion", MSG_EXTENTED_PROTOCOL_VERSION);
+       << NV("MsgVersion", MSG_PROTOCOL_VERSION) << NV("MsgExtVersion", ext_protocol_version_name(protocol));
     return ev;
 }
 
@@ -438,10 +456,11 @@ struct ClientData
 {
     wxSocketClient *cli;
     int refcnt;
+    EXT_PROTOCOL_VERSION extProtocol;
     ClientReadBuf rdbuf;
     wxMutex wrlock;
 
-    ClientData(wxSocketClient *cli_) : cli(cli_), refcnt(1) { }
+    ClientData(wxSocketClient *cli_) : cli(cli_), refcnt(1), extProtocol(EXT_PROTOCOL_SOLAR1) { }
     void AddRef() { ++refcnt; }
     void RemoveRef()
     {
@@ -464,6 +483,17 @@ struct ClientDataGuard
 inline static wxMutex *client_wrlock(wxSocketClient *cli)
 {
     return &((ClientData *) cli->GetClientData())->wrlock;
+}
+
+static ClientData *client_data(wxSocketClient *cli)
+{
+    return cli ? static_cast<ClientData *>(cli->GetClientData()) : nullptr;
+}
+
+static EXT_PROTOCOL_VERSION client_ext_protocol(wxSocketClient *cli)
+{
+    ClientData *cd = client_data(cli);
+    return cd ? cd->extProtocol : EXT_PROTOCOL_SOLAR1;
 }
 
 static wxString SockErrStr(wxSocketError e)
@@ -548,7 +578,7 @@ static void send_catchup_events(wxSocketClient *cli)
 {
     EXPOSED_STATE st = Guider::GetExposedState();
 
-    do_notify1(cli, ev_message_version());
+    do_notify1(cli, ev_message_version(EXT_PROTOCOL_SOLAR1));
 
     if (pFrame->pGuider)
     {
@@ -776,6 +806,40 @@ struct Params
         return it == dict.end() ? 0 : it->second;
     }
 };
+
+static void set_extended_protocol(JObj& response, const json_value *params, ClientData *cd)
+{
+    Params p("version", params);
+    const json_value *version = p.param("version");
+    if (!version || version->type != JSON_STRING)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected version string param");
+        return;
+    }
+
+    EXT_PROTOCOL_VERSION protocol;
+    if (strcmp(version->string_value, MSG_EXTENTED_PROTOCOL_VERSION_SOLAR1) == 0)
+        protocol = EXT_PROTOCOL_SOLAR1;
+    else if (strcmp(version->string_value, MSG_EXTENTED_PROTOCOL_VERSION_SOLAR2) == 0)
+        protocol = EXT_PROTOCOL_SOLAR2;
+    else
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "unsupported protocol version");
+        return;
+    }
+
+    if (!cd)
+    {
+        response << jrpc_error(JSONRPC_INTERNAL_ERROR, "client state not available");
+        return;
+    }
+
+    cd->extProtocol = protocol;
+
+    JObj rslt;
+    rslt << NV("protocol", ext_protocol_version_name(protocol));
+    response << jrpc_result(rslt);
+}
 
 static void set_exposure(JObj& response, const json_value *params)
 {
@@ -2978,8 +3042,25 @@ static void set_planet_size(JObj& response, const json_value *params)
     response << jrpc_result(0);
 }
 
-static void get_mount_coords(JObj& response, const json_value *params)
+static void get_mount_coords(JObj& response, const json_value *params, ClientData *cd)
 {
+    EXT_PROTOCOL_VERSION protocol = cd ? cd->extProtocol : EXT_PROTOCOL_SOLAR1;
+    if (!protocol_is_solar2(protocol))
+    {
+        JObj rslt;
+        double ra, dec, st;
+        if (pPointingSource && pPointingSource->IsConnected() && !pPointingSource->GetCoordinates(&ra, &dec, &st))
+        {
+            rslt << NV("ra", ra) << NV("dec", dec) << NV("sidereal", st);
+            response << jrpc_result(rslt);
+        }
+        else
+        {
+            response << jrpc_error(1, "mount not connected");
+        }
+        return;
+    }
+
     Params p("pier_side", params);
     bool includePierSide = false;
     if (const json_value *val = p.param("pier_side"))
@@ -3105,7 +3186,7 @@ static void get_site_coords(JObj& response, const json_value *params)
     }
 }
 
-static void get_mount_tracking(JObj& response, const json_value *params)
+static void get_mount_tracking(JObj& response, const json_value *params, ClientData *cd)
 {
     if (!pPointingSource || !pPointingSource->IsConnected() || !pFrame->pGuider)
     {
@@ -3140,7 +3221,8 @@ static void get_mount_tracking(JObj& response, const json_value *params)
     if (rateValid)
         rslt << NV("rate", rate);
 
-    if (offsetsValid)
+    EXT_PROTOCOL_VERSION protocol = cd ? cd->extProtocol : EXT_PROTOCOL_SOLAR1;
+    if (offsetsValid && protocol_is_solar2(protocol))
     {
         rslt << NV("ra_offset", raOffset);
         rslt << NV("dec_offset", decOffset);
@@ -3785,10 +3867,15 @@ static bool handle_request(JRpcCall& call)
         return true;
     }
 
+    ClientData *cd = client_data(call.cli);
+    EXT_PROTOCOL_VERSION protocol = cd ? cd->extProtocol : EXT_PROTOCOL_SOLAR1;
+
     static struct
     {
         const char *name;
         void (*fn)(JObj& response, const json_value *params);
+        EXT_PROTOCOL_VERSION minProtocol;
+        void (*fnWithClient)(JObj& response, const json_value *params, ClientData *cd);
     } methods[] = {
         { "clear_calibration", &clear_calibration },
         { "deselect_star", &deselect_star },
@@ -3846,6 +3933,7 @@ static bool handle_request(JRpcCall& call)
         { "set_limit_frame", &set_limit_frame },
 
         // PHD2 extensions
+        { "set_extended_protocol", nullptr, EXT_PROTOCOL_UNSPECIFIED, &set_extended_protocol },
         { "get_guiding_period", &get_guiding_period },
         { "set_time_lapse", &set_time_lapse },
         { "set_guide_frame", &set_guide_frame },
@@ -3856,11 +3944,9 @@ static bool handle_request(JRpcCall& call)
         { "set_focal_length", &set_focal_length },
         { "set_planetary_mode", &set_planetary_mode },
         { "get_cal_settings", &get_cal_settings },
-        { "get_mount_coords", &get_mount_coords },
-        { "get_mount_side_of_pier", &get_mount_side_of_pier },
-        { "get_mount_destination_side_of_pier", &get_mount_destination_side_of_pier },
+        { "get_mount_coords", nullptr, EXT_PROTOCOL_UNSPECIFIED, &get_mount_coords },
         { "get_site_coords", &get_site_coords },
-        { "get_mount_tracking", &get_mount_tracking },
+        { "get_mount_tracking", nullptr, EXT_PROTOCOL_UNSPECIFIED, &get_mount_tracking },
         { "set_mount_tracking", &set_mount_tracking },
         { "set_surf_mode", &set_surf_mode },
         { "get_surf_mode", &get_surf_mode },
@@ -3870,27 +3956,35 @@ static bool handle_request(JRpcCall& call)
         { "set_iflink", &set_iflink },
         { "set_iflink_cam", &set_iflink_cam },
         { "get_cal_data", &get_cal_data },
-        { "get_drift_measurement", &get_drift_measurement },
 
-        { "is_parked", &is_parked },
-        { "park", &park },
-        { "unpark", &unpark },
-        { "slew_to_coordinates", &slew_to_coordinates },
-        { "sync_coordinates", &sync_coordinates },
-        { "move_axis", &move_axis },
-        { "get_axis_rates", &get_axis_rates },
-        { "poll_mount_slewing", &poll_mount_slewing },
-        { "abort_slew", &abort_slew },
-        { "get_mount_caps", &get_mount_caps },
-        { "get_equatorial_system", &get_equatorial_system },
-        { "does_refraction", &does_refraction },
+        { "get_drift_measurement", &get_drift_measurement, EXT_PROTOCOL_SOLAR2 },
+        { "get_mount_side_of_pier", &get_mount_side_of_pier, EXT_PROTOCOL_SOLAR2 },
+        { "get_mount_destination_side_of_pier", &get_mount_destination_side_of_pier, EXT_PROTOCOL_SOLAR2 },
+        { "is_parked", &is_parked, EXT_PROTOCOL_SOLAR2 },
+        { "park", &park, EXT_PROTOCOL_SOLAR2 },
+        { "unpark", &unpark, EXT_PROTOCOL_SOLAR2 },
+        { "slew_to_coordinates", &slew_to_coordinates, EXT_PROTOCOL_SOLAR2 },
+        { "sync_coordinates", &sync_coordinates, EXT_PROTOCOL_SOLAR2 },
+        { "move_axis", &move_axis, EXT_PROTOCOL_SOLAR2 },
+        { "get_axis_rates", &get_axis_rates, EXT_PROTOCOL_SOLAR2 },
+        { "poll_mount_slewing", &poll_mount_slewing, EXT_PROTOCOL_SOLAR2 },
+        { "abort_slew", &abort_slew, EXT_PROTOCOL_SOLAR2 },
+        { "get_mount_caps", &get_mount_caps, EXT_PROTOCOL_SOLAR2 },
+        { "get_equatorial_system", &get_equatorial_system, EXT_PROTOCOL_SOLAR2 },
+        { "does_refraction", &does_refraction, EXT_PROTOCOL_SOLAR2 },
     };
 
     for (unsigned int i = 0; i < WXSIZEOF(methods); i++)
     {
         if (strcmp(call.method->string_value, methods[i].name) == 0)
         {
-            (*methods[i].fn)(call.response, params);
+            if (methods[i].minProtocol != EXT_PROTOCOL_UNSPECIFIED && protocol < methods[i].minProtocol)
+                break;
+
+            if (methods[i].fnWithClient)
+                (*methods[i].fnWithClient)(call.response, params, cd);
+            else
+                (*methods[i].fn)(call.response, params);
             if (id)
             {
                 call.response << jrpc_id(id);
