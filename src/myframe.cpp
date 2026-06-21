@@ -56,6 +56,20 @@
 #include <wx/dnd.h>
 #include <wx/textwrapper.h>
 #include <wx/valnum.h>
+#include <wx/renderer.h>
+#include <wx/dcmemory.h>
+
+// DPI-scaling helper: PHD2 is not DPI-aware, so on high-DPI
+// monitors stock bitmaps (e.g. the wxInfoBar close button, which is fixed at ~16x16
+// from wxArtProvider::GetSizeHint(wxART_BUTTON)) render as a tiny blob. Scale them
+// up by the system DPI factor.
+#if defined(__WINDOWS__)
+# define GetSystemDpiScale() (wxMax(GetDpiForWindow(GetHWND()), 96) / 96.0f)
+# define DPI_SCALE(x) ((int) ((x) * dpiScale))
+#else
+# define GetSystemDpiScale() 1.0f
+# define DPI_SCALE(x) (x)
+#endif
 
 static const int DefaultNoiseReductionMethod = 0;
 static const double DefaultDitherScaleFactor = 1.00;
@@ -275,6 +289,44 @@ MyFrame::MyFrame()
     m_infoBar->Connect(BUTTON_ALERT_CLOSE, wxEVT_BUTTON, wxCommandEventHandler(MyFrame::OnAlertButton), nullptr, this);
     m_infoBar->Connect(BUTTON_ALERT_HELP, wxEVT_BUTTON, wxCommandEventHandler(MyFrame::OnAlertHelp), nullptr, this);
     m_infoBar->Bind(wxEVT_SIZE, &MyFrame::OnAlertSize, this);
+
+    // Replace the wxInfoBar's built-in close ("x") button bitmap with a DPI-scaled themed
+    // vresion.
+#ifdef wxHAS_DRAW_TITLE_BAR_BITMAP
+    {
+        const float dpiScale = GetSystemDpiScale();
+        if (dpiScale > 1.0f)
+        {
+            const wxWindowList& kids = m_infoBar->GetChildren();
+            for (wxWindowList::const_iterator it = kids.begin(); it != kids.end(); ++it)
+            {
+                wxBitmapButton *btn = wxDynamicCast(*it, wxBitmapButton);
+                if (!btn)
+                    continue;
+
+                const int sz = DPI_SCALE(16);
+                const wxColour bg = m_infoBar->GetBackgroundColour();
+                wxRendererNative& renderer = wxRendererNative::Get();
+
+                auto drawClose = [&](int flags) {
+                    wxBitmap bmp(sz, sz);
+                    wxMemoryDC dc(bmp);
+                    dc.SetBackground(bg);
+                    dc.Clear();
+                    renderer.DrawTitleBarBitmap(m_infoBar, dc, wxRect(0, 0, sz, sz),
+                                                wxTITLEBAR_BUTTON_CLOSE, flags);
+                    return bmp;
+                };
+
+                btn->SetBitmap(drawClose(0));
+                btn->SetBitmapPressed(drawClose(wxCONTROL_PRESSED));
+                btn->SetBitmapCurrent(drawClose(wxCONTROL_CURRENT));
+                btn->SetMinSize(wxSize(sz + DPI_SCALE(8), sz + DPI_SCALE(8)));
+                break;
+            }
+        }
+    }
+#endif // wxHAS_DRAW_TITLE_BAR_BITMAP
 
     sizer->Add(m_infoBar, wxSizerFlags().Expand());
 
