@@ -712,7 +712,7 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
                 break;
             case STATE_CALIBRATED:
             case STATE_GUIDING:
-                dc.SetPen(wxPen(wxColor(0, 255, 0)));
+                dc.SetPen(wxPen(IsPaused() ? wxColor(255, 255, 0) : wxColor(0, 255, 0), 1, wxPENSTYLE_SOLID));
                 break;
             }
 
