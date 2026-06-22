@@ -1,14 +1,24 @@
 <p>
-    <h4>2.6.14-solar.2</h4>
-    8 April 2026
+    <h4>2.6.14-solar.3</h4>
+    22 June 2026
     <ul>
-        <li>
-            Added support for custom ASCOM mount tracking rates in the Planetary tool, significantly improving guiding accuracy for the Moon,
-            especially for high resolution imaging and large lunar mosaics, and providing additional benefits for solar and planetary targets
-        </li>
-        <li>Added a new Comet/Minor Body Tracking mode in Planetary Tool, partially overlapping with the Comet Tool, while offering more intuitive controls</li>
-        <li>Added direct support for JPL Horizons tracking rate values for easy and accurate input</li>
-        <li>Improved integration with upcoming premium HelioMaker features</li>
+        <li>Guiding now stops automatically if the mount is parked or stops tracking mid-session, with a clear alert</li>
+        <li>Guiding crosshair shows the real target from the first guiding frame - no more jump when guiding starts</li>
+        <li>Guiding crosshair turns yellow while guiding is paused</li>
+        <li>New <b>Random Spiral</b> dithering mode</li>
+        <li>Planetary: enhanced comet shift tracking, plus new custom and minor solar system body tracking modes</li>
+        <li>New toolbar button to quickly mute/unmute the lost-star bell</li>
+        <li>Graph window: new time-cursor overlay, smoother updates, autohide button tooltips, and fixed re-click behavior of the X/Y/Settings popups</li>
+        <li>Fixed a deadlock that could hang Player One and ZWO cameras during connect</li>
+        <li>Touptek camera library updated to version 60.31631.20260606</li>
+        <li>Fixed writing of SER video logs</li>
+        <li>Fixed old CameraFrames folders not being cleaned up after 30 days</li>
+        <li>Camera simulator: more robust file input and restored cloud effects</li>
+        <li>Manual calibration data is now validated before being accepted</li>
+        <li>Alert close button now scales correctly on high-DPI displays</li>
+        <li>Faster version-update downloads (lifted bandwidth limit)</li>
+        <li>Expanded PHD2 server/REST API for imaging clients: mount capabilities and supported rates, and more.</li>
+        <li>Numerous stability and robustness fixes (ASCOM mount rate enumeration, event-server shutdown, Frame Monitor, UI reentrancy, worker-thread dispatch)</li>
     </ul>
 <p>
     <h4>2.6.14-solar.1</h4>
@@ -18,10 +28,8 @@
         <li>Increased precision of current pixel scale displayed in stats window</li>
         <li>Added image binning support in camera simulator</li>
         <li>Switched to newer vcpkg version (tag: 2025.12.12)</li>
-        <li>
-            Windows: support for obsolete cameras has been removed: Fishcamp, Meade DSI, SAC4-2, SSAG.
-            To use these cameras, stick with an older version of PHD2.
-        </li>
+        <li>Windows: support for obsolete cameras has been removed: Fishcamp, Meade DSI, SAC4-2, SSAG.
+            To use these cameras, stick with an older version of PHD2.</li>
         <li>Mac: no longer supporting 32-bit Macs. Stick with an older version to use PHD2 on a 32-bit Mac.</li>
         <li>Improved handling of image scale changes</li>
         <li>Improved alert messages when guiding is ineffective</li>
