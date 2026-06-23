@@ -35,7 +35,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-21 18:47+0300\n"
+"POT-Creation-Date: 2026-06-23 11:49+0300\n"
 "PO-Revision-Date: 2015-07-07 07:44+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -436,7 +436,7 @@ msgstr ""
 #: calibration_assistant.cpp:254 calibration_assistant.cpp:1114
 #: calibration_assistant.cpp:1167 camcal_import_dialog.cpp:128
 #: darks_dialog.cpp:228 darks_dialog.cpp:380 gear_simulator.cpp:2478
-#: guiding_assistant.cpp:135 phdupdate.cpp:797 profile_wizard.cpp:1640
+#: guiding_assistant.cpp:135 phdupdate.cpp:800 profile_wizard.cpp:1640
 msgid "Cancel"
 msgstr "Anulare"
 
@@ -6228,7 +6228,7 @@ msgstr "Limba"
 msgid "%s Language. You'll have to restart PHD to take effect."
 msgstr "%s Limbaj. Trebuie să reinițializați PHD2 pentru a-și face efectul."
 
-#: myframe.cpp:3481 phdupdate.cpp:947 phdupdate.cpp:953
+#: myframe.cpp:3481 phdupdate.cpp:950 phdupdate.cpp:956
 msgid "Software Update"
 msgstr ""
 
@@ -6833,102 +6833,102 @@ msgstr "Setați poziția de blocare la valoarea salvată (%.2f,%.2f)?"
 msgid "Restore saved Lock Pos"
 msgstr "Restaurați poziția de blocare salvată"
 
-#: phd.cpp:310
+#: phd.cpp:417
 msgid "Win32s on Windows 3.1"
 msgstr ""
 
-#: phd.cpp:319
+#: phd.cpp:426
 msgid "Windows 95 OSR2"
 msgstr ""
 
-#: phd.cpp:323
+#: phd.cpp:430
 msgid "Windows 95"
 msgstr ""
 
-#: phd.cpp:329
+#: phd.cpp:436
 msgid "Windows 98 SE"
 msgstr ""
 
-#: phd.cpp:333
+#: phd.cpp:440
 msgid "Windows 98"
 msgstr ""
 
-#: phd.cpp:337
+#: phd.cpp:444
 msgid "Windows ME"
 msgstr ""
 
-#: phd.cpp:340
+#: phd.cpp:447
 #, c-format
 msgid "Windows 9x (%d.%d)"
 msgstr ""
 
-#: phd.cpp:356
+#: phd.cpp:463
 msgid "Windows 2000"
 msgstr ""
 
-#: phd.cpp:365
+#: phd.cpp:472
 msgid "Windows Server 2003"
 msgstr ""
 
-#: phd.cpp:371
+#: phd.cpp:478
 msgid "Windows XP"
 msgstr ""
 
-#: phd.cpp:380
+#: phd.cpp:487
 msgid "Windows Server 2008"
 msgstr ""
 
-#: phd.cpp:380
+#: phd.cpp:487
 msgid "Windows Vista"
 msgstr ""
 
-#: phd.cpp:384
+#: phd.cpp:491
 msgid "Windows Server 2008 R2"
 msgstr ""
 
-#: phd.cpp:384
+#: phd.cpp:491
 msgid "Windows 7"
 msgstr ""
 
-#: phd.cpp:388
+#: phd.cpp:495
 msgid "Windows Server 2012"
 msgstr ""
 
-#: phd.cpp:388
+#: phd.cpp:495
 msgid "Windows 8"
 msgstr ""
 
-#: phd.cpp:392
+#: phd.cpp:499
 msgid "Windows Server 2012 R2"
 msgstr ""
 
-#: phd.cpp:392
+#: phd.cpp:499
 msgid "Windows 8.1"
 msgstr ""
 
-#: phd.cpp:398
+#: phd.cpp:505
 msgid "Windows Server 2016"
 msgstr ""
 
-#: phd.cpp:398
+#: phd.cpp:505
 msgid "Windows 10"
 msgstr ""
 
-#: phd.cpp:404
+#: phd.cpp:511
 #, c-format
 msgid "Windows NT %lu.%lu"
 msgstr ""
 
-#: phd.cpp:407
+#: phd.cpp:514
 #, c-format
 msgid "build %lu"
 msgstr ""
 
-#: phd.cpp:415
+#: phd.cpp:522
 msgid ", 64-bit edition"
 msgstr ""
 
-#: phd.cpp:542
+#: phd.cpp:655
 #, c-format
 msgid ""
 "PHD2 instance %ld is already running. Use the -i INSTANCE_NUM command-line "
@@ -6937,59 +6937,73 @@ msgstr ""
 "Instanța PHD2 %ld rulează deja. Folosiți opțiunea de comandă de linie -i "
 "INSTANCE_NUM pentru a începe o nouă instanță. "
 
+#: phd.cpp:777
+#, c-format
+msgid ""
+"To avoid starting with an empty equipment profile, PHD2 switched to instance "
+"%ld, which has the existing profile \"%s\" configured. If this is not the "
+"instance you intended to start, quit PHD2 now and relaunch it from your "
+"usual shortcut, or with the -i N command-line option (for example, -i %ld to "
+"start the previous default). This notice appears only once."
+msgstr ""
+
+#: phd.cpp:784
+msgid "PHD2 instance auto-selected"
+msgstr ""
+
 #: phdconfig.cpp:45
 msgid "My Equipment"
 msgstr "Echipamentul meu"
 
-#: phdupdate.cpp:685
+#: phdupdate.cpp:688
 #, c-format
 msgid "PHD2 version %s is available at %s"
 msgstr ""
 
-#: phdupdate.cpp:689
+#: phdupdate.cpp:692
 #, c-format
 msgid "PHD2 version %s is ready to install. Update and restart PHD2 now?"
 msgstr ""
 
-#: phdupdate.cpp:730
+#: phdupdate.cpp:733
 #, c-format
 msgid "Downloading PHD2 version %s"
 msgstr ""
 
-#: phdupdate.cpp:749
+#: phdupdate.cpp:752
 msgid "PHD2 Update"
 msgstr ""
 
-#: phdupdate.cpp:749
+#: phdupdate.cpp:752
 msgid "Checking for updates"
 msgstr ""
 
-#: phdupdate.cpp:775
+#: phdupdate.cpp:778
 msgid "PHD2 Update Available"
 msgstr ""
 
-#: phdupdate.cpp:790
+#: phdupdate.cpp:793
 msgid "Web Site"
 msgstr ""
 
-#: phdupdate.cpp:790
+#: phdupdate.cpp:793
 msgid "Install"
 msgstr ""
 
-#: phdupdate.cpp:806
+#: phdupdate.cpp:809
 msgid "Change Log"
 msgstr ""
 
-#: phdupdate.cpp:821 phdupdate.cpp:896
+#: phdupdate.cpp:824 phdupdate.cpp:899
 #, c-format
 msgid "Closing in %d seconds"
 msgstr ""
 
-#: phdupdate.cpp:947
+#: phdupdate.cpp:950
 msgid "PHD2 is up to date"
 msgstr ""
 
-#: phdupdate.cpp:953
+#: phdupdate.cpp:956
 msgid "Unable to check updates"
 msgstr ""
 
