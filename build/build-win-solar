@@ -92,6 +92,16 @@ V=$(perl -ne '
  /^\s*#\s*define\s+PHD_VER_STRING\s+"([^"]*)/ && do { $v = $1; next LINE };
  /^\s*#\s*define\s+PHD_VER_SUBSTRING\s+"([^"]*)/ && do { $s = $1; print "$v$s"; exit }' src/version.h)
 
+# 4-int numeric file version for Inno Setup's VersionInfoVersion. Mirrors the
+# packing scheme in version.h: REVISION = SOLAR_MAJOR*1000 + SOLAR_PATCH.
+FV=$(perl -ne '
+ /^\s*#\s*define\s+PHD_VER_MAJOR\s+(\d+)/       && do { $a = $1 };
+ /^\s*#\s*define\s+PHD_VER_MINOR\s+(\d+)/       && do { $b = $1 };
+ /^\s*#\s*define\s+PHD_VER_BUILD\s+(\d+)/       && do { $c = $1 };
+ /^\s*#\s*define\s+PHD_VER_SOLAR_MAJOR\s+(\d+)/ && do { $sm = $1 };
+ /^\s*#\s*define\s+PHD_VER_SOLAR_PATCH\s+(\d+)/ && do { $sp = $1 };
+ END { print "$a.$b.$c.", $sm * 1000 + $sp }' src/version.h)
+
 INSTALLER=phd2${installer_arch}-${V}-installer
 
 vcpkg_args=()
@@ -108,7 +118,7 @@ EOF
 # "$CMD" /c run_cmake.bat
 
 # generate phd2.iss and README.txt in tmp, one level up from Release/
-sed -e "s/@VERSION@/$V/g" ../phd2-${arch}.iss.in >phd2.iss
+sed -e "s/@VERSION@/$V/g" -e "s/@FILE_VERSION@/$FV/g" ../phd2-${arch}.iss.in >phd2.iss
 sed -e "s/@VERSION@/$V/g" ../README-PHD2.txt.in >README-PHD2.txt
 
 "$CMAKE" --build . --config Release
