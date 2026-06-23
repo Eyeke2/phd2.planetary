@@ -1,4 +1,17 @@
 <p>
+    <h4>2.6.14-solar.3.1</h4>
+    23 June 2026
+    <ul>
+        <li>Fixed an annoyance after auto-update for users running PHD2 as a non-default instance: the updated PHD2 would relaunch as instance 1,
+            which usually has no equipment profile, and pop up the New Equipment Wizard unexpectedly. PHD2 now preserves the instance number across self-update.
+        </li>
+        <li>One-time rescue for users upgrading from older versions (where the previous installer didn't carry the instance number through):
+            on first launch, PHD2 automatically switches to the lowest-numbered instance that already has a usable equipment profile, so you
+            go straight to your gear instead of the wizard. PHD2 shows a one-time notice telling you which instance/profile it picked,
+            with instructions for relaunching as a different instance if needed.
+        </li>
+    </ul>
+<p>
     <h4>2.6.14-solar.3</h4>
     22 June 2026
     <ul>
