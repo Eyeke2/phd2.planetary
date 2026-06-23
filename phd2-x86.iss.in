@@ -4,11 +4,20 @@
 
 #define APP_NAME "PHD 2 (solar)"
 #define APP_VERSION "@VERSION@"
+#define APP_FILE_VERSION "@FILE_VERSION@"
 #define MyAppExeName "phd2.exe"
 
 [Setup]
 AppName={#APP_NAME}
 AppVersion={#APP_VERSION}
+AppPublisher=openphdguiding.org; solar branch by Leo Shatz
+AppCopyright=Copyright 2010-2026 openphdguiding.org; solar branch Copyright 2023-2026 Leo Shatz
+VersionInfoVersion={#APP_FILE_VERSION}
+VersionInfoProductVersion={#APP_FILE_VERSION}
+VersionInfoProductName={#APP_NAME}
+VersionInfoDescription={#APP_NAME} Setup
+VersionInfoCompany=openphdguiding.org; solar branch by Leo Shatz
+VersionInfoCopyright=Copyright 2010-2026 openphdguiding.org; solar branch Copyright 2023-2026 Leo Shatz
 DefaultDirName={pf}\PHDGuiding2-solar
 DefaultGroupName=PHD Guiding 2 (solar)
 UninstallDisplayIcon={app}\phd2.exe
