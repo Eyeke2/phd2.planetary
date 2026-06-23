@@ -540,7 +540,10 @@ struct Updater
         // this needs to run in the main thread
         wxASSERT(wxThread::IsMain());
         wxGetApp().TerminateApp(); // the installer seems to have trouble shutting down phd2
-        wxExecute(installer_filename() + " /silent /launch", wxEXEC_ASYNC);
+        wxExecute(
+            installer_filename() +
+                wxString::Format(" /silent /launch /instance=%d", wxGetApp().GetInstanceNumber()),
+            wxEXEC_ASYNC);
     }
 
     void SetStatus(UpdaterStatus status)

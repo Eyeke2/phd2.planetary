@@ -94,19 +94,31 @@ Root: HKCU; Subkey: Software\StarkLabs\PHDGuidingV2; Flags: uninsdeletekey
 
 procedure CurStepChanged(CurStep: TSetupStep);
 var
-  ResultCode, i: Integer;
+  ResultCode, i, N: Integer;
+  Args, P: string;
 begin
-  if CurStep = ssDone then
-    if WizardSilent() then
+  if (CurStep = ssDone) and WizardSilent() then
+  begin
+    Args := '';
+    for I := 1 to ParamCount do
     begin
-      for I := 1 to ParamCount do begin
-        if CompareText(ParamStr(i), '/launch') = 0 then
+      P := ParamStr(i);
+      if Pos('/instance=', Lowercase(P)) = 1 then
+        if (Length(P) > Length('/instance=')) then
         begin
-          ExecAsOriginalUser(ExpandConstant('{app}\phd2.exe'), '', '', SW_SHOWNORMAL, ewNoWait, ResultCode);
-          break;
-        end
-      end
-    end
+          N := StrToIntDef(Copy(P, Length('/instance=') + 1, MaxInt), 0);
+          if (N >= 1) and (N <= 16) then
+            Args := '-i ' + IntToStr(N);
+        end;
+    end;
+
+    for I := 1 to ParamCount do
+      if CompareText(ParamStr(i), '/launch') = 0 then
+      begin
+        ExecAsOriginalUser(ExpandConstant('{app}\phd2.exe'), Args, '', SW_SHOWNORMAL, ewNoWait, ResultCode);
+        break;
+      end;
+  end;
 end;
 
 procedure UpdateFirewallRules();
