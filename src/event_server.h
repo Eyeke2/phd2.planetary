@@ -4,6 +4,7 @@
  *
  *  Created by Andy Galasso
  *  Copyright (c) 2013 Andy Galasso
+ *  Solar branch extensions Copyright (c) 2024-2026 Leo Shatz
  *  All rights reserved.
  *
  *  This source code is distributed under the following "BSD" license
