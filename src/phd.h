@@ -308,6 +308,9 @@ class PhdApp : public wxApp
 {
     wxSingleInstanceChecker *m_instanceChecker;
     long m_instanceNumber;
+    bool m_instanceFromCmdLine;
+    bool m_instanceWasMigrated;
+    long m_instancePreMigration;
     bool m_resetConfig;
     wxString m_resourcesDir;
     wxDateTime m_logFileTime;
@@ -330,6 +333,9 @@ public:
     void RestartApp();
     void HandleRestart();
     void ResetConfiguration();
+#if defined(__WINDOWS__)
+    void MaybeMigrateInstanceNumber();
+#endif
     virtual bool Yield(bool onlyIfNeeded = false);
     static void ExecInMainThread(std::function<void()> func);
     int GetInstanceNumber() const { return m_instanceNumber; }

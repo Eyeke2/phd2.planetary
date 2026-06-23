@@ -42,6 +42,10 @@
 #include <wx/evtloop.h>
 #include <wx/snglinst.h>
 
+#if defined(__WINDOWS__)
+# include <wx/msw/registry.h>
+#endif
+
 #ifdef __linux__
 # include <X11/Xlib.h>
 #endif // __linux__
@@ -153,6 +157,9 @@ PhdApp::PhdApp()
 {
     m_resetConfig = false;
     m_instanceNumber = 1;
+    m_instanceFromCmdLine = false;
+    m_instanceWasMigrated = false;
+    m_instancePreMigration = 0;
 #ifdef __linux__
     XInitThreads();
 #endif // __linux__
@@ -224,6 +231,106 @@ static void IdleClosing(wxIdleEvent& evt)
     wxGetApp().Unbind(wxEVT_IDLE, &IdleClosing);
     pFrame->Close(true /*force*/);
 }
+
+#if defined(__WINDOWS__)
+void PhdApp::MaybeMigrateInstanceNumber()
+{
+    if (m_instanceFromCmdLine || (m_instanceNumber != 1))
+        return;
+
+    static const wxString kVendorPath = "Software\\StarkLabs";
+    static const wxString kFlagName = "InstanceChecked";
+    constexpr int kMaxInstance = 16;
+
+    auto cfgKeyPath = [](int n) {
+        return kVendorPath + "\\" +
+            (n == 1 ? wxString("PHDGuidingV2")
+                    : wxString::Format("PHDGuidingV2-instance%d", n));
+    };
+
+    // One-shot guard. Stored under instance 1's key so a single migration
+    // applies regardless of which instance we ultimately picked.
+    {
+        wxRegKey flagKey(wxRegKey::HKCU, cfgKeyPath(1));
+        if (flagKey.Exists() && flagKey.HasValue(kFlagName))
+        {
+            long checked = 0;
+            flagKey.QueryValue(kFlagName, &checked);
+            if (checked != 0)
+                return;
+        }
+    }
+
+    // Matches GearDialog::LoadGearChoices() semantics: a profile is usable only
+    // if it has a real camera AND (a real scope OR a real stepguider).
+    // "None" / missing / empty all count as "not configured". wxLocale isn't up
+    // yet, so we compare against the literal English "None" the way _("None")
+    // would resolve at this point in startup.
+    auto readMenuChoice = [](const wxString& devicePath) -> wxString {
+        wxRegKey k(wxRegKey::HKCU, devicePath);
+        if (!k.Exists() || !k.HasValue("LastMenuChoice"))
+            return wxString();
+        wxString val;
+        k.QueryValue("LastMenuChoice", val);
+        return val;
+    };
+
+    auto isConfigured = [](const wxString& choice) {
+        return !choice.IsEmpty() && choice != "None";
+    };
+
+    auto hasUsableProfile = [&](int n) {
+        wxString profilesPath = cfgKeyPath(n) + "\\profile";
+        wxRegKey profilesKey(wxRegKey::HKCU, profilesPath);
+        if (!profilesKey.Exists())
+            return false;
+
+        wxString name;
+        long idx;
+        bool found = profilesKey.GetFirstKey(name, idx);
+        while (found)
+        {
+            long id;
+            if (name.ToLong(&id))
+            {
+                wxString profilePath = profilesPath + "\\" + name;
+                wxString camera = readMenuChoice(profilePath + "\\camera");
+                wxString scope = readMenuChoice(profilePath + "\\scope");
+                wxString stepguider = readMenuChoice(profilePath + "\\stepguider");
+                if (isConfigured(camera) && (isConfigured(scope) || isConfigured(stepguider)))
+                    return true;
+            }
+            found = profilesKey.GetNextKey(name, idx);
+        }
+        return false;
+    };
+
+    long picked = m_instanceNumber;
+    for (int n = 1; n <= kMaxInstance; ++n)
+    {
+        if (hasUsableProfile(n))
+        {
+            picked = n;
+            break;
+        }
+    }
+
+    if (picked != m_instanceNumber)
+    {
+        Debug.Write(wxString::Format("InstanceMigration: redirecting default instance %ld -> %ld "
+                                     "(first instance with a usable equipment profile)\n",
+                                     m_instanceNumber, picked));
+        m_instancePreMigration = m_instanceNumber;
+        m_instanceNumber = picked;
+        m_instanceWasMigrated = true;
+    }
+
+    wxRegKey flagKey(wxRegKey::HKCU, cfgKeyPath(1));
+    if (!flagKey.Exists())
+        flagKey.Create();
+    flagKey.SetValue(kFlagName, 1L);
+}
+#endif // __WINDOWS__
 
 void PhdApp::TerminateApp()
 {
@@ -534,6 +641,12 @@ bool PhdApp::OnInit()
     // on MSW, do not strip off the Debug/ and Release/ build subdirs
     // so that GetResourcesDir() is the same as the location of phd2.exe
     wxStandardPaths::Get().DontIgnoreAppSubDir();
+
+    // After a self-update the installer relaunches phd2.exe without -i, so a
+    // multi-instance user (e.g. HelioMaker uses instance 2) would land in
+    // instance 1 with no equipment profile. One-shot guard: redirect to the
+    // lowest-numbered instance that already has a profile.
+    MaybeMigrateInstanceNumber();
 #endif
 
     m_instanceChecker = new wxSingleInstanceChecker(wxString::Format("%s.%ld", GetAppName(), m_instanceNumber));
@@ -655,6 +768,25 @@ bool PhdApp::OnInit()
 
     pFrame->Show(true);
 
+#if defined(__WINDOWS__)
+    if (m_instanceWasMigrated)
+    {
+        wxString profileName = pConfig->GetCurrentProfile();
+        wxMessageBox(
+            wxString::Format(
+                _("To avoid starting with an empty equipment profile, PHD2 switched "
+                  "to instance %ld, which has the existing profile \"%s\" configured. "
+                  "If this is not the instance you intended to start, quit PHD2 now and relaunch "
+                  "it from your usual shortcut, or with the -i N command-line option "
+                  "(for example, -i %ld to start the previous default). "
+                  "This notice appears only once."),
+                m_instanceNumber, profileName, m_instancePreMigration),
+            _("PHD2 instance auto-selected"),
+            wxOK | wxICON_INFORMATION,
+            pFrame);
+    }
+#endif
+
     if (pConfig->IsNewInstance() || (pConfig->NumProfiles() == 1 && pFrame->pGearDialog->IsEmptyProfile()))
     {
         pFrame->pGearDialog->ShowProfileWizard(); // First-light version of profile wizard
@@ -710,7 +842,7 @@ bool PhdApp::OnCmdLineParsed(wxCmdLineParser& parser)
         ::exit(0);
     }
 
-    parser.Found("i", &m_instanceNumber);
+    m_instanceFromCmdLine = parser.Found("i", &m_instanceNumber);
 
     if (parser.Found("l", &s_configPath))
         s_configOp = CONFIG_OP_LOAD;
