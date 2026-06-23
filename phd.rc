@@ -26,11 +26,11 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "Open PHD Guiding\0"
+            VALUE "CompanyName", "Open PHD Guiding; solar branch by Leo Shatz\0"
             VALUE "FileDescription", "PHD2 Guiding\0"
             VALUE "FileVersion", PHD_VER_FULL "\0"
             VALUE "InternalName", "phd2\0"
-            VALUE "LegalCopyright", "Copyright 2010-2026 openphdguiding.org\0"
+            VALUE "LegalCopyright", "Copyright 2010-2026 openphdguiding.org; solar branch Copyright 2023-2026 Leo Shatz\0"
             VALUE "OriginalFilename", "phd2.exe\0"
             VALUE "ProductName", "PHD2 Guiding\0"
             VALUE "ProductVersion", PHD_VER_FULL "\0"
