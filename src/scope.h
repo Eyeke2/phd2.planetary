@@ -294,6 +294,11 @@ public:
     virtual bool GetMountAltAz(double *alt, double *az);
     virtual bool GetSiteLatLong(double *latitude, double *longitude);
     virtual bool GetSiteElevation(double *elevation);
+    // Site setters. Each returns true on error (e.g. driver doesn't expose the property as
+    // writable, or PHD2 is not connected). Lat/long are set as a pair to match the getter
+    // and the way most ASCOM mounts present them in their config UI.
+    virtual bool SetSiteLatLong(double latitude, double longitude);
+    virtual bool SetSiteElevation(double elevation);
     virtual bool CanSlew();
     virtual bool CanSlewAsync();
     virtual bool CanPark();

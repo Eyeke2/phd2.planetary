@@ -1956,6 +1956,16 @@ bool Scope::GetSiteElevation(double *elevation)
     return true; // error
 }
 
+bool Scope::SetSiteLatLong(double latitude, double longitude)
+{
+    return true; // error - subclass does not support setting
+}
+
+bool Scope::SetSiteElevation(double elevation)
+{
+    return true; // error - subclass does not support setting
+}
+
 PierSide Scope::DestinationSideOfPier(double ra, double dec)
 {
     POSSIBLY_UNUSED(ra);
