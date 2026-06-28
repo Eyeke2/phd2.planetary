@@ -124,6 +124,8 @@ public:
     bool GetMountAltAz(double *alt, double *az) override;
     bool GetSiteLatLong(double *latitude, double *longitude) override;
     bool GetSiteElevation(double *elevation) override;
+    bool SetSiteLatLong(double latitude, double longitude) override;
+    bool SetSiteElevation(double elevation) override;
     bool CanSlew() override;
     bool CanSlewAsync() override;
     bool CanReportPosition() override;
