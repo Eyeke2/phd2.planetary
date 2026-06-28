@@ -2061,6 +2061,67 @@ bool ScopeASCOM::GetSiteElevation(double *elevation)
     return bError;
 }
 
+bool ScopeASCOM::SetSiteLatLong(double latitude, double longitude)
+{
+    if (dispid_sitelatitude == DISPID_UNKNOWN || dispid_sitelongitude == DISPID_UNKNOWN)
+        return true; // driver doesn't expose Lat/Long at all
+
+    bool bError = false;
+
+    try
+    {
+        if (!IsConnected())
+            throw ERROR_INFO("ASCOM Scope: cannot set site latitude/longitude when not connected");
+
+        GITObjRef scope(m_gitEntry);
+
+        // ASCOM SiteLatitude is signed degrees, +/- 90; SiteLongitude is signed degrees, +/- 180.
+        // Leave range validation to the caller / driver - some mounts accept East-positive only.
+        if (!scope.PutProp(dispid_sitelatitude, latitude))
+            throw ERROR_INFO("ASCOM Scope: set site latitude failed: " + ExcepMsg(scope.Excep()));
+
+        if (!scope.PutProp(dispid_sitelongitude, longitude))
+            throw ERROR_INFO("ASCOM Scope: set site longitude failed: " + ExcepMsg(scope.Excep()));
+    }
+    catch (const wxString& Msg)
+    {
+        bError = true;
+        POSSIBLY_UNUSED(Msg);
+    }
+
+    Debug.Write(wxString::Format("ScopeASCOM::SetSiteLatLong(%.6f, %.6f) returns %s\n",
+                                 latitude, longitude, bError ? "error" : "success"));
+    return bError;
+}
+
+bool ScopeASCOM::SetSiteElevation(double elevation)
+{
+    if (dispid_siteelevation == DISPID_UNKNOWN)
+        return true; // older drivers - SiteElevation didn't exist before ITelescopeV3
+
+    bool bError = false;
+
+    try
+    {
+        if (!IsConnected())
+            throw ERROR_INFO("ASCOM Scope: cannot set site elevation when not connected");
+
+        GITObjRef scope(m_gitEntry);
+
+        if (!scope.PutProp(dispid_siteelevation, elevation))
+            throw ERROR_INFO("ASCOM Scope: set site elevation failed: " + ExcepMsg(scope.Excep()));
+    }
+    catch (const wxString& Msg)
+    {
+        bError = true;
+        POSSIBLY_UNUSED(Msg);
+    }
+
+    Debug.Write(wxString::Format("ScopeASCOM::SetSiteElevation(%.2f) returns %s\n",
+                                 elevation, bError ? "error" : "success"));
+    return bError;
+}
+
 bool ScopeASCOM::CanSlew()
 {
     try

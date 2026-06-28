@@ -3187,6 +3187,77 @@ static void get_site_coords(JObj& response, const json_value *params)
     }
 }
 
+// {"method": "set_site_coords", "params": {"latitude":47.5, "longitude":-122.3, "elevation":50.0}, "id":1}
+// All three fields are optional individually, but latitude and longitude must be supplied as a
+// pair (the underlying ASCOM SiteLatitude/SiteLongitude pair describes one location). Pass just
+// elevation to update only that. Returns an error if the driver doesn't expose the property as
+// writable or if any update fails. Successful partial updates are NOT rolled back.
+static void set_site_coords(JObj& response, const json_value *params)
+{
+    Params p("latitude", "longitude", "elevation", params);
+    const json_value *pLat = p.param("latitude");
+    const json_value *pLon = p.param("longitude");
+    const json_value *pElev = p.param("elevation");
+
+    if (!pLat && !pLon && !pElev)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS,
+                               "expected at least one of latitude, longitude, elevation");
+        return;
+    }
+
+    // Latitude and longitude must be supplied together.
+    if ((pLat == nullptr) != (pLon == nullptr))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS,
+                               "latitude and longitude must be supplied together");
+        return;
+    }
+
+    double latitude = 0, longitude = 0, elevation = 0;
+    if (pLat && (!float_param(pLat, &latitude) || !float_param(pLon, &longitude)))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "latitude/longitude must be numeric");
+        return;
+    }
+    if (pElev && !float_param(pElev, &elevation))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "elevation must be numeric");
+        return;
+    }
+
+    if (pLat && (latitude < -90.0 || latitude > 90.0))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "latitude out of range (-90..90)");
+        return;
+    }
+    if (pLon && (longitude < -180.0 || longitude > 180.0))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "longitude out of range (-180..180)");
+        return;
+    }
+
+    if (!pPointingSource || !pPointingSource->IsConnected())
+    {
+        response << jrpc_error(1, "mount not connected");
+        return;
+    }
+
+    if (pLat && pPointingSource->SetSiteLatLong(latitude, longitude))
+    {
+        response << jrpc_error(1, "failed to set site latitude/longitude (driver may not support it)");
+        return;
+    }
+
+    if (pElev && pPointingSource->SetSiteElevation(elevation))
+    {
+        response << jrpc_error(1, "failed to set site elevation (driver may not support it)");
+        return;
+    }
+
+    response << jrpc_result(0);
+}
+
 static void get_mount_tracking(JObj& response, const json_value *params, ClientData *cd)
 {
     if (!pPointingSource || !pPointingSource->IsConnected() || !pFrame->pGuider)
@@ -3947,6 +4018,7 @@ static bool handle_request(JRpcCall& call)
         { "get_cal_settings", &get_cal_settings },
         { "get_mount_coords", nullptr, EXT_PROTOCOL_UNSPECIFIED, &get_mount_coords },
         { "get_site_coords", &get_site_coords },
+        { "set_site_coords", &set_site_coords },
         { "get_mount_tracking", nullptr, EXT_PROTOCOL_UNSPECIFIED, &get_mount_tracking },
         { "set_mount_tracking", &set_mount_tracking },
         { "set_surf_mode", &set_surf_mode },
