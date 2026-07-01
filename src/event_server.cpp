@@ -2315,21 +2315,40 @@ static void get_guide_frame(JObj& response, const json_value *params)
         return;
     }
 
-    if (img->NPixels > 2048 * 2048)
+    const int width = img->Size.GetWidth();
+    const int height = img->Size.GetHeight();
+    const int LIMIT_PX = 2048;
+    double scale = 1.0;
+    int outWidth = width;
+    int outHeight = height;
+    cv::Mat decimated;
+
+    if (wxMax(width, height) > LIMIT_PX)
     {
-        response << jrpc_error(3, "image too large");
-        return;
+        scale = static_cast<double>(wxMax(width, height)) / LIMIT_PX;
+        outWidth = cvRound(width / scale);
+        outHeight = cvRound(height / scale);
+        cv::Mat src(height, width, CV_16UC1, img->ImageData);
+        cv::resize(src, decimated, cv::Size(outWidth, outHeight), 0, 0, cv::INTER_LINEAR);
     }
 
     B64Encode enc;
-    for (int y = 0; y < img->Size.GetHeight(); y++)
+    for (int y = 0; y < outHeight; y++)
     {
-        const unsigned short *p = img->ImageData + y * img->Size.GetWidth();
-        enc.append(p, img->Size.GetWidth() * sizeof(unsigned short));
+        // decimated.empty() when no resize happened - encode straight from the usImage.
+        // Otherwise use Mat::ptr<> so any per-row alignment padding is respected.
+        const unsigned short *row = decimated.empty()
+            ? (img->ImageData + y * width)
+            : decimated.ptr<unsigned short>(y);
+        enc.append(row, outWidth * sizeof(unsigned short));
     }
 
     JObj rslt;
-    rslt << NV("frame", img->FrameNum) << NV("width", img->Size.GetWidth()) << NV("height", img->Size.GetHeight()) << NV("pixels", enc.finish());
+    rslt << NV("frame", img->FrameNum)
+         << NV("width", outWidth)
+         << NV("height", outHeight)
+         << NV("scale", scale, 3)
+         << NV("pixels", enc.finish());
 
     response << jrpc_result(rslt);
 }
