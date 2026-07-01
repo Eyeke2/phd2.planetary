@@ -34,7 +34,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PHD2 2.6.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-23 11:49+0300\n"
+"POT-Creation-Date: 2026-07-01 22:03+0300\n"
 "PO-Revision-Date: 2025-11-13 11:45+0800\n"
 "Last-Translator: Tsung-Chi Wu <tc.wooo@gmail.com>\n"
 "Language-Team: 天體暨宇宙事件攝影觀測聯萌 <tc.wooo@gmail.com>\n"
@@ -2455,7 +2455,7 @@ msgid "Comet Tracking - Active"
 msgstr "彗星追蹤 - Active"
 
 #: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1499
-#: scope.cpp:2283
+#: scope.cpp:2293
 msgid "Enable"
 msgstr "啟用"
 
@@ -6450,7 +6450,7 @@ msgid ""
 msgstr ""
 "針對此設備組態腳本，當連接赤道儀後會自動恢復最近一次成功校準所得的資料。"
 
-#: myframe.cpp:3626 scope.cpp:2310
+#: myframe.cpp:3626 scope.cpp:2320
 msgid "Min"
 msgstr "最短"
 
@@ -6458,7 +6458,7 @@ msgstr "最短"
 msgid "Auto exposure minimum duration"
 msgstr "自動曝光的最短時間"
 
-#: myframe.cpp:3627 scope.cpp:2313
+#: myframe.cpp:3627 scope.cpp:2323
 msgid "Max"
 msgstr "最長"
 
@@ -8686,35 +8686,35 @@ msgstr "南向微調 %3d"
 msgid "Calibration complete"
 msgstr "校準完成"
 
-#: scope.cpp:2190
+#: scope.cpp:2200
 msgid "Mount Guide Algorithms"
 msgstr "赤道儀導星演算法"
 
-#: scope.cpp:2232
+#: scope.cpp:2242
 msgid "Calibration step (ms)"
 msgstr "校準步數 (ms)"
 
-#: scope.cpp:2233
+#: scope.cpp:2243
 msgid ""
 "How long a guide pulse should be used during calibration? Click \"Advanced..."
 "\" to compute a suitable value."
 msgstr "在校準時所用的導星脈衝長度? 點擊 “進階...”以計算適當的值。"
 
-#: scope.cpp:2237
+#: scope.cpp:2247
 msgid "Advanced..."
 msgstr "進階的..."
 
-#: scope.cpp:2239
+#: scope.cpp:2249
 msgid ""
 "Click to open the Calibration Calculator Dialog to review or change all "
 "calibration parameters"
 msgstr "點擊已開啟校準計算器交談框以檢視或更改所有的校準參數"
 
-#: scope.cpp:2251
+#: scope.cpp:2261
 msgid "Reverse Dec output after meridian flip"
 msgstr "過中天翻轉後同時反轉赤緯輸出"
 
-#: scope.cpp:2253
+#: scope.cpp:2263
 msgid ""
 "Check if your mount needs Dec output reversed after a meridian flip. "
 "Changing this setting will clear the existing calibration data"
@@ -8722,19 +8722,19 @@ msgstr ""
 "如所用的赤道儀需要在過中天翻轉後做赤緯反向輸出, 請勾選這個選項, 改動後會清除"
 "目前的校準結果"
 
-#: scope.cpp:2261
+#: scope.cpp:2271
 msgid "Stop guiding when mount slews"
 msgstr "赤道儀轉動時停止導星"
 
-#: scope.cpp:2263
+#: scope.cpp:2273
 msgid "When checked, PHD will stop guiding if the mount starts slewing"
 msgstr "當選用時, 假如赤道儀開始轉動, PHD 將會停止導星動作"
 
-#: scope.cpp:2268
+#: scope.cpp:2278
 msgid "Assume Dec orthogonal to RA"
 msgstr "假設赤緯軸與赤經軸完全垂直"
 
-#: scope.cpp:2271
+#: scope.cpp:2281
 msgid ""
 "Assume Dec axis is perpendicular to RA axis, regardless of calibration. "
 "Prevents RA periodic error from affecting Dec calibration. Option takes "
@@ -8743,49 +8743,49 @@ msgstr ""
 "假設赤緯軸正直於赤經軸，想避免赤經軸的週期性誤差影響赤緯校準，在校準赤委實可"
 "以檢核該選項."
 
-#: scope.cpp:2285
+#: scope.cpp:2295
 msgid ""
 "Check this if you want to apply a backlash compensation guide pulse when "
 "declination direction is reversed."
 msgstr "如果你想在赤緯軸方向翻轉時發送出回差補償導星訊號時, 請核選此選項。"
 
-#: scope.cpp:2294
+#: scope.cpp:2304
 msgid "Amount"
 msgstr "數量"
 
-#: scope.cpp:2294
+#: scope.cpp:2304
 msgid "Size of backlash compensation guide pulse (mSec)"
 msgstr "回差補償導星脈衝長度 (mSec)"
 
-#: scope.cpp:2298
+#: scope.cpp:2308
 msgid "Mount Backlash Compensation"
 msgstr "赤道儀回差補償"
 
-#: scope.cpp:2298
+#: scope.cpp:2308
 msgid "Backlash Compensation"
 msgstr "回差補償"
 
-#: scope.cpp:2311
+#: scope.cpp:2321
 msgid "Minimum length of backlash compensation pulse (mSec)."
 msgstr "回差補償脈衝最小長度 (mSec)."
 
-#: scope.cpp:2314
+#: scope.cpp:2324
 msgid "Maximum length of backlash compensation pulse (mSec)."
 msgstr "回差補償脈衝最大長度 (mSec)."
 
-#: scope.cpp:2321
+#: scope.cpp:2331
 msgid "Use Dec compensation"
 msgstr "使用赤緯補償"
 
-#: scope.cpp:2324
+#: scope.cpp:2334
 msgid "Automatically adjust RA guide rate based on scope declination"
 msgstr "依據赤道儀所指向的赤緯值自動調整赤經軸導星速率"
 
-#: scope.cpp:2330
+#: scope.cpp:2340
 msgid "Max RA duration"
 msgstr "最長的赤經週期時間"
 
-#: scope.cpp:2331 scope.cpp:2545
+#: scope.cpp:2341 scope.cpp:2555
 msgid ""
 "Longest length of pulse to send in RA\n"
 "Default = 2500 ms."
@@ -8793,11 +8793,11 @@ msgstr ""
 "赤經方向送出導星訊號的最長時間\n"
 "預設 = 2500ms。"
 
-#: scope.cpp:2336
+#: scope.cpp:2346
 msgid "Max Dec duration"
 msgstr "最大赤緯週期"
 
-#: scope.cpp:2337
+#: scope.cpp:2347
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms. NOTE: this will be ignored if backlash compensation is "
@@ -8806,19 +8806,19 @@ msgstr ""
 "發送至赤緯方向的脈衝最長時長預設值 = 2500 毫秒，注意：若回差補償功能已啟用，"
 "此設定將被忽略"
 
-#: scope.cpp:2350
+#: scope.cpp:2360
 msgid "Dec guide mode"
 msgstr "赤緯導星模式"
 
-#: scope.cpp:2351 scope.cpp:2564
+#: scope.cpp:2361 scope.cpp:2574
 msgid "Directions in which Dec guide commands will be issued"
 msgstr "送出赤緯導星命令的方向"
 
-#: scope.cpp:2547
+#: scope.cpp:2557
 msgid "Mx RA"
 msgstr "Mx RA"
 
-#: scope.cpp:2553
+#: scope.cpp:2563
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms.  Increase if drift is fast."
@@ -8826,7 +8826,7 @@ msgstr ""
 "赤緯方向導星訊號傳送的最長時間\n"
 "預設值 = 2500ms, 如果偏移量過大, 請增加該數值。"
 
-#: scope.cpp:2555
+#: scope.cpp:2565
 msgid "Mx DEC"
 msgstr "Mx DEC"
 
