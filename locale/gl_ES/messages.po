@@ -35,7 +35,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PHD2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-23 11:49+0300\n"
+"POT-Creation-Date: 2026-07-01 22:03+0300\n"
 "PO-Revision-Date: 2020-06-24 19:32+0200\n"
 "Last-Translator: Javier R. <frjaraur@gmail.com>\n"
 "Language-Team: LL@li.org\n"
@@ -2455,7 +2455,7 @@ msgid "Comet Tracking - Active"
 msgstr "Seguimento de Cometas - Activado"
 
 #: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1499
-#: scope.cpp:2283
+#: scope.cpp:2293
 msgid "Enable"
 msgstr "Habilitar"
 
@@ -6598,7 +6598,7 @@ msgstr ""
 "Para este perfil de equipo, restaura automaticamente os datos da última "
 "calibración que tivo éxito despois de que o fose estivese conectado."
 
-#: myframe.cpp:3626 scope.cpp:2310
+#: myframe.cpp:3626 scope.cpp:2320
 msgid "Min"
 msgstr "Mín"
 
@@ -6606,7 +6606,7 @@ msgstr "Mín"
 msgid "Auto exposure minimum duration"
 msgstr "Duración mínima de Autoexposición"
 
-#: myframe.cpp:3627 scope.cpp:2313
+#: myframe.cpp:3627 scope.cpp:2323
 msgid "Max"
 msgstr "Máx"
 
@@ -8921,35 +8921,35 @@ msgstr "Mover ó Sur %3d"
 msgid "Calibration complete"
 msgstr "Calibración completada"
 
-#: scope.cpp:2190
+#: scope.cpp:2200
 msgid "Mount Guide Algorithms"
 msgstr "Algoritmos de Guiado da Montura"
 
-#: scope.cpp:2232
+#: scope.cpp:2242
 msgid "Calibration step (ms)"
 msgstr "Pasos de Calibración (ms)"
 
-#: scope.cpp:2233
+#: scope.cpp:2243
 msgid ""
 "How long a guide pulse should be used during calibration? Click \"Advanced..."
 "\" to compute a suitable value."
 msgstr ""
 
-#: scope.cpp:2237
+#: scope.cpp:2247
 msgid "Advanced..."
 msgstr "Avanzado..."
 
-#: scope.cpp:2239
+#: scope.cpp:2249
 msgid ""
 "Click to open the Calibration Calculator Dialog to review or change all "
 "calibration parameters"
 msgstr ""
 
-#: scope.cpp:2251
+#: scope.cpp:2261
 msgid "Reverse Dec output after meridian flip"
 msgstr "Declinación Invertida tralo volteo por paso de meridiano"
 
-#: scope.cpp:2253
+#: scope.cpp:2263
 msgid ""
 "Check if your mount needs Dec output reversed after a meridian flip. "
 "Changing this setting will clear the existing calibration data"
@@ -8958,21 +8958,21 @@ msgstr ""
 "volteo por paso de meridiano. Ó cambiar isto perderanse os datos da "
 "calibración existente"
 
-#: scope.cpp:2261
+#: scope.cpp:2271
 msgid "Stop guiding when mount slews"
 msgstr "Deter o guiado cando a montura se despraza"
 
-#: scope.cpp:2263
+#: scope.cpp:2273
 msgid "When checked, PHD will stop guiding if the mount starts slewing"
 msgstr ""
 "Cando está seleccionado, PHD parará o guiado se a montura comeza a "
 "desprazarse"
 
-#: scope.cpp:2268
+#: scope.cpp:2278
 msgid "Assume Dec orthogonal to RA"
 msgstr "Asumir ortogonalidade de Dec en AR"
 
-#: scope.cpp:2271
+#: scope.cpp:2281
 msgid ""
 "Assume Dec axis is perpendicular to RA axis, regardless of calibration. "
 "Prevents RA periodic error from affecting Dec calibration. Option takes "
@@ -8982,7 +8982,7 @@ msgstr ""
 "Isto prevén que o erro periódico de AR afecte á calibración de Dec. Esta "
 "opción ten efecto cando se calibra DEC."
 
-#: scope.cpp:2285
+#: scope.cpp:2295
 msgid ""
 "Check this if you want to apply a backlash compensation guide pulse when "
 "declination direction is reversed."
@@ -8990,74 +8990,74 @@ msgstr ""
 "Marcar se queres aplicar a compensación de backlash ó pulso guía cando a "
 "dirección de declinación cambia."
 
-#: scope.cpp:2294
+#: scope.cpp:2304
 msgid "Amount"
 msgstr "Cantidade"
 
-#: scope.cpp:2294
+#: scope.cpp:2304
 msgid "Size of backlash compensation guide pulse (mSec)"
 msgstr "Tamaño do pulso de guiado de compensación de backlash (mSeg)"
 
-#: scope.cpp:2298
+#: scope.cpp:2308
 msgid "Mount Backlash Compensation"
 msgstr "Compensación do backlash da Montura"
 
-#: scope.cpp:2298
+#: scope.cpp:2308
 msgid "Backlash Compensation"
 msgstr "Compensación de Backlash"
 
-#: scope.cpp:2311
+#: scope.cpp:2321
 msgid "Minimum length of backlash compensation pulse (mSec)."
 msgstr "Pulso mínimo de compensación de backlash (mSeg)."
 
-#: scope.cpp:2314
+#: scope.cpp:2324
 msgid "Maximum length of backlash compensation pulse (mSec)."
 msgstr "Pulso máximo de compensación de backlash (mSeg)."
 
-#: scope.cpp:2321
+#: scope.cpp:2331
 msgid "Use Dec compensation"
 msgstr "Usar compensación en DEC"
 
-#: scope.cpp:2324
+#: scope.cpp:2334
 msgid "Automatically adjust RA guide rate based on scope declination"
 msgstr ""
 "Axustar automaticamente a taxa de guiado en AR en función da declinación do "
 "telescopio"
 
-#: scope.cpp:2330
+#: scope.cpp:2340
 msgid "Max RA duration"
 msgstr "Duración Máx AR"
 
-#: scope.cpp:2331 scope.cpp:2545
+#: scope.cpp:2341 scope.cpp:2555
 msgid ""
 "Longest length of pulse to send in RA\n"
 "Default = 2500 ms."
 msgstr "Tamaño maior de pulso que se envía en AR. Por defecto = 2500 ms."
 
-#: scope.cpp:2336
+#: scope.cpp:2346
 msgid "Max Dec duration"
 msgstr "Duración Máx DEC"
 
-#: scope.cpp:2337
+#: scope.cpp:2347
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms. NOTE: this will be ignored if backlash compensation is "
 "enabled"
 msgstr ""
 
-#: scope.cpp:2350
+#: scope.cpp:2360
 msgid "Dec guide mode"
 msgstr "Modo de guiado en DEC"
 
-#: scope.cpp:2351 scope.cpp:2564
+#: scope.cpp:2361 scope.cpp:2574
 msgid "Directions in which Dec guide commands will be issued"
 msgstr "Dirección nas que se emitirán os comandos de guía en Dec"
 
-#: scope.cpp:2547
+#: scope.cpp:2557
 msgid "Mx RA"
 msgstr "AR Mx"
 
-#: scope.cpp:2553
+#: scope.cpp:2563
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms.  Increase if drift is fast."
@@ -9065,7 +9065,7 @@ msgstr ""
 "Tamaño maior de pulso que se envía en declinación\n"
 "Por defecto = 2500ms. Incrementar se a deriva é máis rápida."
 
-#: scope.cpp:2555
+#: scope.cpp:2565
 msgid "Mx DEC"
 msgstr "DEC Mx"
 

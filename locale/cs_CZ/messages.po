@@ -35,7 +35,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PHD 3.6.13 dev7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-23 11:49+0300\n"
+"POT-Creation-Date: 2026-07-01 22:03+0300\n"
 "PO-Revision-Date: 2025-09-30 20:20+0200\n"
 "Last-Translator: \n"
 "Language-Team: Stanislav Holub\n"
@@ -2540,7 +2540,7 @@ msgid "Comet Tracking - Active"
 msgstr "Sledovat Kometu - Aktivní"
 
 #: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1499
-#: scope.cpp:2283
+#: scope.cpp:2293
 msgid "Enable"
 msgstr "Zapnout"
 
@@ -6680,7 +6680,7 @@ msgstr ""
 "U tohoto profilu zařízení automaticky obnovte data z poslední úspěšné "
 "kalibrace po připojení zařízení."
 
-#: myframe.cpp:3626 scope.cpp:2310
+#: myframe.cpp:3626 scope.cpp:2320
 msgid "Min"
 msgstr "Min"
 
@@ -6688,7 +6688,7 @@ msgstr "Min"
 msgid "Auto exposure minimum duration"
 msgstr "Minimální délka trvání automatické expozice"
 
-#: myframe.cpp:3627 scope.cpp:2313
+#: myframe.cpp:3627 scope.cpp:2323
 msgid "Max"
 msgstr "Max"
 
@@ -9015,15 +9015,15 @@ msgstr "Posunout na Jih %3d"
 msgid "Calibration complete"
 msgstr "Kalibrace dokončena"
 
-#: scope.cpp:2190
+#: scope.cpp:2200
 msgid "Mount Guide Algorithms"
 msgstr "Algoritmus Navádění Montáže"
 
-#: scope.cpp:2232
+#: scope.cpp:2242
 msgid "Calibration step (ms)"
 msgstr "Kalibrační krok (ms)"
 
-#: scope.cpp:2233
+#: scope.cpp:2243
 msgid ""
 "How long a guide pulse should be used during calibration? Click \"Advanced..."
 "\" to compute a suitable value."
@@ -9031,11 +9031,11 @@ msgstr ""
 "Jak dlouhý naváděcí impuls by měl být použit při kalibraci? Klikněte na "
 "tlačítko \"Pokročilý...\" a vypočítejte vhodnou hodnotu."
 
-#: scope.cpp:2237
+#: scope.cpp:2247
 msgid "Advanced..."
 msgstr "Pokročilý..."
 
-#: scope.cpp:2239
+#: scope.cpp:2249
 msgid ""
 "Click to open the Calibration Calculator Dialog to review or change all "
 "calibration parameters"
@@ -9043,11 +9043,11 @@ msgstr ""
 "Kliknutím otevřete Kalibrační Kalkulačku pro Kontrolu nebo změnu všech "
 "kalibračních parametrů"
 
-#: scope.cpp:2251
+#: scope.cpp:2261
 msgid "Reverse Dec output after meridian flip"
 msgstr "Obrátit výstup Dec po překlopení poledníku"
 
-#: scope.cpp:2253
+#: scope.cpp:2263
 msgid ""
 "Check if your mount needs Dec output reversed after a meridian flip. "
 "Changing this setting will clear the existing calibration data"
@@ -9055,19 +9055,19 @@ msgstr ""
 "Zkontrolujte, zda montáž po překlopení poledníku nepotřebuje obrácený výstup "
 "Dec. Upozorňujeme, že změna tohoto nastavení vymaže stávající kalibrační data"
 
-#: scope.cpp:2261
+#: scope.cpp:2271
 msgid "Stop guiding when mount slews"
 msgstr "Zastavit navádění při přejezdu montáže"
 
-#: scope.cpp:2263
+#: scope.cpp:2273
 msgid "When checked, PHD will stop guiding if the mount starts slewing"
 msgstr "Pokud je zaškrtnuto, PHD zastaví navádění, pokud se montáž přesouvá"
 
-#: scope.cpp:2268
+#: scope.cpp:2278
 msgid "Assume Dec orthogonal to RA"
 msgstr "Předpoklad, Dec je kolmo na RA"
 
-#: scope.cpp:2271
+#: scope.cpp:2281
 msgid ""
 "Assume Dec axis is perpendicular to RA axis, regardless of calibration. "
 "Prevents RA periodic error from affecting Dec calibration. Option takes "
@@ -9077,7 +9077,7 @@ msgstr ""
 "se zabrání tomu, aby periodická chyba RA ovlivnila kalibraci Dec. Tato "
 "možnost se projeví při kalibraci Dec."
 
-#: scope.cpp:2285
+#: scope.cpp:2295
 msgid ""
 "Check this if you want to apply a backlash compensation guide pulse when "
 "declination direction is reversed."
@@ -9085,44 +9085,44 @@ msgstr ""
 "Zaškrtněte tuto možnost, pokud chcete použít regulační impuls kompenzace "
 "vůle při změně směru deklinace."
 
-#: scope.cpp:2294
+#: scope.cpp:2304
 msgid "Amount"
 msgstr "Hodnota"
 
-#: scope.cpp:2294
+#: scope.cpp:2304
 msgid "Size of backlash compensation guide pulse (mSec)"
 msgstr "Velikost regulačního impulsu kompenzace zpětné vůle (ms)"
 
-#: scope.cpp:2298
+#: scope.cpp:2308
 msgid "Mount Backlash Compensation"
 msgstr "Kompenzaci Zpětné vůle Montáže"
 
-#: scope.cpp:2298
+#: scope.cpp:2308
 msgid "Backlash Compensation"
 msgstr "Kompenzace Zpětné Vůle"
 
-#: scope.cpp:2311
+#: scope.cpp:2321
 msgid "Minimum length of backlash compensation pulse (mSec)."
 msgstr "Minimální délka impulsu kompenzace vůle (ms)."
 
-#: scope.cpp:2314
+#: scope.cpp:2324
 msgid "Maximum length of backlash compensation pulse (mSec)."
 msgstr "Maximální délka impulsu kompenzace vůle (ms)."
 
-#: scope.cpp:2321
+#: scope.cpp:2331
 msgid "Use Dec compensation"
 msgstr "Použít kompenzaci Dec"
 
-#: scope.cpp:2324
+#: scope.cpp:2334
 msgid "Automatically adjust RA guide rate based on scope declination"
 msgstr ""
 "Automatické nastavení rychlosti navádění RA na základě deklinace dalekohledu"
 
-#: scope.cpp:2330
+#: scope.cpp:2340
 msgid "Max RA duration"
 msgstr "Maximální délka trvání RA"
 
-#: scope.cpp:2331 scope.cpp:2545
+#: scope.cpp:2341 scope.cpp:2555
 msgid ""
 "Longest length of pulse to send in RA\n"
 "Default = 2500 ms."
@@ -9130,11 +9130,11 @@ msgstr ""
 "Nejdelší délka impulsu v RA\n"
 "Výchozí hodnota = 2500 ms."
 
-#: scope.cpp:2336
+#: scope.cpp:2346
 msgid "Max Dec duration"
 msgstr "Maximální délka trvání Dec"
 
-#: scope.cpp:2337
+#: scope.cpp:2347
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms. NOTE: this will be ignored if backlash compensation is "
@@ -9144,19 +9144,19 @@ msgstr ""
 "Výchozí hodnota = 2500 ms. Poznámka: Tento údaj bude ignorován, pokud je "
 "aktivována kompenzace vůle"
 
-#: scope.cpp:2350
+#: scope.cpp:2360
 msgid "Dec guide mode"
 msgstr "Režim navádění Dec"
 
-#: scope.cpp:2351 scope.cpp:2564
+#: scope.cpp:2361 scope.cpp:2574
 msgid "Directions in which Dec guide commands will be issued"
 msgstr "Směry, ve kterých budou vydávány příkazy Dec"
 
-#: scope.cpp:2547
+#: scope.cpp:2557
 msgid "Mx RA"
 msgstr "RA Max"
 
-#: scope.cpp:2553
+#: scope.cpp:2563
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms.  Increase if drift is fast."
@@ -9164,7 +9164,7 @@ msgstr ""
 "Nejdelší délka impulsu v deklinaci\n"
 "Výchozí hodnota = 2500 ms.  Zvyšte, je-li posun rychlý."
 
-#: scope.cpp:2555
+#: scope.cpp:2565
 msgid "Mx DEC"
 msgstr "DEC Max"
 
