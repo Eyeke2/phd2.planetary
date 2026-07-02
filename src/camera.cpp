@@ -38,6 +38,7 @@
 
 #include "camera.h"
 #include "gear_simulator.h"
+#include "frame_export.h"
 
 #include <wx/stdpaths.h>
 
@@ -1623,6 +1624,12 @@ bool GuideCamera::Capture(GuideCamera *camera, usImage& img, const CaptureParams
         // scale the subframe from camera coords to binned coords
         img.Subframe = binned_rect(img.Subframe, swBinning);
     }
+
+#if defined(FRAME_MONITOR_CAMERA)
+    if (FrameExport::IsEnabled() && camera->Name != FRAME_MONITOR_CAMERA)
+        FrameExport::Publish(img.ImageData, img.Size.GetWidth(), img.Size.GetHeight(), img.BitsPerPixel, img.Binning,
+                             img.ImgExpDur, camera->GetCameraPixelSize());
+#endif
 
     return err;
 }

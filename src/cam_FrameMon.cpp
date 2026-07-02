@@ -35,10 +35,13 @@
 
 # include "phd.h"
 # include "camera.h"
+# include "frame_export.h"
+# include "shm_frame_layout.h"
 
 #if defined(FRAME_MONITOR_CAMERA)
 
 # include <atomic>
+# include <cmath>
 # include <opencv2/opencv.hpp>
 # include "cam_FrameMon.h"
 # include <wx/socket.h>
@@ -970,11 +973,217 @@ wxString CameraFrameMonitor::GetStrProperty(const wxString prop, int timeout)
     return wxEmptyString;
 }
 
+namespace {
+
+class ShmFrameChannel
+{
+public:
+    ShmFrameChannel()
+        : m_hMap(nullptr), m_hReady(nullptr), m_shm(nullptr), m_mapSize(0), m_nextSlot(0), m_counter(0)
+    {
+    }
+    ~ShmFrameChannel() { Close(); }
+
+    bool Open(int instance)
+    {
+        wxCriticalSectionLocker lock(m_lock);
+        if (m_shm)
+            return true;
+
+        m_mapSize = SHM_FRAME_PIXELS_OFFSET + (size_t) SHM_FRAME_SLOTS * SHM_FRAME_SLOT_BYTES;
+        wxString mapName = wxString::Format("Local\\phd2-solar.%d.frame", instance);
+        wxString evtName = wxString::Format("Local\\phd2-solar.%d.frameReady", instance);
+
+        uint64_t mapSize64 = (uint64_t) m_mapSize;
+        m_hMap = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, (DWORD) (mapSize64 >> 32),
+                                    (DWORD) (mapSize64 & 0xffffffffu), mapName.wc_str());
+        if (!m_hMap)
+        {
+            Debug.Write(wxString::Format("FrameExport: CreateFileMapping failed (%d)\n", (int) GetLastError()));
+            return false;
+        }
+        bool existed = (GetLastError() == ERROR_ALREADY_EXISTS);
+
+        m_shm = (ShmFrameLayout *) MapViewOfFile(m_hMap, FILE_MAP_ALL_ACCESS, 0, 0, m_mapSize);
+        if (!m_shm)
+        {
+            Debug.Write(wxString::Format("FrameExport: MapViewOfFile failed (%d)\n", (int) GetLastError()));
+            CloseInternal();
+            return false;
+        }
+
+        if (!existed)
+        {
+            memset((void *) m_shm, 0, sizeof(ShmFrameLayout));
+            m_shm->magic = SHM_FRAME_MAGIC;
+            m_shm->version = SHM_FRAME_VERSION;
+            m_shm->slotBytes = (uint32_t) SHM_FRAME_SLOT_BYTES;
+            m_shm->slotCount = SHM_FRAME_SLOTS;
+            m_shm->publishedSlot = -1;
+        }
+
+        m_hReady = CreateEventW(nullptr, FALSE, FALSE, evtName.wc_str());
+        if (!m_hReady)
+        {
+            Debug.Write(wxString::Format("FrameExport: CreateEvent failed (%d)\n", (int) GetLastError()));
+            CloseInternal();
+            return false;
+        }
+
+        m_nextSlot = 0;
+        Debug.Write(wxString::Format("FrameExport: opened %s (%llu bytes)\n", mapName, (unsigned long long) m_mapSize));
+        return true;
+    }
+
+    void Close()
+    {
+        wxCriticalSectionLocker lock(m_lock);
+        CloseInternal();
+    }
+
+    uint32_t Publish(const unsigned short *px, int w, int h, int bpp, int binning, int expMs, double pxUm)
+    {
+        wxCriticalSectionLocker lock(m_lock);
+        if (!m_shm || !px || w <= 0 || h <= 0)
+            return 0;
+
+        // Decimate uniformly (preserving aspect ratio) so an oversized frame fits the
+        // slot. HM maps its detected coordinates back to full frame via orig/buffer dims.
+        int decW = w, decH = h;
+        const unsigned short *srcData = px;
+        cv::Mat decimated;
+        if ((size_t) w * h * 2 > m_shm->slotBytes)
+        {
+            double s = std::sqrt((double) ((size_t) w * h * 2) / (double) m_shm->slotBytes);
+            decW = (int) (w / s);
+            decH = (int) (h / s);
+            while (decW > 1 && decH > 1 && (size_t) decW * decH * 2 > m_shm->slotBytes)
+            {
+                decW = (decW * 63) / 64;
+                decH = (decH * 63) / 64;
+            }
+            if (decW < 1 || decH < 1)
+                return 0;
+            cv::Mat full(h, w, CV_16UC1, (void *) px);
+            cv::resize(full, decimated, cv::Size(decW, decH), 0, 0, cv::INTER_AREA);
+            if (!decimated.isContinuous())
+                decimated = decimated.clone();
+            srcData = (const unsigned short *) decimated.data;
+        }
+
+        size_t bytes = (size_t) decW * decH * 2;
+
+        int slot = m_nextSlot;
+        m_nextSlot ^= 1;
+
+        InterlockedIncrement((volatile LONG *) &m_shm->seq[slot]);
+
+        ShmFrameMeta& m = m_shm->meta[slot];
+        m.dataLength = (uint32_t) bytes;
+        m.width = (uint16_t) decW;
+        m.height = (uint16_t) decH;
+        m.origWidth = (uint16_t) w;
+        m.origHeight = (uint16_t) h;
+        m.binning = (uint16_t) binning;
+        m.exposureMs = (uint16_t) (expMs > 0 ? expMs : 0);
+        m.bitsPerPixel = (uint16_t) bpp;
+        m.reserved = 0;
+        m.pixelSize = (uint32_t) (pxUm > 0 ? pxUm * 1e6 + 0.5 : 0);
+        m.frameCounter = ++m_counter;
+        m.timestamp = ::wxGetUTCTimeMillis().GetValue() / 1000.0;
+
+        memcpy((char *) m_shm + SHM_FRAME_PIXELS_OFFSET + (size_t) slot * m_shm->slotBytes, srcData, bytes);
+
+        InterlockedIncrement((volatile LONG *) &m_shm->seq[slot]);
+        InterlockedExchange((volatile LONG *) &m_shm->publishedSlot, slot);
+        SetEvent(m_hReady);
+        return m.frameCounter;
+    }
+
+private:
+    void CloseInternal()
+    {
+        if (m_shm)
+        {
+            UnmapViewOfFile((void *) m_shm);
+            m_shm = nullptr;
+        }
+        if (m_hMap)
+        {
+            CloseHandle(m_hMap);
+            m_hMap = nullptr;
+        }
+        if (m_hReady)
+        {
+            CloseHandle(m_hReady);
+            m_hReady = nullptr;
+        }
+    }
+
+    wxCriticalSection m_lock;
+    HANDLE m_hMap;
+    HANDLE m_hReady;
+    ShmFrameLayout *m_shm;
+    size_t m_mapSize;
+    int m_nextSlot;
+    uint32_t m_counter;
+};
+
+static ShmFrameChannel s_frameChannel;
+static std::atomic<bool> s_frameExportEnabled{ false };
+static std::atomic<uint32_t> s_lastFrame{ 0 };
+
+} // namespace
+
+bool FrameExport::Available()
+{
+    return true;
+}
+
+bool FrameExport::Enable(bool on)
+{
+    if (on)
+        s_frameExportEnabled = s_frameChannel.Open(wxGetApp().GetInstanceNumber());
+    else
+    {
+        s_frameExportEnabled = false;
+        s_frameChannel.Close();
+    }
+    Debug.Write(wxString::Format("FrameExport: %s\n", s_frameExportEnabled.load() ? "enabled" : "disabled"));
+    return on ? s_frameExportEnabled.load() : true;
+}
+
+bool FrameExport::IsEnabled()
+{
+    return s_frameExportEnabled.load();
+}
+
+uint32_t FrameExport::CurrentFrame()
+{
+    return s_lastFrame.load();
+}
+
+void FrameExport::Publish(const unsigned short *pixels, int width, int height, int bitsPerPixel, int binning,
+                          int exposureMs, double pixelSizeUm)
+{
+    if (!s_frameExportEnabled.load())
+        return;
+    uint32_t frame = s_frameChannel.Publish(pixels, width, height, bitsPerPixel, binning, exposureMs, pixelSizeUm);
+    if (frame)
+        s_lastFrame = frame;
+}
+
 #else
 
 wxString GetFrameMonitorLabel()
 {
     return wxString();
 }
+
+bool FrameExport::Available() { return false; }
+bool FrameExport::Enable(bool) { return false; }
+bool FrameExport::IsEnabled() { return false; }
+uint32_t FrameExport::CurrentFrame() { return 0; }
+void FrameExport::Publish(const unsigned short *, int, int, int, int, int, double) { }
 
 #endif // FRAME_MONITOR_CAMERA

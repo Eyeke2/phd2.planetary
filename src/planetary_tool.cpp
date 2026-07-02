@@ -35,6 +35,7 @@
 
 #include "phd.h"
 #include "planetary_tool.h"
+#include "frame_export.h"
 
 #include <wx/tooltip.h>
 
@@ -1339,7 +1340,7 @@ void PlanetToolWin::UpdateStatus()
     m_maxRadius->Enable(enabled && !surfaceTracking);
 
 #if defined(FRAME_MONITOR_CAMERA)
-    if (pCamera && pCamera->Name == FRAME_MONITOR_CAMERA)
+    if ((pCamera && pCamera->Name == FRAME_MONITOR_CAMERA) || FrameExport::IsEnabled())
     {
         m_RoiCheckBox->SetValue(false);
         m_ShowElements->SetValue(false);

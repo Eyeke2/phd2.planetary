@@ -34,6 +34,7 @@
 
 #include "phd.h"
 #include "cam_FrameMon.h"
+#include "frame_export.h"
 #include "planetary.h"
 #include "planetary_tool.h"
 
@@ -55,7 +56,7 @@ static float gaussianWeight[GAUSSIAN_SIZE];
 #define HOMOGRAPHY_DIST_THRESHOLD 5.0
 
 // Initialize solar/planetary detection module
-SolarSystemObject::SolarSystemObject()
+SolarSystemObject::SolarSystemObject() : m_remoteDetCond(m_remoteDetMutex)
 {
     m_requestPlanetaryModeUpdate = false;
     m_paramEnabled = false;
@@ -937,7 +938,6 @@ public:
     {
         radius = 0;
     }
-    // A thread function to run HoughCircles method
     wxThread::ExitCode Entry()
     {
         SetThreadName("PHD2 Planetary Score");
@@ -1634,6 +1634,74 @@ void SolarSystemObject::CheckMountTrackingState()
 }
 
 // Find object in the given image
+#define REMOTE_DETECTION_TIMEOUT_MS 15000
+
+void SolarSystemObject::SetRemoteDetectionResult(const RemoteDetection& result)
+{
+    wxMutexLocker lock(m_remoteDetMutex);
+    m_remoteDetection = result;
+    m_remoteDetection.valid = true;
+    m_remoteDetCond.Broadcast();
+}
+
+void SolarSystemObject::WaitRemoteDetection(uint32_t frame)
+{
+    EvtServer.NotifyDetectionRequest((int) frame);
+
+    wxMutexLocker lock(m_remoteDetMutex);
+    wxStopWatch sw;
+    while (!(m_remoteDetection.valid && m_remoteDetection.frame >= frame))
+    {
+        long remaining = REMOTE_DETECTION_TIMEOUT_MS - sw.Time();
+        if (remaining <= 0 || !FrameExport::IsEnabled())
+            break;
+        m_remoteDetCond.WaitTimeout(remaining < 200 ? remaining : 200);
+    }
+}
+
+bool SolarSystemObject::ConsumeRemoteDetection()
+{
+    uint32_t frame = FrameExport::CurrentFrame();
+    RemoteDetection result;
+    {
+        wxMutexLocker lock(m_remoteDetMutex);
+        result = m_remoteDetection;
+    }
+
+    m_remoteData = true;
+    m_detectionTime = -1;
+
+    if (!result.valid || result.frame < frame || !result.detected)
+    {
+        m_detected = false;
+        return false;
+    }
+
+    m_center_x = result.x;
+    m_center_y = result.y;
+    m_radius = result.radius;
+    m_searchRegion = result.radius;
+    SetLimits(result.minRadius, result.maxRadius);
+    m_snr = result.snr;
+    m_mass = result.mass;
+    m_peak = result.peak;
+    m_focusSharpness = result.sharpness;
+    m_detectedFeatures = result.features;
+    m_planetaryContourPoints = result.features;
+    m_planetaryFittingScore = result.quality;
+    m_surf.variance = result.dispersion;
+    if (result.roiW > 0 && result.roiH > 0)
+    {
+        m_roiRect = Rect(result.roiX, result.roiY, result.roiW, result.roiH);
+        m_roiActive = true;
+    }
+    m_detected = true;
+
+    pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), m_planetaryContourPoints);
+    pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), m_planetaryFittingScore);
+    return true;
+}
+
 bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSelect)
 {
     m_SolarSystemObjWatchdog.Start();
@@ -1695,11 +1763,19 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
         return false;
     }
 
+    // In HM-driven mode detection is offloaded, so the ROI crop and 8-bit
+    // conversion below are skipped to keep the real-time path slim.
+#if defined(FRAME_MONITOR_CAMERA)
+    bool hmDriven = FrameExport::IsEnabled() && pCamera && pCamera->Name != FRAME_MONITOR_CAMERA;
+#else
+    bool hmDriven = false;
+#endif
+
     // Limit image processing to ROI when enabled
     Mat RoiFrame;
     Rect roiRect(0, 0, pImage->Size.GetWidth(), pImage->Size.GetHeight());
-    if (!autoSelect && GetRoiEnableState() && m_detected && !GetSurfaceTrackingState() && (m_center_x < m_frameWidth) &&
-        (m_center_y < m_frameHeight) && (m_frameWidth == pImage->Size.GetWidth()) &&
+    if (!hmDriven && !autoSelect && GetRoiEnableState() && m_detected && !GetSurfaceTrackingState() &&
+        (m_center_x < m_frameWidth) && (m_center_y < m_frameHeight) && (m_frameWidth == pImage->Size.GetWidth()) &&
         (m_frameHeight == pImage->Size.GetHeight()))
     {
         float fraction = (m_userLClick && (m_detectionCounter <= 4)) ? (1.0 - m_detectionCounter / 4.0) : 0.0;
@@ -1723,7 +1799,8 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
     // we should properly scale the image.
     Mat img8;
     int bppFactor = (pImage->BitsPerPixel >= 8) ? 1 << (pImage->BitsPerPixel - 8) : 1;
-    RoiFrame.convertTo(img8, CV_8U, 1.0 / bppFactor);
+    if (!hmDriven)
+        RoiFrame.convertTo(img8, CV_8U, 1.0 / bppFactor);
 
     // Save latest frame dimensions
     m_frameWidth = pImage->Size.GetWidth();
@@ -1747,16 +1824,20 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
     bool detectionResult = false;
     try
     {
-        // Find object depending on the selected detection mode
-        switch (GetPlanetDetectMode())
-        {
-        case DETECTION_MODE_SURFACE:
-            detectionResult = GetSurfaceFeatures();
-            break;
-        case DETECTION_MODE_DISK:
-            detectionResult = FindOrbisCenter(img8, minRadius, maxRadius, roiActive, clickedPoint, roiRect, activeRoiLimits, distanceRoiMax);
-            break;
-        }
+        if (hmDriven)
+            detectionResult = ConsumeRemoteDetection();
+        else
+            // Find object depending on the selected detection mode
+            switch (GetPlanetDetectMode())
+            {
+            case DETECTION_MODE_SURFACE:
+                detectionResult = GetSurfaceFeatures();
+                break;
+            case DETECTION_MODE_DISK:
+                detectionResult = FindOrbisCenter(img8, minRadius, maxRadius, roiActive, clickedPoint, roiRect,
+                                                  activeRoiLimits, distanceRoiMax);
+                break;
+            }
     }
     catch (const cv::Exception& ex)
     {
