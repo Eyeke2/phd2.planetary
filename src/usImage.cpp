@@ -36,6 +36,12 @@
 #include "image_math.h"
 
 #include <algorithm>
+#include <opencv2/opencv.hpp>
+
+// Reused across frames to avoid a 256 KB allocation per CalcStats call. Correctness
+// does not depend on initial contents: scan() zeroes each bin in [MinADU,MaxADU]
+// before use and median() reads only that range.
+static thread_local int s_histoBuf[65536];
 
 class HistogramBuilder
 {
@@ -44,15 +50,7 @@ public:
     unsigned short MinADU, MaxADU;
     int pixCount;
 
-    HistogramBuilder()
-    {
-        histo = new int[65536];
-        MinADU = 0;
-        MaxADU = 0;
-        pixCount = 0;
-    }
-
-    ~HistogramBuilder() { delete[] histo; }
+    HistogramBuilder() : histo(s_histoBuf), MinADU(0), MaxADU(0), pixCount(0) { }
 
     unsigned short median() const
     {
@@ -144,6 +142,20 @@ void usImage::SwapImageData(usImage& other)
     other.ImageData = t;
 }
 
+// FiltMin/FiltMax = min/max of the 3x3 median-filtered image (robust to hot/cold pixels).
+// src is a contiguous w*h 16-bit buffer.
+static void CalcFiltMinMax(const unsigned short *src, int w, int h, unsigned short& filtMin, unsigned short& filtMax)
+{
+    cv::Mat srcMat(h, w, CV_16UC1, (void *) src);
+    cv::Mat med;
+    cv::medianBlur(srcMat, med, 3);
+
+    double mn, mx;
+    cv::minMaxLoc(med, &mn, &mx);
+    filtMin = (unsigned short) mn;
+    filtMax = (unsigned short) mx;
+}
+
 void usImage::CalcStats()
 {
     if (!ImageData || !NPixels)
@@ -164,21 +176,7 @@ void usImage::CalcStats()
         MaxADU = hb.MaxADU;
         MedianADU = hb.median();
 
-        unsigned short *tmpdata = new unsigned short[NPixels];
-
-        Median3(tmpdata, ImageData, Size, wxRect(Size));
-
-        const unsigned short *src = tmpdata;
-        for (unsigned int i = 0; i < NPixels; i++)
-        {
-            unsigned short d = *src++;
-            if (d < FiltMin)
-                FiltMin = d;
-            if (d > FiltMax)
-                FiltMax = d;
-        }
-
-        delete[] tmpdata;
+        CalcFiltMinMax(ImageData, Size.GetWidth(), Size.GetHeight(), FiltMin, FiltMax);
     }
     else
     {
@@ -206,21 +204,8 @@ void usImage::CalcStats()
         MaxADU = hb.MaxADU;
         MedianADU = hb.median();
 
-        dst = new unsigned short[pixcnt];
+        CalcFiltMinMax(tmpdata, Subframe.width, Subframe.height, FiltMin, FiltMax);
 
-        Median3(dst, tmpdata, Subframe.GetSize(), wxRect(Subframe.GetSize()));
-
-        const unsigned short *src = dst;
-        for (unsigned int i = 0; i < pixcnt; i++)
-        {
-            unsigned short d = *src++;
-            if (d < FiltMin)
-                FiltMin = d;
-            if (d > FiltMax)
-                FiltMax = d;
-        }
-
-        delete[] dst;
         delete[] tmpdata;
     }
 }
