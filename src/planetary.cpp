@@ -943,11 +943,12 @@ public:
         SetThreadName("PHD2 Planetary Score");
         for (const Point2f& point : points)
         {
-            float score = ::CalcContourScore(radius, point, contour, minRadius, maxRadius);
+            float pointRadius = 0;
+            float score = ::CalcContourScore(pointRadius, point, contour, minRadius, maxRadius);
             if (score > threadBestScore)
             {
                 threadBestScore = score;
-                radius = radius;
+                radius = pointRadius;
                 center.x = point.x;
                 center.y = point.y;
             }
