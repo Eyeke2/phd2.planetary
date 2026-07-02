@@ -34,6 +34,7 @@
  */
 
 #include "phd.h"
+#include "frame_export.h"
 
 WorkerThread::WorkerThread(MyFrame *pFrame, const char *threadName)
     : wxThread(wxTHREAD_JOINABLE), m_pFrame(pFrame), m_threadName(threadName), m_interruptRequested(0), m_killable(true),
@@ -260,6 +261,11 @@ bool WorkerThread::HandleExpose(EXPOSE_REQUEST *req)
             }
 
             req->pImage->CalcStats();
+
+#if defined(FRAME_MONITOR_CAMERA)
+            if (FrameExport::IsEnabled() && pCamera && pCamera->Name != FRAME_MONITOR_CAMERA)
+                m_pFrame->pGuider->m_SolarSystemObject.WaitRemoteDetection(FrameExport::CurrentFrame());
+#endif
         }
     }
     catch (const wxString& Msg)

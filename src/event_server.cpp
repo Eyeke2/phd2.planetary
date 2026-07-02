@@ -35,6 +35,7 @@
 
 #include "phd.h"
 #include "guiding_assistant.h"
+#include "frame_export.h"
 
 #include <cmath>
 #include <wx/sstream.h>
@@ -74,17 +75,27 @@ enum
 
 #define MSG_EXTENTED_PROTOCOL_VERSION_SOLAR1 "solar.1"
 #define MSG_EXTENTED_PROTOCOL_VERSION_SOLAR2 "solar.2"
+#define MSG_EXTENTED_PROTOCOL_VERSION_SOLAR3 "solar.3"
 
 enum EXT_PROTOCOL_VERSION
 {
     EXT_PROTOCOL_UNSPECIFIED = 0,
     EXT_PROTOCOL_SOLAR1 = 1,
     EXT_PROTOCOL_SOLAR2 = 2,
+    EXT_PROTOCOL_SOLAR3 = 3,
 };
 
 static const char *ext_protocol_version_name(EXT_PROTOCOL_VERSION version)
 {
-    return version == EXT_PROTOCOL_SOLAR2 ? MSG_EXTENTED_PROTOCOL_VERSION_SOLAR2 : MSG_EXTENTED_PROTOCOL_VERSION_SOLAR1;
+    switch (version)
+    {
+    case EXT_PROTOCOL_SOLAR3:
+        return MSG_EXTENTED_PROTOCOL_VERSION_SOLAR3;
+    case EXT_PROTOCOL_SOLAR2:
+        return MSG_EXTENTED_PROTOCOL_VERSION_SOLAR2;
+    default:
+        return MSG_EXTENTED_PROTOCOL_VERSION_SOLAR1;
+    }
 }
 
 static bool protocol_is_solar2(EXT_PROTOCOL_VERSION protocol)
@@ -823,6 +834,8 @@ static void set_extended_protocol(JObj& response, const json_value *params, Clie
         protocol = EXT_PROTOCOL_SOLAR1;
     else if (strcmp(version->string_value, MSG_EXTENTED_PROTOCOL_VERSION_SOLAR2) == 0)
         protocol = EXT_PROTOCOL_SOLAR2;
+    else if (strcmp(version->string_value, MSG_EXTENTED_PROTOCOL_VERSION_SOLAR3) == 0)
+        protocol = EXT_PROTOCOL_SOLAR3;
     else
     {
         response << jrpc_error(JSONRPC_INVALID_PARAMS, "unsupported protocol version");
@@ -839,6 +852,8 @@ static void set_extended_protocol(JObj& response, const json_value *params, Clie
 
     JObj rslt;
     rslt << NV("protocol", ext_protocol_version_name(protocol));
+    if (protocol >= EXT_PROTOCOL_SOLAR3)
+        rslt << NV("frame_export", FrameExport::Available());
     response << jrpc_result(rslt);
 }
 
@@ -3032,6 +3047,117 @@ static void get_process_id(JObj& response, const json_value *params)
     response << jrpc_result((int) wxGetProcessId());
 }
 
+// The single event-server client that enabled shared-memory frame export.
+// Export is auto-disabled if this client disconnects.
+static wxSocketClient *s_frameExportClient = nullptr;
+
+static void set_frame_export(JObj& response, const json_value *params, ClientData *cd)
+{
+    Params p("enabled", params);
+    const json_value *val = p.param("enabled");
+    if (!val || val->type != JSON_BOOL)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected enabled param");
+        return;
+    }
+    bool enable = val->int_value != 0;
+
+    // Single owner: reject if another client currently holds frame export.
+    if (s_frameExportClient && cd && s_frameExportClient != cd->cli)
+    {
+        response << jrpc_error(1, "frame export already in use by another client");
+        return;
+    }
+
+    if (enable && !FrameExport::Available())
+    {
+        response << jrpc_error(1, "frame export not supported on this platform");
+        return;
+    }
+
+    if (!FrameExport::Enable(enable))
+    {
+        s_frameExportClient = nullptr;
+        response << jrpc_error(1, "failed to open shared memory frame channel");
+        return;
+    }
+
+    s_frameExportClient = (enable && FrameExport::IsEnabled() && cd) ? cd->cli : nullptr;
+    response << jrpc_result(FrameExport::IsEnabled() ? 1 : 0);
+}
+
+static void get_frame_export(JObj& response, const json_value *params)
+{
+    response << jrpc_result(FrameExport::IsEnabled() ? 1 : 0);
+}
+
+static void set_planet_detection(JObj& response, const json_value *params)
+{
+    if (!params || params->type != JSON_OBJECT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected detection result object");
+        return;
+    }
+    if (!pFrame->pGuider)
+    {
+        response << jrpc_error(1, "guider not connected");
+        return;
+    }
+
+    Params p("frame", params);
+    auto getInt = [&p](const char *name, int def) -> int {
+        const json_value *v = p.param(name);
+        if (!v)
+            return def;
+        if (v->type == JSON_INT || v->type == JSON_BOOL)
+            return v->int_value;
+        if (v->type == JSON_FLOAT)
+            return (int) v->float_value;
+        return def;
+    };
+    auto getDouble = [&p](const char *name, double def) -> double {
+        const json_value *v = p.param(name);
+        if (!v)
+            return def;
+        if (v->type == JSON_FLOAT)
+            return v->float_value;
+        if (v->type == JSON_INT)
+            return v->int_value;
+        return def;
+    };
+    auto getBool = [&p](const char *name, bool def) -> bool {
+        const json_value *v = p.param(name);
+        if (!v)
+            return def;
+        if (v->type == JSON_BOOL || v->type == JSON_INT)
+            return v->int_value != 0;
+        return def;
+    };
+
+    SolarSystemObject::RemoteDetection r;
+    r.frame = (uint32_t) getInt("frame", 0);
+    r.detected = getBool("detected", false);
+    r.x = (float) getDouble("x", 0);
+    r.y = (float) getDouble("y", 0);
+    r.radius = getInt("radius", 0);
+    r.minRadius = getInt("min_radius", 0);
+    r.maxRadius = getInt("max_radius", 0);
+    r.peak = getInt("peak", 0);
+    r.features = getInt("features", 0);
+    r.mass = getDouble("mass", 0);
+    r.snr = getDouble("snr", 0);
+    r.sharpness = getDouble("sharpness", 0);
+    r.quality = getDouble("quality", 0);
+    r.dispersion = getDouble("dispersion", 0);
+    r.roiX = getInt("roi_x", 0);
+    r.roiY = getInt("roi_y", 0);
+    r.roiW = getInt("roi_w", 0);
+    r.roiH = getInt("roi_h", 0);
+
+    pFrame->pGuider->m_SolarSystemObject.SetRemoteDetectionResult(r);
+    response << jrpc_result(0);
+}
+
 static void set_planet_size(JObj& response, const json_value *params)
 {
     Params p("radii", params);
@@ -4042,6 +4168,9 @@ static bool handle_request(JRpcCall& call)
         { "set_mount_tracking", &set_mount_tracking },
         { "set_surf_mode", &set_surf_mode },
         { "get_surf_mode", &get_surf_mode },
+        { "set_frame_export", nullptr, EXT_PROTOCOL_SOLAR3, &set_frame_export },
+        { "get_frame_export", &get_frame_export, EXT_PROTOCOL_SOLAR3 },
+        { "set_planet_detection", &set_planet_detection, EXT_PROTOCOL_SOLAR3 },
         { "get_process_id", &get_process_id },
         { "set_planet_size", &set_planet_size},
         { "set_cal_step", &set_cal_step },
@@ -4311,6 +4440,12 @@ void EventServer::OnEventServerClientEvent(wxSocketEvent& event)
         unsigned int const n = m_eventServerClients.erase(cli);
         if (n != 1)
             Debug.AddLine("client disconnected but not present in client set!");
+
+        if (cli == s_frameExportClient)
+        {
+            s_frameExportClient = nullptr;
+            FrameExport::Enable(false);
+        }
 
         destroy_client(cli);
     }
@@ -4738,6 +4873,14 @@ void EventServer::NotifyPlanetaryDetection(bool detected, int points, double sco
     ev << NV("points", points);
     ev << NV("score", score);
     ev << NV("radius", radius);
+    do_notify(m_eventServerClients, ev);
+}
+
+void EventServer::NotifyDetectionRequest(int frame)
+{
+    wxMutexLocker lck(m_clientsLock);
+    Ev ev("DetectionRequest");
+    ev << NV("frame", frame);
     do_notify(m_eventServerClients, ev);
 }
 

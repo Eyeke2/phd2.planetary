@@ -218,6 +218,31 @@ public:
     int Get_highThreshold() { return m_paramHighThreshold; }
     bool SetLimits(int minRadius, int maxRadius);
 
+    struct RemoteDetection
+    {
+        uint32_t frame = 0;
+        bool valid = false;
+        bool detected = false;
+        float x = 0;
+        float y = 0;
+        int radius = 0;
+        int minRadius = 0;
+        int maxRadius = 0;
+        int peak = 0;
+        int features = 0;
+        double mass = 0;
+        double snr = 0;
+        double sharpness = 0;
+        double quality = 0;
+        double dispersion = 0;
+        int roiX = 0;
+        int roiY = 0;
+        int roiW = 0;
+        int roiH = 0;
+    };
+    void SetRemoteDetectionResult(const RemoteDetection& result);
+    void WaitRemoteDetection(uint32_t frame);
+
     bool GetMountTrackingState(bool& trackingValid, bool& tracking, wxString& rate, bool& offsetsValid, double& raOffset,
                                double& decOffset);
     bool SetMountTrackingRate(const wxString& rate, double ra_rate, double dec_rate);
@@ -293,6 +318,11 @@ private:
     bool GetSurfaceFeatures();
     void UpdateDetectionErrorInSimulator(cv::Point2f& clickedPoint);
     void CheckMountTrackingState();
+    bool ConsumeRemoteDetection();
+
+    RemoteDetection m_remoteDetection;
+    wxMutex m_remoteDetMutex;
+    wxCondition m_remoteDetCond;
 };
 
 // Queued message details

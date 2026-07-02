@@ -94,6 +94,7 @@ public:
     void NotifyGearChange();
     void NotifyStartCapture();
     void NotifyPlanetaryDetection(bool detected, int points, double score, int radius);
+    void NotifyDetectionRequest(int frame);
     void NotifyPlanetMetrics(double snr, double mass, int peak);
     void NotifyMouseClick(PHD_Point& point);
     void NotifyAutoSelect();
