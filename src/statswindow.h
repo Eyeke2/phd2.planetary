@@ -64,7 +64,7 @@ public:
     void UpdateImageSize(const wxSize& frameSize);
     void ResetImageSize();
     void ShowPlanetStats(bool show);
-    void UpdatePlanetDetectionTime(int msec);
+    void UpdateFrameLatency(double msec);
     void UpdatePlanetFeatureCount(wxString label, int count);
     void UpdatePlanetFeatureCount(wxString label, int count1, int count2);
     void UpdatePlanetScore(wxString label, float score = 0);

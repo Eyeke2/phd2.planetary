@@ -35,6 +35,15 @@
 #ifndef USIMAGECLASS
 #define USIMAGECLASS
 
+#include <chrono>
+
+// Monotonic high-resolution clock in microseconds, for interval/latency measurement.
+inline long long SteadyClockUs()
+{
+    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch())
+        .count();
+}
+
 class usImage
 {
 public:
@@ -56,10 +65,11 @@ public:
     unsigned int Gain;
     unsigned short Pedestal;
     unsigned int FrameNum;
+    long long AcqEndUs; // steady-clock microseconds at end of frame acquisition (0 = unset)
 
     usImage()
         : ImageData(nullptr), NPixels(0), MinADU(0), MaxADU(0), MedianADU(0), FiltMin(0), FiltMax(0), ImgExpDur(0),
-          ImgStackCnt(1), Binning(0), BitsPerPixel(0), Gain(0), Pedestal(0), FrameNum(0)
+          ImgStackCnt(1), Binning(0), BitsPerPixel(0), Gain(0), Pedestal(0), FrameNum(0), AcqEndUs(0)
     {
     }
     ~usImage() { delete[] ImageData; }

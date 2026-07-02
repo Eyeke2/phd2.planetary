@@ -143,8 +143,8 @@ StatsWindow::StatsWindow(wxWindow *parent)
     m_grid3->SetGridLineColour(wxColour(40, 40, 40));
 
     row = 0, col = 0;
-    m_grid3->SetCellValue(row, col++, _("Detection time"));
-    m_grid3->SetCellValue(row, col, _("000000 ms"));
+    m_grid3->SetCellValue(row, col++, _("Frame latency"));
+    m_grid3->SetCellValue(row, col, _("0000.0 ms"));
     ++row, col = 0;
     m_grid3->SetCellValue(row, col++, _("Contours/points"));
     m_grid3->SetCellValue(row, col, _("9999/9999"));
@@ -365,9 +365,9 @@ void StatsWindow::ShowSimulatorStats(bool show)
         m_grid3->HideRow(3);
 }
 
-void StatsWindow::UpdatePlanetDetectionTime(int msec)
+void StatsWindow::UpdateFrameLatency(double msec)
 {
-    wxString timeStr = wxString::Format(_T("%d ms"), msec);
+    wxString timeStr = msec >= 0 ? wxString::Format(_T("%.1f ms"), msec) : _("n/a");
     m_grid3->SetCellValue(0, 1, timeStr);
 }
 
