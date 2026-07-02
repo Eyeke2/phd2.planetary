@@ -1607,6 +1607,8 @@ bool GuideCamera::Capture(GuideCamera *camera, usImage& img, const CaptureParams
     if (err)
         return err;
 
+    img.AcqEndUs = SteadyClockUs();
+
     // perform software binning if needed
     if (swBinning > 1)
     {

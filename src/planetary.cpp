@@ -1870,8 +1870,9 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
         Debug.Write(wxString::Format("Find solar system object: OpenCV exception %s\n", ex.what()));
     }
 
-    // Update detection time stats
-    pFrame->pStatsWin->UpdatePlanetDetectionTime(m_detectionTime > 0 ? m_detectionTime : m_SolarSystemObjWatchdog.Time());
+    // Frame latency: from end of frame acquisition until detection results are ready
+    double frameLatencyMs = (pImage->AcqEndUs > 0) ? (SteadyClockUs() - pImage->AcqEndUs) / 1000.0 : -1.0;
+    pFrame->pStatsWin->UpdateFrameLatency(frameLatencyMs);
 
     // Notify the server about the detection result
     if (!m_remoteData && GetPlanetDetectMode() == DETECTION_MODE_DISK)
