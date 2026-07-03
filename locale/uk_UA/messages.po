@@ -30,7 +30,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: open-phd-guiding\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-01 22:03+0300\n"
+"POT-Creation-Date: 2026-07-06 16:49+0300\n"
 "PO-Revision-Date: 2014-12-23 17:30+0100\n"
 "Last-Translator: Oleh Malyi <astroclubzp@gmail.com>\n"
 "Language-Team: UA\n"
@@ -53,7 +53,7 @@ msgstr "Загальні"
 
 #: advanced_dialog.cpp:100 advanced_dialog.cpp:176 aui_controls.cpp:690
 #: cam_firewire_IC.cpp:135 config_indi.cpp:106 gear_dialog.cpp:253
-#: gear_dialog.cpp:256 gear_simulator.cpp:2299
+#: gear_dialog.cpp:256 gear_simulator.cpp:2579
 msgid "Camera"
 msgstr "Камера"
 
@@ -81,7 +81,7 @@ msgstr ""
 
 #: advanced_dialog.cpp:383 aui_controls.cpp:699 calreview_dialog.cpp:92
 #: config_indi.cpp:108 eegg.cpp:140 gear_dialog.cpp:276 gear_dialog.cpp:279
-#: gear_simulator.cpp:2363 testguide.cpp:161 testguide.cpp:205
+#: gear_simulator.cpp:2675 testguide.cpp:161 testguide.cpp:205
 msgid "Mount"
 msgstr "Монтування"
 
@@ -298,11 +298,11 @@ msgstr ""
 msgid "Measurement halted"
 msgstr ""
 
-#: calibration_assistant.cpp:152 calstep_dialog.cpp:200 cam_FrameMon.cpp:245
-#: cam_qhy.cpp:288 camcal_import_dialog.cpp:46 camera.cpp:995
+#: calibration_assistant.cpp:152 calstep_dialog.cpp:200 cam_FrameMon.cpp:248
+#: cam_qhy.cpp:288 camcal_import_dialog.cpp:46 camera.cpp:996
 #: configdialog.cpp:62 configdialog.cpp:237 darks_dialog.cpp:52
-#: gear_simulator.cpp:2132 guide_algorithm_gaussian_process.cpp:189
-#: myframe.cpp:3593 planetary_tool.cpp:174 planetary_tool.cpp:184
+#: gear_simulator.cpp:2392 guide_algorithm_gaussian_process.cpp:189
+#: myframe.cpp:3593 planetary_tool.cpp:176 planetary_tool.cpp:186
 #: Refine_DefMap.cpp:62 starcross_test.cpp:51
 msgid ": "
 msgstr ":"
@@ -331,14 +331,14 @@ msgstr ""
 
 #: calibration_assistant.cpp:190 calibration_assistant.cpp:213
 #: calibration_assistant.cpp:1082 calreview_dialog.cpp:305
-#: calreview_dialog.cpp:349 gear_simulator.cpp:2610 mount.cpp:91
+#: calreview_dialog.cpp:349 gear_simulator.cpp:3021 mount.cpp:91
 #: testguide.cpp:164
 msgid "West"
 msgstr "Захід"
 
 #: calibration_assistant.cpp:191 calibration_assistant.cpp:216
 #: calibration_assistant.cpp:1085 calreview_dialog.cpp:304
-#: calreview_dialog.cpp:348 gear_simulator.cpp:2610 mount.cpp:89
+#: calreview_dialog.cpp:348 gear_simulator.cpp:3021 mount.cpp:89
 #: testguide.cpp:164
 msgid "East"
 msgstr "Схід"
@@ -428,7 +428,7 @@ msgstr ""
 
 #: calibration_assistant.cpp:254 calibration_assistant.cpp:1114
 #: calibration_assistant.cpp:1167 camcal_import_dialog.cpp:128
-#: darks_dialog.cpp:228 darks_dialog.cpp:380 gear_simulator.cpp:2478
+#: darks_dialog.cpp:228 darks_dialog.cpp:380 gear_simulator.cpp:2817
 #: guiding_assistant.cpp:135 phdupdate.cpp:800 profile_wizard.cpp:1640
 msgid "Cancel"
 msgstr "Скасувати"
@@ -683,7 +683,7 @@ msgid ""
 msgstr ""
 
 #: calibration_assistant.cpp:1112 calibration_assistant.cpp:1298
-#: planetary_tool.cpp:478 planetary_tool.cpp:1394 planetary_tool.cpp:1411
+#: planetary_tool.cpp:481 planetary_tool.cpp:1402 planetary_tool.cpp:1419
 msgid "Ok"
 msgstr ""
 
@@ -762,7 +762,7 @@ msgid ""
 "tools in PHD2 to help isolate the mechanical problem."
 msgstr ""
 
-#: calreview_dialog.cpp:47 statswindow.cpp:420 statswindow.cpp:440
+#: calreview_dialog.cpp:47 statswindow.cpp:394 statswindow.cpp:414
 msgid "N/A"
 msgstr ""
 
@@ -847,7 +847,7 @@ msgstr "Швидкість по осі RA:"
 msgid "Expected Dec rate:"
 msgstr "Швидкість по осі DE:"
 
-#: calreview_dialog.cpp:294 camera.cpp:1016
+#: calreview_dialog.cpp:294 camera.cpp:1017
 msgid "Binning:"
 msgstr ""
 
@@ -856,7 +856,7 @@ msgid "Created:"
 msgstr ""
 
 #: calreview_dialog.cpp:297 mount.cpp:84 mount.cpp:143 pierflip_tool.cpp:366
-#: pierflip_tool.cpp:367 statswindow.cpp:423
+#: pierflip_tool.cpp:367 statswindow.cpp:397
 msgid "Unknown"
 msgstr "Невідомо"
 
@@ -1139,9 +1139,9 @@ msgstr "Калібрування схилення, градуси"
 msgid "Approximate declination where you will do calibration"
 msgstr "Приблизне схилення, для ви будете робити калібрування"
 
-#: calstep_dialog.cpp:169 camera.cpp:1001 darks_dialog.cpp:220
-#: gear_simulator.cpp:2471 mount.cpp:284 mount.cpp:337 planetary_tool.cpp:1387
-#: planetary_tool.cpp:1403 Refine_DefMap.cpp:181 starcross_test.cpp:146
+#: calstep_dialog.cpp:169 camera.cpp:1002 darks_dialog.cpp:220
+#: gear_simulator.cpp:2810 mount.cpp:284 mount.cpp:337 planetary_tool.cpp:1395
+#: planetary_tool.cpp:1411 Refine_DefMap.cpp:181 starcross_test.cpp:146
 #: testguide.cpp:105
 msgid "Reset"
 msgstr "Скинути"
@@ -1210,10 +1210,10 @@ msgid "Failed to get camera resolution for Altair Camera."
 msgstr ""
 
 #: cam_ascom.cpp:359 cam_ascom.cpp:382 cam_firewire_IC.cpp:415
-#: cam_FrameMon.cpp:837 cam_indi.cpp:896 cam_indi.cpp:930 cam_opencv.cpp:146
-#: gear_simulator.cpp:790 gear_simulator.cpp:1686 gear_simulator.cpp:1738
-#: gear_simulator.cpp:1821 gear_simulator.cpp:2019 image_math.cpp:85
-#: image_math.cpp:620
+#: cam_FrameMon.cpp:840 cam_indi.cpp:896 cam_indi.cpp:930 cam_opencv.cpp:146
+#: gear_simulator.cpp:979 gear_simulator.cpp:1861 gear_simulator.cpp:1916
+#: gear_simulator.cpp:2031 gear_simulator.cpp:2055 gear_simulator.cpp:2266
+#: image_math.cpp:85 image_math.cpp:620
 msgid "Memory allocation error"
 msgstr "Помилка виділення пам’яті"
 
@@ -1407,11 +1407,11 @@ msgstr ""
 msgid "Cannot get a frame from the queue"
 msgstr ""
 
-#: cam_FrameMon.cpp:655
+#: cam_FrameMon.cpp:658
 msgid "Lost camera feed, waiting for reconnection ..."
 msgstr ""
 
-#: cam_FrameMon.cpp:727
+#: cam_FrameMon.cpp:730
 msgid ": failed to establish image link!"
 msgstr ""
 
@@ -1435,11 +1435,11 @@ msgstr ""
 msgid "INDI Camera Selection"
 msgstr ""
 
-#: cam_indi.cpp:845 gear_simulator.cpp:764 gear_simulator.cpp:803
+#: cam_indi.cpp:845 gear_simulator.cpp:953 gear_simulator.cpp:992
 msgid "Unsupported type or read error loading FITS file"
 msgstr "НЕпідтримуваний тип, або помилка завантаження FITS файлу"
 
-#: cam_indi.cpp:852 gear_simulator.cpp:753 gear_simulator.cpp:2000
+#: cam_indi.cpp:852 gear_simulator.cpp:942 gear_simulator.cpp:2247
 msgid "FITS file is not of an image"
 msgstr "FITS файл не містить зображення"
 
@@ -1451,8 +1451,8 @@ msgstr ""
 msgid "Unsupported FITS file"
 msgstr ""
 
-#: cam_indi.cpp:908 cam_indi.cpp:938 gear_simulator.cpp:813
-#: gear_simulator.cpp:2025
+#: cam_indi.cpp:908 cam_indi.cpp:938 gear_simulator.cpp:1002
+#: gear_simulator.cpp:2272
 msgid "Error reading data"
 msgstr "Помилка читання даних"
 
@@ -2164,8 +2164,8 @@ msgstr ""
 
 #: camcal_import_dialog.cpp:70 camcal_import_dialog.cpp:98
 #: camcal_import_dialog.cpp:166 camcal_import_dialog.cpp:170
-#: camcal_import_dialog.cpp:184 camcal_import_dialog.cpp:188 camera.cpp:258
-#: camera.cpp:431 gear_dialog.cpp:459 gear_dialog.cpp:463 gear_dialog.cpp:467
+#: camcal_import_dialog.cpp:184 camcal_import_dialog.cpp:188 camera.cpp:259
+#: camera.cpp:432 gear_dialog.cpp:459 gear_dialog.cpp:463 gear_dialog.cpp:467
 #: gear_dialog.cpp:471 gear_dialog.cpp:475 gear_dialog.cpp:712
 #: gear_dialog.cpp:1157 gear_dialog.cpp:1948 gear_dialog.cpp:1949
 #: gear_dialog.cpp:1950 log_uploader.cpp:190 mount.cpp:168 mount.cpp:193
@@ -2175,7 +2175,7 @@ msgstr ""
 #: profile_wizard.cpp:1175 profile_wizard.cpp:1190 profile_wizard.cpp:1225
 #: profile_wizard.cpp:1230 profile_wizard.cpp:1256 profile_wizard.cpp:1270
 #: rotator.cpp:56 rotator.cpp:101 scope.cpp:349 scope.cpp:391 scope.cpp:434
-#: statswindow.cpp:305 stepguider.cpp:104 stepguider.cpp:125
+#: statswindow.cpp:299 stepguider.cpp:104 stepguider.cpp:125
 msgid "None"
 msgstr "Нічого"
 
@@ -2215,7 +2215,7 @@ msgstr "Мапа поганих пікселів..."
 msgid "There are no compatible bad-pixel maps available"
 msgstr ""
 
-#: camcal_import_dialog.cpp:123 gear_simulator.cpp:2475
+#: camcal_import_dialog.cpp:123 gear_simulator.cpp:2814
 msgid "OK"
 msgstr "Гаразд"
 
@@ -2227,132 +2227,132 @@ msgstr ""
 msgid "Dark library could not be imported because of errors in file/copy"
 msgstr ""
 
-#: camera.cpp:630
+#: camera.cpp:631
 msgid "Select your camera"
 msgstr "Оберіть вашу камеру"
 
-#: camera.cpp:904
+#: camera.cpp:905
 msgid "Camera Settings"
 msgstr "Налаштування камери"
 
-#: camera.cpp:954
+#: camera.cpp:955
 msgid "No camera specified"
 msgstr ""
 
-#: camera.cpp:983
+#: camera.cpp:984
 msgid "Use Subframes"
 msgstr ""
 
-#: camera.cpp:985
+#: camera.cpp:986
 msgid ""
 "Check to only download subframes (ROIs). Sub-frame size is equal to search "
 "region size."
 msgstr ""
 
-#: camera.cpp:989
+#: camera.cpp:990
 msgid ""
 "Guide camera un-binned pixel size in microns. Used with the guide telescope "
 "focal length to display guiding error in arc-seconds."
 msgstr ""
 
-#: camera.cpp:991
+#: camera.cpp:992
 msgid "Pixel size"
 msgstr "Розмір пікселя"
 
-#: camera.cpp:995
+#: camera.cpp:996
 msgid "Camera gain"
 msgstr ""
 
-#: camera.cpp:998
+#: camera.cpp:999
 #, no-c-format
 msgid ""
 "Camera gain, default = 95%, lower if you experience noise or wish to guide "
 "on a very bright star. Not available on all cameras."
 msgstr ""
 
-#: camera.cpp:1002
+#: camera.cpp:1003
 msgid ""
 "Reset gain to camera's default value (disabled when camera is not connected)"
 msgstr ""
 
-#: camera.cpp:1019
+#: camera.cpp:1020
 msgid "Enable software binning"
 msgstr ""
 
-#: camera.cpp:1020
+#: camera.cpp:1021
 msgid ""
 "Can be used to increase binning beyond camera hardware/driver limits. Try to "
 "keep the guider image scale > 0.5 arc-sec/px."
 msgstr ""
 
-#: camera.cpp:1034
+#: camera.cpp:1035
 msgid "Cooler On"
 msgstr ""
 
-#: camera.cpp:1035
+#: camera.cpp:1036
 msgid "Turn camera cooler on or off"
 msgstr ""
 
-#: camera.cpp:1038
+#: camera.cpp:1039
 msgid "Set Temperature"
 msgstr ""
 
-#: camera.cpp:1038
+#: camera.cpp:1039
 msgid "Cooler setpoint temperature"
 msgstr ""
 
-#: camera.cpp:1047
+#: camera.cpp:1048
 msgid ""
 "ADU level to determine saturation - 65535 for most 16-bit cameras, or 255 "
 "for 8-bit cameras."
 msgstr ""
 
-#: camera.cpp:1048
+#: camera.cpp:1049
 msgid "Saturation by Max-ADU value:"
 msgstr ""
 
-#: camera.cpp:1049
+#: camera.cpp:1050
 msgid ""
 "Identify star saturation based on camera maximum-ADU value (recommended)"
 msgstr ""
 
-#: camera.cpp:1055
+#: camera.cpp:1056
 msgid "Saturation via star-profile"
 msgstr ""
 
-#: camera.cpp:1056
+#: camera.cpp:1057
 msgid ""
 "Identify star saturation based on flat-topped profile, regardless of "
 "brightness"
 msgstr ""
 
-#: camera.cpp:1067
+#: camera.cpp:1068
 msgid ""
 "Disconnect nonresponsive   \n"
 " camera after (seconds)"
 msgstr ""
 
-#: camera.cpp:1068
+#: camera.cpp:1069
 #, c-format
 msgid ""
 "The camera will be disconnected if it fails to respond for this long. The "
 "default value, %d seconds, should be appropriate for most cameras."
 msgstr ""
 
-#: camera.cpp:1377
+#: camera.cpp:1378
 msgid "unspecified"
 msgstr ""
 
-#: camera.cpp:1379
+#: camera.cpp:1380
 #, c-format
 msgid "%0.1f um"
 msgstr ""
 
-#: camera.cpp:1515
+#: camera.cpp:1516
 msgid "Memory allocation error during capture"
 msgstr "Помилка виділення пам’яті під час захоплення"
 
-#: camera.cpp:1524
+#: camera.cpp:1525
 #, c-format
 msgid ""
 "After %.1f sec the camera has not completed a %.1f sec exposure, so it has "
@@ -2360,18 +2360,18 @@ msgid ""
 "section of Help."
 msgstr ""
 
-#: camera.cpp:1528
+#: camera.cpp:1529
 msgid ""
 "The camera has not completed an exposure in at least 15 seconds, so it has "
 "been disconnected to prevent other problems. Refer to Trouble-shooting "
 "section of Help."
 msgstr ""
 
-#: camera.cpp:1549
+#: camera.cpp:1550
 msgid "PHD will make several attempts to re-connect the camera."
 msgstr ""
 
-#: camera.cpp:1555
+#: camera.cpp:1556
 msgid ""
 "The camera has been disconnected. Please resolve the problem and re-connect "
 "the camera."
@@ -2453,8 +2453,9 @@ msgstr "Старт"
 msgid "Start training the tracking rate."
 msgstr ""
 
-#: comet_tool.cpp:119 darks_dialog.cpp:256 guiding_assistant.cpp:591
-#: polardrift_toolwin.cpp:349 starcross_test.cpp:161 staticpa_toolwin.cpp:637
+#: comet_tool.cpp:119 darks_dialog.cpp:256 gear_simulator.cpp:2648
+#: guiding_assistant.cpp:591 polardrift_toolwin.cpp:349 starcross_test.cpp:161
+#: staticpa_toolwin.cpp:637
 msgid "Stop"
 msgstr "Стоп"
 
@@ -3397,195 +3398,237 @@ msgstr ""
 msgid "Export PHD Equipment Profile"
 msgstr ""
 
-#: gear_simulator.cpp:153
+#: gear_simulator.cpp:162
 msgid "C:\\Temp\\phd2\\sim_image.png"
 msgstr ""
 
-#: gear_simulator.cpp:305
+#: gear_simulator.cpp:328
 msgid "AO-Simulator"
 msgstr "АО симулятор"
 
-#: gear_simulator.cpp:324
+#: gear_simulator.cpp:347
 msgid ""
 "The AO Simulator only works with the Camera Simulator. You should either "
 "disconnect the AO Simulator or connect the Camera Simulator."
 msgstr ""
 
-#: gear_simulator.cpp:416
+#: gear_simulator.cpp:439
 msgid ""
 "The Rotator Simulator only works with the Camera Simulator. You must either "
 "disconnect the Rotator Simulator or connect the Camera Simulator."
 msgstr ""
 
-#: gear_simulator.cpp:693
+#: gear_simulator.cpp:879
 msgid "Choose a star displacements file"
 msgstr ""
 
-#: gear_simulator.cpp:701
+#: gear_simulator.cpp:887
 msgid "Can't use this file for star displacements"
 msgstr ""
 
-#: gear_simulator.cpp:705
+#: gear_simulator.cpp:891
 msgid "Can't simulate any star movement without a displacement file"
 msgstr ""
 
-#: gear_simulator.cpp:772 gear_simulator.cpp:784
+#: gear_simulator.cpp:961 gear_simulator.cpp:973
 msgid "Error reading image parameters"
 msgstr ""
 
-#: gear_simulator.cpp:1715 gear_simulator.cpp:1721
+#: gear_simulator.cpp:1890 gear_simulator.cpp:1897
 msgid "Cannot load FIT image file"
 msgstr ""
 
-#: gear_simulator.cpp:1730
+#: gear_simulator.cpp:1907 gear_simulator.cpp:2024
 msgid "Cannot load image file"
 msgstr ""
 
-#: gear_simulator.cpp:1798
+#: gear_simulator.cpp:1987
+msgid "Cannot open image file directory"
+msgstr ""
+
+#: gear_simulator.cpp:1987
 msgid "Cannot open FIT file directory"
 msgstr ""
 
-#: gear_simulator.cpp:1810
+#: gear_simulator.cpp:2043
 msgid "Cannot find/open FIT file"
 msgstr ""
 
-#: gear_simulator.cpp:2013
+#: gear_simulator.cpp:2260
 #, c-format
 msgid "Unsupported type or read error loading FITS file %d %d"
 msgstr ""
 
-#: gear_simulator.cpp:2236
+#: gear_simulator.cpp:2512
 msgid "PE amplitude and period must be > 0"
 msgstr ""
 
-#: gear_simulator.cpp:2242
+#: gear_simulator.cpp:2518
 msgid "PE amplitude and period must be numbers > 0"
 msgstr ""
 
-#: gear_simulator.cpp:2291
+#: gear_simulator.cpp:2571
 msgid "Camera Simulator"
 msgstr "Симулятор камери"
 
-#: gear_simulator.cpp:2305
-msgid " Generate stars"
-msgstr ""
-
-#: gear_simulator.cpp:2306
-msgid " Image file"
-msgstr ""
-
-#: gear_simulator.cpp:2308
-msgid " FIT folder"
-msgstr ""
-
-#: gear_simulator.cpp:2310 myframe.cpp:3576
+#: gear_simulator.cpp:2584 myframe.cpp:3576
 msgid "Mode: "
 msgstr ""
 
-#: gear_simulator.cpp:2311
+#: gear_simulator.cpp:2585
 msgid "Choose between simulating star field or streaming image files"
 msgstr ""
 
-#: gear_simulator.cpp:2318
+#: gear_simulator.cpp:2589
+msgid " Generate stars"
+msgstr ""
+
+#: gear_simulator.cpp:2590
+msgid " Image file"
+msgstr ""
+
+#: gear_simulator.cpp:2592
+msgid " Image folder"
+msgstr ""
+
+#: gear_simulator.cpp:2593
+msgid " FIT folder"
+msgstr ""
+
+#: gear_simulator.cpp:2607
 msgid "Path: "
 msgstr ""
 
-#: gear_simulator.cpp:2319
+#: gear_simulator.cpp:2608
 msgid "Select an image file (BMP|PNG|TIF|JPG|FIT) to use for the simulation"
 msgstr ""
 
-#: gear_simulator.cpp:2322
-#, c-format
+#: gear_simulator.cpp:2611
 msgid ""
-" or folder with sequence of FIT files (f.e. C:\\temp\\phd2\\sun_%04d.png)"
+" or a folder of FIT / image (PNG/TIF/JPG) files streamed in alphabetical "
+"order"
 msgstr ""
 
-#: gear_simulator.cpp:2323
-msgid " or folder with sequence of FIT files"
+#: gear_simulator.cpp:2612
+msgid " or a folder of FIT / image files"
 msgstr ""
 
-#: gear_simulator.cpp:2328
+#: gear_simulator.cpp:2617
 msgid "..."
 msgstr ""
 
-#: gear_simulator.cpp:2336
+#: gear_simulator.cpp:2625
 msgid "File index: "
 msgstr ""
 
-#: gear_simulator.cpp:2337
+#: gear_simulator.cpp:2626
 msgid "File index for simulation (optional)"
 msgstr ""
 
-#: gear_simulator.cpp:2348
+#: gear_simulator.cpp:2642
+msgid "|<"
+msgstr ""
+
+#: gear_simulator.cpp:2643
+msgid "Step back one frame"
+msgstr ""
+
+#: gear_simulator.cpp:2645 gear_simulator.cpp:2897 gear_simulator.cpp:2915
+#: gear_simulator.cpp:2929 gear_simulator.cpp:2937 gear_simulator.cpp:2959
+msgid "Play"
+msgstr ""
+
+#: gear_simulator.cpp:2645 gear_simulator.cpp:2915 planetary_tool.cpp:482
+#: planetary_tool.cpp:546 planetary_tool.cpp:1064 planetary_tool.cpp:1451
+msgid "Pause"
+msgstr ""
+
+#: gear_simulator.cpp:2646
+msgid "Play/pause frame playback"
+msgstr ""
+
+#: gear_simulator.cpp:2649
+msgid "Rewind to the first frame and pause"
+msgstr ""
+
+#: gear_simulator.cpp:2651
+msgid ">|"
+msgstr ""
+
+#: gear_simulator.cpp:2652
+msgid "Step forward one frame"
+msgstr ""
+
+#: gear_simulator.cpp:2660
 msgid "Number of simulated stars"
 msgstr ""
 
-#: gear_simulator.cpp:2349
+#: gear_simulator.cpp:2661
 msgid "Stars"
 msgstr "Зорі"
 
-#: gear_simulator.cpp:2350
+#: gear_simulator.cpp:2662
 msgid "Number of hot pixels"
 msgstr "Кількість гарячих пікселів"
 
-#: gear_simulator.cpp:2351 Refine_DefMap.cpp:174
+#: gear_simulator.cpp:2663 Refine_DefMap.cpp:174
 msgid "Hot pixels"
 msgstr "Гарячі пікселі"
 
-#: gear_simulator.cpp:2353
+#: gear_simulator.cpp:2665
 #, no-c-format
 msgid "% Simulated noise"
 msgstr ""
 
-#: gear_simulator.cpp:2354
+#: gear_simulator.cpp:2666
 msgid "Noise"
 msgstr "Шум"
 
-#: gear_simulator.cpp:2366
+#: gear_simulator.cpp:2678
 msgid "Dec backlash, arc-secs"
 msgstr ""
 
-#: gear_simulator.cpp:2367
+#: gear_simulator.cpp:2679
 msgid "Dec backlash"
 msgstr ""
 
-#: gear_simulator.cpp:2369
+#: gear_simulator.cpp:2681
 msgid "Dec drift, arc-sec/min"
 msgstr ""
 
-#: gear_simulator.cpp:2371
+#: gear_simulator.cpp:2683
 msgid "Ra drift, arc-sec/min"
 msgstr ""
 
-#: gear_simulator.cpp:2372
+#: gear_simulator.cpp:2684
 msgid "Dec drift"
 msgstr ""
 
-#: gear_simulator.cpp:2373
+#: gear_simulator.cpp:2685
 msgid "Ra drift"
 msgstr ""
 
-#: gear_simulator.cpp:2374
+#: gear_simulator.cpp:2686
 msgid "Guide rate, x sidereal"
 msgstr ""
 
-#: gear_simulator.cpp:2375
+#: gear_simulator.cpp:2687
 msgid "Guide rate"
 msgstr ""
 
-#: gear_simulator.cpp:2376
+#: gear_simulator.cpp:2688
 msgid "Apply stiction"
 msgstr ""
 
-#: gear_simulator.cpp:2376
+#: gear_simulator.cpp:2688
 msgid "Simulate dec axis stiction"
 msgstr ""
 
-#: gear_simulator.cpp:2382
+#: gear_simulator.cpp:2694
 msgid "Simulate Mount Dynamics"
 msgstr ""
 
-#: gear_simulator.cpp:2384
+#: gear_simulator.cpp:2696
 msgid ""
 "Toggle to simulate the effects of mount tracking, slewing and guiding on the "
 "image's position. When activated, the simulated image position on the screen "
@@ -3593,138 +3636,171 @@ msgid ""
 "option will maintain a static image position except simulated drift and PE."
 msgstr ""
 
-#: gear_simulator.cpp:2391
+#: gear_simulator.cpp:2703
 msgid "Recenter"
 msgstr ""
 
-#: gear_simulator.cpp:2393
+#: gear_simulator.cpp:2705
 msgid "Recenter simulated image"
 msgstr ""
 
-#: gear_simulator.cpp:2403
+#: gear_simulator.cpp:2715
 msgid "PE"
 msgstr "PE"
 
-#: gear_simulator.cpp:2404
+#: gear_simulator.cpp:2716
 msgid "Apply PE"
 msgstr "Додати PE"
 
-#: gear_simulator.cpp:2404
+#: gear_simulator.cpp:2716
 msgid "Simulate periodic error"
 msgstr ""
 
-#: gear_simulator.cpp:2408
+#: gear_simulator.cpp:2720
 msgid "Default curve"
 msgstr ""
 
-#: gear_simulator.cpp:2410
+#: gear_simulator.cpp:2722
 msgid "Use a built-in PE curve that has some steep and smooth sections."
 msgstr ""
 
-#: gear_simulator.cpp:2412
+#: gear_simulator.cpp:2724
 msgid "Amplitude: "
 msgstr "Амплітуда:"
 
-#: gear_simulator.cpp:2413
+#: gear_simulator.cpp:2725
 #, fuzzy
 msgid "PE Amplitude, arc-secs"
 msgstr "Амплітуда, кут сек"
 
-#: gear_simulator.cpp:2421
+#: gear_simulator.cpp:2733
 msgid "Custom curve"
 msgstr ""
 
-#: gear_simulator.cpp:2423
+#: gear_simulator.cpp:2735
 msgid ""
 "Use a simple sinusoidal curve. You can specify the amplitude and period."
 msgstr ""
 
-#: gear_simulator.cpp:2426
+#: gear_simulator.cpp:2738
 msgid "Amplitude"
 msgstr "Амплітуда, \""
 
-#: gear_simulator.cpp:2426
+#: gear_simulator.cpp:2738
 msgid "Amplitude, arc-secs"
 msgstr "Амплітуда, кут сек"
 
-#: gear_simulator.cpp:2427
+#: gear_simulator.cpp:2739
 msgid "Period"
 msgstr "Період"
 
-#: gear_simulator.cpp:2427
+#: gear_simulator.cpp:2739
 msgid "Period, seconds"
 msgstr "Період, с"
 
-#: gear_simulator.cpp:2440
+#: gear_simulator.cpp:2752
 msgid "Reverse Dec pulse on West side of pier"
 msgstr ""
 
-#: gear_simulator.cpp:2441
+#: gear_simulator.cpp:2753
 msgid ""
 "Simulate a mount that reverses guide pulse direction after a meridian flip, "
 "like an ASCOM pulse-guided mount."
 msgstr ""
 
-#: gear_simulator.cpp:2443
+#: gear_simulator.cpp:2755
 msgid "Side of Pier: MMMMM"
 msgstr ""
 
-#: gear_simulator.cpp:2445
+#: gear_simulator.cpp:2757
 msgid "Pier Flip"
 msgstr ""
 
-#: gear_simulator.cpp:2452
+#: gear_simulator.cpp:2764
 msgid "Session"
 msgstr "Сесія"
 
-#: gear_simulator.cpp:2454
+#: gear_simulator.cpp:2766
 msgid "Camera angle, degrees"
 msgstr "Поле зору камери, градуси"
 
-#: gear_simulator.cpp:2455
+#: gear_simulator.cpp:2767
 msgid "Camera angle"
 msgstr "Поле зору камери"
 
-#: gear_simulator.cpp:2456
+#: gear_simulator.cpp:2768
 msgid "Seeing, FWHM arc-sec"
 msgstr "Сінг, FWHM \""
 
-#: gear_simulator.cpp:2457
+#: gear_simulator.cpp:2769
 msgid "Seeing"
 msgstr "Сінг"
 
-#: gear_simulator.cpp:2458
+#: gear_simulator.cpp:2770
 #, c-format
 msgid "% cloud opacity"
 msgstr ""
 
-#: gear_simulator.cpp:2459
-msgid "Cloud %"
+#: gear_simulator.cpp:2771
+msgid "Cloud %: "
 msgstr ""
 
-#: gear_simulator.cpp:2460
+#: gear_simulator.cpp:2779
+msgid "Number of clouds (file/folder modes)"
+msgstr ""
+
+#: gear_simulator.cpp:2780
+#, c-format
+msgid "Cloud size, % of frame"
+msgstr ""
+
+#: gear_simulator.cpp:2782
+msgid "Cloud drift speed, pixels per frame"
+msgstr ""
+
+#: gear_simulator.cpp:2784
+msgid "Cloud drift direction, degrees"
+msgstr ""
+
+#: gear_simulator.cpp:2786
+msgid "Cloud count"
+msgstr ""
+
+#: gear_simulator.cpp:2787
+msgid "Cloud size"
+msgstr ""
+
+#: gear_simulator.cpp:2788
+msgid "Wind speed"
+msgstr ""
+
+#: gear_simulator.cpp:2789
+msgid "Wind dir"
+msgstr ""
+
+#: gear_simulator.cpp:2798
 msgid "Comet"
 msgstr "Комета"
 
-#: gear_simulator.cpp:2472
+#: gear_simulator.cpp:2811
 msgid "Reset all values to application defaults"
 msgstr ""
 
-#: gear_simulator.cpp:2559
+#: gear_simulator.cpp:2970
 msgid "Select Folder"
 msgstr ""
 
-#: gear_simulator.cpp:2570
+#: gear_simulator.cpp:2981
 msgid "Select File"
 msgstr ""
 
-#: gear_simulator.cpp:2571
+#: gear_simulator.cpp:2982
 msgid ""
 "Image Files (*.bmp;*.png;*.tif;*.tiff;*.jpg;*.jpeg;*.fit;*.fits)|*.bmp;*.png;"
 "*.tif;*.tiff;*.jpg;*.jpeg;*.fit;*.fits"
 msgstr ""
 
-#: gear_simulator.cpp:2610
+#: gear_simulator.cpp:3021
 #, fuzzy, c-format
 msgid "Side of pier: %s"
 msgstr "Сторона колони:"
@@ -3738,7 +3814,7 @@ msgid "Select the number of frames of history to display"
 msgstr ""
 
 #: graph-stepguider.cpp:106 graph.cpp:142 staticpa_toolwin.cpp:411
-#: statswindow.cpp:173 target.cpp:81
+#: statswindow.cpp:167 target.cpp:81
 msgid "Clear"
 msgstr "Очистити"
 
@@ -4915,12 +4991,12 @@ msgstr ""
 msgid "Guiding stopped"
 msgstr "Стеження"
 
-#: guiding_assistant.cpp:2038 guiding_assistant.cpp:2130 statswindow.cpp:323
-#: statswindow.cpp:326
+#: guiding_assistant.cpp:2038 guiding_assistant.cpp:2130 statswindow.cpp:317
+#: statswindow.cpp:320
 msgid "px"
 msgstr ""
 
-#: guiding_assistant.cpp:2040 guiding_assistant.cpp:2132 statswindow.cpp:314
+#: guiding_assistant.cpp:2040 guiding_assistant.cpp:2132 statswindow.cpp:308
 msgid "arc-min"
 msgstr ""
 
@@ -5390,7 +5466,7 @@ msgstr ""
 msgid "&Camera Settings"
 msgstr ""
 
-#: myframe.cpp:552 myframe.cpp:1105 planetary_tool.cpp:433
+#: myframe.cpp:552 myframe.cpp:1105 planetary_tool.cpp:436
 msgid "Camera settings"
 msgstr ""
 
@@ -5963,7 +6039,7 @@ msgstr ""
 msgid "FITS file is not of an image: %s"
 msgstr ""
 
-#: myframe.cpp:2800 usImage.cpp:475
+#: myframe.cpp:2800 usImage.cpp:460
 #, c-format
 msgid "Unsupported type or read error loading FITS file %s"
 msgstr ""
@@ -5984,7 +6060,7 @@ msgstr ""
 msgid "Error reading data from %s"
 msgstr ""
 
-#: myframe.cpp:2881 usImage.cpp:530
+#: myframe.cpp:2881 usImage.cpp:515
 #, c-format
 msgid "Error opening FITS file %s"
 msgstr ""
@@ -6081,7 +6157,7 @@ msgstr "Редагування шуму"
 msgid "Technique to reduce noise in images"
 msgstr ""
 
-#: myframe.cpp:3460 planetary_tool.cpp:465
+#: myframe.cpp:3460 planetary_tool.cpp:468
 msgid "Time Lapse (ms)"
 msgstr ""
 
@@ -6982,169 +7058,169 @@ msgid ""
 "Auto and try again."
 msgstr ""
 
-#: planetary.cpp:238
+#: planetary.cpp:229
 msgid "Solar/planetary guiding mode: enabled\n"
 msgstr ""
 
-#: planetary.cpp:252
+#: planetary.cpp:243
 msgid "Solar/planetary guiding mode: disabled\n"
 msgstr ""
 
-#: planetary.cpp:311
+#: planetary.cpp:313
 msgid "SHARPNESS: "
 msgstr ""
 
-#: planetary.cpp:313
+#: planetary.cpp:315
 msgid "RADIUS: "
-msgstr ""
-
-#: planetary.cpp:536
-#, c-format
-msgid "Object at (%.1f, %.1f)"
 msgstr ""
 
 #: planetary.cpp:538
 #, c-format
+msgid "Object at (%.1f, %.1f)"
+msgstr ""
+
+#: planetary.cpp:540
+#, c-format
 msgid "Object at (%.1f, %.1f) radius=%d"
 msgstr ""
 
-#: planetary.cpp:995
+#: planetary.cpp:978
 msgid "RefineDiskCenter: failed to start a thread\n"
 msgstr ""
 
-#: planetary.cpp:1307
+#: planetary.cpp:1290
 msgid ""
 "Too many contour points detected. Please apply pixel binning, enable ROI, or "
 "increase the Edge Detection Threshold."
 msgstr ""
 
-#: planetary.cpp:1445
+#: planetary.cpp:1428
 msgid "\\"
 msgstr ""
 
-#: planetary.cpp:1446
+#: planetary.cpp:1429
 msgid "PHD2"
 msgstr ""
 
-#: planetary.cpp:1509 planetary_tool.cpp:1072 scope.cpp:342
+#: planetary.cpp:1458 planetary_tool.cpp:1075 scope.cpp:342
 msgid "INDI Mount"
 msgstr ""
 
-#: planetary.cpp:1641
+#: planetary.cpp:1685
 msgid "Object not found"
 msgstr ""
 
-#: planetary.cpp:1687
+#: planetary.cpp:1732
 msgid ""
 "ERROR: camera frame size exceeds maximum limit. Please apply binning to "
 "reduce the frame size."
 msgstr ""
 
-#: planetary.cpp:1764
+#: planetary.cpp:1822
 msgid ""
 "ERROR: exception occurred during image processing: change detection "
 "parameters"
 msgstr ""
 
-#: planetary.cpp:1770
+#: planetary.cpp:1828
 msgid "ERROR: unknown exception occurred in solar system object detection"
 msgstr ""
 
-#: planetary_tool.cpp:43
+#: planetary_tool.cpp:44
 msgid ""
 "Planetary detection paused : do not stop guiding to keep the original lock "
 "position!"
 msgstr ""
 
-#: planetary_tool.cpp:159
+#: planetary_tool.cpp:161
 msgid "Planetary and solar guiding | disabled"
 msgstr ""
 
-#: planetary_tool.cpp:160
+#: planetary_tool.cpp:162
 msgid "Planetary and solar guiding | enabled"
 msgstr ""
 
-#: planetary_tool.cpp:161
+#: planetary_tool.cpp:163
 msgid "Planetary and solar guiding | paused"
 msgstr ""
 
-#: planetary_tool.cpp:274
+#: planetary_tool.cpp:276
 msgid "Enable planetary and solar guiding"
 msgstr ""
 
-#: planetary_tool.cpp:275
+#: planetary_tool.cpp:277
 msgid "Toggle between star and solar/lunar/planetary guiding modes"
 msgstr ""
 
-#: planetary_tool.cpp:279
+#: planetary_tool.cpp:281
 msgid "Enable noise suppression filter (experimental)"
 msgstr ""
 
-#: planetary_tool.cpp:280
+#: planetary_tool.cpp:282
 msgid ""
 "Enable noise filtering only for extremely noisy images. Use this option "
 "cautiously, as it's recommended only when absolutely necessary."
 msgstr ""
 
-#: planetary_tool.cpp:284
+#: planetary_tool.cpp:286
 msgid ""
 "For initial guess of possible radius range connect the gear and set correct "
 "focal length."
 msgstr ""
 
-#: planetary_tool.cpp:293
+#: planetary_tool.cpp:295
 #, c-format
 msgid ""
 "Hint: for solar/lunar detection (pixel size=%.2f, binning=x%d, FL=%d mm) set "
 "the radius to approximately %.0f-%.0f."
 msgstr ""
 
-#: planetary_tool.cpp:301
+#: planetary_tool.cpp:303
 msgid "Min radius:"
 msgstr ""
 
-#: planetary_tool.cpp:305
+#: planetary_tool.cpp:307
 msgid ""
 "Minimum planet radius (in pixels). Set this a few pixels lower than the "
 "actual planet radius. "
 msgstr ""
 
-#: planetary_tool.cpp:307
+#: planetary_tool.cpp:309
 msgid "Max radius:"
 msgstr ""
 
-#: planetary_tool.cpp:311
+#: planetary_tool.cpp:313
 msgid ""
 "Maximum planet radius (in pixels). Set this a few pixels higher than the "
 "actual planet radius. "
 msgstr ""
 
-#: planetary_tool.cpp:324
+#: planetary_tool.cpp:326
 msgid "Edge Detection Threshold:"
 msgstr ""
 
-#: planetary_tool.cpp:327
+#: planetary_tool.cpp:329
 msgid ""
 "Higher values reduce sensitivity to weaker edges, resulting in cleaner "
 "contour. This is displayed in red when the display of internal contour edges "
 "is enabled."
 msgstr ""
 
-#: planetary_tool.cpp:330
+#: planetary_tool.cpp:333
 msgid "Enable ROI"
 msgstr ""
 
-#: planetary_tool.cpp:332
+#: planetary_tool.cpp:335
 msgid ""
 "Enable automatically selected Region Of Interest (ROI) for improved "
 "processing speed and reduced CPU usage."
 msgstr ""
 
-#: planetary_tool.cpp:335
+#: planetary_tool.cpp:338
 msgid "Display internal edges"
 msgstr ""
 
-#: planetary_tool.cpp:336
+#: planetary_tool.cpp:339
 msgid ""
 "Toggle the visibility of internally detected edges and tune detection "
 "parameters to maintain a manageable number of these features while keeping "
@@ -7152,48 +7228,48 @@ msgid ""
 "guiding mode."
 msgstr ""
 
-#: planetary_tool.cpp:355
+#: planetary_tool.cpp:358
 msgid "Mount settings"
 msgstr ""
 
-#: planetary_tool.cpp:357
+#: planetary_tool.cpp:360
 msgid "Tracking"
 msgstr ""
 
-#: planetary_tool.cpp:358
+#: planetary_tool.cpp:361
 msgid "Press and hold CTRL key to toggle mount tracking state"
 msgstr ""
 
-#: planetary_tool.cpp:360 planetary_tool.cpp:1118 planetary_tool.cpp:1239
+#: planetary_tool.cpp:363 planetary_tool.cpp:1121 planetary_tool.cpp:1247
 #: scope_ascom.cpp:712 scope_ascom.cpp:1058
 msgid "Sidereal"
 msgstr ""
 
-#: planetary_tool.cpp:368
+#: planetary_tool.cpp:371
 msgid "Tracking rate"
 msgstr ""
 
-#: planetary_tool.cpp:369
+#: planetary_tool.cpp:372
 msgid "Select the desired tracking rate for the mount"
 msgstr ""
 
-#: planetary_tool.cpp:373
+#: planetary_tool.cpp:376
 msgid "Enable custom tracking rates"
 msgstr ""
 
-#: planetary_tool.cpp:374
+#: planetary_tool.cpp:377
 msgid "Enable custom tracking rates for the Custom tracking mode"
 msgstr ""
 
-#: planetary_tool.cpp:375
+#: planetary_tool.cpp:378
 msgid "Custom rates"
 msgstr ""
 
-#: planetary_tool.cpp:377
+#: planetary_tool.cpp:380
 msgid "Apply custom mount track rates"
 msgstr ""
 
-#: planetary_tool.cpp:380
+#: planetary_tool.cpp:383
 msgid ""
 "Apply the rates below directly to the mount RA and Dec tracking rates "
 "(relative to sidereal). This mode requires mount support for custom tracking "
@@ -7202,11 +7278,11 @@ msgid ""
 "select the Comet/Minor Body tracking mode instead."
 msgstr ""
 
-#: planetary_tool.cpp:385
+#: planetary_tool.cpp:388
 msgid "Comet/Minor Body tracking mode"
 msgstr ""
 
-#: planetary_tool.cpp:387
+#: planetary_tool.cpp:390
 msgid ""
 "Use the rates below when guiding on stars while tracking minor body motion. "
 "This option is available only when guiding is active. This mode keeps the "
@@ -7214,170 +7290,165 @@ msgid ""
 "elongated."
 msgstr ""
 
-#: planetary_tool.cpp:411
+#: planetary_tool.cpp:414
 msgid "Apply custom rate"
 msgstr ""
 
-#: planetary_tool.cpp:412
+#: planetary_tool.cpp:415
 msgid ""
 "Apply the custom mount tracking rates shown above when Tracking rate is set "
 "to Custom."
 msgstr ""
 
-#: planetary_tool.cpp:414 planetary_tool.cpp:850
+#: planetary_tool.cpp:417 planetary_tool.cpp:853
 msgid "Start minor body tracking"
 msgstr ""
 
-#: planetary_tool.cpp:415
+#: planetary_tool.cpp:418
 msgid ""
 "Track a comet, asteroid, or other minor body while guiding on stars. Uses "
 "the rates below without changing the mount tracking rate."
 msgstr ""
 
-#: planetary_tool.cpp:418
+#: planetary_tool.cpp:421
 msgid "Stop minor body tracking"
 msgstr ""
 
-#: planetary_tool.cpp:420
+#: planetary_tool.cpp:423
 msgid "Stop minor body tracking started here or from the Comet Tracking tool."
 msgstr ""
 
-#: planetary_tool.cpp:444
+#: planetary_tool.cpp:447
 msgid "Enable video log"
 msgstr ""
 
-#: planetary_tool.cpp:445
+#: planetary_tool.cpp:448
 msgid ""
 "Enable recording camera frames to video log file during guiding (using SER "
 "format)"
 msgstr ""
 
-#: planetary_tool.cpp:462
+#: planetary_tool.cpp:465
 msgid "Exposure (ms)"
 msgstr ""
 
-#: planetary_tool.cpp:462
+#: planetary_tool.cpp:465
 msgid "Camera exposure in milliseconds)"
 msgstr ""
 
-#: planetary_tool.cpp:463
+#: planetary_tool.cpp:466
 msgid "Gain"
 msgstr ""
 
-#: planetary_tool.cpp:463
+#: planetary_tool.cpp:466
 msgid "Camera gain (0-100)"
 msgstr ""
 
-#: planetary_tool.cpp:466
+#: planetary_tool.cpp:469
 msgid ""
 "How long should PHD wait between guide frames? Useful when using very short "
 "exposures but wanting to send guide commands less frequently"
 msgstr ""
 
-#: planetary_tool.cpp:468
+#: planetary_tool.cpp:471
 msgid "Binning"
 msgstr ""
 
-#: planetary_tool.cpp:469
+#: planetary_tool.cpp:472
 msgid "Camera binning. For solar/planetary guiding 1x1 is recommended."
 msgstr ""
 
-#: planetary_tool.cpp:479 planetary_tool.cpp:543 planetary_tool.cpp:1061
-#: planetary_tool.cpp:1436
-msgid "Pause"
-msgstr ""
-
-#: planetary_tool.cpp:481
+#: planetary_tool.cpp:484
 msgid ""
 "Use this button to pause/resume detection during clouds or totality instead "
 "of stopping guiding. It preserves object lock position, allowing PHD2 to "
 "realign the object without losing its original position"
 msgstr ""
 
-#: planetary_tool.cpp:543 planetary_tool.cpp:1061 planetary_tool.cpp:1436
+#: planetary_tool.cpp:546 planetary_tool.cpp:1064 planetary_tool.cpp:1451
 msgid "Resume"
 msgstr ""
 
-#: planetary_tool.cpp:562 planetary_tool.cpp:697 planetary_tool.cpp:790
-#: planetary_tool.cpp:1146 planetary_tool.cpp:1153 planetary_tool.cpp:1158
-#: planetary_tool.cpp:1161 planetary_tool.cpp:1235 planetary_tool.cpp:1237
+#: planetary_tool.cpp:565 planetary_tool.cpp:700 planetary_tool.cpp:793
+#: planetary_tool.cpp:1149 planetary_tool.cpp:1156 planetary_tool.cpp:1161
+#: planetary_tool.cpp:1164 planetary_tool.cpp:1243 planetary_tool.cpp:1245
 #: scope_ascom.cpp:1070
 msgid "Custom"
 msgstr ""
 
-#: planetary_tool.cpp:809
+#: planetary_tool.cpp:812
 msgid "dRA*cosD/dt"
 msgstr ""
 
-#: planetary_tool.cpp:809 planetary_tool.cpp:810
+#: planetary_tool.cpp:812 planetary_tool.cpp:813
 msgid ":"
 msgstr ""
 
-#: planetary_tool.cpp:810
+#: planetary_tool.cpp:813
 msgid "d(DEC)"
 msgstr ""
 
-#: planetary_tool.cpp:812
+#: planetary_tool.cpp:815
 msgid ""
 "Horizons RA*cos(Dec) rate, arcsec/hour. Apply it only when the mount is "
 "synced to the target, or the mount RA rate will be wrong. Limit is 5x "
 "sidereal rate."
 msgstr ""
 
-#: planetary_tool.cpp:814
+#: planetary_tool.cpp:817
 msgid "Horizons rate of change in Dec, arcsec/hour. Limit is 5x sidereal rate."
 msgstr ""
 
-#: planetary_tool.cpp:850
+#: planetary_tool.cpp:853
 msgid "Update minor body rate"
 msgstr ""
 
-#: planetary_tool.cpp:884
+#: planetary_tool.cpp:887
 msgid ""
 "Setting custom tracking rate failed: driver doesn't support custom RA or Dec "
 "tracking rate."
 msgstr ""
 
-#: planetary_tool.cpp:886
+#: planetary_tool.cpp:889
 msgid ""
 "Setting custom tracking rate failed: driver doesn't support custom RA "
 "tracking rate."
 msgstr ""
 
-#: planetary_tool.cpp:887
+#: planetary_tool.cpp:890
 msgid ""
 "Setting custom tracking rate failed: driver doesn't support custom Dec "
 "tracking rate."
 msgstr ""
 
-#: planetary_tool.cpp:891
+#: planetary_tool.cpp:894
 msgid "Setting custom tracking rate failed: rate parameter is invalid."
 msgstr ""
 
-#: planetary_tool.cpp:937 planetary_tool.cpp:954
+#: planetary_tool.cpp:940 planetary_tool.cpp:957
 msgid "Setting custom tracking rate failed."
 msgstr ""
 
-#: planetary_tool.cpp:1119 planetary_tool.cpp:1133 planetary_tool.cpp:1241
+#: planetary_tool.cpp:1122 planetary_tool.cpp:1136 planetary_tool.cpp:1249
 #: scope_ascom.cpp:716 scope_ascom.cpp:1061
 msgid "Lunar"
 msgstr ""
 
-#: planetary_tool.cpp:1120 planetary_tool.cpp:1140 planetary_tool.cpp:1246
+#: planetary_tool.cpp:1123 planetary_tool.cpp:1143 planetary_tool.cpp:1254
 #: scope_ascom.cpp:720 scope_ascom.cpp:1064
 msgid "Solar"
 msgstr ""
 
-#: planetary_tool.cpp:1121 planetary_tool.cpp:1251 scope_ascom.cpp:724
+#: planetary_tool.cpp:1124 planetary_tool.cpp:1259 scope_ascom.cpp:724
 #: scope_ascom.cpp:1067
 msgid "King"
 msgstr ""
 
-#: planetary_tool.cpp:1276
+#: planetary_tool.cpp:1284
 msgid "EQMOD ASCOM"
 msgstr ""
 
-#: planetary_tool.cpp:1499
+#: planetary_tool.cpp:1514
 msgid ""
 "Warning: the sum of camera exposure and time lapse duration must be at least "
 "500 msec (recommended 2000-3000 msec)!"
@@ -9084,11 +9155,11 @@ msgid "Camera cooler"
 msgstr ""
 
 #: statswindow.cpp:146
-msgid "Detection time"
+msgid "Frame latency"
 msgstr ""
 
 #: statswindow.cpp:147
-msgid "000000 ms"
+msgid "0000.0 ms"
 msgstr ""
 
 #: statswindow.cpp:149
@@ -9107,43 +9178,35 @@ msgstr ""
 msgid "1.00"
 msgstr ""
 
-#: statswindow.cpp:155
-msgid "Detection error"
-msgstr ""
-
-#: statswindow.cpp:156
-msgid "9999999"
-msgstr ""
-
-#: statswindow.cpp:174
+#: statswindow.cpp:168
 msgid "Clear graph data and stats"
 msgstr ""
 
-#: statswindow.cpp:179
+#: statswindow.cpp:173
 msgid "Select the number of frames of history for stats and the graph"
 msgstr ""
 
-#: statswindow.cpp:278
+#: statswindow.cpp:272
 msgid "Camera error"
 msgstr ""
 
-#: statswindow.cpp:280
+#: statswindow.cpp:274
 #, c-format
 msgid "%.f%s / %.f%s, %.f%%"
 msgstr ""
 
-#: statswindow.cpp:282
+#: statswindow.cpp:276
 #, c-format
 msgid "%.f%s, Off"
 msgstr ""
 
-#: statswindow.cpp:326
+#: statswindow.cpp:320
 #, c-format
 msgid "%.2f\"/%s"
 msgstr ""
 
-#: statswindow.cpp:406
-msgid "loading"
+#: statswindow.cpp:354
+msgid "n/a"
 msgstr ""
 
 #: stepguider.cpp:557
@@ -9443,20 +9506,20 @@ msgstr ""
 msgid "UI-safety warning: unsafe '%s' from network request -- see debug log"
 msgstr ""
 
-#: usImage.cpp:451
+#: usImage.cpp:436
 msgid "File does not exist - cannot load "
 msgstr "Файл не існує: неможливо завантажити"
 
-#: usImage.cpp:462
+#: usImage.cpp:447
 msgid "FITS file is not of an image: "
 msgstr "FITS файл не містить зображення:"
 
-#: usImage.cpp:480
+#: usImage.cpp:465
 #, c-format
 msgid "Memory allocation error loading FITS file %s"
 msgstr ""
 
-#: usImage.cpp:486
+#: usImage.cpp:471
 #, c-format
 msgid "Error reading data from FITS file %s"
 msgstr ""
