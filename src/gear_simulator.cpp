@@ -78,7 +78,8 @@ enum SimMode
     SIMMODE_GENERATE = 0,
     SIMMODE_FILE = 1,
     SIMMODE_FITS = 2,
-    SIMMODE_DRIFT = 3
+    SIMMODE_IMGDIR = 3, // stream image files (PNG/TIF/JPG...) from a folder
+    SIMMODE_DRIFT = 4
 };
 
 struct SimCamParams
@@ -233,8 +234,8 @@ static void load_sim_params()
     SimCamParams::SimulatorMode = (SimMode) pConfig->Profile.GetInt("/SimCam/simulator_mode", SIMMODE_GENERATE);
     SimCamParams::mount_dynamics = pConfig->Profile.GetBoolean("/SimCam/mount_dynamics", false);
     SimCamParams::SimFileIndex = pConfig->Profile.GetInt("/SimCam/sim_file_index", 1);
-    SimCamParams::SimFileTemplate =
-        pConfig->Profile.GetString("/SimCam/sim_filename", wxFileName(Debug.GetLogDir(), "sim_images").GetFullPath());
+    SimCamParams::SimFileTemplate = pConfig->Profile.GetStringNoExpand(
+        "/SimCam/sim_filename", wxFileName(Debug.GetLogDir(), "sim_images").GetFullPath());
 }
 
 static void save_sim_params()
@@ -620,11 +621,15 @@ struct SimCamState
     void ReadDisplacements(double& cumX, double& cumY);
 # endif
 
-    // Used by FITS file simulation
+    // Used by FITS / image-folder streaming
     wxDir dir;
     bool dirStarted;
     wxArrayString fitFiles;
     size_t fitFileIndex;
+    // Playback control (FITS / image-folder modes)
+    bool playbackPaused = false;
+    bool playbackStarted = false; // false until the first frame of a stream has been served
+    int playbackStep = 0;         // pending manual step (+1/-1 per click), consumed by the capture loop
     void CloseDir();
     bool ReadFitImage(usImage& img, wxString& filename, const wxRect& subframe);
 
@@ -727,6 +732,9 @@ void SimCamState::CloseDir()
     dirStarted = false;
     fitFiles.Clear();
     fitFileIndex = 0;
+    playbackPaused = false;
+    playbackStarted = false;
+    playbackStep = 0;
     if (dir.IsOpened())
         dir.Close();
 }
@@ -1777,58 +1785,111 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
         Debug.Write(wxString::Format("Simulator: loaded image file: %s\n", filename));
         break;
     }
-    case SIMMODE_FITS: // Simulate camera image stream from FIT files
+    case SIMMODE_FITS:   // Stream FIT files from a folder
+    case SIMMODE_IMGDIR: // Stream image files (PNG/TIF/JPG...) from a folder
     {
-        wxString filename = SimCamParams::SimFileTemplate;
+        bool isImgDir = SimCamParams::SimulatorMode == SIMMODE_IMGDIR;
+        wxString folder = SimCamParams::SimFileTemplate;
         if (!sim.dir.IsOpened())
         {
-            if (sim.dir.Open(filename))
+            if (sim.dir.Open(folder))
             {
-                wxDir::GetAllFiles(filename, &sim.fitFiles, "*.fit", wxDIR_FILES);
-                wxDir::GetAllFiles(filename, &sim.fitFiles, "*.fits", wxDIR_FILES);
-                wxDir::GetAllFiles(filename, &sim.fitFiles, "*.FIT", wxDIR_FILES);
-                wxDir::GetAllFiles(filename, &sim.fitFiles, "*.FITS", wxDIR_FILES);
+                sim.fitFiles.Clear();
+                wxArrayString allFiles;
+                wxDir::GetAllFiles(folder, &allFiles, wxEmptyString, wxDIR_FILES);
+                for (size_t i = 0; i < allFiles.GetCount(); i++)
+                {
+                    wxString ext = wxFileName(allFiles[i]).GetExt().Lower();
+                    bool match = isImgDir ? (ext == "png" || ext == "tif" || ext == "tiff" || ext == "jpg" ||
+                                             ext == "jpeg" || ext == "bmp")
+                                          : (ext == "fit" || ext == "fits");
+                    if (match)
+                        sim.fitFiles.Add(allFiles[i]);
+                }
                 sim.fitFiles.Sort();
                 sim.fitFileIndex = 0;
                 sim.dirStarted = true;
+                sim.playbackStarted = false;
             }
         }
         if (!sim.dir.IsOpened() || sim.fitFiles.IsEmpty())
         {
-            pFrame->Alert(_("Cannot open FIT file directory"));
+            pFrame->Alert(isImgDir ? _("Cannot open image file directory") : _("Cannot open FIT file directory"));
             return true;
         }
 
-        filename = sim.fitFiles[sim.fitFileIndex];
-        sim.fitFileIndex = (sim.fitFileIndex + 1) % sim.fitFiles.GetCount();
+        // Advance the playback position: honor a pending manual step, else advance one
+        // frame while playing (only if the next file exists), else hold the current frame.
+        size_t count = sim.fitFiles.GetCount();
+        int step = sim.playbackStep;
+        if (step != 0)
+        {
+            long idx = (long) sim.fitFileIndex + step;
+            idx = wxMax(0L, wxMin((long) count - 1, idx));
+            Debug.Write(wxString::Format("Simulator playback: step=%d index %d -> %d (of %d)\n", step,
+                                         (int) sim.fitFileIndex, (int) idx, (int) count));
+            sim.fitFileIndex = (size_t) idx;
+            sim.playbackStep -= step;
+        }
+        else if (sim.playbackStarted && !sim.playbackPaused)
+        {
+            size_t next = (sim.fitFileIndex + 1) % count;
+            if (wxFileExists(sim.fitFiles[next]))
+                sim.fitFileIndex = next;
+        }
+        sim.playbackStarted = true;
+
+        wxString filename = sim.fitFiles[sim.fitFileIndex];
 
         if (!UseSubframes)
             subframe = wxRect();
 
-        if (sim.ReadFitImage(img, filename, subframe))
+        if (isImgDir)
         {
-            pFrame->Alert(_("Cannot find/open FIT file"));
-            return true;
-        }
-        if (subframe.IsEmpty())
-        {
-            cv::Mat fitImage(img.Size.GetHeight(), img.Size.GetWidth(), CV_16UC1, img.ImageData);
-            limit_simulator_image_size(fitImage, filename);
-            if (fitImage.cols != img.Size.GetWidth() || fitImage.rows != img.Size.GetHeight())
+            cv::Mat image = cv::imread(filename.ToStdString(), cv::IMREAD_ANYDEPTH | cv::IMREAD_ANYCOLOR);
+            cv::Mat mono16;
+            if (!convert_to_mono16(image, mono16))
             {
-                if (img.Init(fitImage.cols, fitImage.rows))
-                {
-                    pFrame->Alert(_("Memory allocation error"));
-                    return true;
-                }
-                memcpy(img.ImageData, fitImage.data, fitImage.cols * fitImage.rows * sizeof(unsigned short));
+                pFrame->Alert(_("Cannot load image file"));
+                return true;
             }
+            limit_simulator_image_size(mono16, filename);
+            if (img.Init(mono16.cols, mono16.rows))
+            {
+                pFrame->Alert(_("Memory allocation error"));
+                return true;
+            }
+            FrameSize.x = mono16.cols;
+            FrameSize.y = mono16.rows;
+            memcpy(img.ImageData, mono16.data, (size_t) mono16.cols * mono16.rows * sizeof(unsigned short));
+        }
+        else
+        {
+            if (sim.ReadFitImage(img, filename, subframe))
+            {
+                pFrame->Alert(_("Cannot find/open FIT file"));
+                return true;
+            }
+            if (subframe.IsEmpty())
+            {
+                cv::Mat fitImage(img.Size.GetHeight(), img.Size.GetWidth(), CV_16UC1, img.ImageData);
+                limit_simulator_image_size(fitImage, filename);
+                if (fitImage.cols != img.Size.GetWidth() || fitImage.rows != img.Size.GetHeight())
+                {
+                    if (img.Init(fitImage.cols, fitImage.rows))
+                    {
+                        pFrame->Alert(_("Memory allocation error"));
+                        return true;
+                    }
+                    memcpy(img.ImageData, fitImage.data, fitImage.cols * fitImage.rows * sizeof(unsigned short));
+                }
+            }
+            FrameSize = img.Size;
         }
         if (pCamera)
             pCamera->SetProperty("path", filename);
         Debug.Write(wxString::Format("Simulator: loaded image file: %s\n", filename));
 
-        FrameSize = img.Size;
         render_clouds_if_needed(img, subframe, duration, 30, 100);
         break;
     }
@@ -2059,6 +2120,10 @@ struct SimCamDialog : public wxDialog
     wxCheckBox *pMountDynamicsCheckBox;
     wxTextCtrl *pSimFile;
     wxButton *pBrowseBtn;
+    wxButton *pPlayPauseBtn;
+    wxButton *pStopBtn;
+    wxButton *pStepBackBtn;
+    wxButton *pStepFwdBtn;
     wxCheckBox *showComet;
     wxCheckBox *pUsePECbx;
     wxCheckBox *pUseStiction;
@@ -2087,6 +2152,10 @@ struct SimCamDialog : public wxDialog
     void OnSpinCtrlFileIndex(wxSpinDoubleEvent& event);
     void OnBrowseFileName(wxCommandEvent& event);
     void OnFileTextChange(wxCommandEvent& event);
+    void OnPlayPause(wxCommandEvent& event);
+    void OnStopPlayback(wxCommandEvent& event);
+    void OnStepBack(wxCommandEvent& event);
+    void OnStepForward(wxCommandEvent& event);
 
     wxDECLARE_EVENT_TABLE();
 };
@@ -2183,11 +2252,19 @@ static void SetControlStates(SimCamDialog *dlg, bool captureActive)
     dlg->showComet->Enable(isStarMode);
 
     // Enable file, browse and index controls only in file mode
-    bool isFileMode = (SimCamParams::SimulatorMode == SIMMODE_FILE) || (SimCamParams::SimulatorMode == SIMMODE_FITS);
+    bool isStreamMode =
+        (SimCamParams::SimulatorMode == SIMMODE_FITS) || (SimCamParams::SimulatorMode == SIMMODE_IMGDIR);
+    bool isFileMode = (SimCamParams::SimulatorMode == SIMMODE_FILE) || isStreamMode;
     dlg->pSimFile->Enable(isFileMode);
     dlg->pBrowseBtn->Enable(isFileMode);
 # ifdef FITS_FOLDER_OPTION
     dlg->pFileIndex->Enable(isFileMode);
+
+    // Playback controls apply to the streaming (folder) modes
+    dlg->pPlayPauseBtn->Enable(isStreamMode);
+    dlg->pStopBtn->Enable(isStreamMode);
+    dlg->pStepBackBtn->Enable(isStreamMode);
+    dlg->pStepFwdBtn->Enable(isStreamMode);
 # endif
 }
 
@@ -2301,16 +2378,25 @@ SimCamDialog::SimCamDialog(wxWindow *parent) : wxDialog(parent, wxID_ANY, _("Cam
 
     // Add simulation mode drop-down
     wxBoxSizer *modeFileSizer = new wxBoxSizer(wxHORIZONTAL);
-    wxArrayString simModes;
-    simModes.Add(_(" Generate stars"));
-    simModes.Add(_(" Image file"));
-# ifdef FITS_FOLDER_OPTION
-    simModes.Add(_(" FIT folder"));
-# endif
     wxStaticText *modeLabel = new wxStaticText(this, wxID_ANY, _("Mode: "));
     modeLabel->SetToolTip(_("Choose between simulating star field or streaming image files"));
-    wxChoice *pSimMode = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, simModes);
-    pSimMode->SetSelection(SimCamParams::SimulatorMode);
+    // Item order is decoupled from the SimMode enum via per-item client data, so the drop-down can be
+    // reordered freely without changing the mode value stored in the config (the enum, not the index).
+    wxChoice *pSimMode = new wxChoice(this, wxID_ANY);
+    pSimMode->Append(_(" Generate stars"), (void *) (intptr_t) SIMMODE_GENERATE);
+    pSimMode->Append(_(" Image file"), (void *) (intptr_t) SIMMODE_FILE);
+# ifdef FITS_FOLDER_OPTION
+    pSimMode->Append(_(" Image folder"), (void *) (intptr_t) SIMMODE_IMGDIR);
+    pSimMode->Append(_(" FIT folder"), (void *) (intptr_t) SIMMODE_FITS);
+# endif
+    for (unsigned int i = 0; i < pSimMode->GetCount(); i++)
+    {
+        if ((SimMode) (intptr_t) pSimMode->GetClientData(i) == SimCamParams::SimulatorMode)
+        {
+            pSimMode->SetSelection(i);
+            break;
+        }
+    }
     pSimMode->Bind(wxEVT_CHOICE, &SimCamDialog::OnSimModeChange, this);
     modeFileSizer->Add(modeLabel, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     modeFileSizer->Add(pSimMode, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
@@ -2319,8 +2405,8 @@ SimCamDialog::SimCamDialog(wxWindow *parent) : wxDialog(parent, wxID_ANY, _("Cam
     wxString fileLabelTip = _("Select an image file (BMP|PNG|TIF|JPG|FIT) to use for the simulation");
     wxString browseTip = _T("Select an image file to use for the simulation");
 # ifdef FITS_FOLDER_OPTION
-    fileLabelTip += _(" or folder with sequence of FIT files (f.e. C:\\temp\\phd2\\sun_%04d.png)");
-    browseTip += _(" or folder with sequence of FIT files");
+    fileLabelTip += _(" or a folder of FIT / image (PNG/TIF/JPG) files streamed in alphabetical order");
+    browseTip += _(" or a folder of FIT / image files");
 # endif
     fileLabel->SetToolTip(fileLabelTip);
     pSimFile = new wxTextCtrl(this, wxID_ANY, SimCamParams::SimFileTemplate, wxDefaultPosition, wxSize(350, -1));
@@ -2343,6 +2429,29 @@ SimCamDialog::SimCamDialog(wxWindow *parent) : wxDialog(parent, wxID_ANY, _("Cam
     fileIndexSizer->Add(pFileIndexLabel, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     fileIndexSizer->Add(pFileIndex, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     fileIndexSizer->AddSpacer(10);
+
+    // Playback controls for the streaming (FIT/image folder) modes. If a streaming mode is selected
+    // while PHD2 isn't looping, default to paused so the Play button is shown (pressing it starts exposures).
+    bool isStreamMode = SimCamParams::SimulatorMode == SIMMODE_FITS || SimCamParams::SimulatorMode == SIMMODE_IMGDIR;
+    if (pCamera && isStreamMode && !pFrame->CaptureActive)
+        static_cast<CameraSimulator *>(pCamera)->sim.playbackPaused = true;
+    bool startPaused = pCamera && static_cast<CameraSimulator *>(pCamera)->sim.playbackPaused;
+    pStepBackBtn = new wxButton(this, wxID_ANY, _("|<"), wxDefaultPosition, wxSize(40, -1));
+    pStepBackBtn->SetToolTip(_("Step back one frame"));
+    pStepBackBtn->Bind(wxEVT_BUTTON, &SimCamDialog::OnStepBack, this);
+    pPlayPauseBtn = new wxButton(this, wxID_ANY, startPaused ? _("Play") : _("Pause"), wxDefaultPosition, wxSize(70, -1));
+    pPlayPauseBtn->SetToolTip(_("Play/pause frame playback"));
+    pPlayPauseBtn->Bind(wxEVT_BUTTON, &SimCamDialog::OnPlayPause, this);
+    pStopBtn = new wxButton(this, wxID_ANY, _("Stop"), wxDefaultPosition, wxSize(60, -1));
+    pStopBtn->SetToolTip(_("Rewind to the first frame and pause"));
+    pStopBtn->Bind(wxEVT_BUTTON, &SimCamDialog::OnStopPlayback, this);
+    pStepFwdBtn = new wxButton(this, wxID_ANY, _(">|"), wxDefaultPosition, wxSize(40, -1));
+    pStepFwdBtn->SetToolTip(_("Step forward one frame"));
+    pStepFwdBtn->Bind(wxEVT_BUTTON, &SimCamDialog::OnStepForward, this);
+    fileIndexSizer->Add(pStepBackBtn, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    fileIndexSizer->Add(pPlayPauseBtn, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    fileIndexSizer->Add(pStopBtn, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    fileIndexSizer->Add(pStepFwdBtn, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 # endif
 
     pStarsSlider = NewSlider(this, SimCamParams::nr_stars, 1, 100, _("Number of simulated stars"));
@@ -2508,7 +2617,7 @@ void SimCamDialog::OnReset(wxCommandEvent& event)
     SetRBState(this, USE_PE_DEFAULT_PARAMS);
     UpdatePierSideLabel();
     showComet->SetValue(SHOW_COMET_DEFAULT);
-    if (SimCamParams::SimulatorMode == SIMMODE_FITS)
+    if (SimCamParams::SimulatorMode == SIMMODE_FITS || SimCamParams::SimulatorMode == SIMMODE_IMGDIR)
     {
         pSimFile->SetValue(wxFileName(Debug.GetLogDir(), "sim_images").GetFullPath());
         CameraSimulator *simcam = static_cast<CameraSimulator *>(pCamera);
@@ -2529,7 +2638,10 @@ void SimCamDialog::OnPierFlip(wxCommandEvent& event)
 
 void SimCamDialog::OnSimModeChange(wxCommandEvent& event)
 {
-    SimMode newMode = (SimMode) event.GetInt();
+    // The selected mode comes from the item's client data, not its index (the drop-down order is
+    // decoupled from the SimMode enum).
+    wxChoice *choice = static_cast<wxChoice *>(event.GetEventObject());
+    SimMode newMode = (SimMode) (intptr_t) choice->GetClientData(choice->GetSelection());
     if (SimCamParams::SimulatorMode != newMode && pFrame->CaptureActive)
     {
         Debug.Write("Simulator: stopping looping exposures because source mode changed\n");
@@ -2540,6 +2652,17 @@ void SimCamDialog::OnSimModeChange(wxCommandEvent& event)
     SimCamParams::SimFileTemplate = pSimFile->GetValue();
     CameraSimulator *simcam = static_cast<CameraSimulator *>(pCamera);
     simcam->sim.CloseDir();
+
+    // Selecting a folder-streaming mode while PHD2 isn't looping: start paused and show the Play
+    // button, so pressing Play is what kicks off exposures.
+    bool isStreamMode = newMode == SIMMODE_FITS || newMode == SIMMODE_IMGDIR;
+    if (isStreamMode && !pFrame->CaptureActive)
+    {
+        simcam->sim.playbackPaused = true;
+        if (pPlayPauseBtn)
+            pPlayPauseBtn->SetLabel(_("Play"));
+    }
+
     SetControlStates(this, pFrame->CaptureActive);
 }
 
@@ -2551,11 +2674,54 @@ void SimCamDialog::OnSpinCtrlFileIndex(wxSpinDoubleEvent& event)
     SimCamParams::SimFileIndex = v;
 }
 
+void SimCamDialog::OnPlayPause(wxCommandEvent& event)
+{
+    CameraSimulator *simcam = static_cast<CameraSimulator *>(pCamera);
+    simcam->sim.playbackPaused = !simcam->sim.playbackPaused;
+    pPlayPauseBtn->SetLabel(simcam->sim.playbackPaused ? _("Play") : _("Pause"));
+
+    // Pressing Play should get frames flowing: if PHD2 isn't looping, start exposures.
+    if (!simcam->sim.playbackPaused && !pFrame->CaptureActive)
+        pFrame->StartLooping();
+}
+
+void SimCamDialog::OnStopPlayback(wxCommandEvent& event)
+{
+    CameraSimulator *simcam = static_cast<CameraSimulator *>(pCamera);
+    simcam->sim.fitFileIndex = 0;
+    simcam->sim.playbackStep = 0;
+    simcam->sim.playbackStarted = false; // show frame 0 first on the next capture
+    simcam->sim.playbackPaused = true;
+    pPlayPauseBtn->SetLabel(_("Play"));
+}
+
+void SimCamDialog::OnStepBack(wxCommandEvent& event)
+{
+    CameraSimulator *simcam = static_cast<CameraSimulator *>(pCamera);
+    simcam->sim.playbackPaused = true;
+    simcam->sim.playbackStep -= 1;
+    pPlayPauseBtn->SetLabel(_("Play"));
+    // A step needs a capture to take effect; if PHD2 isn't looping, start it so the frame shows.
+    if (!pFrame->CaptureActive)
+        pFrame->StartLooping();
+}
+
+void SimCamDialog::OnStepForward(wxCommandEvent& event)
+{
+    CameraSimulator *simcam = static_cast<CameraSimulator *>(pCamera);
+    simcam->sim.playbackPaused = true;
+    simcam->sim.playbackStep += 1;
+    pPlayPauseBtn->SetLabel(_("Play"));
+    // A step needs a capture to take effect; if PHD2 isn't looping, start it so the frame shows.
+    if (!pFrame->CaptureActive)
+        pFrame->StartLooping();
+}
+
 void SimCamDialog::OnBrowseFileName(wxCommandEvent& event)
 {
-    if (SimCamParams::SimulatorMode == SIMMODE_FITS)
+    if (SimCamParams::SimulatorMode == SIMMODE_FITS || SimCamParams::SimulatorMode == SIMMODE_IMGDIR)
     {
-        // Open folder dialog to select folder for FITS files
+        // Open folder dialog to select folder for FIT/image files
         wxDirDialog openDirDialog(this, _("Select Folder"), wxEmptyString, wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
         if (openDirDialog.ShowModal() == wxID_OK)
         {
