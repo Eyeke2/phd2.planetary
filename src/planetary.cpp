@@ -291,6 +291,17 @@ bool SolarSystemObject::SetLimits(int minRadius, int maxRadius)
     return false;
 }
 
+bool SolarSystemObject::SetLimitsPersisted(int minRadius, int maxRadius)
+{
+    if (!SetLimits(minRadius, maxRadius))
+        return false;
+
+    pConfig->Profile.SetInt("/PlanetTool/min_radius", Get_minRadius());
+    pConfig->Profile.SetInt("/PlanetTool/max_radius", Get_maxRadius());
+    pConfig->Flush();
+    return true;
+}
+
 // Report detected object size or sharpness depending on measurement mode
 double SolarSystemObject::GetHFD()
 {
@@ -1696,6 +1707,33 @@ bool SolarSystemObject::ConsumeRemoteDetection()
     pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), m_planetaryContourPoints);
     pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), m_planetaryFittingScore);
     return true;
+}
+
+void SolarSystemObject::GetPlanetHandoverState(PlanetHandoverState& state)
+{
+    double scale = FrameExport::ExportScale(m_frameWidth, m_frameHeight);
+    if (scale < 1.0)
+        scale = 1.0;
+
+    state.planetaryMode = Get_SolarSystemObjMode() && (GetPlanetDetectMode() == DETECTION_MODE_DISK);
+    state.detected = m_detected;
+    state.cx = m_center_x / scale;
+    state.cy = m_center_y / scale;
+    state.radius = (int) (m_radius / scale + 0.5);
+    state.minRadius = (int) (Get_minRadius() / scale + 0.5);
+    state.maxRadius = (int) (Get_maxRadius() / scale + 0.5);
+    state.cannyHigh = Get_highThreshold();
+}
+
+void SolarSystemObject::SetDetectionThresholds(int high, int low)
+{
+    high = wxMax(PT_THRESHOLD_MIN, wxMin(PT_HIGH_THRESHOLD_MAX, high));
+    low = wxMax(PT_THRESHOLD_MIN, wxMin(PT_LOW_THRESHOLD_MAX, low));
+    Set_highThreshold(high);
+    Set_lowThreshold(low);
+
+    pConfig->Profile.SetInt("/PlanetTool/high_threshold", Get_highThreshold());
+    pConfig->Flush();
 }
 
 bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSelect)
