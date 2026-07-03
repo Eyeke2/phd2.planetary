@@ -85,6 +85,25 @@ wxString ConfigSection::GetString(const wxString& name, const wxString& defaultV
     return sReturn;
 }
 
+// As GetString, but without wxConfig environment-variable expansion, which otherwise
+// treats backslash as an escape and eats a '\' preceding '%'/'$' (e.g. a "...\%03d.tif"
+// file template loses the backslash on reload).
+wxString ConfigSection::GetStringNoExpand(const wxString& name, const wxString& defaultValue)
+{
+    wxString sReturn = defaultValue;
+    wxString path = m_prefix + name;
+
+    if (m_pConfig)
+    {
+        bool prevExpand = m_pConfig->IsExpandingEnvVars();
+        m_pConfig->SetExpandEnvVars(false);
+        m_pConfig->Read(path, &sReturn, defaultValue);
+        m_pConfig->SetExpandEnvVars(prevExpand);
+    }
+
+    return sReturn;
+}
+
 double ConfigSection::GetDouble(const wxString& name, double defaultValue)
 {
     double dReturn = defaultValue;
