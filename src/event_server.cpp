@@ -3091,6 +3091,52 @@ static void get_frame_export(JObj& response, const json_value *params)
     response << jrpc_result(FrameExport::IsEnabled() ? 1 : 0);
 }
 
+static void get_planet_state(JObj& response, const json_value *params)
+{
+    if (!pFrame->pGuider)
+    {
+        response << jrpc_error(1, "guider not connected");
+        return;
+    }
+
+    SolarSystemObject::PlanetHandoverState s;
+    pFrame->pGuider->m_SolarSystemObject.GetPlanetHandoverState(s);
+
+    JObj rslt;
+    rslt << NV("planetary_mode", s.planetaryMode) << NV("detected", s.detected) << NV("cx", s.cx) << NV("cy", s.cy)
+         << NV("radius", s.radius) << NV("min_radius", s.minRadius) << NV("max_radius", s.maxRadius)
+         << NV("canny_high", s.cannyHigh);
+    response << jrpc_result(rslt);
+}
+
+static void set_planet_thresholds(JObj& response, const json_value *params)
+{
+    if (!params || params->type != JSON_OBJECT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected thresholds object");
+        return;
+    }
+    if (!pFrame->pGuider)
+    {
+        response << jrpc_error(1, "guider not connected");
+        return;
+    }
+
+    Params p("high", "low", params);
+    const json_value *hv = p.param("high");
+    if (!hv || hv->type != JSON_INT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected high threshold");
+        return;
+    }
+    int high = hv->int_value;
+    const json_value *lv = p.param("low");
+    int low = (lv && lv->type == JSON_INT) ? lv->int_value : wxMax(high / 2, 1);
+
+    pFrame->pGuider->m_SolarSystemObject.SetDetectionThresholds(high, low);
+    response << jrpc_result(0);
+}
+
 static void set_planet_detection(JObj& response, const json_value *params)
 {
     if (!params || params->type != JSON_OBJECT)
@@ -3179,7 +3225,7 @@ static void set_planet_size(JObj& response, const json_value *params)
 
     if (pFrame->pGuider)
     {
-        if (!pFrame->pGuider->m_SolarSystemObject.SetLimits(minRadius, maxRadius))
+        if (!pFrame->pGuider->m_SolarSystemObject.SetLimitsPersisted(minRadius, maxRadius))
         {
             response << jrpc_error(1, "invalid data");
             return;
@@ -4171,6 +4217,8 @@ static bool handle_request(JRpcCall& call)
         { "set_frame_export", nullptr, EXT_PROTOCOL_SOLAR3, &set_frame_export },
         { "get_frame_export", &get_frame_export, EXT_PROTOCOL_SOLAR3 },
         { "set_planet_detection", &set_planet_detection, EXT_PROTOCOL_SOLAR3 },
+        { "get_planet_state", &get_planet_state, EXT_PROTOCOL_SOLAR3 },
+        { "set_planet_thresholds", &set_planet_thresholds, EXT_PROTOCOL_SOLAR3 },
         { "get_process_id", &get_process_id },
         { "set_planet_size", &set_planet_size},
         { "set_cal_step", &set_cal_step },
