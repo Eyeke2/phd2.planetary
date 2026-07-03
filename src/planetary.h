@@ -215,6 +215,7 @@ public:
     void Set_highThreshold(int value) { m_paramHighThreshold = value; }
     int Get_highThreshold() { return m_paramHighThreshold; }
     bool SetLimits(int minRadius, int maxRadius);
+    bool SetLimitsPersisted(int minRadius, int maxRadius);
 
     struct RemoteDetection
     {
@@ -240,6 +241,20 @@ public:
     };
     void SetRemoteDetectionResult(const RemoteDetection& result);
     void WaitRemoteDetection(uint32_t frame);
+
+    struct PlanetHandoverState
+    {
+        bool planetaryMode = false;
+        bool detected = false;
+        double cx = 0;
+        double cy = 0;
+        int radius = 0;
+        int minRadius = 0;
+        int maxRadius = 0;
+        int cannyHigh = 0;
+    };
+    void GetPlanetHandoverState(PlanetHandoverState& state);
+    void SetDetectionThresholds(int high, int low);
 
     bool GetMountTrackingState(bool& trackingValid, bool& tracking, wxString& rate, bool& offsetsValid, double& raOffset,
                                double& decOffset);

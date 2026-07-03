@@ -1209,11 +1209,16 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
         }
     }
 
-    // Update min/max radius updated by the PHD2 client - in disk detection mode
-    if (pSolarSystemObj->GetMinMaxDiametersUpdate() && !pSolarSystemObj->GetSurfaceTrackingState())
+    if (!pSolarSystemObj->GetSurfaceTrackingState())
     {
-        m_minRadius->SetValue(pSolarSystemObj->Get_minRadius());
-        m_maxRadius->SetValue(pSolarSystemObj->Get_maxRadius());
+        if (pSolarSystemObj->GetMinMaxDiametersUpdate())
+        {
+            m_minRadius->SetValue(pSolarSystemObj->Get_minRadius());
+            m_maxRadius->SetValue(pSolarSystemObj->Get_maxRadius());
+        }
+        int const highThr = pSolarSystemObj->Get_highThreshold();
+        if (highThr != m_thresholdSlider->GetValue())
+            m_thresholdSlider->SetValue(highThr);
     }
 
     // Check 500 msec rule

@@ -975,6 +975,27 @@ wxString CameraFrameMonitor::GetStrProperty(const wxString prop, int timeout)
 
 namespace {
 
+// Decimated dims used to fit a w x h 16-bit frame into a slot (uniform, aspect-preserving).
+// decW==w, decH==h when it already fits.
+static void ComputeDecimatedDims(int w, int h, int& decW, int& decH)
+{
+    decW = w;
+    decH = h;
+    if (w <= 0 || h <= 0)
+        return;
+    if ((size_t) w * h * 2 > SHM_FRAME_SLOT_BYTES)
+    {
+        double s = std::sqrt((double) ((size_t) w * h * 2) / (double) SHM_FRAME_SLOT_BYTES);
+        decW = (int) (w / s);
+        decH = (int) (h / s);
+        while (decW > 1 && decH > 1 && (size_t) decW * decH * 2 > SHM_FRAME_SLOT_BYTES)
+        {
+            decW = (decW * 63) / 64;
+            decH = (decH * 63) / 64;
+        }
+    }
+}
+
 class ShmFrameChannel
 {
 public:
@@ -1049,21 +1070,14 @@ public:
 
         // Decimate uniformly (preserving aspect ratio) so an oversized frame fits the
         // slot. HM maps its detected coordinates back to full frame via orig/buffer dims.
-        int decW = w, decH = h;
+        int decW, decH;
+        ComputeDecimatedDims(w, h, decW, decH);
+        if (decW < 1 || decH < 1)
+            return 0;
         const unsigned short *srcData = px;
         cv::Mat decimated;
-        if ((size_t) w * h * 2 > m_shm->slotBytes)
+        if (decW != w || decH != h)
         {
-            double s = std::sqrt((double) ((size_t) w * h * 2) / (double) m_shm->slotBytes);
-            decW = (int) (w / s);
-            decH = (int) (h / s);
-            while (decW > 1 && decH > 1 && (size_t) decW * decH * 2 > m_shm->slotBytes)
-            {
-                decW = (decW * 63) / 64;
-                decH = (decH * 63) / 64;
-            }
-            if (decW < 1 || decH < 1)
-                return 0;
             cv::Mat full(h, w, CV_16UC1, (void *) px);
             cv::resize(full, decimated, cv::Size(decW, decH), 0, 0, cv::INTER_AREA);
             if (!decimated.isContinuous())
@@ -1163,6 +1177,17 @@ uint32_t FrameExport::CurrentFrame()
     return s_lastFrame.load();
 }
 
+double FrameExport::ExportScale(int w, int h)
+{
+    if (w <= 0 || h <= 0)
+        return 1.0;
+    int decW, decH;
+    ComputeDecimatedDims(w, h, decW, decH);
+    if (decW < 1)
+        return 1.0;
+    return (double) w / (double) decW;
+}
+
 void FrameExport::Publish(const unsigned short *pixels, int width, int height, int bitsPerPixel, int binning,
                           int exposureMs, double pixelSizeUm)
 {
@@ -1184,6 +1209,7 @@ bool FrameExport::Available() { return false; }
 bool FrameExport::Enable(bool) { return false; }
 bool FrameExport::IsEnabled() { return false; }
 uint32_t FrameExport::CurrentFrame() { return 0; }
+double FrameExport::ExportScale(int, int) { return 1.0; }
 void FrameExport::Publish(const unsigned short *, int, int, int, int, int, double) { }
 
 #endif // FRAME_MONITOR_CAMERA
