@@ -54,10 +54,8 @@ private:
     double m_paramMaxRadius;
     int m_paramLowThreshold;
     int m_paramHighThreshold;
-    int m_paramMinHessian;
     bool m_paramShowElementsButtonState;
     bool m_paramNoiseFilterState;
-    int m_paramMaxFeatures;
 
     bool m_requestPlanetaryModeUpdate;
     bool m_showVisualElements;
