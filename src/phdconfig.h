@@ -82,6 +82,7 @@ public:
 
     bool GetBoolean(const wxString& name, bool defaultValue);
     wxString GetString(const wxString& name, const wxString& defaultValue);
+    wxString GetStringNoExpand(const wxString& name, const wxString& defaultValue);
     double GetDouble(const wxString& name, double defaultValue);
     long GetLong(const wxString& name, long defaultValue);
     int GetInt(const wxString& name, int defaultValue);
