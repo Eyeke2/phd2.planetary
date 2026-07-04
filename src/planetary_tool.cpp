@@ -114,6 +114,7 @@ struct PlanetToolWin : public wxDialog
     void OnMouseEnterCloseBtn(wxMouseEvent& event);
     void OnMouseLeaveCloseBtn(wxMouseEvent& event);
     void OnThresholdChanged(wxCommandEvent& event);
+    void OnThresholdReleased(wxScrollEvent& event);
 
     void OnEnableToggled(wxCommandEvent& event);
     void OnSpinCtrl_minRadius(wxSpinDoubleEvent& event);
@@ -328,6 +329,7 @@ PlanetToolWin::PlanetToolWin()
     ThresholdLabel->SetToolTip(_("Higher values reduce sensitivity to weaker edges, resulting in cleaner contour. This is "
                                  "displayed in red when the display of internal contour edges is enabled."));
     m_thresholdSlider->Bind(wxEVT_SLIDER, &PlanetToolWin::OnThresholdChanged, this);
+    m_thresholdSlider->Bind(wxEVT_SCROLL_CHANGED, &PlanetToolWin::OnThresholdReleased, this);
     m_RoiCheckBox = new wxCheckBox(m_planetPanel, wxID_ANY, _("Enable ROI"));
     m_RoiCheckBox->SetToolTip(
         _("Enable automatically selected Region Of Interest (ROI) for improved processing speed and reduced CPU usage."));
@@ -1427,6 +1429,14 @@ void PlanetToolWin::OnThresholdChanged(wxCommandEvent& event)
     pSolarSystemObj->Set_lowThreshold(lowThreshold);
     pSolarSystemObj->Set_highThreshold(highThreshold);
     pSolarSystemObj->RestartSimulatorErrorDetection();
+}
+
+void PlanetToolWin::OnThresholdReleased(wxScrollEvent& event)
+{
+    int highThreshold = wxMin(PT_HIGH_THRESHOLD_MAX, wxMax(PT_THRESHOLD_MIN, m_thresholdSlider->GetValue()));
+    int lowThreshold = wxMax(highThreshold / 2, PT_THRESHOLD_MIN);
+    pSolarSystemObj->SetDetectionThresholds(highThreshold, lowThreshold);
+    event.Skip();
 }
 
 static void SuppressPausePlanetDetection(intptr_t)
