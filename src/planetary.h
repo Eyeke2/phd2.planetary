@@ -81,7 +81,6 @@ private:
     int m_lockTargetHeightBad;
 
     wxMutex m_syncLock;
-    cv::Point2f m_prevClickedPoint;
 
     int m_peak;
     double m_snr;
@@ -100,10 +99,6 @@ private:
     int m_sm_circle_y;
     int m_frameWidth;
     int m_frameHeight;
-
-    cv::Point2f m_origPoint;
-    cv::Point2f m_cameraSimulationMove;
-    cv::Point2f m_cameraSimulationRefPoint;
 
     // Surface tracking state
     int m_detectedFeatures;
@@ -142,8 +137,6 @@ public:
     double m_planetaryFittingScore;
     int m_planetaryContourPoints;
     int m_detectionCounter;
-    bool m_simulationZeroOffset;
-    bool m_cameraSimulationRefPointValid;
 
     // PHD2 parameters saved before enabling solar system object mode and restored after disabling
     bool m_phd2_MassChangeThresholdEnabled;
@@ -159,7 +152,6 @@ public:
     ~SolarSystemObject();
 
     bool FindSolarSystemObject(const usImage *pImage, bool autoSelect = false);
-    void RestartSimulatorErrorDetection();
 
     PHD_Point GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale);
 
@@ -181,7 +173,6 @@ public:
     void NotifyCameraConnect(bool connected);
     void OnLClick(usImage *pImage, double& x, double& y);
     bool UpdateCaptureState(bool CaptureActive);
-    void SaveCameraSimulationMove(double rx, double ry);
     bool Get_SolarSystemObjMode();
     void Set_SolarSystemObjMode(bool enabled);
     void Set_SurfaceDetectionMode(bool enabled);
@@ -329,7 +320,6 @@ private:
     bool FindOrbisCenter(const cv::Mat& src, int minRadius, int maxRadius, bool roiActive, cv::Point2f& clickedPoint,
                          cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
     bool GetSurfaceFeatures();
-    void UpdateDetectionErrorInSimulator(cv::Point2f& clickedPoint);
     void CheckMountTrackingState();
     bool ConsumeRemoteDetection();
 
