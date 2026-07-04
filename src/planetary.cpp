@@ -80,12 +80,7 @@ SolarSystemObject::SolarSystemObject() : m_remoteDetCond(m_remoteDetMutex)
     m_remoteData = false;
     m_surf.trackingQuality = 0;
 
-    m_cameraSimulationMove = Point2f(0, 0);
-    m_cameraSimulationRefPoint = Point2f(0, 0);
-    m_cameraSimulationRefPointValid = false;
-    m_simulationZeroOffset = false;
     m_center_x = m_center_y = 0;
-    m_origPoint = Point2f(0, 0);
 
     m_cachedScaledWidth = 0;
     m_cachedScaledHeight = 0;
@@ -96,7 +91,6 @@ SolarSystemObject::SolarSystemObject() : m_remoteDetCond(m_remoteDetMutex)
     m_detectionCounter = 0;
     m_clicked_x = 0;
     m_clicked_y = 0;
-    m_prevClickedPoint = Point2f(0, 0);
     m_diskContour.clear();
     m_showVisualElements = false;
     m_showMinMaxDiameters = false;
@@ -624,7 +618,6 @@ bool SolarSystemObject::UpdateCaptureState(bool CaptureActive)
             // control drawing of the internal detection elements.
             if (Get_SolarSystemObjMode() && GetShowFeaturesButtonState())
                 ShowVisualElements(true);
-            RestartSimulatorErrorDetection();
         }
     }
 
@@ -641,8 +634,6 @@ bool SolarSystemObject::UpdateCaptureState(bool CaptureActive)
 // Notification callback when camera is connected/disconnected
 void SolarSystemObject::NotifyCameraConnect(bool connected)
 {
-    bool isSimCam = (pCamera && pCamera->Name == "Simulator");
-    pFrame->pStatsWin->ShowSimulatorStats(isSimCam && connected);
     pFrame->pStatsWin->ShowPlanetStats(Get_SolarSystemObjMode() && connected);
     m_userLClick = false;
 }
@@ -668,22 +659,6 @@ void SolarSystemObject::OnLClick(usImage *pImage, double& x, double& y)
         }
 #endif
     }
-}
-
-void SolarSystemObject::SaveCameraSimulationMove(double rx, double ry)
-{
-    m_cameraSimulationMove = Point2f(rx, ry);
-    if (m_simulationZeroOffset)
-    {
-        m_cameraSimulationRefPoint = m_cameraSimulationMove;
-        m_cameraSimulationRefPointValid = true;
-    }
-}
-
-void SolarSystemObject::RestartSimulatorErrorDetection()
-{
-    m_cameraSimulationRefPointValid = false;
-    m_simulationZeroOffset = true;
 }
 
 // Return scaled tracking image with lock target symbol
@@ -1461,40 +1436,6 @@ void SolarSystemObject::SaveVideoFrame(const cv::Mat& src, int bppFactor)
     }
 }
 
-void SolarSystemObject::UpdateDetectionErrorInSimulator(Point2f& clickedPoint)
-{
-    if (pCamera && pCamera->Name == "Simulator")
-    {
-        bool errUnknown = true;
-        bool clicked = (m_prevClickedPoint != clickedPoint);
-
-        if (m_detected)
-        {
-            if (m_cameraSimulationRefPointValid)
-            {
-                m_simulationZeroOffset = false;
-                m_cameraSimulationRefPointValid = false;
-                m_origPoint = Point2f(m_center_x, m_center_y);
-            }
-            else if (!m_simulationZeroOffset && !clicked)
-            {
-                Point2f delta = Point2f(m_center_x, m_center_y) - m_origPoint;
-                pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"),
-                                                     norm(delta - (m_cameraSimulationMove - m_cameraSimulationRefPoint)));
-                errUnknown = false;
-            }
-        }
-
-        if (errUnknown)
-            pFrame->pStatsWin->UpdatePlanetError(_T("Detection error"), -1);
-
-        if (clicked)
-        {
-            RestartSimulatorErrorDetection();
-        }
-    }
-}
-
 // Get current mount tracking state and rate.
 // Returns true if tracking rate is known.
 bool SolarSystemObject::GetMountTrackingState(bool& trackingValid, bool& tracking, wxString& rate,
@@ -1772,7 +1713,6 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
         m_clicked_y = 0;
         m_userLClick = false;
         m_detectionCounter = 0;
-        RestartSimulatorErrorDetection();
     }
     Point2f clickedPoint = Point2f(m_clicked_x, m_clicked_y);
 
@@ -1930,9 +1870,6 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
     if (m_measuringSharpnessMode || detectionResult)
         m_unknownHFD = false;
 
-    // For simulated camera, calculate detection error by comparing with the simulated position
-    UpdateDetectionErrorInSimulator(clickedPoint);
-
     // Update data shared with other thread
     m_syncLock.Lock();
     m_roiRect = roiRect;
@@ -1943,7 +1880,6 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
         m_diskContour.clear();
     }
     m_roiActive = roiActive;
-    m_prevClickedPoint = clickedPoint;
     m_syncLock.Unlock();
 
     return detectionResult;
