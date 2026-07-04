@@ -630,6 +630,7 @@ struct SimCamState
     bool playbackPaused = false;
     bool playbackStarted = false; // false until the first frame of a stream has been served
     int playbackStep = 0;         // pending manual step (+1/-1 per click), consumed by the capture loop
+    wxString lastLoadErrorMsg;    // last file-load alert shown, so it can be auto-cleared on the next success
     void CloseDir();
     bool ReadFitImage(usImage& img, wxString& filename, const wxRect& subframe);
 
@@ -1720,13 +1721,15 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
         {
             if (sim.ReadFitImage(img, filename, wxRect()))
             {
-                pFrame->Alert(_("Cannot load FIT image file"));
+                sim.lastLoadErrorMsg = _("Cannot load FIT image file");
+                pFrame->Alert(sim.lastLoadErrorMsg);
                 return true;
             }
             image = cv::Mat(img.Size.GetHeight(), img.Size.GetWidth(), CV_16UC1, img.ImageData);
             if (!convert_to_mono16(image, mono16))
             {
-                pFrame->Alert(_("Cannot load FIT image file"));
+                sim.lastLoadErrorMsg = _("Cannot load FIT image file");
+                pFrame->Alert(sim.lastLoadErrorMsg);
                 return true;
             }
         }
@@ -1735,7 +1738,8 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
             image = cv::imread(filename.ToStdString(), cv::IMREAD_ANYDEPTH | cv::IMREAD_ANYCOLOR);
             if (!convert_to_mono16(image, mono16))
             {
-                pFrame->Alert(_("Cannot load image file"));
+                sim.lastLoadErrorMsg = _("Cannot load image file");
+                pFrame->Alert(sim.lastLoadErrorMsg);
                 return true;
             }
         }
@@ -1743,7 +1747,8 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
         limit_simulator_image_size(mono16, filename);
         if (img.Init(mono16.cols, mono16.rows))
         {
-            pFrame->Alert(_("Memory allocation error"));
+            sim.lastLoadErrorMsg = _("Memory allocation error");
+            pFrame->Alert(sim.lastLoadErrorMsg);
             return true;
         }
 
@@ -1811,7 +1816,8 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
         }
         if (!sim.dir.IsOpened() || sim.fitFiles.IsEmpty())
         {
-            pFrame->Alert(isImgDir ? _("Cannot open image file directory") : _("Cannot open FIT file directory"));
+            sim.lastLoadErrorMsg = isImgDir ? _("Cannot open image file directory") : _("Cannot open FIT file directory");
+            pFrame->Alert(sim.lastLoadErrorMsg);
             return true;
         }
 
@@ -1847,13 +1853,15 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
             cv::Mat mono16;
             if (!convert_to_mono16(image, mono16))
             {
-                pFrame->Alert(_("Cannot load image file"));
+                sim.lastLoadErrorMsg = _("Cannot load image file");
+                pFrame->Alert(sim.lastLoadErrorMsg);
                 return true;
             }
             limit_simulator_image_size(mono16, filename);
             if (img.Init(mono16.cols, mono16.rows))
             {
-                pFrame->Alert(_("Memory allocation error"));
+                sim.lastLoadErrorMsg = _("Memory allocation error");
+                pFrame->Alert(sim.lastLoadErrorMsg);
                 return true;
             }
             FrameSize.x = mono16.cols;
@@ -1864,7 +1872,8 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
         {
             if (sim.ReadFitImage(img, filename, subframe))
             {
-                pFrame->Alert(_("Cannot find/open FIT file"));
+                sim.lastLoadErrorMsg = _("Cannot find/open FIT file");
+                pFrame->Alert(sim.lastLoadErrorMsg);
                 return true;
             }
             if (subframe.IsEmpty())
@@ -1875,7 +1884,8 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
                 {
                     if (img.Init(fitImage.cols, fitImage.rows))
                     {
-                        pFrame->Alert(_("Memory allocation error"));
+                        sim.lastLoadErrorMsg = _("Memory allocation error");
+                        pFrame->Alert(sim.lastLoadErrorMsg);
                         return true;
                     }
                     memcpy(img.ImageData, fitImage.data, fitImage.cols * fitImage.rows * sizeof(unsigned short));
@@ -1890,6 +1900,15 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
         render_clouds_if_needed(img, subframe, duration, 30, 100);
         break;
     }
+    }
+
+    // A frame was produced successfully (every failing load path returns early above): dismiss a
+    // stale simulator load-failure alert if it is still the one on screen. ClearAlert(msg) only
+    // clears when the current alert text matches, so unrelated alerts are left untouched.
+    if (!sim.lastLoadErrorMsg.IsEmpty())
+    {
+        pFrame->ClearAlert(sim.lastLoadErrorMsg);
+        sim.lastLoadErrorMsg.Clear();
     }
 
     unsigned int tot_dur = duration + SimCamParams::frame_download_ms;
