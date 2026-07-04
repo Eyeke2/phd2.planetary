@@ -68,8 +68,6 @@ public:
     void UpdatePlanetFeatureCount(wxString label, int count);
     void UpdatePlanetFeatureCount(wxString label, int count1, int count2);
     void UpdatePlanetScore(wxString label, float score = 0);
-    void UpdatePlanetError(wxString label, float error);
-    void ShowSimulatorStats(bool show);
     void ClearPlanetStats();
     void SetState(bool is_active);
 

@@ -3102,6 +3102,10 @@ static void get_planet_state(JObj& response, const json_value *params)
     SolarSystemObject::PlanetHandoverState s;
     pFrame->pGuider->m_SolarSystemObject.GetPlanetHandoverState(s);
 
+    Debug.Write(wxString::Format("evsrv: get_planet_state -> mode=%d detected=%d canny_high=%d "
+                                 "radius=%d min=%d max=%d\n",
+                                 s.planetaryMode, s.detected, s.cannyHigh, s.radius, s.minRadius, s.maxRadius));
+
     JObj rslt;
     rslt << NV("planetary_mode", s.planetaryMode) << NV("detected", s.detected) << NV("cx", s.cx) << NV("cy", s.cy)
          << NV("radius", s.radius) << NV("min_radius", s.minRadius) << NV("max_radius", s.maxRadius)
@@ -3132,6 +3136,8 @@ static void set_planet_thresholds(JObj& response, const json_value *params)
     int high = hv->int_value;
     const json_value *lv = p.param("low");
     int low = (lv && lv->type == JSON_INT) ? lv->int_value : wxMax(high / 2, 1);
+
+    Debug.Write(wxString::Format("evsrv: set_planet_thresholds <- high=%d low=%d\n", high, low));
 
     pFrame->pGuider->m_SolarSystemObject.SetDetectionThresholds(high, low);
     response << jrpc_result(0);
