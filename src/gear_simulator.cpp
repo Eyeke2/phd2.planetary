@@ -102,6 +102,10 @@ struct SimCamParams
     static bool reverse_dec_pulse_on_west_side;
     static unsigned int clouds_inten;
     static double clouds_opacity; // UI has percentage, internally 0-1.0
+    static unsigned int clouds_count; // number of procedural cloud blobs (file/folder modes)
+    static double clouds_size; // cloud size, percent of frame
+    static double clouds_wind_speed; // cloud drift, pixels per frame
+    static double clouds_wind_dir; // cloud drift direction, degrees
     static double image_scale; // arc-sec per pixel
     static bool use_pe;
     static bool use_stiction;
@@ -138,6 +142,10 @@ bool SimCamParams::reverse_dec_pulse_on_west_side; // reverse dec pulse on west 
                                                    // mounts
 unsigned int SimCamParams::clouds_inten = 50; // seed brightness for cloud contribution
 double SimCamParams::clouds_opacity;
+unsigned int SimCamParams::clouds_count;
+double SimCamParams::clouds_size;
+double SimCamParams::clouds_wind_speed;
+double SimCamParams::clouds_wind_dir;
 double SimCamParams::image_scale; // arc-sec per pixel
 bool SimCamParams::use_pe;
 bool SimCamParams::use_stiction;
@@ -175,6 +183,12 @@ wxString SimCamParams::SimFileTemplate = _("C:\\Temp\\phd2\\sim_image.png");
 # define PIER_SIDE_DEFAULT PIER_SIDE_EAST
 # define REVERSE_DEC_PULSE_ON_WEST_SIDE_DEFAULT true
 # define CLOUDS_OPACITY_DEFAULT 0
+# define CLOUDS_COUNT_DEFAULT 12
+# define CLOUDS_COUNT_MAX 60
+# define CLOUDS_SIZE_DEFAULT 50
+# define CLOUDS_WIND_SPEED_DEFAULT 5
+# define CLOUDS_WIND_SPEED_MAX 50
+# define CLOUDS_WIND_DIR_DEFAULT 0
 # define USE_PE_DEFAULT true
 # define USE_STICTION_DEFAULT false
 # define PE_SCALE_DEFAULT 5.0 // amplitude arc-sec
@@ -219,6 +233,10 @@ static void load_sim_params()
         range_check(pConfig->Profile.GetDouble("/SimCam/seeing_scale", SEEING_DEFAULT), 0, SEEING_MAX); // FWHM a-s
     SimCamParams::cam_angle = pConfig->Profile.GetDouble("/SimCam/cam_angle", CAM_ANGLE_DEFAULT);
     SimCamParams::clouds_opacity = pConfig->Profile.GetDouble("/SimCam/clouds_opacity", CLOUDS_OPACITY_DEFAULT);
+    SimCamParams::clouds_count = pConfig->Profile.GetInt("/SimCam/clouds_count", CLOUDS_COUNT_DEFAULT);
+    SimCamParams::clouds_size = pConfig->Profile.GetDouble("/SimCam/clouds_size", CLOUDS_SIZE_DEFAULT);
+    SimCamParams::clouds_wind_speed = pConfig->Profile.GetDouble("/SimCam/clouds_wind_speed", CLOUDS_WIND_SPEED_DEFAULT);
+    SimCamParams::clouds_wind_dir = pConfig->Profile.GetDouble("/SimCam/clouds_wind_dir", CLOUDS_WIND_DIR_DEFAULT);
     SimCamParams::guide_rate =
         range_check(pConfig->Profile.GetDouble("/SimCam/guide_rate", GUIDE_RATE_DEFAULT), 0, GUIDE_RATE_MAX);
     SimCamParams::pier_side = (PierSide) pConfig->Profile.GetInt("/SimCam/pier_side", PIER_SIDE_DEFAULT);
@@ -254,6 +272,10 @@ static void save_sim_params()
     pConfig->Profile.SetDouble("/SimCam/ra_drift", SimCamParams::ra_drift_rate * 60.0);
     pConfig->Profile.SetDouble("/SimCam/seeing_scale", SimCamParams::seeing_scale);
     pConfig->Profile.SetDouble("/SimCam/clouds_opacity", SimCamParams::clouds_opacity);
+    pConfig->Profile.SetInt("/SimCam/clouds_count", SimCamParams::clouds_count);
+    pConfig->Profile.SetDouble("/SimCam/clouds_size", SimCamParams::clouds_size);
+    pConfig->Profile.SetDouble("/SimCam/clouds_wind_speed", SimCamParams::clouds_wind_speed);
+    pConfig->Profile.SetDouble("/SimCam/clouds_wind_dir", SimCamParams::clouds_wind_dir);
     pConfig->Profile.SetDouble("/SimCam/cam_angle", SimCamParams::cam_angle);
     pConfig->Profile.SetDouble("/SimCam/guide_rate", SimCamParams::guide_rate);
     pConfig->Profile.SetInt("/SimCam/pier_side", (int) SimCamParams::pier_side);
@@ -589,6 +611,163 @@ struct Cooler
     }
 };
 
+// Procedural cloud field for the file / folder simulation modes. Sums randomly placed, slowly
+// drifting elliptical Gaussian "clouds" into a low-resolution density map, then composites it over
+// the source image as a translucent grey veil: transmission dims the source and glow lifts it toward
+// a cloud luminance that scales with the frame. The star-field simulator keeps render_clouds() below.
+struct CloudField
+{
+    struct Blob
+    {
+        double bx, by;     // base center, full-res pixels
+        double sx, sy;     // gaussian sigma along each axis, pixels
+        double cosT, sinT; // orientation
+        double amp;        // peak weight
+    };
+
+    wxVector<Blob> m_blobs;
+    double m_normDivisor = 1.0; // divides the summed field to ~[0,1]
+    double m_driftX = 0.0, m_driftY = 0.0;
+    int m_genCount = -1, m_genW = 0, m_genH = 0, m_genSize = -1; // key of the field currently built
+
+    static double Rand01() { return (double) rand() / ((double) RAND_MAX + 1.0); }
+
+    // Low-res density grid: clouds are low-frequency, so evaluate the Gaussian sum cheaply here and
+    // upscale afterwards.
+    static void LowResDims(int W, int H, int& lw, int& lh)
+    {
+        const double target = 220.0; // long-axis resolution of the density map
+        double s = wxMin(1.0, target / wxMax(W, H));
+        lw = wxMax(8, (int) (W * s + 0.5));
+        lh = wxMax(8, (int) (H * s + 0.5));
+    }
+
+    void Rasterize(cv::Mat& lo, int W, int H, double driftX, double driftY) const
+    {
+        const int lw = lo.cols, lh = lo.rows;
+        const double sx = (double) W / lw, sy = (double) H / lh;
+        const double halfW = W / 2.0, halfH = H / 2.0;
+        for (int ly = 0; ly < lh; ly++)
+        {
+            float *row = lo.ptr<float>(ly);
+            const double fy = (ly + 0.5) * sy;
+            for (int lx = 0; lx < lw; lx++)
+            {
+                const double fx = (lx + 0.5) * sx;
+                double sum = 0.0;
+                for (size_t i = 0; i < m_blobs.size(); i++)
+                {
+                    const Blob& b = m_blobs[i];
+                    double cx = fmod(b.bx + driftX, (double) W);
+                    if (cx < 0)
+                        cx += W;
+                    double cy = fmod(b.by + driftY, (double) H);
+                    if (cy < 0)
+                        cy += H;
+                    // Toroidal delta so the field wraps seamlessly as clouds drift off an edge.
+                    double dx = fx - cx;
+                    if (dx > halfW)
+                        dx -= W;
+                    else if (dx < -halfW)
+                        dx += W;
+                    double dy = fy - cy;
+                    if (dy > halfH)
+                        dy -= H;
+                    else if (dy < -halfH)
+                        dy += H;
+                    double u = dx * b.cosT + dy * b.sinT;
+                    double v = -dx * b.sinT + dy * b.cosT;
+                    sum += b.amp * exp(-(u * u / (2.0 * b.sx * b.sx) + v * v / (2.0 * b.sy * b.sy)));
+                }
+                row[lx] = (float) sum;
+            }
+        }
+    }
+
+    void Regenerate(int count, int sizePct, int W, int H)
+    {
+        m_blobs.clear();
+        const double minDim = wxMin(W, H);
+        const double sizeFrac = wxClip(sizePct, 0, 100) / 100.0;
+        const double sigmaBase = (0.05 + 0.35 * sizeFrac) * minDim;
+        const double kTwoPi = 6.283185307179586;
+        for (int i = 0; i < count; i++)
+        {
+            Blob b;
+            b.bx = Rand01() * W;
+            b.by = Rand01() * H;
+            b.sx = sigmaBase * (0.6 + 0.8 * Rand01());
+            b.sy = sigmaBase * (0.6 + 0.8 * Rand01());
+            double th = Rand01() * kTwoPi;
+            b.cosT = cos(th);
+            b.sinT = sin(th);
+            b.amp = 0.4 + 0.6 * Rand01();
+            m_blobs.push_back(b);
+        }
+        // Normalize against the static peak, so drifting the field doesn't make it pulse in brightness.
+        int lw, lh;
+        LowResDims(W, H, lw, lh);
+        cv::Mat lo(lh, lw, CV_32F);
+        Rasterize(lo, W, H, 0.0, 0.0);
+        double mn, mx;
+        cv::minMaxLoc(lo, &mn, &mx);
+        m_normDivisor = (mx > 1e-6) ? mx : 1.0;
+        m_genCount = count;
+        m_genW = W;
+        m_genH = H;
+        m_genSize = sizePct;
+        m_driftX = m_driftY = 0.0;
+    }
+
+    void Render(usImage& img, double opacity, int count, int sizePct, double windSpeed, double windDirDeg)
+    {
+        const int W = img.Size.GetWidth();
+        const int H = img.Size.GetHeight();
+        if (opacity <= 0.0 || count < 1 || !img.ImageData || W <= 0 || H <= 0)
+            return;
+
+        if (count != m_genCount || W != m_genW || H != m_genH || sizePct != m_genSize)
+            Regenerate(count, sizePct, W, H);
+
+        const double rad = windDirDeg * 3.14159265358979323846 / 180.0;
+        m_driftX += windSpeed * cos(rad);
+        m_driftY += windSpeed * sin(rad);
+
+        int lw, lh;
+        LowResDims(W, H, lw, lh);
+        cv::Mat lo(lh, lw, CV_32F);
+        Rasterize(lo, W, H, m_driftX, m_driftY);
+
+        cv::Mat density;
+        cv::resize(lo, density, cv::Size(W, H), 0, 0, cv::INTER_LINEAR);
+
+        // Density is normalized against the static peak (m_normDivisor) as it is consumed below.
+        const double invNorm = 1.0 / m_normDivisor;
+
+        // Cloud luminance tracks the frame so the veil scales with the image's dynamic range.
+        cv::Mat m16(H, W, CV_16UC1, img.ImageData);
+        double mn, mx;
+        cv::minMaxLoc(m16, &mn, &mx);
+        const double cloudLuma = 0.65 * mx;
+
+        for (int y = 0; y < H; y++)
+        {
+            const float *drow = density.ptr<float>(y);
+            unsigned short *prow = img.ImageData + (size_t) y * W;
+            for (int x = 0; x < W; x++)
+            {
+                double a = opacity * drow[x] * invNorm;
+                if (a < 0.0)
+                    a = 0.0;
+                else if (a > 1.0)
+                    a = 1.0;
+                double val = prow[x] * (1.0 - a) + a * cloudLuma;
+                prow[x] = (unsigned short) (val > 65535.0 ? 65535.0 : val);
+            }
+        }
+    }
+};
+
 struct SimCamState
 {
     unsigned int width;
@@ -631,6 +810,7 @@ struct SimCamState
     bool playbackStarted = false; // false until the first frame of a stream has been served
     int playbackStep = 0;         // pending manual step (+1/-1 per click), consumed by the capture loop
     wxString lastLoadErrorMsg;    // last file-load alert shown, so it can be auto-cleared on the next success
+    CloudField cloudField;        // procedural clouds for file/folder modes
     void CloseDir();
     bool ReadFitImage(usImage& img, wxString& filename, const wxRect& subframe);
 
@@ -1073,20 +1253,6 @@ static void render_clouds(usImage& img, const wxRect& subframe, int exptime, int
     }
 }
 
-static void render_clouds_if_needed(usImage& img, const wxRect& subframe, int exptime, int gain, int offset)
-{
-    if (SimCamParams::clouds_opacity <= 0 || !img.ImageData || img.Size.GetWidth() <= 0 || img.Size.GetHeight() <= 0)
-        return;
-
-    wxRect renderRect;
-    if (!subframe.IsEmpty())
-        renderRect = subframe.Intersect(wxRect(0, 0, img.Size.GetWidth(), img.Size.GetHeight()));
-    else
-        renderRect = wxRect(0, 0, img.Size.GetWidth(), img.Size.GetHeight());
-
-    if (!renderRect.IsEmpty())
-        render_clouds(img, renderRect, exptime, gain, offset);
-}
 
 # ifdef SIM_FILE_DISPLACEMENTS
 // Get raw star displacements from a file generated by using the CAPTURE_DEFLECTIONS
@@ -1781,7 +1947,9 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
         memcpy(img.ImageData, disk_image->data, dataSize);
 
         // Finally, render clouds
-        render_clouds_if_needed(img, subframe, duration, 30, 100);
+        sim.cloudField.Render(img, SimCamParams::clouds_opacity, (int) SimCamParams::clouds_count,
+                              (int) SimCamParams::clouds_size, SimCamParams::clouds_wind_speed,
+                              SimCamParams::clouds_wind_dir);
         if (pCamera)
             pCamera->SetProperty("path", filename);
         Debug.Write(wxString::Format("Simulator: loaded image file: %s\n", filename));
@@ -1897,7 +2065,9 @@ bool CameraSimulator::Capture(usImage& img, const CaptureParams& captureParams)
             pCamera->SetProperty("path", filename);
         Debug.Write(wxString::Format("Simulator: loaded image file: %s\n", filename));
 
-        render_clouds_if_needed(img, subframe, duration, 30, 100);
+        sim.cloudField.Render(img, SimCamParams::clouds_opacity, (int) SimCamParams::clouds_count,
+                              (int) SimCamParams::clouds_size, SimCamParams::clouds_wind_speed,
+                              SimCamParams::clouds_wind_dir);
         break;
     }
     }
@@ -2126,6 +2296,10 @@ struct SimCamDialog : public wxDialog
     wxSlider *pHotpxSlider;
     wxSlider *pNoiseSlider;
     wxSlider *pCloudSlider;
+    wxSlider *pCloudCountSlider;
+    wxSlider *pCloudSizeSlider;
+    wxSlider *pCloudWindSpeedSlider;
+    wxSlider *pCloudWindDirSlider;
     wxSpinCtrlDouble *pBacklashSpin;
     wxSpinCtrlDouble *pDriftSpinDEC;
     wxSpinCtrlDouble *pDriftSpinRA;
@@ -2172,6 +2346,7 @@ struct SimCamDialog : public wxDialog
     void OnStopPlayback(wxCommandEvent& event);
     void OnStepBack(wxCommandEvent& event);
     void OnStepForward(wxCommandEvent& event);
+    void OnCloudSlider(wxCommandEvent& event);
 
     wxDECLARE_EVENT_TABLE();
 };
@@ -2184,9 +2359,9 @@ wxEND_EVENT_TABLE();
 // clang-format on
 
 // Utility functions for adding controls with specified properties
-static wxSlider *NewSlider(wxWindow *parent, int val, int minval, int maxval, const wxString& tooltip)
+static wxSlider *NewSlider(wxWindow *parent, int val, int minval, int maxval, const wxString& tooltip, int width = -1)
 {
-    wxSlider *pNewCtrl = new wxSlider(parent, wxID_ANY, val, minval, maxval, wxDefaultPosition, wxDefaultSize,
+    wxSlider *pNewCtrl = new wxSlider(parent, wxID_ANY, val, minval, maxval, wxDefaultPosition, wxSize(width, -1),
                                       wxSL_HORIZONTAL | wxSL_VALUE_LABEL);
     pNewCtrl->SetToolTip(tooltip);
     return pNewCtrl;
@@ -2271,6 +2446,14 @@ static void SetControlStates(SimCamDialog *dlg, bool captureActive)
     bool isStreamMode =
         (SimCamParams::SimulatorMode == SIMMODE_FITS) || (SimCamParams::SimulatorMode == SIMMODE_IMGDIR);
     bool isFileMode = (SimCamParams::SimulatorMode == SIMMODE_FILE) || isStreamMode;
+
+    // Procedural cloud sliders apply to file/folder modes only (star mode keeps the legacy noise
+    // overlay driven by the Cloud % slider). Left enabled during capture so they can be tuned live.
+    dlg->pCloudCountSlider->Enable(isFileMode);
+    dlg->pCloudSizeSlider->Enable(isFileMode);
+    dlg->pCloudWindSpeedSlider->Enable(isFileMode);
+    dlg->pCloudWindDirSlider->Enable(isFileMode);
+
     dlg->pSimFile->Enable(isFileMode);
     dlg->pBrowseBtn->Enable(isFileMode);
 # ifdef FITS_FOLDER_OPTION
@@ -2369,6 +2552,10 @@ void SimCamDialog::OnOkClick(wxCommandEvent& evt)
         SimCamParams::reverse_dec_pulse_on_west_side = pReverseDecPulseCbx->GetValue();
         SimCamParams::show_comet = showComet->GetValue();
         SimCamParams::clouds_opacity = pCloudSlider->GetValue() / 100.0;
+        SimCamParams::clouds_count = pCloudCountSlider->GetValue();
+        SimCamParams::clouds_size = pCloudSizeSlider->GetValue();
+        SimCamParams::clouds_wind_speed = pCloudWindSpeedSlider->GetValue();
+        SimCamParams::clouds_wind_dir = pCloudWindDirSlider->GetValue();
         save_sim_params();
 
         if (upd.WasModified())
@@ -2581,10 +2768,37 @@ SimCamDialog::SimCamDialog(wxWindow *parent) : wxDialog(parent, wxID_ANY, _("Cam
     pSeeingSpin = NewSpinner(this, SimCamParams::seeing_scale, 0, SEEING_MAX, 0.5, _("Seeing, FWHM arc-sec"));
     AddTableEntryPair(this, pSessionTable, _("Seeing"), pSeeingSpin);
     pCloudSlider = NewSlider(this, (int) (100 * SimCamParams::clouds_opacity), 0, 100, _("% cloud opacity"));
-    AddTableEntryPair(this, pSessionTable, _("Cloud %"), pCloudSlider);
+    pSessionTable->Add(new wxStaticText(this, wxID_ANY, _("Cloud %: ")), 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    pSessionTable->Add(pCloudSlider, 1, wxALL | wxALIGN_CENTER_VERTICAL | wxEXPAND, 5);
+    // Let the Cloud % slider's column absorb the empty space on the right of its row.
+    pSessionTable->AddGrowableCol(5, 1);
+
+    // Procedural cloud controls (file/folder modes): two-per-row with wider sliders for finer tuning.
+    const int cloudSliderWidth = 220;
+    pCloudCountSlider = NewSlider(this, (int) SimCamParams::clouds_count, 0, CLOUDS_COUNT_MAX,
+                                  _("Number of clouds (file/folder modes)"), cloudSliderWidth);
+    pCloudSizeSlider = NewSlider(this, (int) SimCamParams::clouds_size, 0, 100, _("Cloud size, % of frame"), cloudSliderWidth);
+    pCloudWindSpeedSlider = NewSlider(this, (int) SimCamParams::clouds_wind_speed, 0, CLOUDS_WIND_SPEED_MAX,
+                                      _("Cloud drift speed, pixels per frame"), cloudSliderWidth);
+    pCloudWindDirSlider =
+        NewSlider(this, (int) SimCamParams::clouds_wind_dir, 0, 360, _("Cloud drift direction, degrees"), cloudSliderWidth);
+    wxFlexGridSizer *pCloudTable = new wxFlexGridSizer(2, 4, 8, 15);
+    AddTableEntryPair(this, pCloudTable, _("Cloud count"), pCloudCountSlider);
+    AddTableEntryPair(this, pCloudTable, _("Cloud size"), pCloudSizeSlider);
+    AddTableEntryPair(this, pCloudTable, _("Wind speed"), pCloudWindSpeedSlider);
+    AddTableEntryPair(this, pCloudTable, _("Wind dir"), pCloudWindDirSlider);
+
+    // Apply cloud slider changes live, so the effect updates on the next captured frame without
+    // having to close the dialog.
+    pCloudSlider->Bind(wxEVT_SLIDER, &SimCamDialog::OnCloudSlider, this);
+    pCloudCountSlider->Bind(wxEVT_SLIDER, &SimCamDialog::OnCloudSlider, this);
+    pCloudSizeSlider->Bind(wxEVT_SLIDER, &SimCamDialog::OnCloudSlider, this);
+    pCloudWindSpeedSlider->Bind(wxEVT_SLIDER, &SimCamDialog::OnCloudSlider, this);
+    pCloudWindDirSlider->Bind(wxEVT_SLIDER, &SimCamDialog::OnCloudSlider, this);
     showComet = new wxCheckBox(this, wxID_ANY, _("Comet"));
     showComet->SetValue(SimCamParams::show_comet);
-    pSessionGroup->Add(pSessionTable);
+    pSessionGroup->Add(pSessionTable, wxSizerFlags().Expand());
+    pSessionGroup->Add(pCloudTable);
     pSessionGroup->Add(showComet);
 
     pVSizer->Add(pCamGroup, wxSizerFlags().Border(wxALL, 10).Expand());
@@ -2615,6 +2829,10 @@ void SimCamDialog::OnReset(wxCommandEvent& event)
     pNoiseSlider->SetValue((int) floor(NOISE_DEFAULT * 100.0 / NOISE_MAX));
     pBacklashSpin->SetValue(DEC_BACKLASH_DEFAULT);
     pCloudSlider->SetValue(0);
+    pCloudCountSlider->SetValue(CLOUDS_COUNT_DEFAULT);
+    pCloudSizeSlider->SetValue(CLOUDS_SIZE_DEFAULT);
+    pCloudWindSpeedSlider->SetValue(CLOUDS_WIND_SPEED_DEFAULT);
+    pCloudWindDirSlider->SetValue(CLOUDS_WIND_DIR_DEFAULT);
 
     pDriftSpinDEC->SetValue(DEC_DRIFT_DEFAULT);
     pDriftSpinRA->SetValue(RA_DRIFT_DEFAULT);
@@ -2720,6 +2938,17 @@ void SimCamDialog::OnStepBack(wxCommandEvent& event)
     // A step needs a capture to take effect; if PHD2 isn't looping, start it so the frame shows.
     if (!pFrame->CaptureActive)
         pFrame->StartLooping();
+}
+
+void SimCamDialog::OnCloudSlider(wxCommandEvent& event)
+{
+    // Live-apply cloud settings: the file/folder capture path reads these each frame, so the effect
+    // updates on the next exposure without closing the dialog. OnOkClick still persists them.
+    SimCamParams::clouds_opacity = pCloudSlider->GetValue() / 100.0;
+    SimCamParams::clouds_count = pCloudCountSlider->GetValue();
+    SimCamParams::clouds_size = pCloudSizeSlider->GetValue();
+    SimCamParams::clouds_wind_speed = pCloudWindSpeedSlider->GetValue();
+    SimCamParams::clouds_wind_dir = pCloudWindDirSlider->GetValue();
 }
 
 void SimCamDialog::OnStepForward(wxCommandEvent& event)
