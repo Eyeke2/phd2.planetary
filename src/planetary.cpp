@@ -650,7 +650,7 @@ void SolarSystemObject::OnLClick(usImage *pImage, double& x, double& y)
         m_userLClick = true;
         m_detectionCounter = 0;
 #if defined(FRAME_MONITOR_CAMERA)
-        if (pCamera && (pCamera->Name == FRAME_MONITOR_CAMERA) && pCamera->Connected)
+        if (pCamera && pCamera->Connected)
         {
             if (m_detected && !m_paramSurfaceTracking)
             {
@@ -1713,8 +1713,10 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
     CheckMountTrackingState();
 
 #if defined(FRAME_MONITOR_CAMERA)
-    // Notify client of autoselect attempt
-    if (autoSelect && pCamera && pCamera->Name == FRAME_MONITOR_CAMERA)
+    // Notify client of autoselect attempt. Sent for any connected camera, not just the FrameMon
+    // camera, so HM is also notified when driving detection over the shared-memory path with a real
+    // camera (mirrors the NotifyMouseClick handling in OnLClick).
+    if (autoSelect && pCamera && pCamera->Connected)
         EvtServer.NotifyAutoSelect();
 #endif
 
