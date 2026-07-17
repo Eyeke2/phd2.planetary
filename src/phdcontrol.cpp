@@ -57,7 +57,11 @@ enum SettleOp
 
 enum
 {
-    SETTLING_TIME_DISABLED = 9999
+    SETTLING_TIME_DISABLED = 9999,
+    // Default limit for STATE_CALIBRATION_WAIT. Calibration normally completes well within
+    // this, but it can stall indefinitely (e.g. guide star lost, or guider paused) without
+    // ever failing -- the guider just skips frames -- and this wait has no other exit.
+    CAL_WAIT_TIMEOUT_DEFAULT_SEC = 600,
 };
 
 struct ControllerState
@@ -79,6 +83,8 @@ struct ControllerState
     bool overrideDecGuideMode;
     int settleFrameCount;
     int droppedFrameCount;
+    int calWaitTimeoutSec;
+    bool stopGuidingWhenIdle;
     bool succeeded;
     wxString errorMsg;
 };
@@ -88,6 +94,7 @@ static ControllerState ctrl;
 void PhdController::OnAppInit()
 {
     ctrl.state = STATE_IDLE;
+    ctrl.stopGuidingWhenIdle = false;
     ctrl.settleTimeout = new wxStopWatch();
     ctrl.settleInRange = new wxStopWatch();
 }
@@ -125,6 +132,18 @@ static wxString ReentrancyError(const char *op)
 
 bool PhdController::Guide(unsigned int options, const SettleParams& settle, const wxRect& roi, wxString *error)
 {
+    if (ctrl.state == STATE_CALIBRATION_WAIT)
+    {
+        // The wait for calibration is unbounded by frames and can wedge indefinitely if
+        // calibration stalls (e.g. guide star lost) -- the guider skips frames without
+        // failing and the controller never returns to IDLE, so every subsequent guide
+        // request would be rejected until the client stops capture. Let a new guide
+        // request preempt the stale wait instead. If calibration is in fact progressing,
+        // the new operation simply re-enters the wait with a fresh timeout.
+        Debug.Write("PhdController::Guide: preempting stale calibration wait\n");
+        AbortController("preempted by new guide request");
+    }
+
     if (ctrl.state != STATE_IDLE)
     {
         Debug.Write(wxString::Format("PhdController::Guide reentrancy state = %d op = %d\n", ctrl.state, ctrl.settleOp));
@@ -349,6 +368,7 @@ void PhdController::UpdateControllerState(void)
             ctrl.haveSaveSticky = false;
             ctrl.autoFindAttemptsRemaining = 3;
             ctrl.overrideDecGuideMode = false; // guide stop/start with no dithering
+            ctrl.calWaitTimeoutSec = pConfig->Global.GetInt("/server/calibration_wait_timeout", CAL_WAIT_TIMEOUT_DEFAULT_SEC);
             SETSTATE(STATE_ATTEMPT_START);
             break;
 
@@ -379,6 +399,7 @@ void PhdController::UpdateControllerState(void)
                     else
                     {
                         SETSTATE(STATE_CALIBRATION_WAIT);
+                        ctrl.settleTimeout->Start();
                         done = true;
                     }
                 }
@@ -481,13 +502,13 @@ void PhdController::UpdateControllerState(void)
 
                 if (!start_guiding())
                 {
-                    if (ctrl.useStickyLock && ctrl.haveSaveSticky)
-                        pFrame->pGuider->SetLockPosIsSticky(ctrl.saveSticky);
+                    // sticky lock setting is restored in STATE_FINISH
                     do_fail(_T("could not start calibration"));
                     break;
                 }
 
                 SETSTATE(STATE_CALIBRATION_WAIT);
+                ctrl.settleTimeout->Start();
                 done = true;
             }
             else
@@ -499,10 +520,32 @@ void PhdController::UpdateControllerState(void)
         case STATE_CALIBRATION_WAIT:
             if ((!pMount || pMount->IsCalibrated()) && (!pSecondaryMount || pSecondaryMount->IsCalibrated()))
             {
-                if (ctrl.useStickyLock && ctrl.haveSaveSticky)
+                if (ctrl.haveSaveSticky)
+                {
                     pFrame->pGuider->SetLockPosIsSticky(ctrl.saveSticky);
+                    ctrl.haveSaveSticky = false;
+                }
 
                 SETSTATE(STATE_SETTLE_BEGIN);
+            }
+            else if (!pFrame->pGuider->IsCalibratingOrGuiding())
+            {
+                // calibration silently unwound without a guiding-stopped notification
+                // (e.g. BeginCalibration failed and the guider dropped back to SELECTING)
+                do_fail(_T("calibration failed to start"));
+            }
+            else if ((ctrl.settleTimeout->Time() / 1000) >= ctrl.calWaitTimeoutSec)
+            {
+                // Calibration stalled (e.g. guide star lost, or guider paused): the guider
+                // stays in a calibrating state, skipping frames without progressing or
+                // failing, and this wait has no other exit. Fail the operation and tear
+                // down the stuck calibration so the client's next guide request can start
+                // over cleanly. StopGuiding is deferred until the controller reaches IDLE
+                // so the resulting NotifyGuidingStopped -> AbortController is a no-op.
+                Debug.Write(wxString::Format("PhdController: calibration wait timed-out after %ld s\n",
+                                             ctrl.settleTimeout->Time() / 1000));
+                ctrl.stopGuidingWhenIdle = true;
+                do_fail(_T("timed-out waiting for calibration to complete"));
             }
             else
                 done = true;
@@ -590,6 +633,15 @@ void PhdController::UpdateControllerState(void)
         }
 
         case STATE_FINISH:
+            // Restore the sticky lock setting if calibration left it overridden. The normal
+            // restore site in STATE_CALIBRATION_WAIT is skipped when the operation fails or
+            // is aborted mid-calibration; without this the forced sticky setting would leak
+            // past the end of the operation.
+            if (ctrl.haveSaveSticky)
+            {
+                pFrame->pGuider->SetLockPosIsSticky(ctrl.saveSticky);
+                ctrl.haveSaveSticky = false;
+            }
             if (ctrl.overrideDecGuideMode)
             {
                 Debug.Write(wxString::Format("PhdController: restore Dec guide mode to %s after dither\n",
@@ -602,5 +654,15 @@ void PhdController::UpdateControllerState(void)
             done = true;
             break;
         }
+    }
+
+    if (ctrl.stopGuidingWhenIdle && ctrl.state == STATE_IDLE)
+    {
+        // a stalled calibration timed-out above; stop it now that the controller is idle so
+        // the NotifyGuidingStopped -> AbortController round-trip is a no-op
+        ctrl.stopGuidingWhenIdle = false;
+        Debug.Write("PhdController: stopping stalled calibration\n");
+        pFrame->pGuider->StopGuiding();
+        pFrame->pGuider->UpdateImageDisplay();
     }
 }
