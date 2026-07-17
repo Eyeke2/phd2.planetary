@@ -1,6 +1,6 @@
 <p>
     <h4>2.6.14-solar.5</h4>
-    17 July 2026
+    19 July 2026
     <ul>
         <li>Fixed a long-standing issue where a client's request to start guiding could be refused indefinitely.
             If calibration stalled, for example the guide star was lost, or guiding was paused during calibration,
@@ -9,8 +9,16 @@
             start is reported immediately instead of hanging.</li>
         <li>Server/REST API: added <b>get_sticky_lock</b> and <b>set_sticky_lock</b> so imaging clients can read and
             control the persistent "Sticky Lock Position" setting (extended protocol solar.4).</li>
+        <li>Server/REST API: <b>get_current_equipment</b> now reports the mount's ASCOM driver ProgID.</li>
         <li>Fixed a related issue where the temporary sticky-lock override used during calibration could be left
             enabled after a failed or aborted guide start.</li>
+        <li>Fixed a hang on exit when PHD2 was closed while guiding with a connected imaging client: the mount
+            worker could be force-terminated in the middle of an ASCOM driver call and wedge the process.
+            Shutdown now disconnects clients first, aborts any in-progress slew, and stops the guiding worker
+            gracefully.</li>
+        <li>On shutdown, PHD2 now closes client connections immediately, so a connected client is no longer left
+            hanging on a connection that is never closed if teardown is slow.</li>
+        <li>Debounce mount-not-tracking before cancelling guiding.</li>
     </ul>
 <p>
     <h4>2.6.14-solar.4</h4>
