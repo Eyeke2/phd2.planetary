@@ -162,6 +162,15 @@ wxArrayString ScopeASCOM::EnumAscomScopes()
     return list;
 }
 
+// Return the ASCOM ProgID for the chosen driver (e.g. "ASCOM.EQMOD.Telescope"), looked up
+// from the display-name -> progid map populated by EnumAscomScopes(). Valid once the driver
+// has been selected/connected (which is the only time a client would query it).
+wxString ScopeASCOM::DriverId() const
+{
+    auto it = s_progid.find(m_choice);
+    return it != s_progid.end() ? it->second : wxEmptyString;
+}
+
 bool ScopeASCOM::Create(DispatchObj& obj)
 {
     try
