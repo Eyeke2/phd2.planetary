@@ -36,6 +36,7 @@
 #include "phd.h"
 #include "guiding_assistant.h"
 #include "frame_export.h"
+#include "nudge_lock.h"
 
 #include <cmath>
 #include <wx/sstream.h>
@@ -76,6 +77,7 @@ enum
 #define MSG_EXTENTED_PROTOCOL_VERSION_SOLAR1 "solar.1"
 #define MSG_EXTENTED_PROTOCOL_VERSION_SOLAR2 "solar.2"
 #define MSG_EXTENTED_PROTOCOL_VERSION_SOLAR3 "solar.3"
+#define MSG_EXTENTED_PROTOCOL_VERSION_SOLAR4 "solar.4"
 
 enum EXT_PROTOCOL_VERSION
 {
@@ -83,12 +85,15 @@ enum EXT_PROTOCOL_VERSION
     EXT_PROTOCOL_SOLAR1 = 1,
     EXT_PROTOCOL_SOLAR2 = 2,
     EXT_PROTOCOL_SOLAR3 = 3,
+    EXT_PROTOCOL_SOLAR4 = 4,
 };
 
 static const char *ext_protocol_version_name(EXT_PROTOCOL_VERSION version)
 {
     switch (version)
     {
+    case EXT_PROTOCOL_SOLAR4:
+        return MSG_EXTENTED_PROTOCOL_VERSION_SOLAR4;
     case EXT_PROTOCOL_SOLAR3:
         return MSG_EXTENTED_PROTOCOL_VERSION_SOLAR3;
     case EXT_PROTOCOL_SOLAR2:
@@ -836,6 +841,8 @@ static void set_extended_protocol(JObj& response, const json_value *params, Clie
         protocol = EXT_PROTOCOL_SOLAR2;
     else if (strcmp(version->string_value, MSG_EXTENTED_PROTOCOL_VERSION_SOLAR3) == 0)
         protocol = EXT_PROTOCOL_SOLAR3;
+    else if (strcmp(version->string_value, MSG_EXTENTED_PROTOCOL_VERSION_SOLAR4) == 0)
+        protocol = EXT_PROTOCOL_SOLAR4;
     else
     {
         response << jrpc_error(JSONRPC_INVALID_PARAMS, "unsupported protocol version");
@@ -1263,6 +1270,40 @@ static void set_lock_position(JObj& response, const json_value *params)
         response << jrpc_error(JSONRPC_INVALID_REQUEST, "could not set lock position");
         return;
     }
+
+    response << jrpc_result(0);
+}
+
+// {"method": "get_sticky_lock", "id": 1}   => result: boolean
+static void get_sticky_lock(JObj& response, const json_value *params)
+{
+    VERIFY_GUIDER(response);
+    response << jrpc_result(pFrame->pGuider->LockPosIsSticky());
+}
+
+// {"method": "set_sticky_lock", "params": {"enabled": true}, "id": 1}
+//
+// Controls the persistent "Sticky Lock Position" setting (Tools menu / Nudge Lock tool):
+// when enabled, PHD2 keeps the current lock position across star re-selection and
+// calibration instead of re-locking on the star's current location. The setting is
+// persisted globally (/StickyLockPosition) and the GUI controls are kept in sync.
+static void set_sticky_lock(JObj& response, const json_value *params)
+{
+    Params p("enabled", params);
+    const json_value *val = p.param("enabled");
+    bool enable;
+    if (!val || !bool_param(val, &enable))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected enabled boolean param");
+        return;
+    }
+
+    VERIFY_GUIDER(response);
+
+    pFrame->pGuider->SetLockPosIsSticky(enable);
+    pConfig->Global.SetBoolean("/StickyLockPosition", enable);
+    pFrame->tools_menu->FindItem(EEGG_STICKY_LOCK)->Check(enable);
+    NudgeLockTool::UpdateNudgeLockControls();
 
     response << jrpc_result(0);
 }
@@ -4231,6 +4272,9 @@ static bool handle_request(JRpcCall& call)
         { "set_iflink", &set_iflink },
         { "set_iflink_cam", &set_iflink_cam },
         { "get_cal_data", &get_cal_data },
+
+        { "get_sticky_lock", &get_sticky_lock, EXT_PROTOCOL_SOLAR4 },
+        { "set_sticky_lock", &set_sticky_lock, EXT_PROTOCOL_SOLAR4 },
 
         { "get_drift_measurement", &get_drift_measurement, EXT_PROTOCOL_SOLAR2 },
         { "get_mount_side_of_pier", &get_mount_side_of_pier, EXT_PROTOCOL_SOLAR2 },
