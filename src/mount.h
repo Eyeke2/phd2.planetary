@@ -362,6 +362,9 @@ public:
     virtual void SetupDialog();
 
     virtual const wxString& Name() const;
+    // Stable driver identifier (ASCOM ProgID for ASCOM mounts), or empty when the mount
+    // type has no such identifier. Lets a client connect to the same driver independently.
+    virtual wxString DriverId() const { return wxEmptyString; }
     virtual bool IsStepGuider() const;
     virtual wxPoint GetAoPos() const;
     virtual wxPoint GetAoMaxPos() const;

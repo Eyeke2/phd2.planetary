@@ -895,14 +895,25 @@ static void get_profile(JObj& response, const json_value *params)
     response << jrpc_result(t);
 }
 
-inline static void devstat(JObj& t, const char *dev, const wxString& name, bool connected)
+inline static void devstat(JObj& t, const char *dev, const wxString& name, bool connected,
+                           const wxString& driverId = wxEmptyString)
 {
     JObj o;
-    t << NV(dev, o << NV("name", name) << NV("connected", connected));
+    o << NV("name", name) << NV("connected", connected);
+    // ASCOM ProgID of the mount driver, when available (empty for non-ASCOM mounts).
+    // Lets a client connect to the exact same driver independently of PHD2.
+    if (!driverId.empty())
+        o << NV("progid", driverId);
+    t << NV(dev, o);
 }
 
-static void get_current_equipment(JObj& response, const json_value *params)
+static void get_current_equipment(JObj& response, const json_value *params, ClientData *cd)
 {
+    // The mount ProgID (mount.progid / aux_mount.progid) is a solar.4 addition; only emit
+    // it for clients that negotiated at least that extended protocol.
+    EXT_PROTOCOL_VERSION protocol = cd ? cd->extProtocol : EXT_PROTOCOL_SOLAR1;
+    bool withDriverId = protocol >= EXT_PROTOCOL_SOLAR4;
+
     JObj t;
 
     if (pCamera)
@@ -910,11 +921,11 @@ static void get_current_equipment(JObj& response, const json_value *params)
 
     Mount *mount = TheScope();
     if (mount)
-        devstat(t, "mount", mount->Name(), mount->IsConnected());
+        devstat(t, "mount", mount->Name(), mount->IsConnected(), withDriverId ? mount->DriverId() : wxString());
 
     Mount *auxMount = pFrame->pGearDialog->AuxScope();
     if (auxMount)
-        devstat(t, "aux_mount", auxMount->Name(), auxMount->IsConnected());
+        devstat(t, "aux_mount", auxMount->Name(), auxMount->IsConnected(), withDriverId ? auxMount->DriverId() : wxString());
 
     Mount *ao = TheAO();
     if (ao)
@@ -4221,7 +4232,7 @@ static bool handle_request(JRpcCall& call)
         { "shutdown", &shutdown },
         { "get_camera_binning", &get_camera_binning },
         { "get_camera_frame_size", &get_camera_frame_size },
-        { "get_current_equipment", &get_current_equipment },
+        { "get_current_equipment", nullptr, EXT_PROTOCOL_UNSPECIFIED, &get_current_equipment },
         { "get_guide_output_enabled", &get_guide_output_enabled },
         { "set_guide_output_enabled", &set_guide_output_enabled },
         { "get_algo_param_names", &get_algo_param_names },
