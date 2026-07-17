@@ -1,1 +1,1 @@
-2.6.14-solar.4 https://github.com/Eyeke2/phd2.planetary/releases/download/v2.6.14-solar.4/phd2-v2.6.14-solar.4-installer.exe 3a75bdd413b921710290a300a56b2a92670534b7
+2.6.14-solar.5 https://github.com/Eyeke2/phd2.planetary/releases/download/v2.6.14-solar.5/phd2-v2.6.14-solar.5-installer.exe ae54ab1a4b512a352cb670c724c9c85f4fd287e1
