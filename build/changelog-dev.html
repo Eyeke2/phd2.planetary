@@ -1,4 +1,18 @@
 <p>
+    <h4>2.6.14-solar.5</h4>
+    17 July 2026
+    <ul>
+        <li>Fixed a long-standing issue where a client's request to start guiding could be refused indefinitely.
+            If calibration stalled, for example the guide star was lost, or guiding was paused during calibration,
+            the guiding controller could get stuck and reject every subsequent guide command until looping was stopped.
+            Calibration now times out, a new guide request takes over a stuck one, and calibration that fails to
+            start is reported immediately instead of hanging.</li>
+        <li>Server/REST API: added <b>get_sticky_lock</b> and <b>set_sticky_lock</b> so imaging clients can read and
+            control the persistent "Sticky Lock Position" setting (extended protocol solar.4).</li>
+        <li>Fixed a related issue where the temporary sticky-lock override used during calibration could be left
+            enabled after a failed or aborted guide start.</li>
+    </ul>
+<p>
     <h4>2.6.14-solar.4</h4>
     6 July 2026
     <ul>

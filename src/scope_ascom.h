@@ -105,6 +105,7 @@ public:
 
     bool HasSetupDialog() const override;
     void SetupDialog() override;
+    wxString DriverId() const override; // ASCOM ProgID of the chosen driver
 
     bool HasNonGuiMove() override;
 
