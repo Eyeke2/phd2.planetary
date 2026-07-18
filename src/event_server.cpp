@@ -4496,6 +4496,13 @@ void EventServer::EventServerStop()
     }
     DeletePendingEvents();
 
+    // Close connections synchronously so clients disconnect even if teardown later stalls
+    // (the async Destroy() below only sends the FIN when the event loop next runs).
+    for (CliSockSet::const_iterator it = m_eventServerClients.begin(); it != m_eventServerClients.end(); ++it)
+    {
+        (*it)->Close();
+    }
+
     for (CliSockSet::const_iterator it = m_eventServerClients.begin(); it != m_eventServerClients.end(); ++it)
     {
         destroy_client(*it);
