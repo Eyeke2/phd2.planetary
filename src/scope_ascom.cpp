@@ -1182,6 +1182,9 @@ Mount::MOVE_RESULT ScopeASCOM::Guide(GUIDE_DIRECTION direction, int duration)
     {
         Debug.Write(wxString::Format("Guiding  Dir = %d, Dur = %d\n", direction, duration));
 
+        if (WorkerThread::InterruptRequested())
+            throw ERROR_INFO("ASCOM Scope: guide skipped -- thread interrupt requested");
+
         if (!IsConnected())
         {
             throw ERROR_INFO("ASCOM Scope: attempt to guide when not connected");
@@ -1207,6 +1210,9 @@ Mount::MOVE_RESULT ScopeASCOM::Guide(GUIDE_DIRECTION direction, int duration)
             for (i = 0; i < 20; i++)
             {
                 wxMilliSleep(50);
+
+                if (WorkerThread::InterruptRequested())
+                    throw ERROR_INFO("ASCOM Scope: thread interrupt requested");
 
                 CheckSlewing(&scope, &result);
 
