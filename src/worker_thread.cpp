@@ -440,10 +440,14 @@ wxThread::ExitCode WorkerThread::Entry()
     while (!bDone)
     {
         bool dummy;
-        wxMessageQueueError queueError = m_wakeupQueue.ReceiveTimeout(1000, dummy);
+        wxMessageQueueError queueError = m_wakeupQueue.ReceiveTimeout(100, dummy);
         if (queueError == wxMSGQUEUE_TIMEOUT)
         {
             bDone |= TestDestroy();
+            // Exit promptly on shutdown even if the terminate wakeup was missed, so
+            // StopWorkerThread does not have to force-kill the (now idle) worker.
+            if (TerminateRequested())
+                bDone = true;
             continue;
         }
 
