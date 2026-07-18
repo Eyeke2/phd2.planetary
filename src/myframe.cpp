@@ -2490,10 +2490,17 @@ void MyFrame::OnClose(wxCloseEvent& event)
 
     Debug.Write("MyFrame::OnClose proceeding\n");
 
+    // Stop the server first so clients disconnect before any later teardown step can stall.
+    StartServer(false);
+
     StopCapturing();
 
-    // Stop socket events before worker shutdown drains pending events.
-    StartServer(false);
+    // Abort an in-progress slew (guide scope or pointing source) so the mount is not left
+    // moving on exit. Guarded, best-effort, single bounded call per mount.
+    Scope *scopes[] = { TheScope(), pPointingSource };
+    for (Scope *scope : scopes)
+        if (scope && scope->IsConnected() && scope->CanCheckSlewing() && scope->Slewing())
+            scope->AbortSlew();
 
     bool killed = StopWorkerThread(m_pPrimaryWorkerThread);
     if (StopWorkerThread(m_pSecondaryWorkerThread))
