@@ -433,6 +433,7 @@ MyFrame::MyFrame()
     m_continueCapturing = false;
     CaptureActive = false;
     m_exposurePending = false;
+    m_trackingStopPending = false;
 
     m_mgr.GetArtProvider()->SetColour(wxAUI_DOCKART_BACKGROUND_COLOUR, *wxBLACK);
     m_mgr.GetArtProvider()->SetMetric(wxAUI_DOCKART_GRADIENT_TYPE, wxAUI_GRADIENT_VERTICAL);
@@ -2597,6 +2598,7 @@ void MyFrame::NotifyGuidingStarted()
 
     m_guidingStarted = wxDateTime::UNow();
     m_guidingElapsed.Start();
+    m_trackingStopPending = false;
     m_frameCounter = 0;
 
     if (pMount)

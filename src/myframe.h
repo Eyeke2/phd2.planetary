@@ -340,6 +340,9 @@ public:
     unsigned int m_frameCounter;
     wxDateTime m_guidingStarted;
     wxStopWatch m_guidingElapsed;
+    // grace period before a mount-tracking-stopped report cancels guiding
+    bool m_trackingStopPending;
+    wxStopWatch m_trackingStopTimer;
     Star::FindMode m_starFindMode;
     double m_minStarHFD;
     bool m_rawImageMode;
