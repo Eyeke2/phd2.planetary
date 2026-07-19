@@ -641,6 +641,13 @@ void MyFrame::OnMoveComplete(wxThreadEvent& event_)
             pFrame->NotifyGuidingStopped();
         }
 
+        // a successful move means the mount is tracking again -- clear any pending grace period
+        if (moveResult == Mount::MOVE_OK && m_trackingStopPending)
+        {
+            m_trackingStopPending = false;
+            pFrame->ClearAlert(_("Mount stopped tracking - guiding will stop if tracking does not resume."));
+        }
+
         if (moveResult != Mount::MOVE_OK)
         {
             mount->IncrementErrorCount();
@@ -661,11 +668,23 @@ void MyFrame::OnMoveComplete(wxThreadEvent& event_)
             }
             else if (moveResult == Mount::MOVE_ERROR_TRACKING_STOPPED)
             {
-                Debug.Write("mount not-tracking error indicates guiding should stop\n");
                 if (pGuider->IsCalibratingOrGuiding())
                 {
-                    pFrame->Alert(_("Guiding stopped: the mount is not tracking."));
-                    pGuider->StopGuiding();
+                    // debounce: only stop guiding if the mount stays not-tracking past a grace period
+                    long graceMs = (long) pConfig->Global.GetInt("/scope/tracking_stop_grace_sec", 10) * 1000;
+                    if (!m_trackingStopPending)
+                    {
+                        m_trackingStopPending = true;
+                        m_trackingStopTimer.Start();
+                        pFrame->Alert(_("Mount stopped tracking - guiding will stop if tracking does not resume."));
+                    }
+                    else if (m_trackingStopTimer.Time() >= graceMs)
+                    {
+                        pFrame->ClearAlert(_("Mount stopped tracking - guiding will stop if tracking does not resume."));
+                        pFrame->Alert(_("Guiding stopped: the mount is not tracking."));
+                        pGuider->StopGuiding();
+                        m_trackingStopPending = false;
+                    }
                 }
             }
             else if (moveResult == Mount::MOVE_ERROR_AO_LIMIT_REACHED)
