@@ -1845,6 +1845,9 @@ void Mount::NotifyDirectMove(const PHD_Point& dist)
 
 void Mount::GetLastCalibration(Calibration *cal) const
 {
+    // avoid modal error dialogs on the get_cal_data RPC path
+    wxLogNull nolog;
+
     wxString prefix = "/" + GetMountClassName() + "/calibration/";
     wxString timestamp = pConfig->Profile.GetString(prefix + "timestamp", wxEmptyString);
     if (!timestamp.empty())
@@ -1870,6 +1873,9 @@ void Mount::GetLastCalibration(Calibration *cal) const
 
 void Mount::LoadCalibrationDetails(CalibrationDetails *details) const
 {
+    // avoid modal error dialogs on the get_cal_data RPC path
+    wxLogNull nolog;
+
     wxString prefix = "/" + GetMountClassName() + "/calibration/";
 
     details->focalLength = pConfig->Profile.GetInt(prefix + "focal_length", 0);
