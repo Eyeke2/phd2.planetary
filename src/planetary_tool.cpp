@@ -143,6 +143,7 @@ struct PlanetToolWin : public wxDialog
 
     bool CanApplyCustomMountRates() const;
     bool CanEditCustomRates() const;
+    void SetCustomRateOverrideState(bool enabled);
     void UpdateCustomRateLabels();
     void UpdateCustomRateRanges();
     void UpdateCustomRateControlsEnabled();
@@ -525,8 +526,10 @@ PlanetToolWin::PlanetToolWin()
     m_minRadius->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_minRadius), NULL, this);
     m_maxRadius->Connect(wxEVT_SPINCTRLDOUBLE, wxSpinDoubleEventHandler(PlanetToolWin::OnSpinCtrl_maxRadius), NULL, this);
 
-    pSolarSystemObj->SetShowFeaturesButtonState(false);
-    pSolarSystemObj->ShowVisualElements(false);
+    bool showElements = pConfig->Profile.GetBoolean("/PlanetTool/show_elements", false);
+    pSolarSystemObj->SetShowFeaturesButtonState(showElements);
+    m_ShowElements->SetValue(showElements);
+    pSolarSystemObj->ShowVisualElements(showElements && pSolarSystemObj->Get_SolarSystemObjMode());
 
     m_minRadius->SetValue(pSolarSystemObj->Get_minRadius());
     m_maxRadius->SetValue(pSolarSystemObj->Get_maxRadius());
@@ -539,6 +542,21 @@ PlanetToolWin::PlanetToolWin()
     m_BinningCtrl->Select(pCamera ? pCamera->GetBinning() - 1 : 0);
     m_saveVideoLogCheckBox->SetValue(pSolarSystemObj->GetVideoLogging());
     m_overrideCustomRate->SetValue(pFrame->m_planetToolCustomRatesEnabled);
+
+    // Restore persisted custom tracking rate settings; the live mount readback
+    // below takes precedence when the mount reports an active custom rate
+    m_updatingCustomRateFields = false;
+    bool minorBody = pConfig->Profile.GetBoolean("/PlanetTool/custom_rate_minor_body", false);
+    m_minorBodyTrackingMode->SetValue(minorBody);
+    m_customMountTrackingMode->SetValue(!minorBody);
+    if (m_overrideCustomRate->IsChecked())
+    {
+        m_updatingCustomRateFields = true;
+        m_Horizons_dRaCosDRate->SetValue(pConfig->Profile.GetDouble("/PlanetTool/custom_rate_ra", 0.0));
+        m_Horizons_dDecRate->SetValue(pConfig->Profile.GetDouble("/PlanetTool/custom_rate_dec", 0.0));
+        m_updatingCustomRateFields = false;
+    }
+
     UpdateCustomRateLabels();
     SetEnabledState(this, pSolarSystemObj->Get_SolarSystemObjMode());
 
@@ -550,7 +568,6 @@ PlanetToolWin::PlanetToolWin()
     m_prevPointingSource = nullptr;
     m_prevMountConnected = false;
     m_prevMountCustomRateNonZero = false;
-    m_updatingCustomRateFields = false;
     wxTimerEvent dummyEvent;
     OnPlanetaryTimer(dummyEvent);
     if (MinorBodyTrackingActive())
@@ -641,6 +658,7 @@ void PlanetToolWin::OnRoiModeClick(wxCommandEvent& event)
 {
     bool enabled = m_RoiCheckBox->IsChecked();
     pSolarSystemObj->SetRoiEnableState(enabled);
+    pConfig->Profile.SetBoolean("/PlanetTool/roi_enabled", enabled);
     Debug.Write(wxString::Format("Solar/planetary: ROI %s\n", enabled ? "enabled" : "disabled"));
 }
 
@@ -648,6 +666,7 @@ void PlanetToolWin::OnShowElementsClick(wxCommandEvent& event)
 {
     bool enabled = m_ShowElements->IsChecked();
     pSolarSystemObj->SetShowFeaturesButtonState(enabled);
+    pConfig->Profile.SetBoolean("/PlanetTool/show_elements", enabled);
     if (pSolarSystemObj->Get_SolarSystemObjMode() && enabled)
         pSolarSystemObj->ShowVisualElements(true);
     else
@@ -668,6 +687,7 @@ void PlanetToolWin::OnSaveVideoLog(wxCommandEvent& event)
 {
     bool enabled = m_saveVideoLogCheckBox->IsChecked();
     pSolarSystemObj->SetVideoLogging(enabled);
+    pConfig->Profile.SetBoolean("/PlanetTool/video_log", enabled);
     Debug.Write(wxString::Format("Solar/planetary: video log %s\n", enabled ? "enabled" : "disabled"));
 }
 
@@ -693,6 +713,15 @@ void PlanetToolWin::OnMountTrackingClick(wxCommandEvent& event)
     m_mountTrackigCheckBox->SetValue(tracking);
 }
 
+// Set the custom tracking rate override checkbox, keeping the frame member and
+// the persisted profile setting in sync with the displayed state
+void PlanetToolWin::SetCustomRateOverrideState(bool enabled)
+{
+    m_overrideCustomRate->SetValue(enabled);
+    pFrame->m_planetToolCustomRatesEnabled = enabled;
+    pConfig->Profile.SetBoolean("/PlanetTool/custom_rates_enabled", enabled);
+}
+
 void PlanetToolWin::OnOverrideCustomRateClick(wxCommandEvent& event)
 {
     if (event.IsChecked())
@@ -702,19 +731,25 @@ void PlanetToolWin::OnOverrideCustomRateClick(wxCommandEvent& event)
             m_mountGuidingRate->SetSelection(customSel);
     }
 
+    SetCustomRateOverrideState(m_overrideCustomRate->IsChecked());
     UpdateCustomRateControlsEnabled();
 }
 
 void PlanetToolWin::OnMinorBodyTrackingModeClick(wxCommandEvent& event)
 {
     SetCustomRateFieldHighlight(false);
+    pConfig->Profile.SetBoolean("/PlanetTool/custom_rate_minor_body", m_minorBodyTrackingMode->GetValue());
     UpdateCustomRateControlsEnabled();
 }
 
 void PlanetToolWin::OnHorizonsRateChanged(wxSpinDoubleEvent& event)
 {
     if (!m_updatingCustomRateFields)
+    {
         SetCustomRateFieldHighlight(false);
+        pConfig->Profile.SetDouble("/PlanetTool/custom_rate_ra", m_Horizons_dRaCosDRate->GetValue());
+        pConfig->Profile.SetDouble("/PlanetTool/custom_rate_dec", m_Horizons_dDecRate->GetValue());
+    }
 }
 
 void PlanetToolWin::OnCustomRateChar(wxKeyEvent& event)
@@ -1044,16 +1079,19 @@ void PlanetToolWin::OnPlanetaryTimer(wxTimerEvent& event)
     bool need_update = false;
     bool const shiftActive = MinorBodyTrackingActive();
 
-    // Update UI controls which can be changed via event server
+    // Update UI controls which can be changed via event server or profile switch
     if (pSolarSystemObj->GetPlanetaryModeUpdate())
     {
         pSolarSystemObj->SetPlanetaryModeUpdate(false);
         m_enableCheckBox->SetValue(pSolarSystemObj->Get_SolarSystemObjMode());
+        m_RoiCheckBox->SetValue(pSolarSystemObj->GetRoiEnableState());
+        m_saveVideoLogCheckBox->SetValue(pSolarSystemObj->GetVideoLogging());
+        m_overrideCustomRate->SetValue(pFrame->m_planetToolCustomRatesEnabled);
     }
 
     if (pSolarSystemObj->GetDisableCustomRateOverride())
     {
-        m_overrideCustomRate->SetValue(false);
+        SetCustomRateOverrideState(false);
         UpdateCustomRateControlsEnabled();
         Debug.Write("Solar/planetary: custom tracking override disabled by external tracking-rate update\n");
     }
@@ -1241,9 +1279,9 @@ void PlanetToolWin::OnMountTrackingRateClick(wxCommandEvent& event)
         {
             rateStr = m_mountGuidingRate->GetString(sel);
             if (rateStr == _("Custom") && !m_overrideCustomRate->IsChecked())
-                m_overrideCustomRate->SetValue(true);
+                SetCustomRateOverrideState(true);
             if (rateStr != _("Custom") && m_overrideCustomRate->IsChecked())
-                m_overrideCustomRate->SetValue(false);
+                SetCustomRateOverrideState(false);
             if (rateStr == _("Sidereal"))
                 driveRate = driveSidereal;
             else if (rateStr == _("Lunar"))
