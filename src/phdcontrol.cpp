@@ -368,7 +368,7 @@ void PhdController::UpdateControllerState(void)
             ctrl.haveSaveSticky = false;
             ctrl.autoFindAttemptsRemaining = 3;
             ctrl.overrideDecGuideMode = false; // guide stop/start with no dithering
-            ctrl.calWaitTimeoutSec = pConfig->Global.GetInt("/server/calibration_wait_timeout", CAL_WAIT_TIMEOUT_DEFAULT_SEC);
+            ctrl.calWaitTimeoutSec = CAL_WAIT_TIMEOUT_DEFAULT_SEC;
             SETSTATE(STATE_ATTEMPT_START);
             break;
 
