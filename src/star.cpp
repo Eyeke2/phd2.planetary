@@ -60,6 +60,7 @@ void Star::Invalidate()
     Mass = 0.0;
     SNR = 0.0;
     HFD = 0.0;
+    FWHM = 0.0;
     m_lastFindResult = STAR_ERROR;
     PHD_Point::Invalidate();
 }
@@ -129,6 +130,7 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
     FindResult Result = STAR_OK;
     double newX = (int) base_x;
     double newY = (int) base_y;
+    FWHM = 0.0;
 
     try
     {
@@ -416,6 +418,19 @@ bool Star::Find(const usImage *pImg, int searchRegion, double base_x, double bas
         newY = peak_y + cy / mass;
 
         HFD = 2.0 * hfr(hfrvec, newX, newY, mass);
+        if (mode == FIND_CENTROID && mass > 0.0)
+        {
+            // Gaussian-equivalent FWHM from the flux-weighted radial second moment:
+            // E[r^2] = 2*sigma^2 for a circular Gaussian.
+            double weightedR2 = 0.0;
+            for (std::vector<R2M>::const_iterator it = hfrvec.begin(); it != hfrvec.end(); ++it)
+            {
+                const double dx = it->p.x - newX;
+                const double dy = it->p.y - newY;
+                weightedR2 += it->m * (dx * dx + dy * dy);
+            }
+            FWHM = 2.354820045 * sqrt(std::max(0.0, weightedR2 / (2.0 * mass)));
+        }
         // Check for constraints on HFD value
         if (mode != FIND_PEAK)
         {
@@ -489,11 +504,13 @@ done:
         Mass = 0.0;
         SNR = 0.0;
         HFD = 0.0;
+        FWHM = 0.0;
     }
 
     if (loggingControl == FIND_LOGGING_VERBOSE)
-        Debug.Write(wxString::Format("Star::Find returns %d (%d), X=%.2f, Y=%.2f, Mass=%.f, SNR=%.1f, Peak=%hu HFD=%.1f\n",
-                                     wasFound, Result, newX, newY, Mass, SNR, PeakVal, HFD));
+        Debug.Write(wxString::Format(
+            "Star::Find returns %d (%d), X=%.2f, Y=%.2f, Mass=%.f, SNR=%.1f, Peak=%hu HFD=%.1f FWHM=%.1f\n",
+            wasFound, Result, newX, newY, Mass, SNR, PeakVal, HFD, FWHM));
 
     return wasFound;
 }

@@ -881,6 +881,8 @@ Star::FindMode MyFrame::SetStarFindMode(Star::FindMode mode)
     Star::FindMode prev = m_starFindMode;
     Debug.Write(wxString::Format("Setting StarFindMode = %d\n", mode));
     m_starFindMode = mode;
+    if (mode != prev && pGuider && pGuider->GetCloudDetectionEnabled())
+        pGuider->ResetCloudDetection("star find mode changed");
     return prev;
 }
 
@@ -2509,7 +2511,7 @@ void MyFrame::OnClose(wxCloseEvent& event)
             {
                 Debug.Write(
                     wxString::Format("OnClose: aborting in-progress mount slew before teardown (%s)\n", scope->Name()));
-            scope->AbortSlew();
+                scope->AbortSlew();
             }
         }
     }
