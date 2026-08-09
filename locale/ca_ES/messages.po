@@ -35,7 +35,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 22:30+0300\n"
+"POT-Creation-Date: 2026-08-09 14:43+0300\n"
 "PO-Revision-Date: 2021-02-19 13:44+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -61,8 +61,8 @@ msgstr "Global"
 msgid "Camera"
 msgstr "Càmera"
 
-#: advanced_dialog.cpp:102 advanced_dialog.cpp:181 myframe.cpp:1995
-#: myframe.cpp:2597 scope_manual_pointing.cpp:70
+#: advanced_dialog.cpp:102 advanced_dialog.cpp:181 myframe.cpp:1997
+#: myframe.cpp:2610 scope_manual_pointing.cpp:70
 msgid "Guiding"
 msgstr "Guiatge"
 
@@ -74,11 +74,11 @@ msgstr "Algoritmes"
 msgid "Other Devices"
 msgstr "Altres dispositius"
 
-#: advanced_dialog.cpp:120 myframe.cpp:552 myframe.cpp:1105
+#: advanced_dialog.cpp:120 myframe.cpp:552 myframe.cpp:1107
 msgid "Advanced Settings"
 msgstr "Configuracions Avançades"
 
-#: advanced_dialog.cpp:223 guiding_assistant.cpp:543 myframe.cpp:1432
+#: advanced_dialog.cpp:223 guiding_assistant.cpp:543 myframe.cpp:1434
 #: profile_wizard.cpp:411
 msgid "Help"
 msgstr "Ajuda"
@@ -319,7 +319,7 @@ msgstr "Mesura aturada"
 #: cam_qhy.cpp:288 camcal_import_dialog.cpp:46 camera.cpp:996
 #: configdialog.cpp:62 configdialog.cpp:237 darks_dialog.cpp:52
 #: gear_simulator.cpp:2392 guide_algorithm_gaussian_process.cpp:189
-#: myframe.cpp:3602 planetary_tool.cpp:176 planetary_tool.cpp:186
+#: myframe.cpp:3615 planetary_tool.cpp:176 planetary_tool.cpp:186
 #: Refine_DefMap.cpp:62 starcross_test.cpp:51
 msgid ": "
 msgstr ": "
@@ -2227,7 +2227,7 @@ msgstr "Trieu el perfil amb la biblioteca de Darks que vulgueu utilitzar:"
 #: gear_dialog.cpp:471 gear_dialog.cpp:475 gear_dialog.cpp:712
 #: gear_dialog.cpp:1157 gear_dialog.cpp:1948 gear_dialog.cpp:1949
 #: gear_dialog.cpp:1950 log_uploader.cpp:190 mount.cpp:168 mount.cpp:193
-#: mount.cpp:889 myframe.cpp:3456 profile_wizard.cpp:429
+#: mount.cpp:889 myframe.cpp:3469 profile_wizard.cpp:429
 #: profile_wizard.cpp:430 profile_wizard.cpp:431 profile_wizard.cpp:680
 #: profile_wizard.cpp:685 profile_wizard.cpp:713 profile_wizard.cpp:909
 #: profile_wizard.cpp:1175 profile_wizard.cpp:1190 profile_wizard.cpp:1225
@@ -2479,7 +2479,7 @@ msgstr "Seguiment de cometes: entrenament actiu"
 msgid "Comet Tracking - Active"
 msgstr "Seguiment de cometes: actiu"
 
-#: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1499
+#: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1553
 #: scope.cpp:2293
 msgid "Enable"
 msgstr "Activar"
@@ -3061,7 +3061,7 @@ msgstr "Girant..."
 msgid "Coordinates saved."
 msgstr "Coordenades gravades."
 
-#: drift_tool.cpp:835 eegg.cpp:291 myframe_events.cpp:924
+#: drift_tool.cpp:835 eegg.cpp:291 myframe_events.cpp:930
 #: polardrift_toolwin.cpp:58 staticpa_toolwin.cpp:103
 msgid "Please connect a camera first."
 msgstr "Si us plau primer connecti una càmera."
@@ -3090,7 +3090,7 @@ msgstr ""
 msgid "There is no calibration data available."
 msgstr "No hi ha dades de calibratge disponibles."
 
-#: eegg.cpp:71 eegg.cpp:296 myframe_events.cpp:1256 myframe_events.cpp:1273
+#: eegg.cpp:71 eegg.cpp:296 myframe_events.cpp:1262 myframe_events.cpp:1279
 msgid "Please connect a mount first."
 msgstr "Si us plau connecta primer la muntura."
 
@@ -3329,7 +3329,7 @@ msgstr "Desconnectar tot"
 msgid "Disconnect all equipment"
 msgstr "Desconnectar tot l'equimanet"
 
-#: gear_dialog.cpp:361 myframe.cpp:1427 polardrift_toolwin.cpp:199
+#: gear_dialog.cpp:361 myframe.cpp:1429 polardrift_toolwin.cpp:199
 #: staticpa_toolwin.cpp:414
 msgid "Close"
 msgstr "Tancar"
@@ -3641,7 +3641,7 @@ msgstr "L’amplitud i el període de PE han de ser nombres> 0"
 msgid "Camera Simulator"
 msgstr "Simulador de la Càmera"
 
-#: gear_simulator.cpp:2584 myframe.cpp:3585
+#: gear_simulator.cpp:2584 myframe.cpp:3598
 msgid "Mode: "
 msgstr "Mode: "
 
@@ -4566,27 +4566,52 @@ msgstr ""
 msgid "XFac"
 msgstr "XFac"
 
-#: guider.cpp:602
+#: guider.cpp:706
 msgid "E"
 msgstr "E"
 
-#: guider.cpp:623
+#: guider.cpp:727
 msgid "N"
 msgstr "N"
 
-#: guider.cpp:740
+#: guider.cpp:844
 msgid "PAUSED"
 msgstr "PAUSAT"
 
-#: guider.cpp:744
+#: guider.cpp:848
 msgid "Guide output DISABLED"
 msgstr "Guia de sortida DESACTIVADA"
 
-#: guider.cpp:1235
+#: guider.cpp:887
+msgid "CLOUD: DETECTOR ERROR"
+msgstr ""
+
+#: guider.cpp:893
+msgid "CLOUD: LEARNING"
+msgstr ""
+
+#: guider.cpp:897
+msgid "CLOUD: CLEAR"
+msgstr ""
+
+#: guider.cpp:905
+#, c-format
+msgid "CLOUD: HAZE? %d%%"
+msgstr ""
+
+#: guider.cpp:911
+msgid "CLOUD: BLOCKED (STATIC?)"
+msgstr ""
+
+#: guider.cpp:911
+msgid "CLOUD: OBSCURED"
+msgstr ""
+
+#: guider.cpp:1387
 msgid "Calibration manually stopped"
 msgstr "El calibratge s'ha aturat manualment"
 
-#: guider.cpp:1290
+#: guider.cpp:1442
 msgid ""
 "Do you want to automatically restore this calibration whenever the profile "
 "is used?"
@@ -4594,78 +4619,78 @@ msgstr ""
 "Voleu restaurar automàticament aquest calibratge sempre que s’utilitza el "
 "perfil?"
 
-#: guider.cpp:1363
+#: guider.cpp:1515
 msgid "Stopped Guiding"
 msgstr "Guiatge aturat"
 
-#: guider.cpp:1375
+#: guider.cpp:1527
 msgid ""
 "Shifted lock position outside allowable area. Lock Position Shift disabled."
 msgstr ""
 "Posició de bloqueig desplaçada fora de l'àrea permesa. Desplaçament de la "
 "posició de bloqueig desactivada."
 
-#: guider.cpp:1414
+#: guider.cpp:1566
 msgid "star lost"
 msgstr "estrella perduda"
 
-#: guider.cpp:1472 myframe.cpp:2229
+#: guider.cpp:1624 myframe.cpp:2231
 msgid "Paused"
 msgstr "Pausat"
 
-#: guider.cpp:1472 myframe.cpp:2229
+#: guider.cpp:1624 myframe.cpp:2231
 msgid "/full"
 msgstr ""
 
-#: guider.cpp:1472 myframe.cpp:2229
+#: guider.cpp:1624 myframe.cpp:2231
 msgid "/looping"
 msgstr ""
 
-#: guider.cpp:1489
+#: guider.cpp:1641
 msgid "Static PA rotation failed"
 msgstr "La rotació estàtica de la AP ha fallat"
 
-#: guider.cpp:1495
+#: guider.cpp:1647
 msgid "Polar Drift PA drift failed"
 msgstr "Polar Drift AP ha fallat"
 
-#: guider.cpp:1505
+#: guider.cpp:1657
 msgid "AO calibration failed"
 msgstr "El calibratge de OA ha fallat"
 
-#: guider.cpp:1505 guider.cpp:1538
+#: guider.cpp:1657 guider.cpp:1690
 msgid "calibration failed"
 msgstr "ha fallat el Calibratge"
 
-#: guider.cpp:1805
+#: guider.cpp:1957
 msgid "Guider Settings"
 msgstr "Configuració del Guiatge"
 
-#: guider.cpp:1814
+#: guider.cpp:1966
 msgid "Guide star tracking"
 msgstr "Guiatge de seguiment d’estrelles"
 
-#: guider.cpp:1815 log_uploader.cpp:702
+#: guider.cpp:1967 log_uploader.cpp:702
 msgid "Calibration"
 msgstr "Calibratge"
 
-#: guider.cpp:1816
+#: guider.cpp:1968
 msgid "Shared Parameters"
 msgstr "Paràmetres compartits"
 
-#: guider.cpp:1861
+#: guider.cpp:2014
 msgid "Always scale images"
 msgstr "Escalar sempre les imatges"
 
-#: guider.cpp:1862
+#: guider.cpp:2015
 msgid "Always scale images to fill window"
 msgstr "Escaleu sempre les imatges per omplir la finestra"
 
-#: guider.cpp:1865
+#: guider.cpp:2018
 msgid "Fast recenter after calibration or dither"
 msgstr "Recentrat ràpid després del calibratge o dither"
 
-#: guider.cpp:1867
+#: guider.cpp:2020
 msgid ""
 "Speed up calibration and dithering by using larger guide pulses to return "
 "the star to the center position. Un-check to use the old, slower method of "
@@ -4675,89 +4700,100 @@ msgstr ""
 "tornar l'estrella a la posició central. Desmarqueu la casella per fer servir "
 "el mètode antic i més lent del re-centrat després del calibratge o el dither."
 
-#: guider.cpp:1990
+#: guider.cpp:2024
+msgid "Enable cloud detection telemetry"
+msgstr ""
+
+#: guider.cpp:2026
+msgid ""
+"Monitor guide-star mass, SNR and FWHM and show the inferred sky condition in "
+"the lower-right image overlay. The monitor is informational and does not "
+"change PHD2's existing lost-star or star-mass rejection behavior."
+msgstr ""
+
+#: guider.cpp:2152
 msgid "Are you sure you want to delete all Bookmarks?"
 msgstr "Està segur que vol eliminar tots els marcadors?"
 
-#: guider_multistar.cpp:407 guider_multistar.cpp:945
+#: guider_multistar.cpp:416 guider_multistar.cpp:992
 msgid "No star selected"
 msgstr "No hi ha estrelles selccionades"
 
-#: guider_multistar.cpp:412
+#: guider_multistar.cpp:421
 msgid "Star lost - low SNR"
 msgstr "Estrella perduda- SNR baix"
 
-#: guider_multistar.cpp:414
+#: guider_multistar.cpp:423
 msgid "Star lost - low mass"
 msgstr "Estrella perduda - la massa és baixa"
 
-#: guider_multistar.cpp:416
+#: guider_multistar.cpp:425
 msgid "Star lost - low HFD"
 msgstr "Estrella perduda - El HFD es baix"
 
-#: guider_multistar.cpp:418
+#: guider_multistar.cpp:427
 msgid "Star too near edge"
 msgstr "Estrella massa a prop de la vora"
 
-#: guider_multistar.cpp:420
+#: guider_multistar.cpp:429
 msgid "Star lost - mass changed"
 msgstr "Estrella perduda - Ha canviat de massa"
 
-#: guider_multistar.cpp:422 guider_multistar.cpp:1168
+#: guider_multistar.cpp:431 guider_multistar.cpp:1222
 msgid "No star found"
 msgstr "No s'han trobat estrelles"
 
-#: guider_multistar.cpp:428
+#: guider_multistar.cpp:437
 #, c-format
 msgid "m=%.0f SNR=%.1f"
 msgstr "m=%.0f SNR=%.1f"
 
-#: guider_multistar.cpp:431
+#: guider_multistar.cpp:440
 msgid "Saturated"
 msgstr "Saturada"
 
-#: guider_multistar.cpp:441
+#: guider_multistar.cpp:450
 #, c-format
 msgid "Exp=%0.1f s"
 msgstr "Exp=%0.1f s"
 
-#: guider_multistar.cpp:443
+#: guider_multistar.cpp:452
 #, c-format
 msgid "Exp=%d ms"
 msgstr "Exp=%d ms"
 
-#: guider_multistar.cpp:523
+#: guider_multistar.cpp:532
 #, c-format
 msgid "Auto-selected star at (%.1f, %.1f)"
 msgstr "Estrella auto-seleccionada en (%.1f,%.1f)"
 
-#: guider_multistar.cpp:991
+#: guider_multistar.cpp:1045
 #, c-format
 msgid "Mass: %.f vs %.f"
 msgstr "Massa: %.f vs %.f"
 
-#: guider_multistar.cpp:1029
+#: guider_multistar.cpp:1083
 msgid "Recovering"
 msgstr "Recuperant"
 
-#: guider_multistar.cpp:1180
+#: guider_multistar.cpp:1234
 msgid "object"
 msgstr ""
 
-#: guider_multistar.cpp:1180
+#: guider_multistar.cpp:1234
 msgid "star"
 msgstr ""
 
-#: guider_multistar.cpp:1182
+#: guider_multistar.cpp:1236
 #, c-format
 msgid "Selected %s at (%.1f, %.1f)"
 msgstr ""
 
-#: guider_multistar.cpp:1494
+#: guider_multistar.cpp:1548
 msgid "Search region (pixels)"
 msgstr "Regió de recerca (píxels)"
 
-#: guider_multistar.cpp:1495
+#: guider_multistar.cpp:1549
 msgid ""
 "How many pixels (up/down/left/right) do we examine to find the star? Default "
 "= 15"
@@ -4765,11 +4801,11 @@ msgstr ""
 "Quants píxels (amunt/avall/esquerra/dreta) s'ha d'examinar per trobar "
 "l'estrella? Per defecte = 15"
 
-#: guider_multistar.cpp:1498
+#: guider_multistar.cpp:1552
 msgid "Star Mass Detection"
 msgstr "Detecció de la massa de l'estrella"
 
-#: guider_multistar.cpp:1501
+#: guider_multistar.cpp:1555
 msgid ""
 "Check to enable star mass change detection. When enabled, PHD skips frames "
 "when the guide star mass changes by an amount greater than the setting for "
@@ -4779,11 +4815,11 @@ msgstr ""
 "està connectat, PHD evitarà prendre fotogrames quan la massa de l'estrella "
 "guia canvia a un valor superior al configurat en la \"tolerància\"."
 
-#: guider_multistar.cpp:1514
+#: guider_multistar.cpp:1568
 msgid "Tolerance"
 msgstr "Tolerància"
 
-#: guider_multistar.cpp:1515
+#: guider_multistar.cpp:1569
 msgid ""
 "When star mass change detection is enabled, this is the tolerance for star "
 "mass changes between frames, in percent. Larger values are more tolerant "
@@ -4796,15 +4832,15 @@ msgstr ""
 "100, i per defecte és 50. Si la detecció de canvi de massa no està "
 "habilitada, aquesta configuració s'ignorarà."
 
-#: guider_multistar.cpp:1521
+#: guider_multistar.cpp:1575
 msgid "65535"
 msgstr "65535"
 
-#: guider_multistar.cpp:1528
+#: guider_multistar.cpp:1582
 msgid "Minimum star HFD (pixels)"
 msgstr "Mínim HFD per a l'estrella (píxels)"
 
-#: guider_multistar.cpp:1529
+#: guider_multistar.cpp:1583
 msgid ""
 "The minimum star HFD (size) that will be used for identifying a guide star. "
 "This setting can be used to prevent PHD2 from guiding on a hot pixel. Use "
@@ -4819,11 +4855,11 @@ msgstr ""
 "mínim del HFD una mica superior. Quan l'HFD caigui per sota d'aquest valor, "
 "el píxel calent serà ignorat."
 
-#: guider_multistar.cpp:1538
+#: guider_multistar.cpp:1592
 msgid "Maximum star HFD (pixels)"
 msgstr ""
 
-#: guider_multistar.cpp:1539
+#: guider_multistar.cpp:1593
 msgid ""
 "The maximum star HFD that will be used for identifying a guide star. This "
 "setting can be used to prevent PHD2 from choosing a large clump of sensor "
@@ -4831,15 +4867,15 @@ msgid ""
 "stars."
 msgstr ""
 
-#: guider_multistar.cpp:1543 myframe.cpp:994 myframe.cpp:1077 scope.cpp:274
+#: guider_multistar.cpp:1597 myframe.cpp:996 myframe.cpp:1079 scope.cpp:274
 msgid "Auto"
 msgstr "Auto"
 
-#: guider_multistar.cpp:1547
+#: guider_multistar.cpp:1601
 msgid "Auto-selection frame downsample"
 msgstr "Selecció automàtica del fotograma de mostreig reduït"
 
-#: guider_multistar.cpp:1548
+#: guider_multistar.cpp:1602
 msgid ""
 "Downsampling factor for star auto-selection camera frames. Choose a value "
 "greater than 1 if star auto-selection is failing to recognize misshapen "
@@ -4849,27 +4885,27 @@ msgstr ""
 "fotogrames de la càmera. Trieu un valor superior a 1 si la selecció "
 "automàtica d'estrelles no reconeix les estrelles guia deformades."
 
-#: guider_multistar.cpp:1551
+#: guider_multistar.cpp:1605
 msgid "Beep on lost star"
 msgstr "Beep si es perd l'estrella"
 
-#: guider_multistar.cpp:1552
+#: guider_multistar.cpp:1606
 msgid "Issue an audible alarm any time the guide star is lost"
 msgstr "Emet una alarma sonora cada vegada que es perdi l'estrella guia"
 
-#: guider_multistar.cpp:1554
+#: guider_multistar.cpp:1608
 msgid "Use multiple stars"
 msgstr "Utilitzar múltiples estrelles"
 
-#: guider_multistar.cpp:1555
+#: guider_multistar.cpp:1609
 msgid "Use multiple guide stars if they are available"
 msgstr "Utilitza diverses estrelles guia si estan disponibles"
 
-#: guider_multistar.cpp:1565
+#: guider_multistar.cpp:1619
 msgid "Minimum star SNR for AutoFind"
 msgstr "Mínim SNR per la Recerca Automàtica de l'estrella"
 
-#: guider_multistar.cpp:1566
+#: guider_multistar.cpp:1620
 msgid ""
 "The minimum star SNR that will be used for auto-selecting guide stars. This "
 "setting can be used to discourage PHD2 from choosing a guide star you know "
@@ -5177,8 +5213,8 @@ msgstr "ms (prova deteriorada)"
 msgid "Apply"
 msgstr "Aplicar"
 
-#: guiding_assistant.cpp:1453 guiding_assistant.cpp:2182 myframe.cpp:3539
-#: myframe.cpp:3551
+#: guiding_assistant.cpp:1453 guiding_assistant.cpp:2182 myframe.cpp:3552
+#: myframe.cpp:3564
 msgid " "
 msgstr " "
 
@@ -5795,7 +5831,7 @@ msgstr "Començar guiatge"
 msgid "&Stop\tCtrl-S"
 msgstr "&Stop\tCtrl-S"
 
-#: myframe.cpp:550 myframe.cpp:1099
+#: myframe.cpp:550 myframe.cpp:1101
 msgid "Stop looping and guiding"
 msgstr "Parar el bucle i el guiatge"
 
@@ -5807,7 +5843,7 @@ msgstr "Configuracions &Avançades\tCtrl-A"
 msgid "&Camera Settings"
 msgstr "Configuració de la &Càmera"
 
-#: myframe.cpp:553 myframe.cpp:1106 planetary_tool.cpp:436
+#: myframe.cpp:553 myframe.cpp:1108 planetary_tool.cpp:436
 msgid "Camera settings"
 msgstr "Configuracions de la Càmera"
 
@@ -5827,7 +5863,7 @@ msgstr "Seleccionar &L'Estrella Automàticament\tAlt-S"
 msgid "Automatically select star"
 msgstr "Seleccionar automàticament l'estrella"
 
-#: myframe.cpp:559 myframe_events.cpp:1148 myframe_events.cpp:1155
+#: myframe.cpp:559 myframe_events.cpp:1154 myframe_events.cpp:1161
 msgid "Calibration Assistant..."
 msgstr ""
 
@@ -5903,7 +5939,7 @@ msgstr ""
 msgid "Run the solar/lunar/planetary guiding tool"
 msgstr ""
 
-#: myframe.cpp:576 myframe_events.cpp:1273 starcross_test.cpp:75
+#: myframe.cpp:576 myframe_events.cpp:1279 starcross_test.cpp:75
 msgid "Star-Cross Test"
 msgstr "Prova Star-Cross"
 
@@ -6246,7 +6282,7 @@ msgstr "&Ajuda"
 msgid "Custom: 0.999 s"
 msgstr ""
 
-#: myframe.cpp:740 myframe.cpp:975 myframe.cpp:1080
+#: myframe.cpp:740 myframe.cpp:977 myframe.cpp:1082
 #, c-format
 msgid "Custom: %g s"
 msgstr "Personalitzat:%g s"
@@ -6261,67 +6297,67 @@ msgstr "%g s"
 msgid "%.*f s"
 msgstr "%.*f s"
 
-#: myframe.cpp:1081
+#: myframe.cpp:1083
 msgid "Edit Custom..."
 msgstr "Edita personalitzat ..."
 
-#: myframe.cpp:1085
+#: myframe.cpp:1087
 msgid "Camera exposure duration"
 msgstr "Durada de l'exposició de la càmera"
 
-#: myframe.cpp:1090
+#: myframe.cpp:1092
 msgid "Screen gamma (brightness)"
 msgstr "Brillantor de la Pantalla (Gamma)"
 
-#: myframe.cpp:1093
+#: myframe.cpp:1095
 msgid ""
 "Connect to equipment. Shift-click to reconnect the same equipment last "
 "connected."
 msgstr ""
 "Connectar l'equip. Shift-click per re-connectar el darrer equip connectat."
 
-#: myframe.cpp:1094
+#: myframe.cpp:1096
 msgid "Begin looping exposures for frame and focus"
 msgstr "Començar exposicions continues per enquadrar i enfocar"
 
-#: myframe.cpp:1096
+#: myframe.cpp:1098
 msgid "Auto-select Star. Shift-click to de-select star."
 msgstr "Selecció automàtica. Shift-click per no seleccionar l'estrella."
 
-#: myframe.cpp:1098
+#: myframe.cpp:1100
 msgid "Begin guiding (PHD). Shift-click to force calibration."
 msgstr "Començar a guiar (PHD). Shift per forçar calibratge."
 
-#: myframe.cpp:1101
+#: myframe.cpp:1103
 msgid "Exposure duration"
 msgstr "Durada exposició"
 
-#: myframe.cpp:1102
+#: myframe.cpp:1104
 msgid "Gamma"
 msgstr "Gamma"
 
-#: myframe.cpp:1103
+#: myframe.cpp:1105
 msgid "Lost-star sound"
 msgstr ""
 
-#: myframe.cpp:1103 myframe.cpp:3228
+#: myframe.cpp:1105 myframe.cpp:3241
 msgid "Mute lost-star alarm"
 msgstr ""
 
-#: myframe.cpp:1107 myframe.cpp:1108
+#: myframe.cpp:1109 myframe.cpp:1110
 msgid "Planetary and Solar Guiding Tool"
 msgstr ""
 
-#: myframe.cpp:1174
+#: myframe.cpp:1176
 #, c-format
 msgid "Could not find help file %s"
 msgstr "No es pot trobar el fitxer d'ajuda %s"
 
-#: myframe.cpp:1389
+#: myframe.cpp:1391
 msgid "Trouble-shooting and Analysis"
 msgstr "Problemes i anàlisis"
 
-#: myframe.cpp:1417
+#: myframe.cpp:1419
 msgid ""
 "Don't show\n"
 " again"
@@ -6329,23 +6365,23 @@ msgstr ""
 "No mostra\n"
 "de nou"
 
-#: myframe.cpp:1997 myframe.cpp:2274
+#: myframe.cpp:1999 myframe.cpp:2276
 msgid "Looping"
 msgstr "Bucle"
 
-#: myframe.cpp:2127
+#: myframe.cpp:2129
 msgid "Capturing single exposure"
 msgstr "Capturar exposició única"
 
-#: myframe.cpp:2197
+#: myframe.cpp:2199
 msgid "Waiting for devices..."
 msgstr "Esperant dispositius..."
 
-#: myframe.cpp:2243
+#: myframe.cpp:2245
 msgid "Resumed"
 msgstr "Reiniciant"
 
-#: myframe.cpp:2292
+#: myframe.cpp:2294
 msgid ""
 "Cannot guide while refining a Bad-pixel Map. Please close the Refine Bad-"
 "pixel Map window."
@@ -6353,35 +6389,35 @@ msgstr ""
 "No es pot guiar mentre es millora el mapa de píxels dolents. Si us plau "
 "tanca la finestra de millora del mapa de píxels dolents."
 
-#: myframe.cpp:2303 myframe.cpp:2309
+#: myframe.cpp:2305 myframe.cpp:2311
 #, c-format
 msgid "Invalid calibration data: %s. Please clear calibration and recalibrate."
 msgstr ""
 
-#: myframe.cpp:2435
+#: myframe.cpp:2437
 #, c-format
 msgid "Dither by %.2f,%.2f"
 msgstr "Dither %.2f,%.2f"
 
-#: myframe.cpp:2483
+#: myframe.cpp:2485
 msgid "Are you sure you want to exit while capturing is active?"
 msgstr "Esteu segurs de sortir mentre la captura està activada?"
 
-#: myframe.cpp:2484
+#: myframe.cpp:2486
 msgid "Confirm Exit"
 msgstr "Confirmar la sortida"
 
-#: myframe.cpp:2801
+#: myframe.cpp:2814
 #, c-format
 msgid "FITS file is not of an image: %s"
 msgstr "El fitxer FITS no és d'una imatge: %s"
 
-#: myframe.cpp:2809 usImage.cpp:460
+#: myframe.cpp:2822 usImage.cpp:460
 #, c-format
 msgid "Unsupported type or read error loading FITS file %s"
 msgstr "Tipus no suportat o error de lectura carregant el fitxer FITS %s"
 
-#: myframe.cpp:2819
+#: myframe.cpp:2832
 msgid ""
 "Existing dark library has frames with incompatible formats - please rebuild "
 "the dark library from scratch."
@@ -6389,82 +6425,82 @@ msgstr ""
 "Llibreria de Darks existent conté fotogrames amb formats incompatibles - si "
 "us plau, re-construeixi la llibreria de Darks des de zero."
 
-#: myframe.cpp:2831
+#: myframe.cpp:2844
 #, c-format
 msgid "Memory allocation error reading FITS file %s"
 msgstr "Error d'assignació de memòria en llegir el fitxer FITS% s"
 
-#: myframe.cpp:2838
+#: myframe.cpp:2851
 #, c-format
 msgid "Error reading data from %s"
 msgstr "Error llegint dades des de %s"
 
-#: myframe.cpp:2890 usImage.cpp:515
+#: myframe.cpp:2903 usImage.cpp:515
 #, c-format
 msgid "Error opening FITS file %s"
 msgstr "Error obrint el fitxer FITS %s"
 
-#: myframe.cpp:2956
+#: myframe.cpp:2969
 msgid ""
 "Dark library does not match the camera in this profile. Check that you are "
 "connected to the camera you want to use for guiding."
 msgstr ""
 
-#: myframe.cpp:3009
+#: myframe.cpp:3022
 msgid ""
 "Dark library and bad-pixel maps don't match the current camera. Check that "
 "you are connected to the camera you want to use for guiding."
 msgstr ""
 
-#: myframe.cpp:3047
+#: myframe.cpp:3060
 msgid "You must connect a camera before loading dark frames"
 msgstr "Has de connectar una càmera abans de carregar els fotogrames DARK"
 
-#: myframe.cpp:3054
+#: myframe.cpp:3067
 msgid "Darks not loaded"
 msgstr "DARKS no carregats"
 
-#: myframe.cpp:3061
+#: myframe.cpp:3074
 msgid "Darks loaded"
 msgstr "DARKS carregats"
 
-#: myframe.cpp:3074
+#: myframe.cpp:3087
 #, c-format
 msgid "Error saving darks FITS file %s"
 msgstr "Error gravant els fitxers dark %s"
 
-#: myframe.cpp:3228
+#: myframe.cpp:3241
 msgid "Unmute lost-star alarm"
 msgstr ""
 
-#: myframe.cpp:3288
+#: myframe.cpp:3301
 msgid ""
 "Binning or camera pixel size changed unexpectedly. You should use separate "
 "profiles for different image scales."
 msgstr ""
 
-#: myframe.cpp:3298
+#: myframe.cpp:3311
 msgid "Global Settings"
 msgstr "Configuracions Globals"
 
-#: myframe.cpp:3346
+#: myframe.cpp:3359
 #, c-format
 msgid "Enter a focal length in millimeters, between %.f and %.f"
 msgstr ""
 
-#: myframe.cpp:3396 myframe.cpp:3481
+#: myframe.cpp:3409 myframe.cpp:3494
 msgid "System default"
 msgstr "Sistema per defecte"
 
-#: myframe.cpp:3408
+#: myframe.cpp:3421
 msgid "Language-Name"
 msgstr "Català"
 
-#: myframe.cpp:3449
+#: myframe.cpp:3462
 msgid "Reset Configuration"
 msgstr "Restablir la configuració"
 
-#: myframe.cpp:3451
+#: myframe.cpp:3464
 msgid ""
 "Reset all configuration and program settings to fresh install status. This "
 "will require restarting PHD2"
@@ -6472,37 +6508,37 @@ msgstr ""
 "Restableix tots els paràmetres de configuració i programa a l'estat "
 "d'instal·lació nou. Per fer a això caldrà reiniciar PHD2"
 
-#: myframe.cpp:3452
+#: myframe.cpp:3465
 msgid "Reset \"Don't Show Again\" messages"
 msgstr "Borrar missatges \"no mostrar de nou\""
 
-#: myframe.cpp:3454
+#: myframe.cpp:3467
 msgid ""
 "Restore any messages that were hidden when you checked \"Don't show this "
 "again\"."
 msgstr "Restaurar qualsevol missatge ocult quan triis \"no mostrar de nou\"."
 
-#: myframe.cpp:3456
+#: myframe.cpp:3469
 msgid "2x2 mean"
 msgstr "2x2 promig"
 
-#: myframe.cpp:3456
+#: myframe.cpp:3469
 msgid "3x3 median"
 msgstr "3x3 promig"
 
-#: myframe.cpp:3462
+#: myframe.cpp:3475
 msgid "Noise Reduction"
 msgstr "Reducció de Soroll"
 
-#: myframe.cpp:3463
+#: myframe.cpp:3476
 msgid "Technique to reduce noise in images"
 msgstr "Tècnica per reduir el soroll en les imatges"
 
-#: myframe.cpp:3469 planetary_tool.cpp:468
+#: myframe.cpp:3482 planetary_tool.cpp:468
 msgid "Time Lapse (ms)"
 msgstr "Temps entre fotogrames (ms)"
 
-#: myframe.cpp:3470
+#: myframe.cpp:3483
 msgid ""
 "How long should PHD wait between guide frames? Default = 0ms, useful when "
 "using very short exposures (e.g., using a video camera) but wanting to send "
@@ -6512,11 +6548,11 @@ msgstr ""
 "ms, és útil quan s'utilitzen exposicions curtes (p.e. utilitzant una vídeo "
 "càmera) però es vol enviar paràmetres de guiatge menys freqüentment"
 
-#: myframe.cpp:3478
+#: myframe.cpp:3491
 msgid "Focal length (mm)"
 msgstr "Distància focal (mm)"
 
-#: myframe.cpp:3479
+#: myframe.cpp:3492
 msgid ""
 "Guider telescope focal length, used with the camera pixel size to display "
 "guiding error in arc-sec."
@@ -6524,79 +6560,79 @@ msgstr ""
 "Distància focal del telescopi guia, utilitzada amb el tamany dels píxels de "
 "la càmera per a mostrar els errors de guiatge en arc-segons."
 
-#: myframe.cpp:3484
+#: myframe.cpp:3497
 msgid "Language"
 msgstr "Idioma"
 
-#: myframe.cpp:3485
+#: myframe.cpp:3498
 #, c-format
 msgid "%s Language. You'll have to restart PHD to take effect."
 msgstr "%s Idioma. Es necessari reiniciar PHD per que el canvi tingui efecte."
 
-#: myframe.cpp:3490 phdupdate.cpp:950 phdupdate.cpp:956
+#: myframe.cpp:3503 phdupdate.cpp:950 phdupdate.cpp:956
 msgid "Software Update"
 msgstr "Actualització de Software"
 
-#: myframe.cpp:3491
+#: myframe.cpp:3504
 msgid "Automatically check for updates"
 msgstr "Comprovar automàticament si hi ha actualitzacions"
 
-#: myframe.cpp:3492
+#: myframe.cpp:3505
 msgid "Check for software updates when PHD2 starts (recommended)"
 msgstr ""
 "Comproveu si hi ha actualitzacions de programari quan s'iniciï PHD2 "
 "(recomanat)"
 
-#: myframe.cpp:3494
+#: myframe.cpp:3507
 msgid "Only check for major releases"
 msgstr "Comprovar només si hi ha versions principals"
 
-#: myframe.cpp:3495
+#: myframe.cpp:3508
 msgid "Ignore minor (development) releases when checking for updates"
 msgstr ""
 "Ignoreu les versions inferiors (de desenvolupament) en cercar actualitzacions"
 
-#: myframe.cpp:3502
+#: myframe.cpp:3515
 msgid "Log File Location"
 msgstr "Localització del fitxer Log"
 
-#: myframe.cpp:3505
+#: myframe.cpp:3518
 msgid ""
 "Folder for guide and debug logs; empty string to restore the default location"
 msgstr ""
 "Carpeta per als fitxers de guiatge log i debug; buit per restaurar la "
 "localització per defecte"
 
-#: myframe.cpp:3506
+#: myframe.cpp:3519
 msgid "Browse..."
 msgstr "Explorar..."
 
-#: myframe.cpp:3519
+#: myframe.cpp:3532
 msgid "Enable diagnostic image logging"
 msgstr "Connectar registres de diagnòstic d'imatges"
 
-#: myframe.cpp:3520
+#: myframe.cpp:3533
 msgid "Save guider images based on options below"
 msgstr "Guardar imatges de guiatge basades en opcions mostrades a sota"
 
-#: myframe.cpp:3523
+#: myframe.cpp:3536
 msgid "Save Guider Images"
 msgstr "Guardar imatges de guiatge"
 
-#: myframe.cpp:3526
+#: myframe.cpp:3539
 msgid "For all lost-star frames"
 msgstr "Per tots els fotogrames d'estrelles perdudes"
 
-#: myframe.cpp:3527
+#: myframe.cpp:3540
 msgid "Save guider image whenever a lost-star event occurs"
 msgstr ""
 "Guardar imatges de guiatge quan un esdeveniment de pèrdua d'estrella pasi"
 
-#: myframe.cpp:3529
+#: myframe.cpp:3542
 msgid "For all Auto-select Star frames"
 msgstr "Per tots els fotogrames d'estrelles autoseleccionades"
 
-#: myframe.cpp:3530
+#: myframe.cpp:3543
 msgid ""
 "Save guider image when a star auto-selection is made. Note: the image is "
 "always saved when star auto-selection fails, regardless of this setting."
@@ -6605,11 +6641,11 @@ msgstr ""
 "la imatge sempre es guardarà si l'auto-selecció falla, independentment "
 "d'aquesta configuració."
 
-#: myframe.cpp:3534
+#: myframe.cpp:3547
 msgid "When relative error exceeds"
 msgstr "Quan s'excedeixi l'error relatiu"
 
-#: myframe.cpp:3536
+#: myframe.cpp:3549
 msgid ""
 "Save guider images when the error for the current frame exceeds the average "
 "error by this factor. For example, if the average (RMS) error is 0.5 pixels, "
@@ -6620,7 +6656,7 @@ msgstr ""
 "l'error és 0,5 píxels, i l'error del fotograma actual és 1,5 píxels, l'error "
 "relatiu serà 3"
 
-#: myframe.cpp:3542
+#: myframe.cpp:3555
 msgid ""
 "Relative error threshold. Relative error is the ratio between the current "
 "frame's error and the average error"
@@ -6628,11 +6664,11 @@ msgstr ""
 "Llindar d'error relatiu. L’error relatiu és la proporció entre l’error del "
 "fotograma actual i l’error mitjà"
 
-#: myframe.cpp:3547
+#: myframe.cpp:3560
 msgid "When absolute error exceeds (pixels)"
 msgstr "Quan l'error absolut sobrepassi (píxels)"
 
-#: myframe.cpp:3549
+#: myframe.cpp:3562
 msgid ""
 "Save guider images when the distance between the guide star and the lock "
 "position exceeds this many pixels"
@@ -6640,89 +6676,89 @@ msgstr ""
 "Guardar imatges de guiatge quan la distància entre l'estrella guia i la "
 "posició bloquejada sobrepassi aquests píxels"
 
-#: myframe.cpp:3553
+#: myframe.cpp:3566
 msgid "Absolute error threshold in pixels"
 msgstr "Llindar d'error absolut en pixels"
 
-#: myframe.cpp:3558
+#: myframe.cpp:3571
 msgid "Until this count is reached"
 msgstr "Fins que assoleixi la quantitat"
 
-#: myframe.cpp:3559
+#: myframe.cpp:3572
 msgid ""
 "Save each guider image until the specified number of images have been saved"
 msgstr ""
 "Guardar cada imatge de guiatge fins que el número especificat d'imatges hagi "
 "sigut assolit"
 
-#: myframe.cpp:3562
+#: myframe.cpp:3575
 msgid "Number of images to save"
 msgstr "Nombre d'imatges a guardar"
 
-#: myframe.cpp:3577
+#: myframe.cpp:3590
 msgid "Dither Settings"
 msgstr "Configuració dither"
 
-#: myframe.cpp:3578
+#: myframe.cpp:3591
 msgid "Random"
 msgstr "Aleatori"
 
-#: myframe.cpp:3579
+#: myframe.cpp:3592
 msgid ""
 "Each dither command moves the lock position a random distance on each axis"
 msgstr ""
 "Cada instrucció de dither mourà la posició de bloqueig a una posició "
 "aleatòria de cada eix"
 
-#: myframe.cpp:3580
+#: myframe.cpp:3593
 msgid "Spiral"
 msgstr "Espiral"
 
-#: myframe.cpp:3581
+#: myframe.cpp:3594
 msgid "Each dither command moves the lock position along a spiral path"
 msgstr ""
 "Cada instrucció dither mourà la posició de bloqueig al llarg d'una ruta "
 "espiral"
 
-#: myframe.cpp:3582
+#: myframe.cpp:3595
 msgid "Random Spiral"
 msgstr ""
 
-#: myframe.cpp:3583
+#: myframe.cpp:3596
 msgid "Each dither command adds a spiral step and half of a random step"
 msgstr ""
 
-#: myframe.cpp:3591
+#: myframe.cpp:3604
 msgid "RA only"
 msgstr "Només AR"
 
-#: myframe.cpp:3592
+#: myframe.cpp:3605
 msgid "Constrain dither to RA only"
 msgstr "Restringir dither només a AR"
 
-#: myframe.cpp:3598
+#: myframe.cpp:3611
 msgid "Scaling for dither commands. Default = 1.0 (0.1-100.0)"
 msgstr ""
 
-#: myframe.cpp:3602 testguide.cpp:126
+#: myframe.cpp:3615 testguide.cpp:126
 msgid "Scale"
 msgstr "Escala"
 
-#: myframe.cpp:3610
+#: myframe.cpp:3623
 msgid "Show graph time cursor"
 msgstr ""
 
-#: myframe.cpp:3612
+#: myframe.cpp:3625
 msgid ""
 "Show a vertical cursor line in the guiding graph with the timestamp and "
 "error values for the cursor position"
 msgstr ""
 
-#: myframe.cpp:3615 profile_wizard.cpp:396
+#: myframe.cpp:3628 profile_wizard.cpp:396
 msgid "Auto restore calibration"
 msgstr "Restauració automàtica del Calibratge"
 
-#: myframe.cpp:3618
+#: myframe.cpp:3631
 msgid ""
 "For this equipment profile, automatically restore data from last successful "
 "calibration after gear is connected."
@@ -6730,65 +6766,65 @@ msgstr ""
 "Per a aquest perfil d'equip, restableix automàticament les dades de l'últim "
 "calibratge correcte després de connectar l'engranatge."
 
-#: myframe.cpp:3635 scope.cpp:2320
+#: myframe.cpp:3648 scope.cpp:2320
 msgid "Min"
 msgstr "Min"
 
-#: myframe.cpp:3635
+#: myframe.cpp:3648
 msgid "Auto exposure minimum duration"
 msgstr "Durada mínima de Auto Exposició"
 
-#: myframe.cpp:3636 scope.cpp:2323
+#: myframe.cpp:3649 scope.cpp:2323
 msgid "Max"
 msgstr "Màx"
 
-#: myframe.cpp:3636
+#: myframe.cpp:3649
 msgid "Auto exposure maximum duration"
 msgstr "Durada mínima de Auto Exposició"
 
-#: myframe.cpp:3638
+#: myframe.cpp:3651
 msgid "Target SNR"
 msgstr "SNR de l'Objetctiu"
 
-#: myframe.cpp:3638
+#: myframe.cpp:3651
 msgid "Auto exposure target SNR value"
 msgstr "Valor SNR per autoexposicó"
 
-#: myframe.cpp:3640
+#: myframe.cpp:3653
 msgid "Auto Exposure"
 msgstr "Auto Exposició"
 
-#: myframe.cpp:3648
+#: myframe.cpp:3661
 msgid "Use Variable Exposure Delays"
 msgstr ""
 
-#: myframe.cpp:3650
+#: myframe.cpp:3663
 msgid ""
 "Use \"short\" delay for calibration, looping, dithering, GA, \"long\" delay "
 "for normal guiding"
 msgstr ""
 
-#: myframe.cpp:3657
+#: myframe.cpp:3670
 msgid "Short delay (sec)"
 msgstr ""
 
-#: myframe.cpp:3658
+#: myframe.cpp:3671
 msgid "Short delay for calibration, looping, dithering, GA"
 msgstr ""
 
-#: myframe.cpp:3659
+#: myframe.cpp:3672
 msgid "Long delay (sec)"
 msgstr ""
 
-#: myframe.cpp:3660
+#: myframe.cpp:3673
 msgid "Long delay for normal guiding"
 msgstr ""
 
-#: myframe.cpp:3662
+#: myframe.cpp:3675
 msgid "Variable Exposure Delay (High-precision encoder mounts)"
 msgstr ""
 
-#: myframe.cpp:3757
+#: myframe.cpp:3770
 msgid ""
 "This will reset all PHD2 configuration values and restart the program.  Are "
 "you sure?"
@@ -6796,15 +6832,15 @@ msgstr ""
 "Això restablirà tots els valors de configuració de PHD2 i reiniciarà el "
 "programa. Estàs segur?"
 
-#: myframe.cpp:3758
+#: myframe.cpp:3771
 msgid "Confirmation"
 msgstr "Confirmació"
 
-#: myframe.cpp:3793
+#: myframe.cpp:3806
 msgid "Restart PHD2"
 msgstr "Reinicia PHD2"
 
-#: myframe.cpp:3794
+#: myframe.cpp:3807
 msgid ""
 "You must restart PHD2 for the language change to take effect.\n"
 "Would you like to restart PHD2 now?"
@@ -6912,12 +6948,12 @@ msgstr "La imatge no es pot guardar en %s"
 msgid "%s saved"
 msgstr "%s gravat"
 
-#: myframe_events.cpp:384 myframe_events.cpp:761 myframe_events.cpp:892
+#: myframe_events.cpp:384 myframe_events.cpp:767 myframe_events.cpp:898
 msgid "Please connect to a camera first"
 msgstr "Si us plau connecti primer la càmera"
 
-#: myframe_events.cpp:384 myframe_events.cpp:761 myframe_events.cpp:768
-#: myframe_events.cpp:892 myframe_events.cpp:899 myframe_events.cpp:931
+#: myframe_events.cpp:384 myframe_events.cpp:767 myframe_events.cpp:774
+#: myframe_events.cpp:898 myframe_events.cpp:905 myframe_events.cpp:937
 #: Refine_DefMap.cpp:307
 msgid "Info"
 msgstr "Info"
@@ -6936,19 +6972,19 @@ msgstr ""
 "de la càmera sense processar, que són diferents en tamany dels habituals de "
 "guiatge per aquesta càmera."
 
-#: myframe_events.cpp:648 myframe_events.cpp:679 myframe_events.cpp:683
+#: myframe_events.cpp:650 myframe_events.cpp:683 myframe_events.cpp:688
 msgid "Mount stopped tracking - guiding will stop if tracking does not resume."
 msgstr ""
 
-#: myframe_events.cpp:665
+#: myframe_events.cpp:667
 msgid "Guiding stopped: the mount is parked."
 msgstr ""
 
-#: myframe_events.cpp:684 scope.cpp:625
+#: myframe_events.cpp:689 scope.cpp:625
 msgid "Guiding stopped: the mount is not tracking."
 msgstr ""
 
-#: myframe_events.cpp:697
+#: myframe_events.cpp:703
 #, c-format
 msgid ""
 "The AO exceeded its travel limit stepping from (%d, %d) to (%d, %d) and "
@@ -6959,7 +6995,7 @@ msgstr ""
 "el calibratge no pot continuar. Proveu de reduir la configuració "
 "desplaçament OA a %d o inferior i torneu-ho a provar."
 
-#: myframe_events.cpp:706
+#: myframe_events.cpp:712
 #, c-format
 msgid ""
 "The AO exceeded its travel limit stepping from (%d, %d) to (%d, %d) and has "
@@ -6969,60 +7005,60 @@ msgstr ""
 "s'ha re-centrat. Proveu de reduir el paràmetre desplaçament OA a %d o "
 "inferior."
 
-#: myframe_events.cpp:768 myframe_events.cpp:931
+#: myframe_events.cpp:774 myframe_events.cpp:937
 msgid " does not support the Dark Library feature"
 msgstr ""
 
-#: myframe_events.cpp:784
+#: myframe_events.cpp:790
 msgid "You must connect a camera before loading a dark library"
 msgstr "Ha de connectar una càmera abans de carregar una llibreria de darks"
 
-#: myframe_events.cpp:792
+#: myframe_events.cpp:798
 msgid "LoadDarkHandler: "
 msgstr ""
 
-#: myframe_events.cpp:792
+#: myframe_events.cpp:798
 msgid " does not support the Dark Library feature\n"
 msgstr ""
 
-#: myframe_events.cpp:821
+#: myframe_events.cpp:827
 msgid "Dark library unloaded"
 msgstr "Biblioteca de darks descarregada"
 
-#: myframe_events.cpp:837
+#: myframe_events.cpp:843
 msgid "You must connect a camera before loading a bad-pixel map"
 msgstr ""
 "Heu de connectar una càmera abans de carregar un mapa de píxels defectuosos"
 
-#: myframe_events.cpp:845
+#: myframe_events.cpp:851
 msgid "LoadDefectMapHandler: "
 msgstr ""
 
-#: myframe_events.cpp:845
+#: myframe_events.cpp:851
 msgid " does not support the Defect Map feature\n"
 msgstr ""
 
-#: myframe_events.cpp:862
+#: myframe_events.cpp:868
 msgid "Defect map loaded"
 msgstr "Mapa de defectes carregat"
 
-#: myframe_events.cpp:866
+#: myframe_events.cpp:872
 msgid "Defect map not loaded"
 msgstr "Mapa de defectes no carregada"
 
-#: myframe_events.cpp:878
+#: myframe_events.cpp:884
 msgid "Bad-pixel map unloaded"
 msgstr "Mapa de píxels dolents descarregats"
 
-#: myframe_events.cpp:899 Refine_DefMap.cpp:307
+#: myframe_events.cpp:905 Refine_DefMap.cpp:307
 msgid " does not support the Bad Pixel Map feature"
 msgstr ""
 
-#: myframe_events.cpp:1042
+#: myframe_events.cpp:1048
 msgid "Guider"
 msgstr "Guia"
 
-#: myframe_events.cpp:1129
+#: myframe_events.cpp:1135
 msgid ""
 "For best results, use a Dark Library or a Bad-pixel Map while guiding. This "
 "will help prevent PHD from locking on to a hot pixel. Use the Darks menu to "
@@ -7033,51 +7069,51 @@ msgstr ""
 "un píxel calent. Utilitzi el menú de Darks per a crear una llibreria de "
 "Darks o un mapa de píxels dolents."
 
-#: myframe_events.cpp:1146
+#: myframe_events.cpp:1152
 msgid ""
 "Scope isn't pointing in recommended sky area for calibration - run the "
 "Calibration Assistant to improve results."
 msgstr ""
 
-#: myframe_events.cpp:1148 myframe_events.cpp:1155
+#: myframe_events.cpp:1154 myframe_events.cpp:1161
 msgid "Calibrate here"
 msgstr ""
 
-#: myframe_events.cpp:1151
+#: myframe_events.cpp:1157
 msgid ""
 "With the scope pointing this close to the pole, calibration can be degraded "
 "and may "
 msgstr ""
 
-#: myframe_events.cpp:1152
+#: myframe_events.cpp:1158
 msgid ""
 "fail altogether.  Run the Calibration Assistant and follow the instructions "
 "to eliminate these risks, "
 msgstr ""
 
-#: myframe_events.cpp:1154
+#: myframe_events.cpp:1160
 msgid ""
 "including slewing the scope as close as practical to the recommended "
 "position."
 msgstr ""
 
-#: myframe_events.cpp:1202
+#: myframe_events.cpp:1208
 msgid "Are you sure you want to force recalibration?"
 msgstr ""
 
-#: myframe_events.cpp:1203
+#: myframe_events.cpp:1209
 msgid "Force Recalibration"
 msgstr "Força el Re-calibratge"
 
-#: myframe_events.cpp:1256 testguide.cpp:158
+#: myframe_events.cpp:1262 testguide.cpp:158
 msgid "Manual Guide"
 msgstr "Guiat Manual"
 
-#: myframe_events.cpp:1289 pierflip_tool.cpp:78
+#: myframe_events.cpp:1295 pierflip_tool.cpp:78
 msgid "Meridian Flip Calibration Tool"
 msgstr "Eina Calibratge canvi Meridià"
 
-#: myframe_events.cpp:1348
+#: myframe_events.cpp:1354
 msgid ""
 "With your current setting for Dec guide mode, this version of PHD2 will "
 "dither in Declination. To restore the old behavior you can set the RA-only "
@@ -7088,11 +7124,11 @@ msgstr ""
 "podeu configurar l'opció només AR a la configuració de Dither del diàleg "
 "avançat."
 
-#: myframe_events.cpp:1351
+#: myframe_events.cpp:1357
 msgid "Set RA-only now"
 msgstr "Configurar només AR"
 
-#: myframe_events.cpp:1371
+#: myframe_events.cpp:1377
 msgid ""
 "It looks like this is a first-time connection to your camera and mount. The "
 "Setup Wizard can help\n"
@@ -7106,15 +7142,15 @@ msgstr ""
 "vostra nova configuració.\n"
 "Voleu utilitzar l'Assistent de configuració ara?"
 
-#: myframe_events.cpp:1374 profile_wizard.cpp:1636
+#: myframe_events.cpp:1380 profile_wizard.cpp:1636
 msgid "Yes"
 msgstr "Si"
 
-#: myframe_events.cpp:1374 profile_wizard.cpp:1638
+#: myframe_events.cpp:1380 profile_wizard.cpp:1638
 msgid "No"
 msgstr "No"
 
-#: myframe_events.cpp:1374
+#: myframe_events.cpp:1380
 msgid "Setup Wizard Recommendation"
 msgstr "Recomanacions de l'Assitent de COnfiguració"
 
