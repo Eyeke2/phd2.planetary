@@ -39,6 +39,7 @@
 #include "nudge_lock.h"
 
 #include <cmath>
+#include <limits>
 #include <wx/sstream.h>
 #include <wx/sckstrm.h>
 #include <sstream>
@@ -1205,6 +1206,78 @@ static void get_app_state(JObj& response, const json_value *params)
 {
     EXPOSED_STATE st = Guider::GetExposedState();
     response << jrpc_result(state_name(st));
+}
+
+static const char *cloud_state_name(SceneState state)
+{
+    switch (state)
+    {
+    case SceneState::Warmup:
+        return "Warmup";
+    case SceneState::Clear:
+        return "Clear";
+    case SceneState::Suspect:
+        return "Suspect";
+    case SceneState::Obscured:
+        return "Obscured";
+    }
+    return "Unknown";
+}
+
+static void cloud_optional_metric(JObj& result, const char *name, float value)
+{
+    if (!std::isfinite(value) || value < 0.f)
+        result << NV(name, NULL_VALUE);
+    else
+        result << NV(name, (double) value);
+}
+
+static double cloud_finite_metric(float value)
+{
+    return std::isfinite(value) ? (double) value : 0.0;
+}
+
+// Return the cloud detector's current read-only verdict and diagnostic evidence.
+// haze_percent uses the same rounding as the on-screen HUD; severity remains available
+// at full precision for clients that want their own display or alert thresholds.
+static void get_cloud_status(JObj& response, const json_value *params)
+{
+    VERIFY_GUIDER(response);
+
+    Guider *guider = pFrame->pGuider;
+    const SceneTelemetry telemetry = guider->GetCloudTelemetry();
+    const float severity = std::isfinite(telemetry.severity)
+                               ? std::max(0.f, std::min(1.f, telemetry.severity))
+                               : 0.f;
+    const int hazePercent = std::max(0, std::min(100,
+        (int) std::floor(severity * 100.f + 0.5f)));
+
+    JObj result;
+    result << NV("enabled", guider->GetCloudDetectionEnabled())
+           << NV("active", guider->IsCloudDetectionActive())
+           << NV("healthy", telemetry.healthy)
+           << NV("exception_count", (int) std::min(telemetry.exceptionCount,
+                                                    (unsigned) std::numeric_limits<int>::max()))
+           << NV("logger_exception_count", (int) std::min(telemetry.loggerExceptionCount,
+                                                           (unsigned) std::numeric_limits<int>::max()))
+           << NV("state", cloud_state_name(telemetry.state))
+           << NV("haze_percent", hazePercent)
+           << NV("severity", (double) severity)
+           << NV("static_obstruction", telemetry.staticObstruction)
+           << NV("loss_run", telemetry.lossRun)
+           << NV("snr_drop_db", cloud_finite_metric(telemetry.snrDropDb))
+           << NV("score_delta", cloud_finite_metric(telemetry.scoreDelta));
+
+    cloud_optional_metric(result, "mass_ratio", telemetry.massRatio);
+    cloud_optional_metric(result, "brightness_ratio", telemetry.brightRatio);
+    cloud_optional_metric(result, "feature_ratio", telemetry.featureRatio);
+    cloud_optional_metric(result, "mass_scatter_factor", telemetry.massScatterFactor);
+    cloud_optional_metric(result, "snr_scatter_factor", telemetry.snrScatterFactor);
+    cloud_optional_metric(result, "slow_brightness_ratio", telemetry.slowBrightRatio);
+    cloud_optional_metric(result, "slow_mass_ratio", telemetry.slowMassRatio);
+    cloud_optional_metric(result, "slow_feature_ratio", telemetry.slowFeatureRatio);
+
+    response << jrpc_result(result);
 }
 
 static void get_lock_position(JObj& response, const json_value *params)
@@ -4220,6 +4293,7 @@ static bool handle_request(JRpcCall& call)
         { "find_star", &find_star },
         { "get_pixel_scale", &get_pixel_scale },
         { "get_app_state", &get_app_state },
+        { "get_cloud_status", &get_cloud_status },
         { "flip_calibration", &flip_calibration },
         { "get_lock_shift_enabled", &get_lock_shift_enabled },
         { "set_lock_shift_enabled", &set_lock_shift_enabled },

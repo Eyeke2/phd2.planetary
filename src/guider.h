@@ -40,6 +40,8 @@
 #ifndef GUIDER_H_INCLUDED
 #define GUIDER_H_INCLUDED
 
+#include "contributions/CloudDetector/CloudDetector.h"
+
 enum GUIDER_STATE
 {
     STATE_UNINITIALIZED = 0,
@@ -122,6 +124,7 @@ class GuiderConfigDialogCtrlSet : public ConfigDialogCtrlSet
     Guider *m_pGuider;
     wxCheckBox *m_pEnableFastRecenter;
     wxCheckBox *m_pScaleImage;
+    wxCheckBox *m_pCloudDetection;
 
 public:
     GuiderConfigDialogCtrlSet(wxWindow *pParent, Guider *pGuider, AdvancedDialog *pAdvancedDialog, BrainCtrlIdMap& CtrlMap);
@@ -165,6 +168,8 @@ class Guider : public wxWindow
     bool m_fastRecenterEnabled;
     LockPosShiftParams m_lockPosShift;
     bool m_measurementMode;
+    CloudDetector m_cloudDetector;
+    std::atomic<bool> m_cloudDetectionEnabled;
     double m_minStarHFD;
     double m_minAFStarSNR;
     double m_maxStarHFD;
@@ -291,6 +296,13 @@ public:
 
     // Solar system object
     SolarSystemObject m_SolarSystemObject;
+
+    bool GetCloudDetectionEnabled() const { return m_cloudDetectionEnabled.load(); }
+    bool IsCloudDetectionActive() const;
+    void SetCloudDetectionEnabled(bool enabled);
+    void ResetCloudDetection(const char* reason) { m_cloudDetector.Reset(reason); }
+    SceneTelemetry GetCloudTelemetry() const { return m_cloudDetector.GetTelemetry(); }
+    void FeedCloudSample(SceneSample sample, const usImage *image, double centerX, double centerY, int radius) noexcept;
 
     // virtual functions -- these CAN be overridden by a subclass, which should
     // consider whether they need to call the base class functions as part of
