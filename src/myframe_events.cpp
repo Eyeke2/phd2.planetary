@@ -641,10 +641,12 @@ void MyFrame::OnMoveComplete(wxThreadEvent& event_)
             pFrame->NotifyGuidingStopped();
         }
 
-        // a successful move means the mount is tracking again -- clear any pending grace period
+        // Tracking-stop debounce: a successful move means the mount is tracking again, so
+        // clear any pending grace period (and its alert) rather than stopping guiding.
         if (moveResult == Mount::MOVE_OK && m_trackingStopPending)
         {
             m_trackingStopPending = false;
+            Debug.Write("mount tracking resumed within grace period; guiding continues\n");
             pFrame->ClearAlert(_("Mount stopped tracking - guiding will stop if tracking does not resume."));
         }
 
@@ -670,21 +672,25 @@ void MyFrame::OnMoveComplete(wxThreadEvent& event_)
             {
                 if (pGuider->IsCalibratingOrGuiding())
                 {
-                    // debounce: only stop guiding if the mount stays not-tracking past a grace period
                     long graceMs = (long) pConfig->Global.GetInt("/scope/tracking_stop_grace_sec", 10) * 1000;
                     if (!m_trackingStopPending)
                     {
+                        // First detection: warn and start the grace period, but keep guiding --
+                        // a transient stop that resumes within the grace period is tolerated.
                         m_trackingStopPending = true;
                         m_trackingStopTimer.Start();
+                        Debug.Write("mount stopped tracking; starting grace period before stopping guiding\n");
                         pFrame->Alert(_("Mount stopped tracking - guiding will stop if tracking does not resume."));
                     }
                     else if (m_trackingStopTimer.Time() >= graceMs)
                     {
+                        Debug.Write("mount not tracking past grace period; stopping guiding\n");
                         pFrame->ClearAlert(_("Mount stopped tracking - guiding will stop if tracking does not resume."));
                         pFrame->Alert(_("Guiding stopped: the mount is not tracking."));
                         pGuider->StopGuiding();
                         m_trackingStopPending = false;
                     }
+                    // else: within the grace period and already warned -- keep guiding and wait
                 }
             }
             else if (moveResult == Mount::MOVE_ERROR_AO_LIMIT_REACHED)

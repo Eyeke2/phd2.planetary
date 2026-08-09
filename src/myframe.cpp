@@ -2498,10 +2498,21 @@ void MyFrame::OnClose(wxCloseEvent& event)
 
     // Abort an in-progress slew (guide scope or pointing source) so the mount is not left
     // moving on exit. Guarded, best-effort, single bounded call per mount.
-    Scope *scopes[] = { TheScope(), pPointingSource };
-    for (Scope *scope : scopes)
-        if (scope && scope->IsConnected() && scope->CanCheckSlewing() && scope->Slewing())
+    {
+        Scope *quiesce[2] = { TheScope(), pPointingSource };
+        for (int i = 0; i < 2; i++)
+        {
+            Scope *scope = quiesce[i];
+            if (!scope || (i == 1 && scope == quiesce[0]))
+                continue; // null, or the pointing source is the guide scope (dedupe)
+            if (scope->IsConnected() && scope->CanCheckSlewing() && scope->Slewing())
+            {
+                Debug.Write(
+                    wxString::Format("OnClose: aborting in-progress mount slew before teardown (%s)\n", scope->Name()));
             scope->AbortSlew();
+            }
+        }
+    }
 
     bool killed = StopWorkerThread(m_pPrimaryWorkerThread);
     if (StopWorkerThread(m_pSecondaryWorkerThread))
@@ -2598,8 +2609,8 @@ void MyFrame::NotifyGuidingStarted()
 
     m_guidingStarted = wxDateTime::UNow();
     m_guidingElapsed.Start();
-    m_trackingStopPending = false;
     m_frameCounter = 0;
+    m_trackingStopPending = false; // reset tracking-stop debounce for the new session
 
     if (pMount)
         pMount->NotifyGuidingStarted();
