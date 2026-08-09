@@ -46,10 +46,16 @@
 
 #include <wx/dir.h>
 #include <algorithm>
+#include <cmath>
 
 #if ((wxMAJOR_VERSION < 3) && (wxMINOR_VERSION < 9))
 # define wxPENSTYLE_DOT wxDOT
 #endif
+
+static double ExposureAdjustedStarMass(double mass, int exposure, bool isAutoExposure)
+{
+    return isAutoExposure ? mass / (double) exposure : mass;
+}
 
 class MassChecker
 {
@@ -105,7 +111,10 @@ public:
         }
     }
 
-    double AdjustedMass(double mass) const { return m_isAutoExposure ? mass / (double) m_exposure : mass; }
+    double AdjustedMass(double mass) const
+    {
+        return ExposureAdjustedStarMass(mass, m_exposure, m_isAutoExposure);
+    }
 
     void AppendData(double mass)
     {
@@ -935,6 +944,44 @@ static DistanceChecker s_distanceChecker;
 
 bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset *ofs, FrameDroppedInfo *errorInfo)
 {
+    auto feedStarCloudSample = [&](const Star *star, bool detected) {
+        if (pFrame->GetStarFindMode() == Star::FIND_PLANET || !GetCloudDetectionEnabled())
+            return;
+
+        int exposure = 0;
+        bool isAutoExposure = false;
+        pFrame->GetExposureInfo(&exposure, &isAutoExposure);
+
+        SceneSample sample;
+        sample.detected = detected;
+        sample.stableLock = detected;
+        sample.mode = 0; // ordinary star centroiding
+        sample.exposureMs = isAutoExposure ? 0 : exposure;
+        sample.brightExposureMs = exposure;
+
+        const Star& metrics = star ? *star : m_primaryStar;
+        if (detected)
+        {
+            // Match MassChecker's existing auto-exposure normalization without
+            // changing its independent rejection thresholds or history.
+            sample.mass = (float) (isAutoExposure && exposure <= 0
+                                       ? metrics.Mass
+                                       : ExposureAdjustedStarMass(metrics.Mass, exposure, isAutoExposure));
+            // Star::SNR is linear while CloudDetector's SNR thresholds are in dB.
+            sample.snr = metrics.SNR > 0.0 ? (float) (20.0 * std::log10(metrics.SNR)) : 0.f;
+            // Cloud broadening increases FWHM. The detector's quality
+            // channel degrades downward, so use negative width as its score.
+            const double width = metrics.FWHM > 0.0 ? metrics.FWHM : metrics.HFD;
+            sample.score = (float) -width;
+        }
+
+        const double width = metrics.FWHM > 0.0 ? metrics.FWHM : metrics.HFD;
+        const int radius = std::isfinite(width) && width > 0.0
+                               ? std::max(2, (int) std::min(1000000.0, std::ceil(width * 2.0)))
+                               : 2;
+        FeedCloudSample(sample, pImage, metrics.X, metrics.Y, radius);
+    };
+
     if (!m_primaryStar.IsValid() && m_primaryStar.X == 0.0 && m_primaryStar.Y == 0.0)
     {
         Debug.Write("UpdateCurrentPosition: no star selected\n");
@@ -943,6 +990,7 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
         errorInfo->starSNR = 0.0;
         errorInfo->starHFD = 0.0;
         errorInfo->status = _("No star selected");
+        feedStarCloudSample(nullptr, false);
         ImageLogger::LogImageStarDeselected(pImage);
         return true;
     }
@@ -966,10 +1014,16 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
 
             if (pFrame->GetStarFindMode() != Star::FIND_PLANET)
                 s_distanceChecker.Activate();
+            feedStarCloudSample(&newStar, false);
             ImageLogger::LogImage(pImage, *errorInfo);
 
             throw ERROR_INFO("UpdateCurrentPosition():newStar not found");
         }
+
+        // Feed once per live star frame before the legacy mass/distance checks.
+        // Those checks keep their existing behavior while the cloud monitor sees
+        // the raw atmospheric telemetry that may explain a later rejection.
+        feedStarCloudSample(&newStar, true);
 
         // check to see if it seems like the star we just found was the
         // same as the original star by comparing the mass

@@ -72,6 +72,7 @@ public:
     double Mass;
     double SNR;
     double HFD;
+    double FWHM; // Gaussian-equivalent width derived from the flux-weighted second moment
     unsigned short PeakVal;
 
     Star();

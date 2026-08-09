@@ -38,6 +38,11 @@
 #include "staticpa_tool.h"
 #include "guiding_assistant.h"
 
+#include <chrono>
+#include <climits>
+#include <cmath>
+#include <exception>
+
 // un-comment to log star deflections to a file
 // #define CAPTURE_DEFLECTIONS
 
@@ -99,6 +104,44 @@ inline void DeflectionLogger::Log(const PHD_Point&) { }
 
 static const int DefaultOverlayMode = OVERLAY_NONE;
 static const bool DefaultScaleImage = true;
+
+namespace {
+
+int64_t CloudSampleNowMs()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::steady_clock::now().time_since_epoch())
+        .count();
+}
+
+// Detection-independent high-tail contrast from the last known guide-star neighbourhood.
+// Subtracting the median rejects sensor bias/sky background, while the 99.5th percentile avoids
+// allowing a few hot pixels to stand in for a real guide-star signal.
+float CloudBrightnessContrast(const usImage *image, double centerX, double centerY, int radius)
+{
+    if (!image || !image->ImageData || image->Size.GetWidth() <= 0 || image->Size.GetHeight() <= 0)
+        return -1.f;
+
+    const int frameW = image->Size.GetWidth();
+    const int frameH = image->Size.GetHeight();
+    wxRect sampleRect(0, 0, frameW, frameH);
+    if (radius > 0 && centerX >= 0.0 && centerX < frameW && centerY >= 0.0 && centerY < frameH)
+    {
+        const int64_t half = std::max<int64_t>(24, (int64_t) radius * 2);
+        const int width = (int) std::min<int64_t>(frameW, std::min<int64_t>(INT_MAX, half * 2 + 1));
+        const int height = (int) std::min<int64_t>(frameH, std::min<int64_t>(INT_MAX, half * 2 + 1));
+        const int cx = (int) std::floor(centerX + 0.5);
+        const int cy = (int) std::floor(centerY + 0.5);
+        const int x = std::max(0, std::min(frameW - width, cx - width / 2));
+        const int y = std::max(0, std::min(frameH - height, cy - height / 2));
+        sampleRect = wxRect(x, y, width, height);
+    }
+
+    return CloudHighTailContrast(image->ImageData, frameW, frameH, sampleRect.GetLeft(), sampleRect.GetTop(),
+                                 sampleRect.GetWidth(), sampleRect.GetHeight());
+}
+
+} // namespace
 
 // clang-format off
 wxBEGIN_EVENT_TABLE(Guider, wxWindow)
@@ -182,6 +225,11 @@ Guider::Guider(wxWindow *parent, int xSize, int ySize)
     m_ignoreLostStarLooping = false;
     m_forceFullFrame = false;
     m_measurementMode = false;
+    m_cloudDetectionEnabled.store(false);
+    m_cloudDetector.SetEnabled(false);
+    m_cloudDetector.SetLogger([](const std::string& msg) {
+        Debug.Write(wxString::FromUTF8(msg.c_str()) + "\n");
+    });
     m_searchRegion = 0;
     m_pCurrentImage = new usImage(); // so we always have one
 
@@ -218,6 +266,8 @@ Guider::~Guider()
 
 void Guider::LoadProfileSettings()
 {
+    SetCloudDetectionEnabled(pConfig->Profile.GetBoolean("/guider/cloud_detection_enabled", false));
+
     bool enableFastRecenter = pConfig->Profile.GetBoolean("/guider/FastRecenter", true);
     EnableFastRecenter(enableFastRecenter);
 
@@ -250,6 +300,60 @@ void Guider::LoadProfileSettings()
         delete m_displayedImage;
         m_displayedImage = new wxImage(XWinSize, YWinSize, true);
         DisplayImage(new usImage());
+    }
+}
+
+bool Guider::IsCloudDetectionActive() const
+{
+    // Planetary cloud detection belongs to HM. The public PHD2 integration is deliberately
+    // limited to ordinary guide-star centroiding.
+    return m_cloudDetectionEnabled.load() &&
+           (!pFrame || pFrame->GetStarFindMode() != Star::FIND_PLANET);
+}
+
+void Guider::SetCloudDetectionEnabled(bool enabled)
+{
+    m_cloudDetectionEnabled.store(enabled);
+    m_cloudDetector.SetEnabled(enabled);
+    pConfig->Profile.SetBoolean("/guider/cloud_detection_enabled", enabled);
+    Refresh();
+}
+
+void Guider::FeedCloudSample(SceneSample sample, const usImage *image, double centerX, double centerY, int radius) noexcept
+{
+    try
+    {
+        if (!IsCloudDetectionActive())
+            return;
+
+        sample.tMs = CloudSampleNowMs();
+        if (sample.brightCeil < 0.f)
+            sample.brightCeil = CloudBrightnessContrast(image, centerX, centerY, radius);
+        if (sample.gain < 0 && pCamera)
+            sample.gain = pCamera->GetCameraGain();
+        if (image)
+        {
+            sample.bitDepth = image->BitsPerPixel > 0 ? (int) image->BitsPerPixel : -1;
+            sample.frameW = image->Size.GetWidth();
+            sample.frameH = image->Size.GetHeight();
+        }
+        m_cloudDetector.Feed(sample);
+    }
+    catch (const std::exception& e)
+    {
+        // This is a second containment boundary around image/camera metadata collection. The
+        // detector itself is no-throw, but optional telemetry must never abort a guide frame.
+        try
+        {
+            Debug.Write("cloud: feeder exception contained (" + wxString::FromUTF8(e.what()) + ")\n");
+        }
+        catch (...) { }
+        m_cloudDetector.ReportFault("FeedCloudSample", e.what());
+    }
+    catch (...)
+    {
+        try { Debug.Write("cloud: feeder non-standard exception contained\n"); } catch (...) { }
+        m_cloudDetector.ReportFault("FeedCloudSample", "non-standard exception");
     }
 }
 
@@ -772,6 +876,48 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
             dc.SetTextForeground(*wxYELLOW);
             dc.DrawText(lowerLeftLabel, 10, YWinSize - textSize.GetHeight() - 5);
         }
+
+        if (IsCloudDetectionActive())
+        {
+            const SceneTelemetry telemetry = GetCloudTelemetry();
+            wxString cloudLabel;
+            wxColour cloudColour;
+            if (!telemetry.healthy)
+            {
+                cloudLabel = _("CLOUD: DETECTOR ERROR");
+                cloudColour = wxColour(255, 75, 75);
+            }
+            else switch (telemetry.state)
+            {
+            case SceneState::Warmup:
+                cloudLabel = _("CLOUD: LEARNING");
+                cloudColour = wxColour(190, 190, 190);
+                break;
+            case SceneState::Clear:
+                cloudLabel = _("CLOUD: CLEAR");
+                cloudColour = wxColour(80, 235, 110);
+                break;
+            case SceneState::Suspect:
+            {
+                const float severity = std::isfinite(telemetry.severity)
+                                           ? std::max(0.f, std::min(1.f, telemetry.severity))
+                                           : 0.f;
+                cloudLabel = wxString::Format(_("CLOUD: HAZE? %d%%"),
+                                              (int) std::floor(severity * 100.f + 0.5f));
+                cloudColour = wxColour(255, 190, 45);
+                break;
+            }
+            case SceneState::Obscured:
+                cloudLabel = telemetry.staticObstruction ? _("CLOUD: BLOCKED (STATIC?)") : _("CLOUD: OBSCURED");
+                cloudColour = wxColour(255, 75, 75);
+                break;
+            }
+
+            const wxSize textSize = dc.GetTextExtent(cloudLabel);
+            const int x = std::max(10, XWinSize - textSize.GetWidth() - 10);
+            dc.SetTextForeground(cloudColour);
+            dc.DrawText(cloudLabel, x, YWinSize - textSize.GetHeight() - 5);
+        }
     }
     catch (const wxString& Msg)
     {
@@ -1213,6 +1359,12 @@ double Guider::CurrentErrorSmoothed(bool raOnly)
 
 void Guider::StartGuiding()
 {
+    // A new guiding run is a new observing session for the cloud detector. The target, field,
+    // focus, or transparency may have changed while capture/guiding was stopped, and a latched
+    // Obscured verdict cannot safely recover against a standard learned before that gap. Start
+    // from Warmup and certify the current stable view instead of carrying stale session history.
+    m_cloudDetector.Reset("guiding started");
+
     // we set the state to calibrating.  The state machine will
     // automatically move from calibrating->calibrated->guiding
     // when it can
@@ -1818,6 +1970,7 @@ void Guider::GuiderConfigDialogPane::LayoutControls(Guider *pGuider, BrainCtrlId
     wxFlexGridSizer *pSharedSizer = new wxFlexGridSizer(2, 2, 10, 10);
 
     pStarTrack->Add(GetSizerCtrl(CtrlMap, AD_szStarTracking), def_flags);
+    pStarTrack->Add(GetSingleCtrl(CtrlMap, AD_cbCloudDetection), def_flags);
     pStarTrack->Layout();
 
     pCalibSizer->Add(GetSizerCtrl(CtrlMap, AD_szFocalLength));
@@ -1866,18 +2019,27 @@ GuiderConfigDialogCtrlSet::GuiderConfigDialogCtrlSet(wxWindow *pParent, Guider *
     AddCtrl(CtrlMap, AD_cbFastRecenter, m_pEnableFastRecenter,
             _("Speed up calibration and dithering by using larger guide pulses to return the star to the center position. "
               "Un-check to use the old, slower method of recentering after calibration or dither."));
+
+    m_pCloudDetection =
+        new wxCheckBox(GetParentWindow(AD_cbCloudDetection), wxID_ANY, _("Enable cloud detection telemetry"));
+    AddCtrl(CtrlMap, AD_cbCloudDetection, m_pCloudDetection,
+            _("Monitor guide-star mass, SNR and FWHM and show the inferred sky condition "
+              "in the lower-right image overlay. The monitor is informational and does not change PHD2's existing "
+              "lost-star or star-mass rejection behavior."));
 }
 
 void GuiderConfigDialogCtrlSet::LoadValues()
 {
     m_pEnableFastRecenter->SetValue(m_pGuider->IsFastRecenterEnabled());
     m_pScaleImage->SetValue(m_pGuider->GetScaleImage());
+    m_pCloudDetection->SetValue(m_pGuider->GetCloudDetectionEnabled());
 }
 
 void GuiderConfigDialogCtrlSet::UnloadValues()
 {
     m_pGuider->EnableFastRecenter(m_pEnableFastRecenter->GetValue());
     m_pGuider->SetScaleImage(m_pScaleImage->GetValue());
+    m_pGuider->SetCloudDetectionEnabled(m_pCloudDetection->GetValue());
 }
 
 EXPOSED_STATE Guider::GetExposedState()

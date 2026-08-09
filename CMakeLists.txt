@@ -147,6 +147,14 @@ generate_doc_targets(
 # PEC Guider, Max Planck Institute for Intelligent Systems, Tuebingen, Germany.
 add_subdirectory(contributions/MPI_IS_gaussian_process tmp_gaussian_process)
 
+# Cloud detector core is dependency-free.
+add_library(CloudDetectorCore STATIC
+  contributions/CloudDetector/CloudDetector.cpp
+  contributions/CloudDetector/CloudDetector.h
+  contributions/CloudDetector/CloudDetectorConfig.h)
+target_include_directories(CloudDetectorCore PUBLIC contributions/CloudDetector)
+set_property(TARGET CloudDetectorCore PROPERTY FOLDER "Contribution")
+
 
 
 #################################################################################
@@ -343,6 +351,8 @@ set(guiding_SRC
 source_group(Guiding FILES ${guiding_SRC})
 
 set(phd2_SRC
+  ${PHD_PROJECT_ROOT_DIR}/contributions/CloudDetector/CloudDetector.h
+  ${PHD_PROJECT_ROOT_DIR}/contributions/CloudDetector/CloudDetectorConfig.h
   ${phd_src_dir}/about_dialog.cpp
   ${phd_src_dir}/about_dialog.h
   ${phd_src_dir}/advanced_dialog.cpp
@@ -876,6 +886,7 @@ endforeach()
 
 target_link_libraries(phd2
                       MPIIS_GP GPGuider # GP Guider
+                      CloudDetectorCore
                       ${PHD_LINK_EXTERNAL})
 
 ################################################################
