@@ -306,6 +306,20 @@ void CloudDetector::Reset(const char* reason) noexcept
     }
 }
 
+void CloudDetector::ResumeAfterMotion(const char* reason) noexcept
+{
+    try {
+        std::lock_guard<std::mutex> lk(m_mx);
+        resumeAfterMotionLocked(reason);
+    }
+    catch (const std::exception& e) {
+        containException("ResumeAfterMotion", e.what());
+    }
+    catch (...) {
+        containException("ResumeAfterMotion", "non-standard exception");
+    }
+}
+
 void CloudDetector::ReportFault(const char* operation, const char* detail) noexcept
 {
     containException(operation, detail);
@@ -415,6 +429,7 @@ void CloudDetector::clearStateLocked() noexcept
     m_baseScore.clear(); m_baseFeatures.clear();
     m_shortMass.clear(); m_shortBright.clear(); m_shortSnr.clear();
     m_shortScore.clear(); m_shortFeatures.clear();
+    m_shortEnsemble.clear(); m_shortHalo.clear();
     m_refMass.clear(); m_refBright.clear(); m_refSnr.clear();
     m_refScore.clear(); m_refFeatures.clear();
     m_anchorBright.clear(); m_anchorMass.clear(); m_anchorSnr.clear();
@@ -444,6 +459,41 @@ void CloudDetector::resetLocked(const char* reason)
     clearStateLocked();
     char buf[160];
     std::snprintf(buf, sizeof(buf), "cloud: reset (%s) -> warm-up", reason ? reason : "?");
+    logLocked(buf);
+}
+
+void CloudDetector::resumeAfterMotionLocked(const char* reason) noexcept
+{
+    // Retain learned references and verdict; discard motion-contaminated evidence.
+    m_shortMass.clear(); m_shortBright.clear(); m_shortSnr.clear();
+    m_shortScore.clear(); m_shortFeatures.clear();
+    m_shortEnsemble.clear(); m_shortHalo.clear();
+    m_refMass.clear(); m_refBright.clear(); m_refSnr.clear();
+    m_refScore.clear(); m_refFeatures.clear();
+    m_lastBaselinePushMs = 0;
+    m_lastAnchorUpdateMs = 0;
+    m_prevSampleMs = 0;         // do not count the suspended interval as detector dwell time
+    m_mediumTripSinceMs = 0;
+    m_slowTripSinceMs = 0;
+    m_recoverSinceMs = 0;
+    m_suspectQuietSinceMs = 0;
+    m_lossRun = 0;
+    m_sawGoodDetection = false;
+    m_lossLogged = false;
+    m_lastPeriodicLogMs = 0;
+
+    SceneTelemetry resumed;
+    resumed.state = m_state;
+    resumed.healthy = m_tele.healthy;
+    resumed.exceptionCount = m_exceptionCount;
+    resumed.loggerExceptionCount = m_loggerExceptionCount;
+    resumed.staticObstruction = m_tele.staticObstruction;
+    resumed.stateSinceMs = m_stateSinceMs;
+    m_tele = resumed;
+
+    char buf[192];
+    std::snprintf(buf, sizeof(buf), "cloud: resume after motion (%s); transient evidence cleared",
+                  reason ? reason : "?");
     logLocked(buf);
 }
 
@@ -546,6 +596,10 @@ void CloudDetector::feedLocked(const SceneSample& s)
     const bool validFeatures = s.detected && s.features > 0;
     const bool validSnr = s.detected && std::isfinite(s.snr);
     const bool validScore = s.detected && std::isfinite(s.score);
+    const bool validEnsemble = s.detected && s.ensembleStars > 0 &&
+                               std::isfinite(s.ensembleRatio) && s.ensembleRatio > 0.f;
+    const bool validHalo = s.detected && s.haloStars > 0 &&
+                           std::isfinite(s.haloRatio) && s.haloRatio > 0.f;
     float brightCeil = -1.f;
     if (std::isfinite(s.brightCeil) && s.brightCeil >= 0.f) {
         const double normalized = s.brightExposureMs > 0
@@ -594,6 +648,8 @@ void CloudDetector::feedLocked(const SceneSample& s)
     if (validFeatures) { m_shortFeatures.push((float) s.features);   m_seenFeatures = true; }
     if (validSnr)      { m_shortSnr.push(s.snr);                      m_seenSnr = true; }
     if (validScore)    { m_shortScore.push(s.score);                  m_seenScore = true; }
+    if (validEnsemble) m_shortEnsemble.push(s.ensembleRatio);
+    if (validHalo)     m_shortHalo.push(s.haloRatio);
 
     // ---- reference windows: what CLEAR looks like, clear-eligible frames only ----
     // Baseline entries and anchor updates snapshot from THESE, never from the trip windows above.
@@ -671,6 +727,13 @@ void CloudDetector::feedLocked(const SceneSample& s)
                              ? m_anchorBright.ratio(shortBright) : -1.f;
     m_tele.featureRatio = detChannelsLive && m_shortFeatures.lastMedian(kShortK, shortFeatures)
                               ? m_anchorFeatures.ratio(shortFeatures) : -1.f;
+    float shortEnsemble = 0.f, shortHalo = 0.f;
+    m_tele.ensembleRatio = validEnsemble && m_shortEnsemble.lastMedian(kShortK, shortEnsemble)
+                               ? shortEnsemble : -1.f;
+    m_tele.ensembleStars = validEnsemble ? s.ensembleStars : 0;
+    m_tele.haloRatio = validHalo && m_shortHalo.lastMedian(kShortK, shortHalo)
+                           ? shortHalo : -1.f;
+    m_tele.haloStars = validHalo ? s.haloStars : 0;
     m_tele.lossRun      = m_lossRun;
     float shortSnr = 0.f;
     const bool haveSnr = detChannelsLive && m_anchorSnr.valid() &&
@@ -764,11 +827,18 @@ void CloudDetector::feedLocked(const SceneSample& s)
     const bool massMed    = massLevelMed || massVariable;
     const bool snrMed     = snrLevelMed || snrVariable;
     const bool scoreMed   = haveScore && m_tele.scoreDelta < -scoreBand;
+    const float ensembleTripRatio = std::isfinite(s.ensembleTripRatio)
+                                        ? std::max(0.2f, std::min(0.98f, s.ensembleTripRatio)) : 0.78f;
+    const float haloTripRatio = std::isfinite(s.haloTripRatio)
+                                    ? std::max(1.02f, std::min(5.f, s.haloTripRatio)) : 1.33f;
+    const bool ensembleMed = m_tele.ensembleRatio >= 0.f && m_tele.ensembleRatio < ensembleTripRatio;
+    const bool haloMed = m_tele.haloRatio >= 0.f && m_tele.haloRatio > haloTripRatio;
     const int  votes      = (massMed ? 1 : 0) + (brightMed ? 1 : 0) + (featureMed ? 1 : 0) +
-                            (snrMed ? 1 : 0) + (scoreMed ? 1 : 0);
-    // Mass/SNR (and any future feature channel) are primary evidence. FWHM and sparse-field image
+                            (snrMed ? 1 : 0) + (scoreMed ? 1 : 0) +
+                            (ensembleMed ? 1 : 0) + (haloMed ? 1 : 0);
+    // Primary photometric evidence may be corroborated by the remaining channels.
     // contrast are useful corroboration, but their normal noise must never publish HAZE alone.
-    const bool primaryEvidence = massMed || snrMed || featureMed;
+    const bool primaryEvidence = massMed || snrMed || featureMed || ensembleMed || haloMed;
     const bool corroborated = primaryEvidence && votes >= 2;
 
     // A contrast collapse can fast-trip by itself only when the target is missing (physical
@@ -783,7 +853,9 @@ void CloudDetector::feedLocked(const SceneSample& s)
     const bool slowBright = m_tele.slowBrightRatio  >= 0.f && m_tele.slowBrightRatio  < m_slowRatio;
     const bool slowMass   = m_tele.slowMassRatio    >= 0.f && m_tele.slowMassRatio    < m_slowRatio;
     const bool slowFeat   = m_tele.slowFeatureRatio >= 0.f && m_tele.slowFeatureRatio < m_slowRatio;
-    const bool slowVote   = slowBright && (slowMass || slowFeat);
+    // Halo is already a consensus across independently normalized stars. It may therefore use
+    // the conservative long-dwell path alone, but never the fast or medium trip paths.
+    const bool slowVote   = (slowBright && (slowMass || slowFeat)) || haloMed;
 
     // Recovery mirrors the 2-of-N trip rule. Requiring every channel to remain above its recovery
     // threshold made a single noisy FWHM or contrast sample reset the hold forever. Contrast is
@@ -796,16 +868,26 @@ void CloudDetector::feedLocked(const SceneSample& s)
     const bool snrNotRecovered = (haveSnr && m_tele.snrDropDb > m_recSnrDropDb) ||
                                  m_tele.snrScatterFactor > kVariabilityRecover;
     const bool scoreNotRecovered = haveScore && m_tele.scoreDelta < -0.5f * scoreBand;
+    const bool ensembleNotRecovered = m_tele.ensembleRatio >= 0.f &&
+                                      m_tele.ensembleRatio < std::min(0.99f, ensembleTripRatio + 0.08f);
+    const bool haloNotRecovered = m_tele.haloRatio >= 0.f &&
+                                  m_tele.haloRatio > std::max(1.01f, haloTripRatio - 0.08f);
     const int recoveryBadChannels = (massNotRecovered ? 1 : 0) + (featureNotRecovered ? 1 : 0) +
-                                    (snrNotRecovered ? 1 : 0) + (scoreNotRecovered ? 1 : 0);
+                                    (snrNotRecovered ? 1 : 0) + (scoreNotRecovered ? 1 : 0) +
+                                    (ensembleNotRecovered ? 1 : 0) + (haloNotRecovered ? 1 : 0);
 
     // Severity: how far the worst channel sits past its MEDIUM threshold, 0..1.
     auto excess = [](float ratio, float thr) {
         return (ratio >= 0.f && thr > kEps && ratio < thr) ? std::min(1.f, (thr - ratio) / thr) : 0.f;
     };
+    auto aboveExcess = [](float ratio, float thr) {
+        return (ratio > thr) ? std::min(1.f, (ratio - thr) / std::max(0.1f, thr - 1.f)) : 0.f;
+    };
     float sev = std::max({ excess(m_tele.massRatio, m_medMassRatio),
                            excess(m_tele.brightRatio, m_medBrightRatio),
-                           excess(m_tele.featureRatio, m_medFeatureRatio) });
+                           excess(m_tele.featureRatio, m_medFeatureRatio),
+                           excess(m_tele.ensembleRatio, ensembleTripRatio),
+                           aboveExcess(m_tele.haloRatio, haloTripRatio) });
     if (snrMed)   sev = std::max(sev, std::min(1.f, (m_tele.snrDropDb - m_medSnrDropDb) / 6.f + 0.3f));
     if (scoreMed) sev = std::max(sev, 0.3f);
     auto scatterExcess = [](float factor) {

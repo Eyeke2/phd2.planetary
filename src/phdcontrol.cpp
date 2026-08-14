@@ -276,6 +276,11 @@ static bool all_gear_connected(void)
 
 static void do_notify(void)
 {
+    // Discard dither/settle evidence while retaining learned clear-sky references.
+    if (pFrame && pFrame->pGuider)
+        pFrame->pGuider->ResumeCloudDetectionAfterMotion(
+            ctrl.settleOp == OP_DITHER ? "dither settled" : "guiding settled");
+
     if (ctrl.succeeded)
     {
         Debug.AddLine("PhdController complete: success");

@@ -210,6 +210,7 @@ Guider::Guider(wxWindow *parent, int xSize, int ySize)
     Debug.Write(wxString::Format("guider state => %s\n", StateStr(m_state)));
     m_scaleFactor = 1.0;
     m_showBookmarks = true;
+    m_showHaloRegions = pConfig->Global.GetBoolean("/ShowCloudHaloRegions", false);
     m_displayedImage = new wxImage(XWinSize, YWinSize, true);
     m_paused = PAUSE_NONE;
     m_starFoundTimestamp = 0;
@@ -268,6 +269,24 @@ void Guider::LoadProfileSettings()
 {
     SetCloudDetectionEnabled(pConfig->Profile.GetBoolean("/guider/cloud_detection_enabled", false));
 
+    CloudExtensionSettings cloudExtensions;
+    cloudExtensions.multiStarEnabled = pConfig->Profile.GetBoolean("/guider/cloud_multi_star_enabled", false);
+    cloudExtensions.multiStarMinStars = pConfig->Profile.GetInt("/guider/cloud_multi_star_min_stars", 3);
+    cloudExtensions.ensembleTripRatio =
+        (float) pConfig->Profile.GetDouble("/guider/cloud_ensemble_trip_ratio", 0.78);
+    cloudExtensions.haloEnabled = pConfig->Profile.GetBoolean("/guider/cloud_halo_enabled", false);
+    cloudExtensions.haloStarCount = pConfig->Profile.GetInt("/guider/cloud_halo_star_count", 3);
+    cloudExtensions.haloMaxHfd = (float) pConfig->Profile.GetDouble("/guider/cloud_halo_max_hfd", 10.0);
+    cloudExtensions.haloInnerRadiusFwhm =
+        (float) pConfig->Profile.GetDouble("/guider/cloud_halo_inner_radius_fwhm", 3.0);
+    cloudExtensions.haloOuterRadiusFwhm =
+        (float) pConfig->Profile.GetDouble("/guider/cloud_halo_outer_radius_fwhm", 8.0);
+    cloudExtensions.haloTripRatio =
+        (float) pConfig->Profile.GetDouble("/guider/cloud_halo_trip_ratio_above", 1.33);
+    wxString cloudExtensionError;
+    if (!ApplyCloudExtensionSettings(cloudExtensions, &cloudExtensionError))
+        Debug.Write("cloud: ignoring invalid saved extension settings: " + cloudExtensionError + "\n");
+
     bool enableFastRecenter = pConfig->Profile.GetBoolean("/guider/FastRecenter", true);
     EnableFastRecenter(enableFastRecenter);
 
@@ -305,10 +324,10 @@ void Guider::LoadProfileSettings()
 
 bool Guider::IsCloudDetectionActive() const
 {
-    // Planetary cloud detection belongs to HM. The public PHD2 integration is deliberately
-    // limited to ordinary guide-star centroiding.
-    return m_cloudDetectionEnabled.load() &&
-           (!pFrame || pFrame->GetStarFindMode() != Star::FIND_PLANET);
+    // Public cloud detection is star-only and pauses while guiding control is settling.
+    return m_cloudDetectionEnabled.load() && pFrame &&
+           pFrame->GetStarFindMode() != Star::FIND_PLANET &&
+           IsGuiding() && PhdController::IsIdle();
 }
 
 void Guider::SetCloudDetectionEnabled(bool enabled)
@@ -317,6 +336,88 @@ void Guider::SetCloudDetectionEnabled(bool enabled)
     m_cloudDetector.SetEnabled(enabled);
     pConfig->Profile.SetBoolean("/guider/cloud_detection_enabled", enabled);
     Refresh();
+}
+
+void Guider::ResetCloudDetection(const char* reason)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_cloudExtensionMutex);
+        ++m_cloudExtensionSettings.generation;
+    }
+    m_cloudDetector.Reset(reason);
+}
+
+CloudExtensionSettings Guider::GetCloudExtensionSettings() const
+{
+    std::lock_guard<std::mutex> lock(m_cloudExtensionMutex);
+    return m_cloudExtensionSettings;
+}
+
+bool Guider::ApplyCloudExtensionSettings(const CloudExtensionSettings& requested, wxString *error)
+{
+    auto invalid = [error](const wxString& message) {
+        if (error)
+            *error = message;
+        return false;
+    };
+    if (requested.multiStarMinStars < 2 || requested.multiStarMinStars > 12)
+        return invalid("multi_star_min_stars must be between 2 and 12");
+    if (!std::isfinite(requested.ensembleTripRatio) || requested.ensembleTripRatio < 0.2f ||
+        requested.ensembleTripRatio > 0.98f)
+        return invalid("ensemble_trip_ratio must be between 0.2 and 0.98");
+    if (requested.haloStarCount < 2 || requested.haloStarCount > 12)
+        return invalid("halo_star_count must be between 2 and 12");
+    if (!std::isfinite(requested.haloMaxHfd) || requested.haloMaxHfd < 3.f || requested.haloMaxHfd > 100.f)
+        return invalid("halo_max_hfd must be between 3 and 100 pixels");
+    if (!std::isfinite(requested.haloInnerRadiusFwhm) || requested.haloInnerRadiusFwhm < 1.5f ||
+        requested.haloInnerRadiusFwhm > 8.f)
+        return invalid("halo_inner_radius_fwhm must be between 1.5 and 8");
+    if (!std::isfinite(requested.haloOuterRadiusFwhm) ||
+        requested.haloOuterRadiusFwhm < requested.haloInnerRadiusFwhm + 1.f ||
+        requested.haloOuterRadiusFwhm > 20.f)
+        return invalid("halo_outer_radius_fwhm must exceed the inner radius by at least 1 and be at most 20");
+    if (!std::isfinite(requested.haloTripRatio) || requested.haloTripRatio < 1.02f ||
+        requested.haloTripRatio > 5.f)
+        return invalid("halo_trip_ratio must be between 1.02 and 5");
+
+    CloudExtensionSettings applied = requested;
+    bool changed = false;
+    {
+        std::lock_guard<std::mutex> lock(m_cloudExtensionMutex);
+        const CloudExtensionSettings& old = m_cloudExtensionSettings;
+        changed = old.multiStarEnabled != applied.multiStarEnabled ||
+                  old.multiStarMinStars != applied.multiStarMinStars ||
+                  old.ensembleTripRatio != applied.ensembleTripRatio ||
+                  old.haloEnabled != applied.haloEnabled ||
+                  old.haloStarCount != applied.haloStarCount ||
+                  old.haloMaxHfd != applied.haloMaxHfd ||
+                  old.haloInnerRadiusFwhm != applied.haloInnerRadiusFwhm ||
+                  old.haloOuterRadiusFwhm != applied.haloOuterRadiusFwhm ||
+                  old.haloTripRatio != applied.haloTripRatio;
+        if (!changed)
+            return true;
+        applied.generation = old.generation + 1;
+        m_cloudExtensionSettings = applied;
+    }
+
+    pConfig->Profile.SetBoolean("/guider/cloud_multi_star_enabled", applied.multiStarEnabled);
+    pConfig->Profile.SetInt("/guider/cloud_multi_star_min_stars", applied.multiStarMinStars);
+    pConfig->Profile.SetDouble("/guider/cloud_ensemble_trip_ratio", applied.ensembleTripRatio);
+    pConfig->Profile.SetBoolean("/guider/cloud_halo_enabled", applied.haloEnabled);
+    pConfig->Profile.SetInt("/guider/cloud_halo_star_count", applied.haloStarCount);
+    pConfig->Profile.SetDouble("/guider/cloud_halo_max_hfd", applied.haloMaxHfd);
+    pConfig->Profile.SetDouble("/guider/cloud_halo_inner_radius_fwhm", applied.haloInnerRadiusFwhm);
+    pConfig->Profile.SetDouble("/guider/cloud_halo_outer_radius_fwhm", applied.haloOuterRadiusFwhm);
+    pConfig->Profile.SetDouble("/guider/cloud_halo_trip_ratio_above", applied.haloTripRatio);
+
+    m_cloudDetector.ResumeAfterMotion("cloud extension settings changed");
+    Debug.Write(wxString::Format(
+        "cloud: extensions multi=%d minStars=%d ensembleTrip=%.2f halo=%d stars=%d maxHFD=%.1f radii=%.1f..%.1f haloTrip=%.2f\n",
+        applied.multiStarEnabled, applied.multiStarMinStars, applied.ensembleTripRatio,
+        applied.haloEnabled, applied.haloStarCount, applied.haloMaxHfd, applied.haloInnerRadiusFwhm,
+        applied.haloOuterRadiusFwhm, applied.haloTripRatio));
+    Refresh();
+    return true;
 }
 
 void Guider::FeedCloudSample(SceneSample sample, const usImage *image, double centerX, double centerY, int radius) noexcept
@@ -1363,7 +1464,7 @@ void Guider::StartGuiding()
     // focus, or transparency may have changed while capture/guiding was stopped, and a latched
     // Obscured verdict cannot safely recover against a standard learned before that gap. Start
     // from Warmup and certify the current stable view instead of carrying stale session history.
-    m_cloudDetector.Reset("guiding started");
+    ResetCloudDetection("guiding started");
 
     // we set the state to calibrating.  The state machine will
     // automatically move from calibrating->calibrated->guiding
@@ -2142,6 +2243,15 @@ void Guider::SetBookmarksShown(bool show)
 void Guider::ToggleShowBookmarks()
 {
     SetBookmarksShown(!m_showBookmarks);
+}
+
+void Guider::SetHaloRegionsShown(bool show)
+{
+    const bool changed = m_showHaloRegions != show;
+    m_showHaloRegions = show;
+    pConfig->Global.SetBoolean("/ShowCloudHaloRegions", show);
+    if (changed)
+        Refresh(); // not Update(); see event_server.cpp threading rule
 }
 
 void Guider::DeleteAllBookmarks()
