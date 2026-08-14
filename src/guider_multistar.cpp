@@ -1386,7 +1386,16 @@ void GuiderMultiStar::OnPaint(wxPaintEvent& event)
 
             for (std::vector<GuideStar>::const_iterator it = m_guideStars.begin() + 1; it != m_guideStars.end(); ++it)
             {
-                wxPoint pt((int) (it->referencePoint.X * m_scaleFactor), (int) (it->referencePoint.Y * m_scaleFactor));
+                // Reference points are deliberately not refreshed during dither settling or the
+                // following stabilization period. Drawing those stale coordinates makes every
+                // secondary marker appear displaced by the dither until RefineOffset certifies
+                // the new lock position. The offset from the currently found primary is the best
+                // available display position in that interval (and while an individual secondary
+                // is lost); it does not alter the reference used for guiding.
+                const PHD_Point marker = (m_stabilizing || m_lockPositionMoved || it->wasLost)
+                                             ? m_primaryStar + it->offsetFromPrimary
+                                             : it->referencePoint;
+                wxPoint pt((int) (marker.X * m_scaleFactor), (int) (marker.Y * m_scaleFactor));
                 dc.DrawCircle(pt, 6);
                 starsPlotted++;
                 if (starsPlotted == m_maxStars)
