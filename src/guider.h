@@ -108,6 +108,20 @@ struct LockPosShiftParams
     double dec;
 };
 
+struct CloudExtensionSettings
+{
+    bool multiStarEnabled = false;
+    int multiStarMinStars = 3;
+    float ensembleTripRatio = 0.78f;
+    bool haloEnabled = false;
+    int haloStarCount = 3;
+    float haloMaxHfd = 10.0f;
+    float haloInnerRadiusFwhm = 3.0f;
+    float haloOuterRadiusFwhm = 8.0f;
+    float haloTripRatio = 1.33f;
+    unsigned generation = 0;
+};
+
 class DefectMap;
 
 /*
@@ -170,6 +184,8 @@ class Guider : public wxWindow
     bool m_measurementMode;
     CloudDetector m_cloudDetector;
     std::atomic<bool> m_cloudDetectionEnabled;
+    mutable std::mutex m_cloudExtensionMutex;
+    CloudExtensionSettings m_cloudExtensionSettings;
     double m_minStarHFD;
     double m_minAFStarSNR;
     double m_maxStarHFD;
@@ -181,6 +197,7 @@ protected:
     bool m_forceFullFrame;
     double m_scaleFactor;
     bool m_showBookmarks;
+    bool m_showHaloRegions;
     std::vector<wxRealPoint> m_bookmarks;
 
     // Things related to the Advanced Config Dialog
@@ -274,6 +291,8 @@ public:
     bool GetBookmarksShown() const;
     void SetBookmarksShown(bool show);
     void ToggleShowBookmarks();
+    bool GetHaloRegionsShown() const { return m_showHaloRegions; }
+    void SetHaloRegionsShown(bool show);
     void DeleteAllBookmarks();
     void BookmarkLockPosition();
     void BookmarkCurPosition();
@@ -300,7 +319,10 @@ public:
     bool GetCloudDetectionEnabled() const { return m_cloudDetectionEnabled.load(); }
     bool IsCloudDetectionActive() const;
     void SetCloudDetectionEnabled(bool enabled);
-    void ResetCloudDetection(const char* reason) { m_cloudDetector.Reset(reason); }
+    CloudExtensionSettings GetCloudExtensionSettings() const;
+    bool ApplyCloudExtensionSettings(const CloudExtensionSettings& settings, wxString *error);
+    void ResetCloudDetection(const char* reason);
+    void ResumeCloudDetectionAfterMotion(const char* reason) { m_cloudDetector.ResumeAfterMotion(reason); }
     SceneTelemetry GetCloudTelemetry() const { return m_cloudDetector.GetTelemetry(); }
     void FeedCloudSample(SceneSample sample, const usImage *image, double centerX, double centerY, int radius) noexcept;
 

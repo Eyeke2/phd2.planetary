@@ -41,6 +41,13 @@ struct SceneSample {
     float   snr = 0.f;         // dB (callers must convert linear S/N before feeding)
     float   mass = 0.f;        // Integrated flux
     int     features = 0;      // Reserved; 0 in the public star-only integration
+    // Normalized evidence: ensemble degrades below 1, halo above 1; negative is unavailable.
+    float   ensembleRatio = -1.f;
+    int     ensembleStars = 0;
+    float   haloRatio = -1.f;
+    int     haloStars = 0;
+    float   ensembleTripRatio = 0.78f;
+    float   haloTripRatio = 1.33f;
     // Image P99.5-minus-median contrast -- valid even when NOT detected, which is what makes it the
     // channel that still measures the sky during a total occultation.
     // NEGATIVE = unavailable (no stats this frame). ZERO IS A VALID READING: an all-black ROI is
@@ -98,6 +105,10 @@ struct SceneTelemetry {
     float snrDropDb = 0.f;       // protected clear standard - current (positive = degraded)
     float scoreDelta = 0.f;      // current - protected clear standard; negative = degraded
     float featureRatio = -1.f;
+    float ensembleRatio = -1.f;
+    int   ensembleStars = 0;
+    float haloRatio = -1.f;
+    int   haloStars = 0;
     // Recent robust window scatter divided by the learned clear-scatter trip band. Values above 1
     // mean the normally flat mass/SNR trace has developed significant waves. -1 = unavailable.
     float massScatterFactor = -1.f;
@@ -138,6 +149,8 @@ public:
     // Hard reset (session start, source change...). Exposure / detection-mode changes are
     // detected inside Feed and reset automatically.
     void Reset(const char* reason) noexcept;
+    // Resume after dither/settle without discarding learned clear-sky references.
+    void ResumeAfterMotion(const char* reason) noexcept;
     // Integration code can route an exception raised while assembling a sample through the same
     // fail-open health path as an exception raised by the detector itself.
     void ReportFault(const char* operation, const char* detail) noexcept;
@@ -180,6 +193,7 @@ private:
     };
 
     void  resetLocked(const char* reason);
+    void  resumeAfterMotionLocked(const char* reason) noexcept;
     void  clearStateLocked() noexcept;
     void  containException(const char* operation, const char* detail) noexcept;
     void  noteExceptionLocked(bool loggerFailure) noexcept;
@@ -214,6 +228,7 @@ private:
     // These measure the sky AS IT IS and must stay unconditional -- they drive the trips, and a
     // blackout (undetected by definition) has to be measurable through them.
     Ring m_shortMass, m_shortBright, m_shortSnr, m_shortScore, m_shortFeatures;
+    Ring m_shortEnsemble, m_shortHalo;
 
     // Reference windows: the same channels, but accepting ONLY clear-eligible frames (detected,
     // stable-locked, no loss run). Baseline entries and anchor updates are snapshotted from these.

@@ -47,6 +47,8 @@
 #include <wx/dir.h>
 #include <algorithm>
 #include <cmath>
+#include <limits>
+#include <queue>
 
 #if ((wxMAJOR_VERSION < 3) && (wxMINOR_VERSION < 9))
 # define wxPENSTYLE_DOT wxDOT
@@ -942,10 +944,364 @@ bool GuiderMultiStar::RefineOffset(const usImage *pImage, GuiderOffset *pOffset)
 
 static DistanceChecker s_distanceChecker;
 
+static float CloudMedian(std::vector<float> values)
+{
+    if (values.empty())
+        return -1.f;
+    const size_t middle = values.size() / 2;
+    std::nth_element(values.begin(), values.begin() + middle, values.end());
+    float result = values[middle];
+    if ((values.size() & 1U) == 0)
+    {
+        const float lower = *std::max_element(values.begin(), values.begin() + middle);
+        result = 0.5f * (lower + result);
+    }
+    return result;
+}
+
+static bool CloudHaloRadii(double width, float innerFwhm, float outerFwhm,
+                           double *innerRadius, double *outerRadius, double *skyRadius = nullptr)
+{
+    if (!std::isfinite(width) || width <= 0.0 || !innerRadius || !outerRadius)
+        return false;
+    const double coreRadius = std::max(2.0, 1.5 * width);
+    *innerRadius = std::max(coreRadius + 1.0, (double) innerFwhm * width);
+    *outerRadius = std::max(*innerRadius + 1.0, (double) outerFwhm * width);
+    if (skyRadius)
+        *skyRadius = *outerRadius + std::max(3.0, 2.0 * width);
+    return true;
+}
+
+static bool CloudHaloIndex(const usImage *image, const Star& star, float innerFwhm, float outerFwhm, float *result)
+{
+    if (!image || !image->ImageData || !result)
+        return false;
+    const double width = star.FWHM > 0.0 ? star.FWHM : star.HFD;
+    double innerRadius, outerRadius, skyRadius;
+    if (!CloudHaloRadii(width, innerFwhm, outerFwhm, &innerRadius, &outerRadius, &skyRadius))
+        return false;
+
+    const double coreRadius = std::max(2.0, 1.5 * width);
+    const int cx = ROUND(star.X), cy = ROUND(star.Y);
+    const int edge = (int) std::ceil(skyRadius);
+    const int frameWidth = image->Size.GetWidth(), frameHeight = image->Size.GetHeight();
+    if (cx - edge < 0 || cy - edge < 0 || cx + edge >= frameWidth || cy + edge >= frameHeight)
+        return false;
+
+    const double core2 = coreRadius * coreRadius;
+    const double inner2 = innerRadius * innerRadius;
+    const double outer2 = outerRadius * outerRadius;
+    const double sky2 = skyRadius * skyRadius;
+    double coreSum = 0.0, haloSum = 0.0;
+    int coreCount = 0, haloCount = 0;
+    std::vector<float> sky;
+    sky.reserve((size_t) (3.2 * skyRadius * skyRadius));
+    for (int y = cy - edge; y <= cy + edge; ++y)
+    {
+        for (int x = cx - edge; x <= cx + edge; ++x)
+        {
+            const double dx = x - star.X, dy = y - star.Y;
+            const double r2 = dx * dx + dy * dy;
+            const float value = (float) image->ImageData[(size_t) y * frameWidth + x];
+            if (r2 <= core2)
+            {
+                coreSum += value;
+                ++coreCount;
+            }
+            else if (r2 >= inner2 && r2 <= outer2)
+            {
+                haloSum += value;
+                ++haloCount;
+            }
+            else if (r2 > outer2 && r2 <= sky2)
+            {
+                sky.push_back(value);
+            }
+        }
+    }
+    if (coreCount < 4 || haloCount < 8 || sky.size() < 16)
+        return false;
+
+    const float background = CloudMedian(std::move(sky));
+    const double core = coreSum / coreCount - background;
+    const double halo = haloSum / haloCount - background;
+    if (!std::isfinite(core) || !std::isfinite(halo) || core <= 1.0)
+        return false;
+
+    // Keep nearly empty clear annuli measurable without division by zero.
+    const double index = std::max(0.0, halo) / core + 0.001;
+    if (!std::isfinite(index) || index <= 0.0 || index > std::numeric_limits<float>::max())
+        return false;
+    *result = (float) index;
+    return true;
+}
+
+// Select bright halo targets independently; accept saturation but reject excessive HFD.
+static std::vector<Star> FindBrightHaloStars(const usImage *image, int searchRegion, int wanted,
+                                             float maxHfd, float innerFwhm, float outerFwhm)
+{
+    struct Peak
+    {
+        unsigned short value;
+        int x, y;
+        bool operator>(const Peak& other) const { return value > other.value; }
+    };
+
+    std::vector<Star> result;
+    if (!image || !image->ImageData || wanted <= 0 || !image->Subframe.IsEmpty())
+        return result;
+
+    usImage smoothed;
+    if (smoothed.CopyFrom(*image))
+        return result;
+    if (Median3(smoothed))
+        return result;
+
+    const int width = smoothed.Size.GetWidth(), height = smoothed.Size.GetHeight();
+    const int keep = std::max(64, wanted * 16);
+    std::priority_queue<Peak, std::vector<Peak>, std::greater<Peak>> brightest;
+    for (int y = 2; y < height - 2; ++y)
+    {
+        for (int x = 2; x < width - 2; ++x)
+        {
+            const unsigned short value = smoothed.ImageData[(size_t) y * width + x];
+            if (value <= image->MedianADU)
+                continue;
+            bool localMaximum = true;
+            for (int dy = -1; dy <= 1 && localMaximum; ++dy)
+            {
+                for (int dx = -1; dx <= 1; ++dx)
+                {
+                    if (dx == 0 && dy == 0)
+                        continue;
+                    const unsigned short neighbor = smoothed.ImageData[(size_t) (y + dy) * width + x + dx];
+                    // Pick one deterministic pixel from a flat saturated top.
+                    if (neighbor > value || (neighbor == value && (dy < 0 || (dy == 0 && dx < 0))))
+                    {
+                        localMaximum = false;
+                        break;
+                    }
+                }
+            }
+            if (!localMaximum)
+                continue;
+            brightest.push({ value, x, y });
+            if ((int) brightest.size() > keep)
+                brightest.pop();
+        }
+    }
+
+    std::vector<Peak> peaks;
+    while (!brightest.empty())
+    {
+        peaks.push_back(brightest.top());
+        brightest.pop();
+    }
+    std::sort(peaks.begin(), peaks.end(), [](const Peak& a, const Peak& b) { return a.value > b.value; });
+
+    const int haloSearchRegion = std::max(12, searchRegion);
+    for (const Peak& peak : peaks)
+    {
+        Star found;
+        if (!found.Find(image, haloSearchRegion, peak.x, peak.y, Star::FIND_CENTROID,
+                        0.0, maxHfd, pCamera->GetSaturationADU(), Star::FIND_LOGGING_MINIMAL))
+            continue;
+        float haloIndex;
+        if (!CloudHaloIndex(image, found, innerFwhm, outerFwhm, &haloIndex))
+            continue;
+        double foundInner, foundOuter;
+        CloudHaloRadii(found.FWHM > 0.0 ? found.FWHM : found.HFD,
+                       innerFwhm, outerFwhm, &foundInner, &foundOuter);
+        const bool duplicate = std::find_if(result.begin(), result.end(), [&](const Star& other) {
+                                   double otherInner, otherOuter;
+                                   if (!CloudHaloRadii(other.FWHM > 0.0 ? other.FWHM : other.HFD,
+                                                       innerFwhm, outerFwhm, &otherInner, &otherOuter))
+                                       return true;
+                                   return found.Distance(other) < std::max(12.0, foundOuter + otherOuter);
+                               }) != result.end();
+        if (!duplicate)
+            result.push_back(found);
+    }
+
+    std::sort(result.begin(), result.end(), [](const Star& a, const Star& b) { return a.Mass > b.Mass; });
+    if ((int) result.size() > wanted)
+        result.resize(wanted);
+    return result;
+}
+
+void GuiderMultiStar::AddCloudExtensionEvidence(SceneSample *sample, const usImage *image, const Star& primary,
+                                                 int exposureMs, bool autoExposure)
+{
+    if (!sample || !image)
+        return;
+    const CloudExtensionSettings settings = GetCloudExtensionSettings();
+    if (!settings.haloEnabled)
+    {
+        m_haloCandidates.clear();
+        m_haloMonitorRegions.clear();
+    }
+    if (!settings.multiStarEnabled && !settings.haloEnabled)
+        return;
+    if (settings.generation != m_cloudExtensionGeneration)
+    {
+        m_cloudExtensionGeneration = settings.generation;
+        m_cloudStarReferences.clear();
+        m_haloCandidates.clear();
+        m_haloMonitorRegions.clear();
+        m_haloCandidateRescanCountdown = 0;
+    }
+    const SceneState detectorState = GetCloudTelemetry().state;
+    const bool mayLearnReferences = detectorState == SceneState::Warmup || detectorState == SceneState::Clear;
+
+    auto referenceFor = [this](bool haloChannel, int keyX, int keyY) -> CloudStarReference& {
+        for (CloudStarReference& reference : m_cloudStarReferences)
+            if (reference.haloChannel == haloChannel && reference.keyX == keyX && reference.keyY == keyY)
+                return reference;
+        m_cloudStarReferences.push_back(CloudStarReference{});
+        CloudStarReference& reference = m_cloudStarReferences.back();
+        reference.haloChannel = haloChannel;
+        reference.keyX = keyX;
+        reference.keyY = keyY;
+        return reference;
+    };
+
+    // Multi-star mass retains the guide list's normal quality rules.
+    if (settings.multiStarEnabled)
+    {
+        struct MassStar
+        {
+            Star star;
+            int keyX, keyY;
+        };
+        std::vector<MassStar> observed;
+        observed.push_back({ primary, 0, 0 });
+        std::vector<size_t> order;
+        for (size_t i = 1; i < m_guideStars.size(); ++i)
+            order.push_back(i);
+        std::sort(order.begin(), order.end(), [this](size_t a, size_t b) {
+            return m_guideStars[a].PeakVal > m_guideStars[b].PeakVal;
+        });
+        for (size_t index : order)
+        {
+            if ((int) observed.size() >= settings.multiStarMinStars)
+                break;
+            const GuideStar& guideStar = m_guideStars[index];
+            const PHD_Point expected = primary + guideStar.offsetFromPrimary;
+            Star found(guideStar);
+            if (found.Find(image, m_searchRegion, expected.X, expected.Y, Star::FIND_CENTROID,
+                           GetMinStarHFD(), GetMaxStarHFD(), pCamera->GetSaturationADU(), Star::FIND_LOGGING_MINIMAL))
+                observed.push_back({ found, ROUND(guideStar.offsetFromPrimary.X * 10.0),
+                                            ROUND(guideStar.offsetFromPrimary.Y * 10.0) });
+        }
+
+        std::vector<float> massRatios;
+        for (const MassStar& current : observed)
+        {
+            CloudStarReference& reference = referenceFor(false, current.keyX, current.keyY);
+            const double normalizedMass = autoExposure && exposureMs > 0
+                                              ? ExposureAdjustedStarMass(current.star.Mass, exposureMs, true)
+                                              : current.star.Mass;
+            if (std::isfinite(normalizedMass) && normalizedMass > 0.0)
+            {
+                if (reference.massAnchor <= 0.f && mayLearnReferences)
+                {
+                    reference.massWarmup.push_back((float) normalizedMass);
+                    if (reference.massWarmup.size() >= 8)
+                    {
+                        reference.massAnchor = CloudMedian(reference.massWarmup);
+                        reference.massWarmup.clear();
+                    }
+                }
+                if (reference.massAnchor > 0.f)
+                    massRatios.push_back((float) (normalizedMass / reference.massAnchor));
+            }
+        }
+        if ((int) massRatios.size() >= settings.multiStarMinStars)
+        {
+            sample->ensembleStars = (int) massRatios.size();
+            sample->ensembleRatio = CloudMedian(std::move(massRatios));
+            sample->ensembleTripRatio = settings.ensembleTripRatio;
+        }
+    }
+
+    // Halo targets accept saturation but require valid width, annuli, and signal.
+    if (settings.haloEnabled)
+    {
+        if (m_haloCandidateRescanCountdown <= 0)
+        {
+            const std::vector<Star> bright = FindBrightHaloStars(
+                image, m_searchRegion, settings.haloStarCount,
+                settings.haloMaxHfd,
+                settings.haloInnerRadiusFwhm, settings.haloOuterRadiusFwhm);
+            m_haloCandidates.clear();
+            for (const Star& star : bright)
+            {
+                const double width = star.FWHM > 0.0 ? star.FWHM : star.HFD;
+                m_haloCandidates.push_back({ star - primary, width });
+            }
+            // Reset references when candidate identities change.
+            for (CloudStarReference& reference : m_cloudStarReferences)
+            {
+                if (reference.haloChannel)
+                {
+                    reference.haloAnchor = 0.f;
+                    reference.haloWarmup.clear();
+                }
+            }
+            m_haloCandidateRescanCountdown = 10;
+        }
+
+        std::vector<float> haloRatios;
+        std::vector<HaloMonitorRegion> monitorRegions;
+        for (size_t i = 0; i < m_haloCandidates.size() && (int) i < settings.haloStarCount; ++i)
+        {
+            HaloCandidate& candidate = m_haloCandidates[i];
+            const PHD_Point expected = primary + candidate.offsetFromPrimary;
+            Star found;
+            if (!found.Find(image, std::max(12, m_searchRegion), expected.X, expected.Y, Star::FIND_CENTROID,
+                            0.0, settings.haloMaxHfd, pCamera->GetSaturationADU(), Star::FIND_LOGGING_MINIMAL))
+                continue;
+            float haloIndex = 0.f;
+            if (!CloudHaloIndex(image, found, settings.haloInnerRadiusFwhm,
+                                settings.haloOuterRadiusFwhm, &haloIndex))
+                continue;
+
+            candidate.offsetFromPrimary = found - primary;
+            candidate.starWidth = found.FWHM > 0.0 ? found.FWHM : found.HFD;
+            monitorRegions.push_back({ candidate.offsetFromPrimary, candidate.starWidth });
+
+            CloudStarReference& reference = referenceFor(true, (int) i, 0);
+            if (reference.haloAnchor <= 0.f && mayLearnReferences)
+            {
+                reference.haloWarmup.push_back(haloIndex);
+                if (reference.haloWarmup.size() >= 8)
+                {
+                    reference.haloAnchor = CloudMedian(reference.haloWarmup);
+                    reference.haloWarmup.clear();
+                }
+            }
+            if (reference.haloAnchor > 0.f)
+                haloRatios.push_back(std::min(10.f, haloIndex / reference.haloAnchor));
+        }
+        m_haloMonitorRegions.swap(monitorRegions);
+        if (m_haloMonitorRegions.size() >= 2)
+            m_haloCandidateRescanCountdown = 10;
+        else if (m_haloCandidateRescanCountdown > 0)
+            --m_haloCandidateRescanCountdown;
+
+        if (haloRatios.size() >= 2)
+        {
+            sample->haloStars = (int) haloRatios.size();
+            sample->haloRatio = CloudMedian(std::move(haloRatios));
+            sample->haloTripRatio = settings.haloTripRatio;
+        }
+    }
+}
+
 bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset *ofs, FrameDroppedInfo *errorInfo)
 {
     auto feedStarCloudSample = [&](const Star *star, bool detected) {
-        if (pFrame->GetStarFindMode() == Star::FIND_PLANET || !GetCloudDetectionEnabled())
+        if (pFrame->GetStarFindMode() == Star::FIND_PLANET || !IsCloudDetectionActive())
             return;
 
         int exposure = 0;
@@ -973,7 +1329,10 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
             // channel degrades downward, so use negative width as its score.
             const double width = metrics.FWHM > 0.0 ? metrics.FWHM : metrics.HFD;
             sample.score = (float) -width;
+            AddCloudExtensionEvidence(&sample, pImage, metrics, exposure, isAutoExposure);
         }
+        else
+            m_haloMonitorRegions.clear();
 
         const double width = metrics.FWHM > 0.0 ? metrics.FWHM : metrics.HFD;
         const int radius = std::isfinite(width) && width > 0.0
@@ -1366,6 +1725,26 @@ void GuiderMultiStar::OnPaint(wxPaintEvent& event)
                 dc.DrawCircle(p, 3);
                 dc.DrawCircle(p, 6);
                 dc.DrawCircle(p, 12);
+            }
+        }
+
+        // Draw selected halo annuli at primary-relative positions.
+        const CloudExtensionSettings cloudSettings = GetCloudExtensionSettings();
+        if (m_showHaloRegions && cloudSettings.haloEnabled && !m_haloMonitorRegions.empty())
+        {
+            dc.SetBrush(*wxTRANSPARENT_BRUSH);
+            for (const HaloMonitorRegion& region : m_haloMonitorRegions)
+            {
+                double innerRadius, outerRadius;
+                if (!CloudHaloRadii(region.starWidth, cloudSettings.haloInnerRadiusFwhm,
+                                    cloudSettings.haloOuterRadiusFwhm, &innerRadius, &outerRadius))
+                    continue;
+                const PHD_Point center = m_primaryStar + region.offsetFromPrimary;
+                const wxPoint pt(ROUND(center.X * m_scaleFactor), ROUND(center.Y * m_scaleFactor));
+                dc.SetPen(wxPen(wxColour(0, 220, 255), 1, wxPENSTYLE_SOLID));
+                dc.DrawCircle(pt, std::max(1, ROUND(innerRadius * m_scaleFactor)));
+                dc.SetPen(wxPen(wxColour(255, 180, 0), 1, wxPENSTYLE_SOLID));
+                dc.DrawCircle(pt, std::max(1, ROUND(outerRadius * m_scaleFactor)));
             }
         }
 

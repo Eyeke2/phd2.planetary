@@ -1271,12 +1271,150 @@ static void get_cloud_status(JObj& response, const json_value *params)
     cloud_optional_metric(result, "mass_ratio", telemetry.massRatio);
     cloud_optional_metric(result, "brightness_ratio", telemetry.brightRatio);
     cloud_optional_metric(result, "feature_ratio", telemetry.featureRatio);
+    cloud_optional_metric(result, "ensemble_ratio", telemetry.ensembleRatio);
+    result << NV("ensemble_stars", telemetry.ensembleStars);
+    cloud_optional_metric(result, "halo_ratio", telemetry.haloRatio);
+    result << NV("halo_stars", telemetry.haloStars);
     cloud_optional_metric(result, "mass_scatter_factor", telemetry.massScatterFactor);
     cloud_optional_metric(result, "snr_scatter_factor", telemetry.snrScatterFactor);
     cloud_optional_metric(result, "slow_brightness_ratio", telemetry.slowBrightRatio);
     cloud_optional_metric(result, "slow_mass_ratio", telemetry.slowMassRatio);
     cloud_optional_metric(result, "slow_feature_ratio", telemetry.slowFeatureRatio);
 
+    response << jrpc_result(result);
+}
+
+static void append_cloud_config(JObj& result, const CloudExtensionSettings& settings)
+{
+    result << NV("version", 1)
+           << NV("multi_star_supported", true)
+           << NV("multi_star_enabled", settings.multiStarEnabled)
+           << NV("multi_star_min_stars", settings.multiStarMinStars)
+           << NV("ensemble_trip_ratio", (double) settings.ensembleTripRatio)
+           << NV("halo_supported", true)
+           << NV("halo_enabled", settings.haloEnabled)
+           << NV("halo_star_count", settings.haloStarCount)
+           << NV("halo_max_hfd", (double) settings.haloMaxHfd)
+           << NV("halo_inner_radius_fwhm", (double) settings.haloInnerRadiusFwhm)
+           << NV("halo_outer_radius_fwhm", (double) settings.haloOuterRadiusFwhm)
+           << NV("halo_trip_ratio", (double) settings.haloTripRatio);
+}
+
+static void get_cloud_config(JObj& response, const json_value *params)
+{
+    VERIFY_GUIDER(response);
+    JObj result;
+    append_cloud_config(result, pFrame->pGuider->GetCloudExtensionSettings());
+    response << jrpc_result(result);
+}
+
+static void set_cloud_config(JObj& response, const json_value *params)
+{
+    VERIFY_GUIDER(response);
+    if (!params || params->type != JSON_OBJECT)
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected cloud configuration object");
+        return;
+    }
+
+    // Params maps every member of an object regardless of the positional-name list; one name is
+    // sufficient here because this method deliberately accepts object form only.
+    Params p("multi_star_enabled", params);
+    CloudExtensionSettings settings = pFrame->pGuider->GetCloudExtensionSettings();
+    const json_value *value;
+    bool boolValue;
+    double floatValue;
+
+    if ((value = p.param("multi_star_enabled")) != nullptr)
+    {
+        if (!bool_param(value, &boolValue))
+        {
+            response << jrpc_error(JSONRPC_INVALID_PARAMS, "multi_star_enabled must be boolean");
+            return;
+        }
+        settings.multiStarEnabled = boolValue;
+    }
+    if ((value = p.param("multi_star_min_stars")) != nullptr)
+    {
+        if (value->type != JSON_INT)
+        {
+            response << jrpc_error(JSONRPC_INVALID_PARAMS, "multi_star_min_stars must be integer");
+            return;
+        }
+        settings.multiStarMinStars = value->int_value;
+    }
+    if ((value = p.param("ensemble_trip_ratio")) != nullptr)
+    {
+        if (!float_param(value, &floatValue))
+        {
+            response << jrpc_error(JSONRPC_INVALID_PARAMS, "ensemble_trip_ratio must be numeric");
+            return;
+        }
+        settings.ensembleTripRatio = (float) floatValue;
+    }
+    if ((value = p.param("halo_enabled")) != nullptr)
+    {
+        if (!bool_param(value, &boolValue))
+        {
+            response << jrpc_error(JSONRPC_INVALID_PARAMS, "halo_enabled must be boolean");
+            return;
+        }
+        settings.haloEnabled = boolValue;
+    }
+    if ((value = p.param("halo_star_count")) != nullptr)
+    {
+        if (value->type != JSON_INT)
+        {
+            response << jrpc_error(JSONRPC_INVALID_PARAMS, "halo_star_count must be integer");
+            return;
+        }
+        settings.haloStarCount = value->int_value;
+    }
+    if ((value = p.param("halo_max_hfd")) != nullptr)
+    {
+        if (!float_param(value, &floatValue))
+        {
+            response << jrpc_error(JSONRPC_INVALID_PARAMS, "halo_max_hfd must be numeric");
+            return;
+        }
+        settings.haloMaxHfd = (float) floatValue;
+    }
+    if ((value = p.param("halo_inner_radius_fwhm")) != nullptr)
+    {
+        if (!float_param(value, &floatValue))
+        {
+            response << jrpc_error(JSONRPC_INVALID_PARAMS, "halo_inner_radius_fwhm must be numeric");
+            return;
+        }
+        settings.haloInnerRadiusFwhm = (float) floatValue;
+    }
+    if ((value = p.param("halo_outer_radius_fwhm")) != nullptr)
+    {
+        if (!float_param(value, &floatValue))
+        {
+            response << jrpc_error(JSONRPC_INVALID_PARAMS, "halo_outer_radius_fwhm must be numeric");
+            return;
+        }
+        settings.haloOuterRadiusFwhm = (float) floatValue;
+    }
+    if ((value = p.param("halo_trip_ratio")) != nullptr)
+    {
+        if (!float_param(value, &floatValue))
+        {
+            response << jrpc_error(JSONRPC_INVALID_PARAMS, "halo_trip_ratio must be numeric");
+            return;
+        }
+        settings.haloTripRatio = (float) floatValue;
+    }
+
+    wxString error;
+    if (!pFrame->pGuider->ApplyCloudExtensionSettings(settings, &error))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, error.ToUTF8().data());
+        return;
+    }
+    JObj result;
+    append_cloud_config(result, pFrame->pGuider->GetCloudExtensionSettings());
     response << jrpc_result(result);
 }
 
@@ -4294,6 +4432,8 @@ static bool handle_request(JRpcCall& call)
         { "get_pixel_scale", &get_pixel_scale },
         { "get_app_state", &get_app_state },
         { "get_cloud_status", &get_cloud_status },
+        { "get_cloud_config", &get_cloud_config },
+        { "set_cloud_config", &set_cloud_config },
         { "flip_calibration", &flip_calibration },
         { "get_lock_shift_enabled", &get_lock_shift_enabled },
         { "set_lock_shift_enabled", &set_lock_shift_enabled },

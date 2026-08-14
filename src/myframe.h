@@ -418,6 +418,7 @@ public:
     void OnRestoreWindows(wxCommandEvent& evt);
     void OnAutoStar(wxCommandEvent& evt);
     void OnBookmarksShow(wxCommandEvent& evt);
+    void OnHaloRegionsShow(wxCommandEvent& evt);
     void OnBookmarksSetAtLockPos(wxCommandEvent& evt);
     void OnBookmarksSetAtCurPos(wxCommandEvent& evt);
     void OnBookmarksClearAll(wxCommandEvent& evt);
@@ -790,6 +791,7 @@ enum
     STAR_MASS_ENABLE,
     MULTI_STAR_ENABLE,
     MENU_BOOKMARKS_SHOW,
+    MENU_BOOKMARKS_SHOW_HALO_REGIONS,
     MENU_BOOKMARKS_SET_AT_LOCK,
     MENU_BOOKMARKS_SET_AT_STAR,
     MENU_BOOKMARKS_CLEAR_ALL,
