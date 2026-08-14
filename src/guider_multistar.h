@@ -85,6 +85,33 @@ class GuiderMultiStar : public Guider
     unsigned int m_starsUsed;
     unsigned int m_lastStarsUsed;
 
+    struct CloudStarReference
+    {
+        bool haloChannel = false;
+        int keyX = 0, keyY = 0;
+        float massAnchor = 0.f;
+        float haloAnchor = 0.f;
+        std::vector<float> massWarmup;
+        std::vector<float> haloWarmup;
+    };
+    std::vector<CloudStarReference> m_cloudStarReferences;
+    unsigned m_cloudExtensionGeneration = 0;
+
+    struct HaloMonitorRegion
+    {
+        PHD_Point offsetFromPrimary;
+        double starWidth = 0.0;
+    };
+    std::vector<HaloMonitorRegion> m_haloMonitorRegions;
+
+    struct HaloCandidate
+    {
+        PHD_Point offsetFromPrimary;
+        double starWidth = 0.0;
+    };
+    std::vector<HaloCandidate> m_haloCandidates;
+    int m_haloCandidateRescanCountdown = 0;
+
     // parameters
     bool m_massChangeThresholdEnabled;
     double m_massChangeThreshold;
@@ -143,6 +170,8 @@ public:
     void LoadProfileSettings() override;
 
 private:
+    void AddCloudExtensionEvidence(SceneSample *sample, const usImage *image, const Star& primary,
+                                   int exposureMs, bool autoExposure);
     bool IsValidLockPosition(const PHD_Point& pt) final;
     bool IsValidSecondaryStarPosition(const PHD_Point& pt) final;
     void InvalidateCurrentPosition(bool fullReset = false) final;

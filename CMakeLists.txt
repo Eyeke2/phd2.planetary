@@ -147,13 +147,18 @@ generate_doc_targets(
 # PEC Guider, Max Planck Institute for Intelligent Systems, Tuebingen, Germany.
 add_subdirectory(contributions/MPI_IS_gaussian_process tmp_gaussian_process)
 
-# Cloud detector core is dependency-free.
+# Cloud detector core and tests are dependency-free.
 add_library(CloudDetectorCore STATIC
   contributions/CloudDetector/CloudDetector.cpp
   contributions/CloudDetector/CloudDetector.h
   contributions/CloudDetector/CloudDetectorConfig.h)
 target_include_directories(CloudDetectorCore PUBLIC contributions/CloudDetector)
 set_property(TARGET CloudDetectorCore PROPERTY FOLDER "Contribution")
+
+add_executable(CloudDetectorTest tests/cloud_detector_test.cpp)
+target_link_libraries(CloudDetectorTest PRIVATE CloudDetectorCore)
+set_property(TARGET CloudDetectorTest PROPERTY FOLDER "Unit tests/Contribution")
+add_test(NAME CloudDetectorTest COMMAND CloudDetectorTest)
 
 
 
