@@ -171,7 +171,7 @@ public:
 
 private:
     void AddCloudExtensionEvidence(SceneSample *sample, const usImage *image, const Star& primary,
-                                   int exposureMs, bool autoExposure);
+                                   int exposureMs, bool autoExposure) noexcept;
     bool IsValidLockPosition(const PHD_Point& pt) final;
     bool IsValidSecondaryStarPosition(const PHD_Point& pt) final;
     void InvalidateCurrentPosition(bool fullReset = false) final;

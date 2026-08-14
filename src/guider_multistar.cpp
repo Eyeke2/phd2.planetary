@@ -1129,172 +1129,253 @@ static std::vector<Star> FindBrightHaloStars(const usImage *image, int searchReg
     return result;
 }
 
-void GuiderMultiStar::AddCloudExtensionEvidence(SceneSample *sample, const usImage *image, const Star& primary,
-                                                 int exposureMs, bool autoExposure)
+void GuiderMultiStar::AddCloudExtensionEvidence(SceneSample *sample, const usImage *image, const Star& primary, int exposureMs,
+                                                bool autoExposure) noexcept
 {
     if (!sample || !image)
         return;
-    const CloudExtensionSettings settings = GetCloudExtensionSettings();
-    if (!settings.haloEnabled)
+    auto containFailure = [this, sample](bool haloChannel, const char *kind) noexcept
     {
-        m_haloCandidates.clear();
-        m_haloMonitorRegions.clear();
-    }
-    if (!settings.multiStarEnabled && !settings.haloEnabled)
-        return;
-    if (settings.generation != m_cloudExtensionGeneration)
-    {
-        m_cloudExtensionGeneration = settings.generation;
-        m_cloudStarReferences.clear();
-        m_haloCandidates.clear();
-        m_haloMonitorRegions.clear();
-        m_haloCandidateRescanCountdown = 0;
-    }
-    const SceneState detectorState = GetCloudTelemetry().state;
-    const bool mayLearnReferences = detectorState == SceneState::Warmup || detectorState == SceneState::Clear;
-
-    auto referenceFor = [this](bool haloChannel, int keyX, int keyY) -> CloudStarReference& {
+        if (haloChannel)
+        {
+            sample->haloRatio = -1.f;
+            sample->haloStars = 0;
+            m_haloCandidates.clear();
+            m_haloMonitorRegions.clear();
+            m_haloCandidateRescanCountdown = 0;
+        }
+        else
+        {
+            sample->ensembleRatio = -1.f;
+            sample->ensembleStars = 0;
+        }
         for (CloudStarReference& reference : m_cloudStarReferences)
-            if (reference.haloChannel == haloChannel && reference.keyX == keyX && reference.keyY == keyY)
-                return reference;
-        m_cloudStarReferences.push_back(CloudStarReference{});
-        CloudStarReference& reference = m_cloudStarReferences.back();
-        reference.haloChannel = haloChannel;
-        reference.keyX = keyX;
-        reference.keyY = keyY;
-        return reference;
+        {
+            if (reference.haloChannel != haloChannel)
+                continue;
+            reference.massAnchor = 0.f;
+            reference.haloAnchor = 0.f;
+            reference.massWarmup.clear();
+            reference.haloWarmup.clear();
+        }
+        try
+        {
+            const wxString channel = haloChannel ? "halo" : "multi-star";
+            Debug.Write(wxString::Format("cloud: %s evidence %s exception contained\n", channel,
+                                         wxString::FromUTF8(kind)));
+        }
+        catch (...)
+        {
+        }
     };
 
-    // Multi-star mass retains the guide list's normal quality rules.
-    if (settings.multiStarEnabled)
+    try
     {
-        struct MassStar
+        const CloudExtensionSettings settings = GetCloudExtensionSettings();
+        if (!settings.haloEnabled)
         {
-            Star star;
-            int keyX, keyY;
-        };
-        std::vector<MassStar> observed;
-        observed.push_back({ primary, 0, 0 });
-        std::vector<size_t> order;
-        for (size_t i = 1; i < m_guideStars.size(); ++i)
-            order.push_back(i);
-        std::sort(order.begin(), order.end(), [this](size_t a, size_t b) {
-            return m_guideStars[a].PeakVal > m_guideStars[b].PeakVal;
-        });
-        for (size_t index : order)
-        {
-            if ((int) observed.size() >= settings.multiStarMinStars)
-                break;
-            const GuideStar& guideStar = m_guideStars[index];
-            const PHD_Point expected = primary + guideStar.offsetFromPrimary;
-            Star found(guideStar);
-            if (found.Find(image, m_searchRegion, expected.X, expected.Y, Star::FIND_CENTROID,
-                           GetMinStarHFD(), GetMaxStarHFD(), pCamera->GetSaturationADU(), Star::FIND_LOGGING_MINIMAL))
-                observed.push_back({ found, ROUND(guideStar.offsetFromPrimary.X * 10.0),
-                                            ROUND(guideStar.offsetFromPrimary.Y * 10.0) });
+            m_haloCandidates.clear();
+            m_haloMonitorRegions.clear();
         }
-
-        std::vector<float> massRatios;
-        for (const MassStar& current : observed)
+        if (!settings.multiStarEnabled && !settings.haloEnabled)
+            return;
+        if (settings.generation != m_cloudExtensionGeneration)
         {
-            CloudStarReference& reference = referenceFor(false, current.keyX, current.keyY);
-            const double normalizedMass = autoExposure && exposureMs > 0
-                                              ? ExposureAdjustedStarMass(current.star.Mass, exposureMs, true)
-                                              : current.star.Mass;
-            if (std::isfinite(normalizedMass) && normalizedMass > 0.0)
+            m_cloudExtensionGeneration = settings.generation;
+            m_cloudStarReferences.clear();
+            m_haloCandidates.clear();
+            m_haloMonitorRegions.clear();
+            m_haloCandidateRescanCountdown = 0;
+        }
+        const SceneState detectorState = GetCloudTelemetry().state;
+        const bool mayLearnReferences = detectorState == SceneState::Warmup || detectorState == SceneState::Clear;
+
+        auto referenceFor = [this](bool haloChannel, int keyX, int keyY) -> CloudStarReference&
+        {
+            for (CloudStarReference& reference : m_cloudStarReferences)
+                if (reference.haloChannel == haloChannel && reference.keyX == keyX && reference.keyY == keyY)
+                    return reference;
+            m_cloudStarReferences.push_back(CloudStarReference { });
+            CloudStarReference& reference = m_cloudStarReferences.back();
+            reference.haloChannel = haloChannel;
+            reference.keyX = keyX;
+            reference.keyY = keyY;
+            return reference;
+        };
+
+        // Multi-star mass retains the guide list's normal quality rules.
+        if (settings.multiStarEnabled)
+        {
+            try
             {
-                if (reference.massAnchor <= 0.f && mayLearnReferences)
+                struct MassStar
                 {
-                    reference.massWarmup.push_back((float) normalizedMass);
-                    if (reference.massWarmup.size() >= 8)
+                    Star star;
+                    int keyX, keyY;
+                };
+                std::vector<MassStar> observed;
+                observed.push_back({ primary, 0, 0 });
+                std::vector<size_t> order;
+                for (size_t i = 1; i < m_guideStars.size(); ++i)
+                    order.push_back(i);
+                std::sort(order.begin(), order.end(),
+                          [this](size_t a, size_t b) { return m_guideStars[a].PeakVal > m_guideStars[b].PeakVal; });
+                for (size_t index : order)
+                {
+                    if ((int) observed.size() >= settings.multiStarMinStars)
+                        break;
+                    const GuideStar& guideStar = m_guideStars[index];
+                    const PHD_Point expected = primary + guideStar.offsetFromPrimary;
+                    Star found(guideStar);
+                    if (found.Find(image, m_searchRegion, expected.X, expected.Y, Star::FIND_CENTROID, GetMinStarHFD(),
+                                   GetMaxStarHFD(), pCamera->GetSaturationADU(), Star::FIND_LOGGING_MINIMAL))
+                        observed.push_back({ found, ROUND(guideStar.offsetFromPrimary.X * 10.0),
+                                             ROUND(guideStar.offsetFromPrimary.Y * 10.0) });
+                }
+
+                std::vector<float> massRatios;
+                for (const MassStar& current : observed)
+                {
+                    CloudStarReference& reference = referenceFor(false, current.keyX, current.keyY);
+                    const double normalizedMass = autoExposure && exposureMs > 0
+                        ? ExposureAdjustedStarMass(current.star.Mass, exposureMs, true)
+                        : current.star.Mass;
+                    if (std::isfinite(normalizedMass) && normalizedMass > 0.0)
                     {
-                        reference.massAnchor = CloudMedian(reference.massWarmup);
-                        reference.massWarmup.clear();
+                        if (reference.massAnchor <= 0.f && mayLearnReferences)
+                        {
+                            reference.massWarmup.push_back((float) normalizedMass);
+                            if (reference.massWarmup.size() >= 8)
+                            {
+                                reference.massAnchor = CloudMedian(reference.massWarmup);
+                                reference.massWarmup.clear();
+                            }
+                        }
+                        if (reference.massAnchor > 0.f)
+                            massRatios.push_back((float) (normalizedMass / reference.massAnchor));
                     }
                 }
-                if (reference.massAnchor > 0.f)
-                    massRatios.push_back((float) (normalizedMass / reference.massAnchor));
+                if ((int) massRatios.size() >= settings.multiStarMinStars)
+                {
+                    sample->ensembleStars = (int) massRatios.size();
+                    sample->ensembleRatio = CloudMedian(std::move(massRatios));
+                    sample->ensembleTripRatio = settings.ensembleTripRatio;
+                }
+            }
+            catch (const wxString&)
+            {
+                containFailure(false, "wx");
+            }
+            catch (const std::exception&)
+            {
+                containFailure(false, "standard");
+            }
+            catch (...)
+            {
+                containFailure(false, "unknown");
             }
         }
-        if ((int) massRatios.size() >= settings.multiStarMinStars)
+
+        // Halo targets accept saturation but require valid width, annuli, and signal.
+        if (settings.haloEnabled)
         {
-            sample->ensembleStars = (int) massRatios.size();
-            sample->ensembleRatio = CloudMedian(std::move(massRatios));
-            sample->ensembleTripRatio = settings.ensembleTripRatio;
+            try
+            {
+                if (m_haloCandidateRescanCountdown <= 0)
+                {
+                    const std::vector<Star> bright =
+                        FindBrightHaloStars(image, m_searchRegion, settings.haloStarCount, settings.haloMaxHfd,
+                                            settings.haloInnerRadiusFwhm, settings.haloOuterRadiusFwhm);
+                    m_haloCandidates.clear();
+                    for (const Star& star : bright)
+                    {
+                        const double width = star.FWHM > 0.0 ? star.FWHM : star.HFD;
+                        m_haloCandidates.push_back({ star - primary, width });
+                    }
+                    // Reset references when candidate identities change.
+                    for (CloudStarReference& reference : m_cloudStarReferences)
+                    {
+                        if (reference.haloChannel)
+                        {
+                            reference.haloAnchor = 0.f;
+                            reference.haloWarmup.clear();
+                        }
+                    }
+                    m_haloCandidateRescanCountdown = 10;
+                }
+
+                std::vector<float> haloRatios;
+                std::vector<HaloMonitorRegion> monitorRegions;
+                for (size_t i = 0; i < m_haloCandidates.size() && (int) i < settings.haloStarCount; ++i)
+                {
+                    HaloCandidate& candidate = m_haloCandidates[i];
+                    const PHD_Point expected = primary + candidate.offsetFromPrimary;
+                    Star found;
+                    if (!found.Find(image, std::max(12, m_searchRegion), expected.X, expected.Y, Star::FIND_CENTROID, 0.0,
+                                    settings.haloMaxHfd, pCamera->GetSaturationADU(), Star::FIND_LOGGING_MINIMAL))
+                        continue;
+                    float haloIndex = 0.f;
+                    if (!CloudHaloIndex(image, found, settings.haloInnerRadiusFwhm, settings.haloOuterRadiusFwhm, &haloIndex))
+                        continue;
+
+                    candidate.offsetFromPrimary = found - primary;
+                    candidate.starWidth = found.FWHM > 0.0 ? found.FWHM : found.HFD;
+                    monitorRegions.push_back({ candidate.offsetFromPrimary, candidate.starWidth });
+
+                    CloudStarReference& reference = referenceFor(true, (int) i, 0);
+                    if (reference.haloAnchor <= 0.f && mayLearnReferences)
+                    {
+                        reference.haloWarmup.push_back(haloIndex);
+                        if (reference.haloWarmup.size() >= 8)
+                        {
+                            reference.haloAnchor = CloudMedian(reference.haloWarmup);
+                            reference.haloWarmup.clear();
+                        }
+                    }
+                    if (reference.haloAnchor > 0.f)
+                        haloRatios.push_back(std::min(10.f, haloIndex / reference.haloAnchor));
+                }
+                m_haloMonitorRegions.swap(monitorRegions);
+                if (m_haloMonitorRegions.size() >= 2)
+                    m_haloCandidateRescanCountdown = 10;
+                else if (m_haloCandidateRescanCountdown > 0)
+                    --m_haloCandidateRescanCountdown;
+
+                if (haloRatios.size() >= 2)
+                {
+                    sample->haloStars = (int) haloRatios.size();
+                    sample->haloRatio = CloudMedian(std::move(haloRatios));
+                    sample->haloTripRatio = settings.haloTripRatio;
+                }
+            }
+            catch (const wxString&)
+            {
+                containFailure(true, "wx");
+            }
+            catch (const std::exception&)
+            {
+                containFailure(true, "standard");
+            }
+            catch (...)
+            {
+                containFailure(true, "unknown");
+            }
         }
     }
-
-    // Halo targets accept saturation but require valid width, annuli, and signal.
-    if (settings.haloEnabled)
+    catch (const wxString&)
     {
-        if (m_haloCandidateRescanCountdown <= 0)
-        {
-            const std::vector<Star> bright = FindBrightHaloStars(
-                image, m_searchRegion, settings.haloStarCount,
-                settings.haloMaxHfd,
-                settings.haloInnerRadiusFwhm, settings.haloOuterRadiusFwhm);
-            m_haloCandidates.clear();
-            for (const Star& star : bright)
-            {
-                const double width = star.FWHM > 0.0 ? star.FWHM : star.HFD;
-                m_haloCandidates.push_back({ star - primary, width });
-            }
-            // Reset references when candidate identities change.
-            for (CloudStarReference& reference : m_cloudStarReferences)
-            {
-                if (reference.haloChannel)
-                {
-                    reference.haloAnchor = 0.f;
-                    reference.haloWarmup.clear();
-                }
-            }
-            m_haloCandidateRescanCountdown = 10;
-        }
-
-        std::vector<float> haloRatios;
-        std::vector<HaloMonitorRegion> monitorRegions;
-        for (size_t i = 0; i < m_haloCandidates.size() && (int) i < settings.haloStarCount; ++i)
-        {
-            HaloCandidate& candidate = m_haloCandidates[i];
-            const PHD_Point expected = primary + candidate.offsetFromPrimary;
-            Star found;
-            if (!found.Find(image, std::max(12, m_searchRegion), expected.X, expected.Y, Star::FIND_CENTROID,
-                            0.0, settings.haloMaxHfd, pCamera->GetSaturationADU(), Star::FIND_LOGGING_MINIMAL))
-                continue;
-            float haloIndex = 0.f;
-            if (!CloudHaloIndex(image, found, settings.haloInnerRadiusFwhm,
-                                settings.haloOuterRadiusFwhm, &haloIndex))
-                continue;
-
-            candidate.offsetFromPrimary = found - primary;
-            candidate.starWidth = found.FWHM > 0.0 ? found.FWHM : found.HFD;
-            monitorRegions.push_back({ candidate.offsetFromPrimary, candidate.starWidth });
-
-            CloudStarReference& reference = referenceFor(true, (int) i, 0);
-            if (reference.haloAnchor <= 0.f && mayLearnReferences)
-            {
-                reference.haloWarmup.push_back(haloIndex);
-                if (reference.haloWarmup.size() >= 8)
-                {
-                    reference.haloAnchor = CloudMedian(reference.haloWarmup);
-                    reference.haloWarmup.clear();
-                }
-            }
-            if (reference.haloAnchor > 0.f)
-                haloRatios.push_back(std::min(10.f, haloIndex / reference.haloAnchor));
-        }
-        m_haloMonitorRegions.swap(monitorRegions);
-        if (m_haloMonitorRegions.size() >= 2)
-            m_haloCandidateRescanCountdown = 10;
-        else if (m_haloCandidateRescanCountdown > 0)
-            --m_haloCandidateRescanCountdown;
-
-        if (haloRatios.size() >= 2)
-        {
-            sample->haloStars = (int) haloRatios.size();
-            sample->haloRatio = CloudMedian(std::move(haloRatios));
-            sample->haloTripRatio = settings.haloTripRatio;
-        }
+        containFailure(false, "setup wx");
+        containFailure(true, "setup wx");
+    }
+    catch (const std::exception&)
+    {
+        containFailure(false, "setup standard");
+        containFailure(true, "setup standard");
+    }
+    catch (...)
+    {
+        containFailure(false, "setup unknown");
+        containFailure(true, "setup unknown");
     }
 }
 
