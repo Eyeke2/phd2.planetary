@@ -367,8 +367,8 @@ bool Guider::ApplyCloudExtensionSettings(const CloudExtensionSettings& requested
         return invalid("ensemble_trip_ratio must be between 0.2 and 0.98");
     if (requested.haloStarCount < 2 || requested.haloStarCount > 12)
         return invalid("halo_star_count must be between 2 and 12");
-    if (!std::isfinite(requested.haloMaxHfd) || requested.haloMaxHfd < 3.f || requested.haloMaxHfd > 100.f)
-        return invalid("halo_max_hfd must be between 3 and 100 pixels");
+    if (!std::isfinite(requested.haloMaxHfd) || requested.haloMaxHfd < 1.f || requested.haloMaxHfd > 30.f)
+        return invalid("halo_max_hfd must be between 1 and 30 pixels");
     if (!std::isfinite(requested.haloInnerRadiusFwhm) || requested.haloInnerRadiusFwhm < 1.5f ||
         requested.haloInnerRadiusFwhm > 8.f)
         return invalid("halo_inner_radius_fwhm must be between 1.5 and 8");
