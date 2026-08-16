@@ -1456,7 +1456,7 @@ void GearDialog::OnButtonConnectScope(wxCommandEvent& event)
 
             Debug.Write(wxString::Format("Connecting to mount [%s]\n", m_pScopes->GetStringSelection()));
 
-            if (m_pScope->Connect())
+            if (Scope::ConnectScope(m_pScope))
             {
                 throw THROW_INFO("OnButtonConnectScope: connect failed");
             }
@@ -1508,7 +1508,7 @@ void GearDialog::OnButtonConnectAuxScope(wxCommandEvent& event)
 
             Debug.Write(wxString::Format("Connecting to aux mount [%s]\n", m_pAuxScopes->GetStringSelection()));
 
-            if (m_pAuxScope->Connect())
+            if (Scope::ConnectScope(m_pAuxScope))
             {
                 throw THROW_INFO("OnButtonConnectAuxScope: connect failed");
             }
@@ -1678,7 +1678,7 @@ void GearDialog::OnButtonConnectStepGuider(wxCommandEvent& event)
 
             Debug.Write(wxString::Format("Connecting to AO [%s]\n", m_pStepGuiders->GetStringSelection()));
 
-            if (m_pStepGuider->Connect())
+            if (StepGuider::ConnectStepGuider(m_pStepGuider))
             {
                 throw THROW_INFO("OnButtonConnectStepGuider: connect failed");
             }
@@ -1818,7 +1818,7 @@ void GearDialog::OnButtonConnectRotator(wxCommandEvent& event)
 
             Debug.Write(wxString::Format("Connecting to rotator [%s]\n", m_pRotators->GetStringSelection()));
 
-            if (m_pRotator->Connect())
+            if (Rotator::ConnectRotator(m_pRotator))
             {
                 throw THROW_INFO("OnButtonConnectRotator: connect failed");
             }
