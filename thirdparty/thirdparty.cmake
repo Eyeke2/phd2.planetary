@@ -70,6 +70,32 @@ endif()
 if(WIN32)
   include(FetchContent)
   set(FETCHCONTENT_QUIET OFF)
+
+  # cygwin's git checks out some executables without execute
+  # permission which prevents vcpkg's bootstrap from running them. The
+  # workaround is to use the chmod.exe in the same cygwin directory as
+  # the git executable to fix the permissions.
+  #
+  find_package(Git REQUIRED)
+  get_filename_component(GIT_BIN_DIR "${GIT_EXECUTABLE}" DIRECTORY)
+  set(VCPKG_GIT_CHMOD_EXECUTABLE)
+  foreach(CHMOD_NAME chmod.exe chmod)
+    if(EXISTS "${GIT_BIN_DIR}/${CHMOD_NAME}")
+      set(VCPKG_GIT_CHMOD_EXECUTABLE "${GIT_BIN_DIR}/${CHMOD_NAME}")
+      break()
+    endif()
+  endforeach()
+  set(VCPKG_FIX_EXECUTABLE_PERMISSIONS)
+  if(VCPKG_GIT_CHMOD_EXECUTABLE)
+    message(STATUS "Using ${VCPKG_GIT_CHMOD_EXECUTABLE} to set vcpkg helper permissions")
+    set(VCPKG_FIX_EXECUTABLE_PERMISSIONS
+      "${VCPKG_GIT_CHMOD_EXECUTABLE}" 755
+      scripts/tls12-download.exe
+      scripts/tls12-download-arm64.exe
+      COMMAND
+    )
+  endif()
+
   FetchContent_Declare(
     vcpkg
     GIT_REPOSITORY https://github.com/microsoft/vcpkg.git
