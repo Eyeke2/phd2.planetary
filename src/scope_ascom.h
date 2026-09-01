@@ -115,6 +115,7 @@ public:
     void EnumerateTrackingRates() override;
     bool GetTracking(bool *tracking, bool verbose) override;
     bool SetTracking(bool tracking) override;
+    bool CanCheckTracking() override;
     bool CanSetTracking() override;
     bool GetTrackingRate(enum DriveRates *rate, bool verbose) override;
     bool GetTrackingRate(enum DriveRates *rate, double *ra_rate, double *dec_rate, bool verbose) override;

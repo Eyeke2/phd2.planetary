@@ -102,4 +102,9 @@ bool ScopeOnCamera::CanSetTracking()
     return IsCameraSimulator();
 }
 
+bool ScopeOnCamera::CanCheckTracking()
+{
+    return IsCameraSimulator();
+}
+
 #endif // GUIDE_ONCAMERA

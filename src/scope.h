@@ -69,6 +69,7 @@ class ScopeConfigDialogCtrlSet : public MountConfigDialogCtrlSet
     wxSpinCtrl *m_pCalibrationDuration;
     wxCheckBox *m_pNeedFlipDec;
     wxCheckBox *m_pStopGuidingWhenSlewing;
+    wxCheckBox *m_pStopGuidingWhenTrackingStops;
     wxCheckBox *m_assumeOrthogonal;
     wxSpinCtrl *m_pMaxRaDuration;
     wxSpinCtrl *m_pMaxDecDuration;
@@ -151,6 +152,7 @@ class Scope : public Mount
 
     bool m_calibrationFlipRequiresDecFlip;
     bool m_stopGuidingWhenSlewing;
+    bool m_stopGuidingWhenTrackingStops;
     Calibration m_prevCalibration;
     CalibrationDetails m_prevCalibrationDetails;
     CalibrationIssueType m_lastCalibrationIssue;
@@ -282,6 +284,8 @@ public:
     void SetCalibrationFlipRequiresDecFlip(bool val);
     void EnableStopGuidingWhenSlewing(bool enable);
     bool IsStopGuidingWhenSlewingEnabled() const;
+    void EnableStopGuidingWhenTrackingStops(bool enable);
+    bool IsStopGuidingWhenTrackingStopsEnabled() const;
     void SetAssumeOrthogonal(bool val);
     bool IsAssumeOrthogonal() const;
     void HandleSanityCheckDialog();
@@ -310,6 +314,7 @@ public:
     virtual bool GetAxisRates(GuideAxis axis, std::vector<AxisRate> *rates);
     virtual bool AbortSlew();
     virtual bool CanCheckSlewing();
+    virtual bool CanCheckTracking();
     virtual bool CanSetDeclinationRate();
     virtual bool CanMoveAxis(GuideAxis axis);
     virtual bool CanSync();
@@ -368,6 +373,11 @@ private:
 inline bool Scope::IsStopGuidingWhenSlewingEnabled() const
 {
     return m_stopGuidingWhenSlewing;
+}
+
+inline bool Scope::IsStopGuidingWhenTrackingStopsEnabled() const
+{
+    return m_stopGuidingWhenTrackingStops;
 }
 
 inline bool Scope::IsAssumeOrthogonal() const

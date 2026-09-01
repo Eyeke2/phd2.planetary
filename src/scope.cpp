@@ -116,6 +116,7 @@ Scope::Scope()
 
     m_hasHPEncoders = pConfig->Profile.GetBoolean("/scope/HiResEncoders", false);
 
+    m_stopGuidingWhenTrackingStops = true;
     m_lastKnownParked = false;
     m_lastKnownTracking = true; // assume tracking until told otherwise (CanGuide does a fresh query at guide start)
 
@@ -484,6 +485,8 @@ Scope *Scope::Factory(const wxString& choice)
             // virtual function call means we cannot do this in the Scope constructor
             pReturn->EnableStopGuidingWhenSlewing(
                 pConfig->Profile.GetBoolean("/scope/StopGuidingWhenSlewing", pReturn->CanCheckSlewing()));
+            pReturn->EnableStopGuidingWhenTrackingStops(
+                pConfig->Profile.GetBoolean("/scope/StopGuidingWhenTrackingStops", true));
         }
     }
     catch (const wxString& Msg)
@@ -543,6 +546,21 @@ void Scope::EnableStopGuidingWhenSlewing(bool enable)
     m_stopGuidingWhenSlewing = enable;
 }
 
+void Scope::EnableStopGuidingWhenTrackingStops(bool enable)
+{
+    if (enable)
+        Debug.Write("Scope: enabling tracking check, guiding will stop when tracking stops\n");
+    else
+    {
+        Debug.Write("Scope: tracking-stop check disabled\n");
+        if (pFrame)
+            pFrame->ResetTrackingStopDebounce();
+    }
+
+    pConfig->Profile.SetBoolean("/scope/StopGuidingWhenTrackingStops", enable);
+    m_stopGuidingWhenTrackingStops = enable;
+}
+
 void Scope::StartDecDrift()
 {
     m_saveDecGuideMode = m_decGuideMode;
@@ -599,6 +617,9 @@ bool Scope::IsKnownParked()
 
 bool Scope::IsKnownTrackingStopped()
 {
+    if (!m_stopGuidingWhenTrackingStops)
+        return false;
+
     // Fast path: cache says tracking is on, no driver round-trip.
     if (m_lastKnownTracking)
         return false;
@@ -2053,6 +2074,11 @@ bool Scope::CanCheckSlewing()
     return false;
 }
 
+bool Scope::CanCheckTracking()
+{
+    return false;
+}
+
 bool Scope::Slewing()
 {
     return false;
@@ -2275,6 +2301,19 @@ ScopeConfigDialogCtrlSet::ScopeConfigDialogCtrlSet(wxWindow *pParent, Scope *pSc
     else
         m_pStopGuidingWhenSlewing = 0;
 
+    if (pScope && pScope->CanCheckTracking())
+    {
+        m_pStopGuidingWhenTrackingStops =
+            new wxCheckBox(GetParentWindow(AD_cbTrackingStopDetection), wxID_ANY,
+                           _("Stop guiding when mount reports tracking off"));
+        m_pStopGuidingWhenTrackingStops->Enable(enableCtrls);
+        AddCtrl(CtrlMap, AD_cbTrackingStopDetection, m_pStopGuidingWhenTrackingStops,
+                _("Normally keep this enabled. Disable it only for drivers that report tracking off during non-sidereal "
+                  "tracking. PHD2 may start or continue guiding even if the mount has actually stopped tracking."));
+    }
+    else
+        m_pStopGuidingWhenTrackingStops = 0;
+
     m_assumeOrthogonal = new wxCheckBox(GetParentWindow(AD_cbAssumeOrthogonal), wxID_ANY, _("Assume Dec orthogonal to RA"));
     m_assumeOrthogonal->Enable(enableCtrls);
     AddCtrl(CtrlMap, AD_cbAssumeOrthogonal, m_assumeOrthogonal,
@@ -2374,6 +2413,8 @@ void ScopeConfigDialogCtrlSet::LoadValues()
     m_pNeedFlipDec->SetValue(m_pScope->CalibrationFlipRequiresDecFlip());
     if (m_pStopGuidingWhenSlewing)
         m_pStopGuidingWhenSlewing->SetValue(m_pScope->IsStopGuidingWhenSlewingEnabled());
+    if (m_pStopGuidingWhenTrackingStops)
+        m_pStopGuidingWhenTrackingStops->SetValue(m_pScope->IsStopGuidingWhenTrackingStopsEnabled());
     m_assumeOrthogonal->SetValue(m_pScope->IsAssumeOrthogonal());
     int pulseSize;
     int floor;
@@ -2422,6 +2463,8 @@ void ScopeConfigDialogCtrlSet::UnloadValues()
     }
     if (m_pStopGuidingWhenSlewing)
         m_pScope->EnableStopGuidingWhenSlewing(m_pStopGuidingWhenSlewing->GetValue());
+    if (m_pStopGuidingWhenTrackingStops)
+        m_pScope->EnableStopGuidingWhenTrackingStops(m_pStopGuidingWhenTrackingStops->GetValue());
     m_pScope->SetAssumeOrthogonal(m_assumeOrthogonal->GetValue());
     int newBC = m_pBacklashPulse->GetValue();
     int newFloor;
