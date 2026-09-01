@@ -27,13 +27,13 @@
 #define PHD_VER_MINOR        6
 #define PHD_VER_BUILD        14
 #define PHD_VER_SOLAR_MAJOR  6
-#define PHD_VER_SOLAR_PATCH  1
+#define PHD_VER_SOLAR_PATCH  2
 
 // Composite revision component for VS_VERSION_INFO (4th of MAJOR.MINOR.BUILD.REVISION).
 // MUST equal PHD_VER_SOLAR_MAJOR * 1000 + PHD_VER_SOLAR_PATCH.
 // Kept as a plain integer literal because rc.exe does not evaluate arithmetic
 // expressions inside VERSIONINFO FILEVERSION / PRODUCTVERSION fields.
-#define PHD_VER_REVISION     6001
+#define PHD_VER_REVISION     6002
 
 // Build-time guard so the literal above can't drift from SOLAR_MAJOR/SOLAR_PATCH.
 // rc.exe doesn't define __cplusplus, so this is a no-op for the resource compiler.
@@ -50,7 +50,7 @@ static_assert(PHD_VER_REVISION == PHD_VER_REVISION_,
 //   SOLAR_PATCH == 0  -> "-solar.<SOLAR_MAJOR>"
 //   SOLAR_PATCH  > 0  -> "-solar.<SOLAR_MAJOR>.<SOLAR_PATCH>"
 #define PHD_VER_STRING     "2.6.14"
-#define PHD_VER_SUBSTRING  "-solar.6.1"
+#define PHD_VER_SUBSTRING  "-solar.6.2"
 #define PHD_VER_FULL       PHD_VER_STRING PHD_VER_SUBSTRING
 
 #endif // PHD_VERSION_H_INCLUDED
