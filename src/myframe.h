@@ -528,6 +528,7 @@ public:
                            bool showHelpButton = false, int flags = wxICON_EXCLAMATION);
     void ClearAlert();
     void ClearAlert(const wxString& msg);
+    void ResetTrackingStopDebounce();
     void StatusMsg(const wxString& text);
     void StatusMsgNoTimeout(const wxString& text);
     wxString GetSettingsSummary() const;
