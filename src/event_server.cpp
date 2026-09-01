@@ -1273,8 +1273,6 @@ static void get_cloud_status(JObj& response, const json_value *params)
     cloud_optional_metric(result, "feature_ratio", telemetry.featureRatio);
     cloud_optional_metric(result, "ensemble_ratio", telemetry.ensembleRatio);
     result << NV("ensemble_stars", telemetry.ensembleStars);
-    cloud_optional_metric(result, "halo_ratio", telemetry.haloRatio);
-    result << NV("halo_stars", telemetry.haloStars);
     cloud_optional_metric(result, "mass_scatter_factor", telemetry.massScatterFactor);
     cloud_optional_metric(result, "snr_scatter_factor", telemetry.snrScatterFactor);
     cloud_optional_metric(result, "slow_brightness_ratio", telemetry.slowBrightRatio);
@@ -1290,14 +1288,7 @@ static void append_cloud_config(JObj& result, const CloudExtensionSettings& sett
            << NV("multi_star_supported", true)
            << NV("multi_star_enabled", settings.multiStarEnabled)
            << NV("multi_star_min_stars", settings.multiStarMinStars)
-           << NV("ensemble_trip_ratio", (double) settings.ensembleTripRatio)
-           << NV("halo_supported", true)
-           << NV("halo_enabled", settings.haloEnabled)
-           << NV("halo_star_count", settings.haloStarCount)
-           << NV("halo_max_hfd", (double) settings.haloMaxHfd)
-           << NV("halo_inner_radius_fwhm", (double) settings.haloInnerRadiusFwhm)
-           << NV("halo_outer_radius_fwhm", (double) settings.haloOuterRadiusFwhm)
-           << NV("halo_trip_ratio", (double) settings.haloTripRatio);
+           << NV("ensemble_trip_ratio", (double) settings.ensembleTripRatio);
 }
 
 static void get_cloud_config(JObj& response, const json_value *params)
@@ -1352,61 +1343,6 @@ static void set_cloud_config(JObj& response, const json_value *params)
         }
         settings.ensembleTripRatio = (float) floatValue;
     }
-    if ((value = p.param("halo_enabled")) != nullptr)
-    {
-        if (!bool_param(value, &boolValue))
-        {
-            response << jrpc_error(JSONRPC_INVALID_PARAMS, "halo_enabled must be boolean");
-            return;
-        }
-        settings.haloEnabled = boolValue;
-    }
-    if ((value = p.param("halo_star_count")) != nullptr)
-    {
-        if (value->type != JSON_INT)
-        {
-            response << jrpc_error(JSONRPC_INVALID_PARAMS, "halo_star_count must be integer");
-            return;
-        }
-        settings.haloStarCount = value->int_value;
-    }
-    if ((value = p.param("halo_max_hfd")) != nullptr)
-    {
-        if (!float_param(value, &floatValue))
-        {
-            response << jrpc_error(JSONRPC_INVALID_PARAMS, "halo_max_hfd must be numeric");
-            return;
-        }
-        settings.haloMaxHfd = (float) floatValue;
-    }
-    if ((value = p.param("halo_inner_radius_fwhm")) != nullptr)
-    {
-        if (!float_param(value, &floatValue))
-        {
-            response << jrpc_error(JSONRPC_INVALID_PARAMS, "halo_inner_radius_fwhm must be numeric");
-            return;
-        }
-        settings.haloInnerRadiusFwhm = (float) floatValue;
-    }
-    if ((value = p.param("halo_outer_radius_fwhm")) != nullptr)
-    {
-        if (!float_param(value, &floatValue))
-        {
-            response << jrpc_error(JSONRPC_INVALID_PARAMS, "halo_outer_radius_fwhm must be numeric");
-            return;
-        }
-        settings.haloOuterRadiusFwhm = (float) floatValue;
-    }
-    if ((value = p.param("halo_trip_ratio")) != nullptr)
-    {
-        if (!float_param(value, &floatValue))
-        {
-            response << jrpc_error(JSONRPC_INVALID_PARAMS, "halo_trip_ratio must be numeric");
-            return;
-        }
-        settings.haloTripRatio = (float) floatValue;
-    }
-
     wxString error;
     if (!pFrame->pGuider->ApplyCloudExtensionSettings(settings, &error))
     {
