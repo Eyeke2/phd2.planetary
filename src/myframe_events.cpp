@@ -1399,11 +1399,6 @@ void MyFrame::OnBookmarksShow(wxCommandEvent& evt)
     pGuider->SetBookmarksShown(evt.IsChecked());
 }
 
-void MyFrame::OnHaloRegionsShow(wxCommandEvent& evt)
-{
-    pGuider->SetHaloRegionsShown(evt.IsChecked());
-}
-
 void MyFrame::OnBookmarksSetAtLockPos(wxCommandEvent& evt)
 {
     pGuider->BookmarkLockPosition();

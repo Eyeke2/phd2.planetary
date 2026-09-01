@@ -137,7 +137,6 @@ EVT_MENU(MENU_XHAIR4, MyFrame::OnOverlay)
 EVT_MENU(MENU_XHAIR5, MyFrame::OnOverlay)
 EVT_MENU(MENU_SLIT_OVERLAY_COORDS, MyFrame::OnOverlaySlitCoords)
 EVT_MENU(MENU_BOOKMARKS_SHOW, MyFrame::OnBookmarksShow)
-EVT_MENU(MENU_BOOKMARKS_SHOW_HALO_REGIONS, MyFrame::OnHaloRegionsShow)
 EVT_MENU(MENU_BOOKMARKS_SET_AT_LOCK, MyFrame::OnBookmarksSetAtLockPos)
 EVT_MENU(MENU_BOOKMARKS_SET_AT_STAR, MyFrame::OnBookmarksSetAtCurPos)
 EVT_MENU(MENU_BOOKMARKS_CLEAR_ALL, MyFrame::OnBookmarksClearAll)
@@ -633,10 +632,6 @@ void MyFrame::SetupMenuBar()
         bookmarks_menu->AppendCheckItem(MENU_BOOKMARKS_SHOW, _("Show &Bookmarks\tb"), _("Hide or show bookmarks"));
     m_showBookmarksAccel = m_showBookmarksMenuItem->GetAccel();
     bookmarks_menu->Check(MENU_BOOKMARKS_SHOW, true);
-    bookmarks_menu->AppendCheckItem(MENU_BOOKMARKS_SHOW_HALO_REGIONS, _("Show Cloud &Halo Regions"),
-                                    _("Show halo-monitoring stars and their inner and outer detection radii"));
-    bookmarks_menu->Check(MENU_BOOKMARKS_SHOW_HALO_REGIONS,
-                          pConfig->Global.GetBoolean("/ShowCloudHaloRegions", false));
     bookmarks_menu->AppendSeparator();
     m_bookmarkLockPosMenuItem = bookmarks_menu->Append(MENU_BOOKMARKS_SET_AT_LOCK, _("Bookmark &Lock Pos\tShift-B"),
                                                        _("Set a bookmark at the current lock position"));

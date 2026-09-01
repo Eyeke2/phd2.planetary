@@ -583,27 +583,6 @@ void OptionalMultiStarEvidenceCorroboratesPrimaryFade()
             "multi-star consensus did not corroborate a sustained primary fade");
 }
 
-void OptionalHaloEvidenceUsesConservativeLongDwell()
-{
-    CloudDetector detector;
-    int64_t t = Arm(detector);
-    for (int i = 0; i < 34; ++i, t += 2000)
-    {
-        SceneSample sample = ClearSample(t);
-        sample.haloRatio = 1.8f;
-        sample.haloStars = 3;
-        detector.Feed(sample);
-        if (i < 2)
-            Require(detector.GetState() == SceneState::Clear,
-                    "halo extension tripped before its robust short window was full");
-    }
-    const SceneTelemetry telemetry = detector.GetTelemetry();
-    Require(telemetry.haloStars == 3 && telemetry.haloRatio > 1.7f,
-            "halo evidence was not published");
-    Require(detector.GetState() == SceneState::Obscured,
-            "persistent multi-star halo evidence did not complete the long dwell");
-}
-
 void ThrowingLoggerIsContainedAndDisabled()
 {
     CloudDetector detector;
@@ -720,7 +699,6 @@ int main()
     GuidingSessionResetRelearnsCurrentClearView();
     MotionResumeClearsTransientEvidenceButKeepsBaseline();
     OptionalMultiStarEvidenceCorroboratesPrimaryFade();
-    OptionalHaloEvidenceUsesConservativeLongDwell();
     ThrowingLoggerIsContainedAndDisabled();
     NonFiniteSamplesCannotPoisonTelemetry();
     BackwardTimestampResetsInsteadOfUnderflowing();
