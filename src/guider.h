@@ -113,12 +113,6 @@ struct CloudExtensionSettings
     bool multiStarEnabled = false;
     int multiStarMinStars = 3;
     float ensembleTripRatio = 0.78f;
-    bool haloEnabled = false;
-    int haloStarCount = 3;
-    float haloMaxHfd = 10.0f;
-    float haloInnerRadiusFwhm = 3.0f;
-    float haloOuterRadiusFwhm = 8.0f;
-    float haloTripRatio = 1.33f;
     unsigned generation = 0;
 };
 
@@ -197,7 +191,6 @@ protected:
     bool m_forceFullFrame;
     double m_scaleFactor;
     bool m_showBookmarks;
-    bool m_showHaloRegions;
     std::vector<wxRealPoint> m_bookmarks;
 
     // Things related to the Advanced Config Dialog
@@ -291,8 +284,6 @@ public:
     bool GetBookmarksShown() const;
     void SetBookmarksShown(bool show);
     void ToggleShowBookmarks();
-    bool GetHaloRegionsShown() const { return m_showHaloRegions; }
-    void SetHaloRegionsShown(bool show);
     void DeleteAllBookmarks();
     void BookmarkLockPosition();
     void BookmarkCurPosition();
