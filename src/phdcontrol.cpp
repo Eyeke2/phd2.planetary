@@ -343,14 +343,17 @@ bool PhdController::CanGuide(wxString *error)
         return false;
     }
 
-    // Same check for tracking - guiding requires the mount to be tracking. GetTracking()
-    // refreshes Scope::m_lastKnownTracking as a side effect.
+    // Some drivers report tracking off during non-sidereal tracking.
     bool tracking = true;
     if (scope && scope->IsConnected() && !scope->GetTracking(&tracking) && !tracking)
     {
-        Debug.AddLine("PhdController::CanGuide: mount is not tracking");
-        *error = _T("mount is not tracking");
-        return false;
+        if (scope->IsStopGuidingWhenTrackingStopsEnabled())
+        {
+            Debug.AddLine("PhdController::CanGuide: mount is not tracking");
+            *error = _T("mount is not tracking");
+            return false;
+        }
+        Debug.AddLine("PhdController::CanGuide: ignoring mount tracking-off report");
     }
 
     return true;

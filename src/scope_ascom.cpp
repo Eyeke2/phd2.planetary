@@ -1267,13 +1267,16 @@ Mount::MOVE_RESULT ScopeASCOM::Guide(GUIDE_DIRECTION direction, int duration)
                 throw ERROR_INFO("ASCOM Scope: PulseGuide failed because mount is parked");
             }
 
-            // Reactive tracking-stopped detection: many drivers refuse PulseGuide while tracking
-            // is off. Refresh the cached state and surface MOVE_ERROR_TRACKING_STOPPED.
+            // Refresh tracking after a failed PulseGuide.
             if (!IsTrackingOn(&scope))
             {
                 SetLastKnownTracking(false);
-                result = MOVE_ERROR_TRACKING_STOPPED;
-                throw ERROR_INFO("ASCOM Scope: PulseGuide failed because mount is not tracking");
+                if (IsStopGuidingWhenTrackingStopsEnabled())
+                {
+                    result = MOVE_ERROR_TRACKING_STOPPED;
+                    throw ERROR_INFO("ASCOM Scope: PulseGuide failed because mount is not tracking");
+                }
+                Debug.Write("ASCOM Scope: ignoring tracking-off report after PulseGuide failure\n");
             }
 
             // Make sure nothing got by us and the mount can really handle pulse guide - HIGHLY unlikely
@@ -1849,6 +1852,11 @@ bool ScopeASCOM::SetTracking(bool tracking)
 bool ScopeASCOM::CanSetTracking()
 {
     return m_canSetTracking;
+}
+
+bool ScopeASCOM::CanCheckTracking()
+{
+    return true;
 }
 
 // Return RA and Dec guide rates in native ASCOM units, degrees/sec.

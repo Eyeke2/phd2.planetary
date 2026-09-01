@@ -85,6 +85,7 @@ enum BRAIN_CTRL_IDS
     AD_cbReverseDecOnFlip,
     AD_cbAssumeOrthogonal,
     AD_cbSlewDetection,
+    AD_cbTrackingStopDetection,
     AD_cbUseDecComp,
     AD_cbBeepForLostStar,
     AD_cbCloudDetection,

@@ -1386,6 +1386,12 @@ void MyFrame::ClearAlert(const wxString& msg)
         ClearAlert();
 }
 
+void MyFrame::ResetTrackingStopDebounce()
+{
+    m_trackingStopPending = false;
+    ClearAlert(_("Mount stopped tracking - guiding will stop if tracking does not resume."));
+}
+
 void MyFrame::OnAlertHelp(wxCommandEvent& evt)
 {
     // Any open help window will be re-directed

@@ -56,6 +56,7 @@ public:
 
     bool GetTracking(bool *tracking, bool verbose = false) override;
     bool SetTracking(bool tracking) override;
+    bool CanCheckTracking() override;
     bool CanSetTracking() override;
 };
 
