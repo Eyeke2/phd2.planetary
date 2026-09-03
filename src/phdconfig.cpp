@@ -46,17 +46,19 @@ wxString PhdConfig::DefaultProfileName = wxTRANSLATE("My Equipment");
 
 #define PROFILE_STREAM_VERSION "1"
 
-ConfigSection::ConfigSection() : m_pConfig(nullptr) { }
+ConfigSection::ConfigSection() : m_pConfig(nullptr), m_pConfigLock(nullptr) { }
 
 ConfigSection::~ConfigSection() { }
 
 void ConfigSection::SelectProfile(int profileId)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     m_prefix = wxString::Format("/profile/%d", profileId);
 }
 
 bool ConfigSection::GetBoolean(const wxString& name, bool defaultValue)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     bool bReturn = defaultValue;
     wxString path = m_prefix + name;
 
@@ -72,6 +74,7 @@ bool ConfigSection::GetBoolean(const wxString& name, bool defaultValue)
 
 wxString ConfigSection::GetString(const wxString& name, const wxString& defaultValue)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     wxString sReturn = defaultValue;
     wxString path = m_prefix + name;
 
@@ -90,6 +93,7 @@ wxString ConfigSection::GetString(const wxString& name, const wxString& defaultV
 // file template loses the backslash on reload).
 wxString ConfigSection::GetStringNoExpand(const wxString& name, const wxString& defaultValue)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     wxString sReturn = defaultValue;
     wxString path = m_prefix + name;
 
@@ -106,6 +110,7 @@ wxString ConfigSection::GetStringNoExpand(const wxString& name, const wxString& 
 
 double ConfigSection::GetDouble(const wxString& name, double defaultValue)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     double dReturn = defaultValue;
     wxString path = m_prefix + name;
 
@@ -121,6 +126,7 @@ double ConfigSection::GetDouble(const wxString& name, double defaultValue)
 
 long ConfigSection::GetLong(const wxString& name, long defaultValue)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     long lReturn = defaultValue;
     wxString path = m_prefix + name;
 
@@ -136,6 +142,7 @@ long ConfigSection::GetLong(const wxString& name, long defaultValue)
 
 int ConfigSection::GetInt(const wxString& name, int defaultValue)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     long lReturn = defaultValue;
     wxString path = m_prefix + name;
 
@@ -151,6 +158,7 @@ int ConfigSection::GetInt(const wxString& name, int defaultValue)
 
 void ConfigSection::SetBoolean(const wxString& name, bool value)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     if (m_pConfig)
     {
         m_pConfig->Write(m_prefix + name, value);
@@ -160,6 +168,7 @@ void ConfigSection::SetBoolean(const wxString& name, bool value)
 
 void ConfigSection::SetString(const wxString& name, const wxString& value)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     if (m_pConfig)
     {
         m_pConfig->Write(m_prefix + name, value);
@@ -169,6 +178,7 @@ void ConfigSection::SetString(const wxString& name, const wxString& value)
 
 void ConfigSection::SetDouble(const wxString& name, double value)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     if (m_pConfig)
     {
         m_pConfig->Write(m_prefix + name, value);
@@ -178,6 +188,7 @@ void ConfigSection::SetDouble(const wxString& name, double value)
 
 void ConfigSection::SetLong(const wxString& name, long value)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     if (m_pConfig)
     {
         m_pConfig->Write(m_prefix + name, value);
@@ -187,17 +198,20 @@ void ConfigSection::SetLong(const wxString& name, long value)
 
 void ConfigSection::SetInt(const wxString& name, int value)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     SetLong(name, value);
 }
 
 void ConfigSection::SetRect(const wxString& name, const wxRect& value)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     wxString stringValue = wxString::Format("%d;%d;%d;%d", value.x, value.y, value.width, value.height);
     SetString(name, stringValue);
 }
 
 wxRect ConfigSection::GetRect(const wxString& name)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     wxString value = GetString(name, wxEmptyString);
     wxArrayString fields = wxSplit(value, ';');
     if (fields.size() == 4)
@@ -212,17 +226,20 @@ wxRect ConfigSection::GetRect(const wxString& name)
 
 bool ConfigSection::HasEntry(const wxString& name) const
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     return m_pConfig && m_pConfig->HasEntry(m_prefix + name);
 }
 
 void ConfigSection::DeleteEntry(const wxString& name)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     m_pConfig->DeleteEntry(m_prefix + name);
     EvtServer.NotifyConfigurationChange();
 }
 
 void ConfigSection::DeleteGroup(const wxString& name)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     m_pConfig->DeleteGroup(m_prefix + name);
     EvtServer.NotifyConfigurationChange();
 }
@@ -231,6 +248,7 @@ void ConfigSection::DeleteGroup(const wxString& name)
 // e.g. baseName = "scope" would enumerate all the nodes in the profile whose parent is "scope"
 std::vector<wxString> ConfigSection::GetGroupNames(const wxString& baseName)
 {
+    wxCriticalSectionLocker lock(*m_pConfigLock);
     wxString oldPath = m_pConfig->GetPath();
     m_pConfig->SetPath(m_prefix + baseName);
     long lInx;
@@ -262,6 +280,7 @@ PhdConfig::PhdConfig(int instance)
 {
     wxConfig *config = new wxConfig(ConfigName(instance));
     Global.m_pConfig = Profile.m_pConfig = config;
+    Global.m_pConfigLock = Profile.m_pConfigLock = &m_configLock;
 
     m_isNewInstance = false;
 
@@ -279,6 +298,7 @@ PhdConfig::PhdConfig(int instance)
 
 PhdConfig::~PhdConfig()
 {
+    wxCriticalSectionLocker lock(m_configLock);
     delete Global.m_pConfig;
 }
 
@@ -298,6 +318,7 @@ struct AutoConfigPath
 
 int PhdConfig::FirstProfile()
 {
+    wxCriticalSectionLocker lock(m_configLock);
     AutoConfigPath changer(Profile.m_pConfig, "/profile");
 
     long id = 0;
@@ -319,6 +340,7 @@ int PhdConfig::FirstProfile()
 
 void PhdConfig::InitializeProfile()
 {
+    wxCriticalSectionLocker lock(m_configLock);
     // select initial profile
     int currentProfile = Global.GetInt("/currentProfile", 0);
     if (currentProfile <= 0)
@@ -335,6 +357,7 @@ void PhdConfig::InitializeProfile()
 
 void PhdConfig::DeleteAll()
 {
+    wxCriticalSectionLocker lock(m_configLock);
     if (Global.m_pConfig)
     {
         Debug.Write(wxString::Format("Deleting all configuration data\n"));
@@ -346,11 +369,19 @@ void PhdConfig::DeleteAll()
 
 wxString PhdConfig::GetCurrentProfile()
 {
+    wxCriticalSectionLocker lock(m_configLock);
     return GetProfileName(m_currentProfileId);
+}
+
+int PhdConfig::GetCurrentProfileId()
+{
+    wxCriticalSectionLocker lock(m_configLock);
+    return m_currentProfileId;
 }
 
 bool PhdConfig::SetCurrentProfile(const wxString& name)
 {
+    wxCriticalSectionLocker lock(m_configLock);
     if (GetProfileName(m_currentProfileId).CmpNoCase(name) == 0)
         return false;
 
@@ -375,6 +406,7 @@ bool PhdConfig::SetCurrentProfile(const wxString& name)
 
 int PhdConfig::GetProfileId(const wxString& name)
 {
+    wxCriticalSectionLocker lock(m_configLock);
     AutoConfigPath changer(Profile.m_pConfig, "/profile");
 
     int ret = 0;
@@ -403,6 +435,7 @@ int PhdConfig::GetProfileId(const wxString& name)
 
 wxString PhdConfig::GetProfileName(int profileId)
 {
+    wxCriticalSectionLocker lock(m_configLock);
     wxString name = Global.GetString(wxString::Format("/profile/%d/name", profileId), wxEmptyString);
     if (name.IsEmpty())
         name = wxString::Format("Profile %d", profileId);
@@ -411,12 +444,14 @@ wxString PhdConfig::GetProfileName(int profileId)
 
 bool PhdConfig::ProfileExists(int profileId)
 {
+    wxCriticalSectionLocker lock(m_configLock);
     wxString name = Global.GetString(wxString::Format("/profile/%d/name", profileId), wxEmptyString);
     return !name.IsEmpty();
 }
 
 bool PhdConfig::CreateProfile(const wxString& name)
 {
+    wxCriticalSectionLocker lock(m_configLock);
     // does the profile already exist?
     int id = GetProfileId(name);
     if (id > 0)
@@ -499,6 +534,7 @@ static void CopyGroup(wxConfigBase *cfg, const wxString& src, const wxString& ds
 
 bool PhdConfig::CloneProfile(const wxString& dest, const wxString& source)
 {
+    wxCriticalSectionLocker lock(m_configLock);
     int srcId = GetProfileId(source);
     if (srcId <= 0)
     {
@@ -534,6 +570,7 @@ bool PhdConfig::CloneProfile(const wxString& dest, const wxString& source)
 
 void PhdConfig::DeleteProfile(const wxString& name)
 {
+    wxCriticalSectionLocker lock(m_configLock);
     Debug.Write(wxString::Format("Delete profile %s\n", name));
 
     int id = GetProfileId(name);
@@ -559,6 +596,7 @@ void PhdConfig::DeleteProfile(const wxString& name)
 
 bool PhdConfig::RenameProfile(const wxString& oldname, const wxString& newname)
 {
+    wxCriticalSectionLocker lock(m_configLock);
     if (GetProfileId(newname) > 0)
     {
         Debug.Write(wxString::Format("error renaming profile %s to %s: new name already exists\n", oldname, newname));
@@ -707,6 +745,7 @@ static void LoadVal(ConfigSection& section, const wxString& s, const wxString& n
 
 bool PhdConfig::ReadProfile(const wxString& filename)
 {
+    wxCriticalSectionLocker lock(m_configLock);
     wxFileInputStream is(filename);
     if (!is.IsOk())
     {
@@ -817,6 +856,7 @@ static void WriteGroup(wxTextOutputStream& os, wxConfigBase *cfg, const wxString
 
 bool PhdConfig::WriteProfile(const wxString& filename)
 {
+    wxCriticalSectionLocker lock(m_configLock);
     wxFileOutputStream os(filename);
     if (!os.IsOk())
     {
@@ -833,6 +873,7 @@ bool PhdConfig::WriteProfile(const wxString& filename)
 
 bool PhdConfig::SaveAll(const wxString& filename)
 {
+    wxCriticalSectionLocker lock(m_configLock);
     wxFileOutputStream os(filename);
     if (!os.IsOk())
     {
@@ -848,6 +889,7 @@ bool PhdConfig::SaveAll(const wxString& filename)
 
 bool PhdConfig::RestoreAll(const wxString& filename)
 {
+    wxCriticalSectionLocker lock(m_configLock);
     wxFileInputStream is(filename);
     if (!is.IsOk())
     {
@@ -881,6 +923,7 @@ bool PhdConfig::RestoreAll(const wxString& filename)
 
 bool PhdConfig::Flush()
 {
+    wxCriticalSectionLocker lock(m_configLock);
     Debug.Write("PhdConfig flush\n");
 
     // On Linux and Mac, this will write the config file if it is dirty
@@ -891,6 +934,7 @@ bool PhdConfig::Flush()
 
 wxArrayString PhdConfig::ProfileNames()
 {
+    wxCriticalSectionLocker lock(m_configLock);
     AutoConfigPath changer(Profile.m_pConfig, "/profile");
 
     wxArrayString ary;
@@ -915,6 +959,7 @@ wxArrayString PhdConfig::ProfileNames()
 
 unsigned int PhdConfig::NumProfiles()
 {
+    wxCriticalSectionLocker lock(m_configLock);
     AutoConfigPath changer(Profile.m_pConfig, "/profile");
 
     unsigned int count = 0;
@@ -935,6 +980,12 @@ unsigned int PhdConfig::NumProfiles()
     }
 
     return count;
+}
+
+bool PhdConfig::IsNewInstance() const
+{
+    wxCriticalSectionLocker lock(m_configLock);
+    return m_isNewInstance;
 }
 
 AutoTempProfile::AutoTempProfile(bool init)

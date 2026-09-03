@@ -70,6 +70,7 @@ class PhdConfig;
 class ConfigSection
 {
     wxConfig *m_pConfig;
+    wxCriticalSection *m_pConfigLock;
     wxString m_prefix;
 
     friend class PhdConfig;
@@ -112,6 +113,7 @@ class PhdConfig
     long m_configVersion;
     bool m_isNewInstance;
     int m_currentProfileId;
+    mutable wxCriticalSection m_configLock;
 
 public:
     PhdConfig(int instance);
@@ -127,7 +129,7 @@ public:
 
     void InitializeProfile();
     wxString GetCurrentProfile();
-    int GetCurrentProfileId() { return m_currentProfileId; }
+    int GetCurrentProfileId();
     bool SetCurrentProfile(const wxString& name);
 
     int GetProfileId(const wxString& name);
@@ -142,7 +144,7 @@ public:
     bool ReadProfile(const wxString& filename);
     wxArrayString ProfileNames();
     unsigned int NumProfiles();
-    bool IsNewInstance() const { return m_isNewInstance; }
+    bool IsNewInstance() const;
 
     ConfigSection Global;
     ConfigSection Profile;

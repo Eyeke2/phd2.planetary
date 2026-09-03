@@ -307,6 +307,7 @@ extern int YWinSize;
 class PhdApp : public wxApp
 {
     wxSingleInstanceChecker *m_instanceChecker;
+    wxLog *m_runtimeLogger;
     long m_instanceNumber;
     bool m_instanceFromCmdLine;
     bool m_instanceWasMigrated;
