@@ -155,6 +155,7 @@ struct ExecFuncThreadEvent : public wxThreadEvent
 
 PhdApp::PhdApp()
 {
+    m_runtimeLogger = nullptr;
     m_resetConfig = false;
     m_instanceNumber = 1;
     m_instanceFromCmdLine = false;
@@ -615,6 +616,47 @@ struct EarlyLogger : public wxLog
     }
 };
 
+// Keep wxWidgets runtime errors in the debug log and out of modal dialogs.
+// Error-level messages are also surfaced through PHD2's non-modal info bar.
+struct RuntimeLogger : public wxLog
+{
+    wxLog *m_prev;
+
+    RuntimeLogger()
+    {
+        wxASSERT(wxThread::IsMain());
+        m_prev = wxLog::SetActiveTarget(this);
+        DisableTimestamp();
+    }
+
+    ~RuntimeLogger()
+    {
+        wxASSERT(wxThread::IsMain());
+        wxLog::SetActiveTarget(m_prev);
+    }
+
+    void DoLogRecord(wxLogLevel level, const wxString& msg, const wxLogRecordInfo& info) override
+    {
+        (void) info;
+        const wxChar *category =
+            level <= wxLOG_Error ? wxT("error") : level == wxLOG_Warning ? wxT("warning") : wxT("message");
+        {
+            // A failed debug-log write can itself raise a wx error. Suppress
+            // that nested error so it cannot recurse back into this logger.
+            wxLogNull suppressNestedLogError;
+            Debug.Write(wxString::Format("wx %s (level %lu): %s\n", category, static_cast<unsigned long>(level), msg));
+        }
+
+        if (level <= wxLOG_Error)
+        {
+            wxGetApp().CallAfter([msg]() {
+                if (pFrame && !pFrame->IsBeingDeleted())
+                    pFrame->Alert(msg, wxICON_ERROR);
+            });
+        }
+    }
+};
+
 bool PhdApp::OnInit()
 {
     SetThreadName("PHD2 Main");
@@ -767,6 +809,7 @@ bool PhdApp::OnInit()
     pFrame = new MyFrame();
 
     pFrame->Show(true);
+    m_runtimeLogger = new RuntimeLogger();
 
 #if defined(__WINDOWS__)
     if (m_instanceWasMigrated)
@@ -814,6 +857,9 @@ int PhdApp::OnExit()
 
     delete m_instanceChecker;
     m_instanceChecker = nullptr;
+
+    delete m_runtimeLogger;
+    m_runtimeLogger = nullptr;
 
 #if defined(FRAME_MONITOR_CAMERA)
     SetEvent(m_hEvent);
