@@ -229,6 +229,7 @@ struct Updater
     bool m_interactive;
     UpdateNow *m_updatenow;
     volatile bool abort;
+    int m_force;
 
 #if defined(OLD_CURL)
     static int progress_callback(void *clientp, double dltotal, double dlnow, double ultotal, double ulnow)
@@ -245,6 +246,7 @@ struct Updater
         m_settings.enabled = pConfig->Global.GetBoolean("/Update/enabled", DefaultEnableUpdate);
         int DefaultSeries = Version::ThisVersion().IsDevBuild() ? UPD_SERIES_DEV : UPD_SERIES_MAIN;
         int series = pConfig->Global.GetInt("/Update/series", DefaultSeries);
+        LoadForceSetting();
         switch (series)
         {
         case UPD_SERIES_MAIN:
@@ -255,6 +257,12 @@ struct Updater
             break;
         }
         m_settings.series = static_cast<UpdateSeries>(series);
+    }
+
+    void LoadForceSetting()
+    {
+        wxASSERT(wxThread::IsMain());
+        m_force = pConfig->Global.GetInt("/Update/force", 0);
     }
 
     void SaveSettings()
@@ -400,7 +408,7 @@ struct Updater
             // force: 1 = force upgrade when non-interactive
             //        2 = force upgrade when interactive ("Check Now")
             //        >2 force upgrade
-            int force = pConfig->Global.GetInt("/Update/force", 0);
+            int force = m_force;
             if (force)
             {
                 if (force > 2 || (force == 2 && m_interactive) || (force == 1 && !m_interactive))
@@ -410,7 +418,8 @@ struct Updater
                     needs_upgrade = true;
 
                     // one-shot, set it back to 0
-                    pConfig->Global.SetInt("/Update/force", 0);
+                    m_force = 0;
+                    PhdApp::ExecInMainThread([]() { pConfig->Global.SetInt("/Update/force", 0); });
                 }
             }
         }
@@ -942,6 +951,7 @@ void PHD2Updater::CheckNow()
     if (!updater->CanCheckNow())
         return;
 
+    updater->LoadForceSetting();
     pFrame->m_upgradeMenuItem->Enable(false);
 
     UpdateNow(updater).Run();

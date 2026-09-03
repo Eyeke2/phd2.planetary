@@ -522,6 +522,8 @@ MyFrame::~MyFrame()
 
     delete m_showBookmarksAccel;
     delete m_bookmarkLockPosAccel;
+
+    pFrame = nullptr;
 }
 
 void MyFrame::UpdateTitle()
@@ -1328,6 +1330,7 @@ static wxString WrapText(wxWindow *win, const wxString& text, int width)
 struct alert_params
 {
     wxString msg;
+    wxString configPropKey;
     wxString buttonLabel;
     int flags;
     alert_fn *fnDontShow;
@@ -1410,6 +1413,31 @@ void MyFrame::OnAlertSize(wxSizeEvent& evt)
 // if any of the other buttons are present.
 void MyFrame::DoAlert(const alert_params& params)
 {
+    wxASSERT(wxThread::IsMain());
+
+    if (!params.configPropKey.IsEmpty() && !pConfig->Global.GetBoolean(params.configPropKey, true))
+    {
+        Debug.Write(wxString::Format("Suppressed alert:  %s\n", params.msg));
+        return;
+    }
+
+    {
+        // Avoid displaying duplicate messages multiple times. Keep this on the
+        // UI thread since it also examines the info bar's visibility.
+        bool dupMsg = false;
+        {
+            wxCriticalSectionLocker lock(m_alertLock);
+            if ((params.msg == m_prevAlertMsg) && m_infoBar->IsShown())
+                dupMsg = true;
+            m_prevAlertMsg = params.msg;
+        }
+        if (dupMsg)
+        {
+            EvtServer.NotifyAlert(params.msg, params.flags);
+            return;
+        }
+    }
+
     Debug.Write(wxString::Format("Alert: %s\n", params.msg));
 
     m_alertDontShowFn = params.fnDontShow;
@@ -1469,29 +1497,13 @@ void MyFrame::DoAlert(const alert_params& params)
 }
 
 void MyFrame::Alert(const wxString& msg, alert_fn *DontShowFn, const wxString& buttonLabel, alert_fn *SpecialFn, intptr_t arg,
-                    bool showHelpButton, int flags)
+                    bool showHelpButton, int flags, const wxString& configPropKey)
 {
-    {
-        // Avoid displaying duplicate message multiple times
-        bool dupMsg = false;
-        {
-            wxCriticalSectionLocker lock(m_alertLock);
-            if ((msg == m_prevAlertMsg) && m_infoBar->IsShown())
-                dupMsg = true;
-            m_prevAlertMsg = msg;
-        }
-        if (dupMsg)
-        {
-            // Send duplicate alert via the event server but don't show it again
-            EvtServer.NotifyAlert(msg, flags);
-            return;
-        }
-    }
-
     if (wxThread::IsMain())
     {
         alert_params params;
         params.msg = msg;
+        params.configPropKey = configPropKey;
         params.buttonLabel = buttonLabel;
         params.flags = flags;
         params.fnDontShow = DontShowFn;
@@ -1504,6 +1516,7 @@ void MyFrame::Alert(const wxString& msg, alert_fn *DontShowFn, const wxString& b
     {
         alert_params *params = new alert_params;
         params->msg = msg;
+        params->configPropKey = configPropKey;
         params->buttonLabel = buttonLabel;
         params->flags = flags;
         params->fnDontShow = DontShowFn;
@@ -1530,12 +1543,7 @@ void MyFrame::Alert(const wxString& msg, alert_fn *DontShowFn, const wxString& b
 void MyFrame::SuppressibleAlert(const wxString& configPropKey, const wxString& msg, alert_fn *dontShowFn, intptr_t arg,
                                 bool showHelpButton, int flags)
 {
-    if (pConfig->Global.GetBoolean(configPropKey, true))
-    {
-        Alert(msg, dontShowFn, wxEmptyString, 0, arg, showHelpButton);
-    }
-    else
-        Debug.Write(wxString::Format("Suppressed alert:  %s\n", msg));
+    Alert(msg, dontShowFn, wxEmptyString, 0, arg, showHelpButton, flags, configPropKey);
 }
 
 void MyFrame::Alert(const wxString& msg, int flags)

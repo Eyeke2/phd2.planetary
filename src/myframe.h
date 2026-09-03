@@ -523,7 +523,8 @@ public:
 
     void Alert(const wxString& msg, int flags = wxICON_EXCLAMATION);
     void Alert(const wxString& msg, alert_fn *DontShowFn, const wxString& buttonLabel, alert_fn *SpecialFn, intptr_t arg,
-               bool showHelpButton = false, int flags = wxICON_EXCLAMATION);
+               bool showHelpButton = false, int flags = wxICON_EXCLAMATION,
+               const wxString& configPropKey = wxEmptyString);
     void SuppressibleAlert(const wxString& configPropKey, const wxString& msg, alert_fn *dontShowFn, intptr_t arg,
                            bool showHelpButton = false, int flags = wxICON_EXCLAMATION);
     void ClearAlert();
