@@ -249,6 +249,7 @@ private:
     int64_t m_stateSinceMs = 0;
     int64_t m_mediumTripSinceMs = 0;   // 0 = medium vote not currently held
     int64_t m_recoverSinceMs = 0;      // 0 = recovery condition not currently held
+    int64_t m_alternateSinceMs = 0;
     int64_t m_suspectQuietSinceMs = 0; // 0 = a channel is still tripped while in Suspect
     int     m_lossRun = 0;
     bool    m_sawGoodDetection = false;

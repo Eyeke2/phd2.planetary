@@ -45,6 +45,10 @@ constexpr float kMassVarFracMin   = CONFIG_CLOUD_MASS_VARIABILITY_FRAC_MIN;
 constexpr float kSnrVarDbMin      = CONFIG_CLOUD_SNR_VARIABILITY_DB_MIN;
 constexpr int64_t kStuckMs        = CONFIG_CLOUD_STUCK_MS;
 constexpr float kStaticMadFrac    = CONFIG_CLOUD_STATIC_MAD_FRAC;
+constexpr int64_t kAlternateBaselineMs = CONFIG_CLOUD_ALTERNATE_BASELINE_MS;
+constexpr float kAlternateRelMad       = CONFIG_CLOUD_ALTERNATE_REL_MAD;
+constexpr float kAlternateSnrMadDb     = CONFIG_CLOUD_ALTERNATE_SNR_MAD_DB;
+constexpr float kAlternateMinSnrDb     = CONFIG_CLOUD_ALTERNATE_MIN_SNR_DB;
 constexpr int   kPeriodicLogMs    = CONFIG_CLOUD_PERIODIC_LOG_MS;
 constexpr float kEps              = 1e-6f;
 
@@ -442,6 +446,7 @@ void CloudDetector::clearStateLocked() noexcept
     m_mediumTripSinceMs = 0;
     m_slowTripSinceMs = 0;
     m_recoverSinceMs = 0;
+    m_alternateSinceMs = 0;
     m_suspectQuietSinceMs = 0;
     m_lossRun = 0;
     m_sawGoodDetection = false;
@@ -476,6 +481,7 @@ void CloudDetector::resumeAfterMotionLocked(const char* reason) noexcept
     m_mediumTripSinceMs = 0;
     m_slowTripSinceMs = 0;
     m_recoverSinceMs = 0;
+    m_alternateSinceMs = 0;
     m_suspectQuietSinceMs = 0;
     m_lossRun = 0;
     m_sawGoodDetection = false;
@@ -550,6 +556,7 @@ void CloudDetector::transitionLocked(SceneState next, const char* why, int64_t t
     m_mediumTripSinceMs = 0;
     m_slowTripSinceMs = 0;
     m_recoverSinceMs = 0;
+    m_alternateSinceMs = 0;
     m_suspectQuietSinceMs = 0;
     m_tele.staticObstruction = false;
 }
@@ -940,6 +947,7 @@ void CloudDetector::feedLocked(const SceneSample& s)
         const bool recovered = s.detected && s.stableLock && m_lossRun == 0 &&
                                !massFast && recoveryBadChannels < 2 && !slowVote;
         if (recovered) {
+            m_alternateSinceMs = 0;
             if (m_recoverSinceMs == 0)
                 m_recoverSinceMs = t;
             else if (t - m_recoverSinceMs >= kRecoverHoldMs) {
@@ -949,6 +957,33 @@ void CloudDetector::feedLocked(const SceneSample& s)
         }
         else {
             m_recoverSinceMs = 0;
+
+            float alternateMassMed = 0.f, alternateMassMad = 0.f;
+            float alternateBrightMed = 0.f, alternateBrightMad = 0.f;
+            float alternateSnrMed = 0.f, alternateSnrMad = 0.f;
+            const bool stableMass = !m_seenMass ||
+                (detChannelsLive && m_shortMass.lastMedianMad(kVariabilityK, alternateMassMed, alternateMassMad) &&
+                 alternateMassMed > kEps && alternateMassMad / alternateMassMed <= kAlternateRelMad);
+            const bool stableBright =
+                m_shortBright.lastMedianMad(kVariabilityK, alternateBrightMed, alternateBrightMad) &&
+                alternateBrightMed > kEps && alternateBrightMad / alternateBrightMed <= kAlternateRelMad;
+            const bool stableSnr = !m_seenSnr ||
+                (detChannelsLive && m_shortSnr.lastMedianMad(kVariabilityK, alternateSnrMed, alternateSnrMad) &&
+                 alternateSnrMed >= kAlternateMinSnrDb && alternateSnrMad <= kAlternateSnrMadDb);
+            const bool stableAlternative = clearEligible && stableMass && stableBright && stableSnr;
+
+            if (stableAlternative) {
+                if (m_alternateSinceMs == 0)
+                    m_alternateSinceMs = t;
+                else if (t - m_alternateSinceMs >= kAlternateBaselineMs) {
+                    logLocked("cloud: stable alternate baseline certified");
+                    resetLocked("stable alternate baseline");
+                    return;
+                }
+            }
+            else {
+                m_alternateSinceMs = 0;
+            }
         }
         // Static-obstruction escalation: long obscuration with a flat (non-cloud-like)
         // brightness signature -- a branch / dew never fluctuates the way moving cloud does.
