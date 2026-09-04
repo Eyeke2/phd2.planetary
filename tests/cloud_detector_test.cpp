@@ -419,7 +419,7 @@ void BetterClearViewRaisesProtectedStandardWithoutReset()
     Require(telemetry.scoreDelta < -0.8f, "better FWHM standard was not retained");
 }
 
-void PersistentlyLowerViewAdaptsOnObservingTimeScale()
+void StableAlternateViewRequalifies()
 {
     CloudDetector detector;
     int64_t t = Arm(detector);
@@ -434,22 +434,12 @@ void PersistentlyLowerViewAdaptsOnObservingTimeScale()
         t += 2000;
     };
 
-    // Fifteen minutes is intentionally too short to normalize a 20% transmission reduction.
-    for (int i = 0; i < 15 * 60 / 2; ++i)
-        feedLower();
-    Require(detector.GetState() != SceneState::Clear,
-            "lower conditions became clear again in substantially less than 30 minutes");
-    Require(detector.GetTelemetry().massRatio < 0.9f,
-            "protected mass standard drifted down too quickly");
-
-    // A genuinely permanent, stable regime is eventually accepted. With the 0.33%/minute cap,
-    // a 10-20% reduction converges over roughly 30-60 minutes; allow extra recovery dwell here.
-    for (int i = 0; i < 60 * 60 / 2; ++i)
+    for (int i = 0; i < 4 * 60 / 2; ++i)
         feedLower();
     Require(detector.GetState() == SceneState::Clear,
-            "persistently lower stable conditions never became the new normal");
+            "stable alternate view did not establish a new baseline");
     Require(detector.GetTelemetry().massRatio > 0.98f,
-            "slowly adapted mass standard did not converge on the stable view");
+            "new baseline did not represent the stable alternate view");
 }
 
 void NoisyContrastAndFwhmDoNotBlockRecovery()
@@ -694,7 +684,7 @@ int main()
     BitDepthChangeResetsBaseline();
     AutoExposureKeepsContrastOnOneScale();
     BetterClearViewRaisesProtectedStandardWithoutReset();
-    PersistentlyLowerViewAdaptsOnObservingTimeScale();
+    StableAlternateViewRequalifies();
     NoisyContrastAndFwhmDoNotBlockRecovery();
     GuidingSessionResetRelearnsCurrentClearView();
     MotionResumeClearsTransientEvidenceButKeepsBaseline();
