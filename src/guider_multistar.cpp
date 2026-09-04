@@ -289,6 +289,21 @@ void GuiderMultiStar::LoadProfileSettings()
     SetSearchRegion(searchRegion);
 
     SetMultiStarMode(pConfig->Profile.GetBoolean("/guider/multistar/enabled", false));
+
+    // Re-apply solar/planetary settings for the newly selected profile.
+    // pFrame is null during initial construction (startup restore is handled
+    // via CallAfter in the MyFrame ctor).
+    if (pFrame)
+    {
+        // Refresh m_phd2_* from the new profile first, so that the disable
+        // toggle below restores the new profile's own values
+        m_SolarSystemObject.LoadProfileSettings();
+        bool planetaryEnabled = pConfig->Profile.GetBoolean("/PlanetTool/enabled", false);
+        if (m_SolarSystemObject.Get_SolarSystemObjMode())
+            m_SolarSystemObject.Set_SolarSystemObjMode(false); // release core-setting overrides
+        m_SolarSystemObject.Set_SolarSystemObjMode(planetaryEnabled);
+        m_SolarSystemObject.SetMinMaxDiametersUpdate(); // sync radius spinners if dialog open
+    }
 }
 
 bool GuiderMultiStar::GetMassChangeThresholdEnabled() const

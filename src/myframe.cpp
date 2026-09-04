@@ -337,6 +337,13 @@ MyFrame::MyFrame()
 
     pGuider->LoadProfileSettings();
 
+    // Restore persisted solar/planetary guiding mode. Cannot be applied here:
+    // the global pFrame is not assigned until this constructor returns, and
+    // Set_SolarSystemObjMode() dereferences pFrame->pStatsWin and
+    // pFrame->m_PlanetaryMenuItem. Defer to the event loop.
+    if (pConfig->Profile.GetBoolean("/PlanetTool/enabled", false))
+        CallAfter([this]() { pGuider->m_SolarSystemObject.Set_SolarSystemObjMode(true); });
+
     bool sticky = pConfig->Global.GetBoolean("/StickyLockPosition", false);
     pGuider->SetLockPosIsSticky(sticky);
     tools_menu->Check(EEGG_STICKY_LOCK, sticky);
@@ -961,6 +968,8 @@ void MyFrame::LoadProfileSettings()
     // be populated after the 1st calibration
     int autoLoad = pConfig->Profile.GetInt("/AutoLoadCalibration", -1);
     m_autoLoadCalibration = (autoLoad == 1); // new profile=> false
+
+    m_planetToolCustomRatesEnabled = pConfig->Profile.GetBoolean("/PlanetTool/custom_rates_enabled", false);
 
     int focalLength = pConfig->Profile.GetInt("/frame/focalLength", DefaultFocalLength);
     SetFocalLength(focalLength);
