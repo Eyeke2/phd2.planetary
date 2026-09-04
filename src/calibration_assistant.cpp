@@ -775,6 +775,28 @@ void CalibrationAssistant::OnSlew(wxCommandEvent& evt)
         return;
     }
 
+    if (pPointingSource->CanCheckTracking())
+    {
+        bool tracking = false;
+        if (pPointingSource->GetTracking(&tracking))
+        {
+            ShowError(_("Could not determine tracking status. Make sure scope is un-parked and ready to slew"), false);
+            Debug.Write("Cal-slew: could not determine mount tracking status\n");
+            return;
+        }
+
+        if (!tracking)
+        {
+            if (!pPointingSource->CanSetTracking() || pPointingSource->SetTracking(true))
+            {
+                ShowError(_("Could not start tracking. Make sure scope is un-parked and ready to slew"), false);
+                Debug.Write("Cal-slew: could not start mount tracking\n");
+                return;
+            }
+            ShowStatus(_("Mount tracking enabled"));
+        }
+    }
+
     if (m_pTargetEast->GetValue())
         slew_ra = norm_ra(cur_st + (offsetSlew / 15.0));
     else
