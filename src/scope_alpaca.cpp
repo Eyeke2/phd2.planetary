@@ -142,7 +142,7 @@ public:
     bool CanSlewAsync() override { return m_canSlewAsync; }
     bool SlewToCoordinates(double ra, double dec) override;
     bool SlewToCoordinatesAsync(double ra, double dec) override;
-    void AbortSlew() override;
+    bool AbortSlew() override;
 
     wxString GetMountClassName() const override { return wxString("scope"); }
 
@@ -920,18 +920,22 @@ bool ScopeAlpaca::SlewToCoordinates(double ra, double dec)
     }
 }
 
-void ScopeAlpaca::AbortSlew()
+bool ScopeAlpaca::AbortSlew()
 {
     std::shared_ptr<alpaca::Telescope> mount = statusTelescope();
     if (!mount)
     {
         Debug.Write("Alpaca mount: cannot abort slew when not connected\n");
-        return;
+        return true;
     }
     Debug.Write("ScopeAlpaca: AbortSlew\n"); // logged on every invoke, like scope_ascom
     alpaca::Error err = mount->abortSlew(); // best-effort
     if (err)
+    {
         Debug.Write(wxString::Format("Alpaca mount: abortslew failed: %s\n", err.what()));
+        return true;
+    }
+    return false;
 }
 
 PierSide ScopeAlpaca::SideOfPier()
