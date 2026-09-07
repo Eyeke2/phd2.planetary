@@ -312,6 +312,11 @@ void Guider::LoadProfileSettings()
     }
 }
 
+SceneTelemetry Guider::GetCloudTelemetry() const
+{
+    return m_cloudDetector.GetTelemetry(CloudSampleNowMs());
+}
+
 bool Guider::IsCloudDetectionActive() const
 {
     // Public cloud detection is star-only and pauses while guiding control is settling.
@@ -948,6 +953,11 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
             {
                 cloudLabel = _("CLOUD: DETECTOR ERROR");
                 cloudColour = wxColour(255, 75, 75);
+            }
+            else if (!telemetry.fresh && telemetry.state != SceneState::Warmup)
+            {
+                cloudLabel = _("CLOUD: NO DATA");
+                cloudColour = wxColour(190, 190, 190);
             }
             else switch (telemetry.state)
             {

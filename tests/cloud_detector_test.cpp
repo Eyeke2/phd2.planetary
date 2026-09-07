@@ -1,5 +1,7 @@
 #include "../contributions/CloudDetector/CloudDetector.h"
+#include "../contributions/CloudDetector/CloudDetectorConfig.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <climits>
 #include <cmath>
@@ -456,12 +458,15 @@ void NoisyContrastAndFwhmDoNotBlockRecovery()
     Require(detector.GetState() == SceneState::Obscured, "test blackout did not latch obscured");
 
     bool sawClearRecovery = false;
-    for (int i = 0; i < 8; ++i, t += 2000)
+    for (int i = 0; i < 45; ++i, t += 2000)
     {
         SceneSample sample = ClearSample(t);
         sample.score = -3.12f; // one mildly degraded target-derived channel
         sample.brightCeil = i % 2 == 0 ? 40.f : 160.f;
         detector.Feed(sample);
+        if (i < 30)
+            Require(detector.GetState() == SceneState::Obscured,
+                    "recovery skipped the full photometric trend window");
         sawClearRecovery = sawClearRecovery || detector.GetState() == SceneState::Clear;
     }
     Require(sawClearRecovery,
@@ -548,7 +553,7 @@ void MotionResumeClearsTransientEvidenceButKeepsBaseline()
     Require(telemetry.severity == 0.f && telemetry.massRatio < 0.f,
             "motion resume retained the pre-motion trip window");
 
-    for (int i = 0; i < 8; ++i, t += 2000)
+    for (int i = 0; i < 45; ++i, t += 2000)
         detector.Feed(ClearSample(t));
     Require(detector.GetState() == SceneState::Clear,
             "obscured latch could not recover from fresh post-motion samples");
@@ -661,10 +666,350 @@ void ReportedIntegrationFaultFailsOpenUntilReset()
     Require(telemetry.exceptionCount == 1, "explicit reset erased lifetime exception count");
 }
 
+void MissingChannelsCannotRepeatVotes()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    for (int i = 0; i < 10; ++i, t += 2000) {
+        SceneSample s = ClearSample(t);
+        s.mass = 70.f; s.snr = 15.f;
+        detector.Feed(s);
+    }
+    Require(detector.GetState() == SceneState::Suspect, "partial medium vote did not become suspect");
+    for (int i = 0; i < 20; ++i, t += 2000) {
+        SceneSample s = ClearSample(t);
+        s.mass = s.snr = s.score = std::numeric_limits<float>::quiet_NaN();
+        s.brightCeil = -1.f;
+        detector.Feed(s);
+        Require(detector.GetState() == SceneState::Suspect,
+                "missing data completed a trip or cleared a suspect verdict");
+        Require(detector.GetTelemetry().massRatio < 0.f && detector.GetTelemetry().brightRatio < 0.f,
+                "missing channel reused its old median");
+    }
+}
+
+void GradualClearingWaitsForPlateau()
+{
+    for (int duration : { 120, 240, 600 }) {
+        CloudDetector detector;
+        int64_t t = Arm(detector);
+        for (int i = 0; i < 3; ++i, t += 2000) {
+            SceneSample s = ClearSample(t);
+            s.detected = false; s.brightCeil = 0.f;
+            detector.Feed(s);
+        }
+        Require(detector.GetState() == SceneState::Obscured, "ramp setup failed to obscure");
+        for (int elapsed = 0; elapsed < duration; elapsed += 2, t += 2000) {
+            SceneSample s = ClearSample(t);
+            const float progress = static_cast<float>(elapsed) / duration;
+            s.mass = 55.f + 60.f * progress;
+            s.snr = 16.f + 7.f * progress;
+            detector.Feed(s);
+            Require(detector.GetState() == SceneState::Obscured,
+                    "continuing one-to-ten-minute clearing ramp released the cloud hold");
+        }
+        for (int i = 0; i < 60; ++i, t += 2000) {
+            SceneSample s = ClearSample(t);
+            s.mass = 115.f; s.snr = 23.f;
+            s.score = -3.12f; s.brightCeil = i % 2 ? 40.f : 160.f;
+            detector.Feed(s);
+        }
+        Require(detector.GetState() == SceneState::Clear, "settled clear plateau failed to release hold");
+    }
+}
+
+void AlternateBaselineCannotAcceptContinuingClearing()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    for (int i = 0; i < 120; ++i, t += 2000) {
+        SceneSample s = ClearSample(t);
+        s.mass = 6.f + 6.f * i / 120.f;
+        s.brightCeil = 10.f + 10.f * i / 120.f;
+        s.snr = 17.f + 2.f * i / 120.f;
+        detector.Feed(s);
+        if (i >= 3)
+            Require(detector.GetState() == SceneState::Obscured,
+                    "alternate-baseline path bypassed the clearing trend gate");
+    }
+    for (int i = 0; i < 100; ++i, t += 2000) {
+        SceneSample s = ClearSample(t);
+        s.mass = 12.f; s.brightCeil = 20.f; s.snr = 19.f;
+        detector.Feed(s);
+    }
+    Require(detector.GetState() == SceneState::Clear, "settled alternate baseline could not requalify");
+}
+
+int64_t Blackout(CloudDetector& detector)
+{
+    int64_t t = Arm(detector);
+    for (int i = 0; i < 3; ++i, t += 2000) {
+        auto s = ClearSample(t);
+        s.detected = false; s.brightCeil = 0.f;
+        detector.Feed(s);
+    }
+    Require(detector.GetState() == SceneState::Obscured, "blackout setup failed");
+    return t;
+}
+
+void MissingEvidenceAndGapRestartRecovery()
+{
+    for (bool gap : { false, true }) {
+        CloudDetector detector;
+        int64_t t = Blackout(detector);
+        for (int i = 0; i < 32; ++i, t += 2000) detector.Feed(ClearSample(t));
+        Require(detector.GetTelemetry().recoverySettled && detector.GetState() == SceneState::Obscured,
+                "expected plateau qualification before the recovery hold completes");
+        if (gap) {
+            t += 120000;
+        } else {
+            for (int i = 0; i < 15; ++i, t += 2000) {
+                auto s = ClearSample(t);
+                s.mass = s.snr = std::numeric_limits<float>::quiet_NaN();
+                detector.Feed(s);
+                Require(!detector.GetTelemetry().recoverySettled && detector.GetState() == SceneState::Obscured,
+                        "missing primary evidence released a hold");
+            }
+        }
+        for (int i = 0; i < 30; ++i, t += 2000) {
+            detector.Feed(ClearSample(t));
+            Require(detector.GetState() == SceneState::Obscured,
+                    "interrupted recovery failed to refill its time window");
+        }
+        for (int i = 0; i < 15; ++i, t += 2000) detector.Feed(ClearSample(t));
+        Require(detector.GetState() == SceneState::Clear, "fresh recovery after interruption failed");
+    }
+}
+
+void StalledFeedExpiresWithoutErasingVerdict()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    Require(detector.GetTelemetry(t).fresh, "recent frame was marked stale");
+    auto stale = detector.GetTelemetry(t + 60000);
+    Require(!stale.fresh && stale.state == SceneState::Clear && !stale.recoverySettled,
+            "stalled stream advertised fresh Clear or erased its remembered verdict");
+    detector.Reset("blackout freshness test");
+    t = Blackout(detector);
+    stale = detector.GetTelemetry(t + 60000);
+    Require(!stale.fresh && stale.state == SceneState::Obscured && !detector.IsClear(),
+            "snapshot expiry must not release an obscured latch");
+    detector.ResumeAfterMotion("test");
+    Require(!detector.GetTelemetry(t).fresh, "motion resume advertised evidence before any new frame");
+    detector.Reset("invalid primary freshness");
+    t = Arm(detector);
+    auto unavailable = ClearSample(t);
+    unavailable.mass = std::numeric_limits<float>::quiet_NaN();
+    detector.Feed(unavailable);
+    Require(!detector.GetTelemetry(t).fresh && detector.GetState() == SceneState::Clear,
+            "missing learned photometry advertised a cached Clear verdict as current");
+}
+
+void DuplicatesCannotFillWindowsAndOptionalChannelsStayOptional()
+{
+    CloudDetector detector;
+    int64_t t = Blackout(detector);
+    auto s = ClearSample(t);
+    detector.Feed(s);
+    for (int i = 0; i < 500; ++i) detector.Feed(s);
+    Require(detector.GetTelemetry().massRatio < 0.f && !detector.GetTelemetry().recoverySettled,
+            "duplicate timestamp filled fresh short/trend windows");
+    t += 2000;
+    for (int i = 0; i < 45; ++i, t += 2000) {
+        s = ClearSample(t);
+        s.brightCeil = -1.f;
+        s.score = std::numeric_limits<float>::quiet_NaN();
+        if (i % 3) { s.ensembleStars = 4; s.ensembleRatio = 1.f; }
+        detector.Feed(s);
+    }
+    Require(detector.GetState() == SceneState::Clear,
+            "missing optional FWHM/contrast blocked fresh mass/SNR recovery");
+}
+
+void SlowAndIrregularCadencesCanRecover()
+{
+    for (int interval : { 700, 3000, 15000, 30000 }) {
+        CloudDetector detector;
+        int64_t t = 1000;
+        auto sampleAt = [&](int64_t when) {
+            auto s = ClearSample(when);
+            s.exposureMs = 0; // auto-exposure uses brightExposureMs for cadence, not identity
+            s.brightExposureMs = interval;
+            s.brightCeil = 100.f * interval / 1000.f;
+            return s;
+        };
+        for (int i = 0; i < 80; ++i, t += interval) detector.Feed(sampleAt(t));
+        Require(detector.GetState() == SceneState::Clear, "cadence fixture failed to arm");
+        for (int i = 0; i < 3; ++i, t += interval) {
+            auto s = sampleAt(t);
+            s.detected = false; s.brightCeil = 0.f;
+            detector.Feed(s);
+        }
+        for (int elapsed = 0; elapsed < 240000; elapsed += interval, t += interval)
+            detector.Feed(sampleAt(t));
+        Require(detector.GetState() == SceneState::Clear && detector.GetTelemetry(t).fresh,
+                "slow/non-dividing cadence could not complete a settled recovery");
+    }
+}
+
+void SmallPhotometricNoiseDoesNotBlockPlateau()
+{
+    CloudDetector detector;
+    int64_t t = Blackout(detector);
+    for (int i = 0; i < 75; ++i, t += 2000) {
+        auto s = ClearSample(t);
+        s.mass += static_cast<float>((i * 7) % 5 - 2) * 0.4f;
+        s.snr += static_cast<float>((i * 3) % 5 - 2) * 0.04f;
+        detector.Feed(s);
+    }
+    Require(detector.GetState() == SceneState::Clear && !detector.GetTelemetry().clearingTrend,
+            "small stationary mass/SNR noise blocked recovery");
+}
+
+void SuspectAlsoWaitsForClearingAndEnsembleHistoryIsFresh()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    for (int i = 0; i < 3; ++i, t += 2000) {
+        auto s = ClearSample(t);
+        s.mass = 70.f;
+        detector.Feed(s);
+    }
+    Require(detector.GetState() == SceneState::Suspect, "single mass channel did not become suspect");
+    for (int i = 0; i < 90; ++i, t += 2000) {
+        auto s = ClearSample(t);
+        s.mass = 75.f + 40.f * i / 90.f;
+        detector.Feed(s);
+        Require(detector.GetState() != SceneState::Clear, "Suspect cleared during continuing improvement");
+    }
+    detector.Reset("ensemble dropout");
+    t = Arm(detector);
+    for (int i = 0; i < 3; ++i, t += 2000) {
+        auto s = ClearSample(t);
+        s.ensembleStars = 4; s.ensembleRatio = 0.6f;
+        detector.Feed(s);
+    }
+    detector.Feed(ClearSample(t)); t += 2000;
+    auto s = ClearSample(t);
+    s.ensembleStars = 4; s.ensembleRatio = 1.f;
+    detector.Feed(s);
+    Require(detector.GetTelemetry().ensembleRatio < 0.f,
+            "returning ensemble mixed old obscured history with a fresh sample");
+}
+
+void CalculationFaultStaysUnavailableUntilReset()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    detector.ReportFault("test", "sample assembly");
+    for (int i = 0; i < 60; ++i, t += 2000) detector.Feed(ClearSample(t));
+    Require(!detector.GetTelemetry().healthy && !detector.GetTelemetry(t).fresh &&
+            detector.GetState() == SceneState::Warmup, "continued feed bypassed explicit fault recovery");
+}
+
+void NormalGuideCadenceAllowsMovementWaits()
+{
+    for (int exposure : { 1000, 2000, 3500, 5000 }) {
+        CloudDetector detector;
+        int64_t t = 1000;
+        int frame = 0;
+        auto cycleMs = [&]() { return exposure + (frame++ % 4) * 1500; };
+        auto sampleAt = [&](int64_t when) {
+            auto s = ClearSample(when);
+            s.exposureMs = exposure;
+            s.brightExposureMs = exposure;
+            s.brightCeil = 100.f * exposure / 1000.f;
+            return s;
+        };
+        for (int i = 0; i < 60; ++i) {
+            detector.Feed(sampleAt(t));
+            const int cycle = cycleMs();
+            Require(detector.GetTelemetry(t + cycle - 1).fresh,
+                    "ordinary guide-movement wait expired a fresh frame");
+            t += cycle;
+        }
+        Require(detector.GetState() == SceneState::Clear, "normal cadence with movement waits did not arm");
+        for (int i = 0; i < 3; ++i) {
+            auto s = sampleAt(t);
+            s.detected = false; s.brightCeil = 0.f;
+            detector.Feed(s);
+            t += cycleMs();
+        }
+        Require(detector.GetState() == SceneState::Obscured, "waiting between exposures prevented blackout detection");
+        const int64_t rampStart = t;
+        for (; t - rampStart < 180000; t += cycleMs()) {
+            auto s = sampleAt(t);
+            const float progress = static_cast<float>(t - rampStart) / 180000.f;
+            s.mass = 55.f + 60.f * progress;
+            s.snr = 16.f + 7.f * progress;
+            detector.Feed(s);
+            Require(detector.GetState() == SceneState::Obscured,
+                    "movement waits allowed Clear during a continuing three-minute clearing ramp");
+        }
+        const int64_t plateauStart = t;
+        int64_t lastFrame = t;
+        for (; t - plateauStart < 150000; t += cycleMs()) {
+            auto s = sampleAt(t);
+            s.mass = 115.f; s.snr = 23.f;
+            detector.Feed(s);
+            lastFrame = t;
+        }
+        Require(detector.GetState() == SceneState::Clear, "realistic cadence could not complete plateau recovery");
+        const int64_t gap = std::max<int64_t>(CONFIG_CLOUD_SAMPLE_GAP_MIN_MS,
+            (int64_t) CONFIG_CLOUD_SAMPLE_GAP_EXPOSURES * exposure + CONFIG_CLOUD_GUIDE_WAIT_ALLOWANCE_MS);
+        Require(detector.GetTelemetry(lastFrame + gap).fresh && !detector.GetTelemetry(lastFrame + gap + 1).fresh,
+                "exposure-plus-wait freshness boundary was not enforced");
+        auto s = sampleAt(lastFrame + gap + 1);
+        s.mass = 115.f; s.snr = 23.f;
+        detector.Feed(s);
+        Require(!detector.GetTelemetry().recoverySettled && detector.GetTelemetry().massRatio < 0.f,
+                "true input gap failed to discard the previous trend and short window");
+    }
+}
+
+void RecoveryRequiresThreeFreshObservations()
+{
+    CloudDetector detector;
+    int64_t t = Blackout(detector);
+    detector.ResumeAfterMotion("sparse recovery observation test");
+    auto sampleAt = [&](int64_t when) {
+        auto s = ClearSample(when);
+        s.brightExposureMs = 30000;
+        s.brightCeil = 3000.f;
+        return s;
+    };
+    bool qualified = false;
+    for (int i = 0; i < 10; ++i, t += 30000) {
+        detector.Feed(sampleAt(t));
+        if (detector.GetTelemetry().recoverySettled) { qualified = true; break; }
+    }
+    Require(qualified && detector.GetState() == SceneState::Obscured, "sparse plateau did not start recovery hold");
+    for (int i = 0; i < 20; ++i) detector.Feed(sampleAt(t));
+    t += 30000;
+    detector.Feed(sampleAt(t));
+    Require(detector.GetState() == SceneState::Obscured,
+            "elapsed hold time or duplicate frames substituted for a third fresh recovery observation");
+    t += 30000;
+    detector.Feed(sampleAt(t));
+    Require(detector.GetState() == SceneState::Clear, "three stable fresh observations failed to complete recovery");
+}
+
 } // namespace
 
 int main()
 {
+    MissingChannelsCannotRepeatVotes();
+    GradualClearingWaitsForPlateau();
+    AlternateBaselineCannotAcceptContinuingClearing();
+    MissingEvidenceAndGapRestartRecovery();
+    StalledFeedExpiresWithoutErasingVerdict();
+    DuplicatesCannotFillWindowsAndOptionalChannelsStayOptional();
+    SlowAndIrregularCadencesCanRecover();
+    SmallPhotometricNoiseDoesNotBlockPlateau();
+    SuspectAlsoWaitsForClearingAndEnsembleHistoryIsFresh();
+    CalculationFaultStaysUnavailableUntilReset();
+    NormalGuideCadenceAllowsMovementWaits();
+    RecoveryRequiresThreeFreshObservations();
     ImageContrastHandlesCameraScalesAndHotPixels();
     TargetLossIsNotCloud();
     BiasedDarkFrameTripsContrastChannel();
