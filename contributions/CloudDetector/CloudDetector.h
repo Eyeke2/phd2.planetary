@@ -121,6 +121,9 @@ struct SceneTelemetry {
     int   lossRun = 0;
     bool  staticObstruction = false;  // OBSCURED long + static signature (branch/dew, not cloud)
     int64_t stateSinceMs = 0;
+    bool recoverySettled = false;
+    bool clearingTrend = false;
+    bool fresh = false;
 };
 
 class CloudDetector {
@@ -154,7 +157,8 @@ public:
     // True in Warmup/Clear/Suspect; only a latched OBSCURED reports not-clear.
     bool IsClear() const noexcept;
     SceneState GetState() const noexcept;
-    SceneTelemetry GetTelemetry() const noexcept;
+    // nowMs uses the SceneSample clock; zero returns freshness at the last feed.
+    SceneTelemetry GetTelemetry(int64_t nowMs = 0) const noexcept;
 
 private:
     // Fixed-capacity ring with on-demand robust stats (tiny N -- copy+sort is fine).
@@ -168,6 +172,17 @@ private:
         bool  medianMad(float& med, float& mad) const;
         bool  lastMedian(int k, float& out) const;   // median of the k newest entries
         bool  lastMedianMad(int k, float& med, float& mad) const;
+    };
+
+    struct Trend {
+        static constexpr int kCap = 64;
+        float values[kCap];
+        int64_t times[kCap];
+        int n = 0, head = 0;
+        void clear() { n = 0; head = 0; }
+        void push(float value, int64_t t);
+        bool settled(int64_t t, float fractionFloor, float absoluteFloor, float clearMad,
+                     bool& improving, bool* ready = nullptr) const;
     };
 
     // A non-poisoning "what did clear look like" standard for ONE channel. Higher is always
@@ -196,6 +211,8 @@ private:
     void  transitionLocked(SceneState next, const char* why, int64_t tMs);
     void  logLocked(const char* msg) noexcept;
     void  applySensitivityLocked();
+    int64_t sampleGapLimitLocked(int currentExposureMs = 0) const;
+    bool recoveryHoldCompleteLocked(int64_t t, int64_t& sinceMs, int holdMs);
 
     mutable std::mutex m_mx;
     std::function<void(const std::string&)> m_log;
@@ -218,12 +235,15 @@ private:
     int64_t m_lastBaselinePushMs = 0;
     int64_t m_clearAccumMs = 0;        // CLEAR-eligible data accumulated since reset (warm-up)
     int64_t m_prevSampleMs = 0;
+    int m_prevExposureMs = 0;
+    bool m_prevClearEligible = false;
 
     // Short (fast) windows: newest raw samples; detection channels only accept detected frames.
     // These measure the sky AS IT IS and must stay unconditional -- they drive the trips, and a
     // blackout (undetected by definition) has to be measurable through them.
     Ring m_shortMass, m_shortBright, m_shortSnr, m_shortScore, m_shortFeatures;
     Ring m_shortEnsemble;
+    Trend m_trendMass, m_trendSnr, m_trendFeatures, m_trendEnsemble;
 
     // Reference windows: the same channels, but accepting ONLY clear-eligible frames (detected,
     // stable-locked, no loss run). Baseline entries and anchor updates are snapshotted from these.
@@ -249,6 +269,7 @@ private:
     int64_t m_stateSinceMs = 0;
     int64_t m_mediumTripSinceMs = 0;   // 0 = medium vote not currently held
     int64_t m_recoverSinceMs = 0;      // 0 = recovery condition not currently held
+    int m_recoverySamples = 0;
     int64_t m_alternateSinceMs = 0;
     int64_t m_suspectQuietSinceMs = 0; // 0 = a channel is still tripped while in Suspect
     int     m_lossRun = 0;

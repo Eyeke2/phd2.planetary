@@ -1254,7 +1254,10 @@ static void get_cloud_status(JObj& response, const json_value *params)
 
     JObj result;
     result << NV("enabled", guider->GetCloudDetectionEnabled())
-           << NV("active", guider->IsCloudDetectionActive())
+           << NV("active", guider->IsCloudDetectionActive() && telemetry.fresh)
+           << NV("fresh", telemetry.fresh)
+           << NV("recovery_settled", telemetry.recoverySettled)
+           << NV("clearing_trend", telemetry.clearingTrend)
            << NV("healthy", telemetry.healthy)
            << NV("exception_count", (int) std::min(telemetry.exceptionCount,
                                                     (unsigned) std::numeric_limits<int>::max()))

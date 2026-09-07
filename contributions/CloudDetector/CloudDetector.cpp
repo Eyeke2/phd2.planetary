@@ -209,6 +209,52 @@ bool CloudDetector::Ring::lastMedianMad(int k, float& med, float& mad) const
     return true;
 }
 
+void CloudDetector::Trend::push(float value, int64_t t)
+{
+    if (n > 0 && t - times[(head - 1 + kCap) % kCap] < CONFIG_CLOUD_TREND_SAMPLE_MS)
+        return;
+    values[head] = value;
+    times[head] = t;
+    head = (head + 1) % kCap;
+    if (n < kCap) ++n;
+}
+
+bool CloudDetector::Trend::settled(int64_t t, float fractionFloor, float absoluteFloor,
+                                  float clearMad, bool& improving, bool* ready) const
+{
+    improving = false;
+    if (ready) *ready = false;
+    static_assert(CONFIG_CLOUD_TREND_SAMPLE_MS > 0, "trend cadence must be positive");
+    static_assert(CONFIG_CLOUD_RECOVERY_TREND_MS > 0 &&
+                  CONFIG_CLOUD_RECOVERY_TREND_MS / CONFIG_CLOUD_TREND_SAMPLE_MS + 2 <= kCap,
+                  "recovery trend window must fit the time ring");
+    if (n < 2) return false;
+    const int64_t cadence = times[(head - 1 + kCap) % kCap] - times[(head - 2 + kCap) % kCap];
+    const int64_t window = std::max<int64_t>(CONFIG_CLOUD_RECOVERY_TREND_MS, 4 * cadence);
+    const int64_t start = t - window;
+    const int64_t middle = t - window / 2;
+    Ring early, late;
+    bool fullWindow = false;
+    for (int i = 0; i < n; ++i) {
+        const int index = (head - 1 - i + kCap) % kCap;
+        if (times[index] <= middle) early.push(values[index]);
+        else late.push(values[index]);
+        if (times[index] <= start) { fullWindow = true; break; }
+    }
+    if (!fullWindow || early.n < 2 || late.n < 2)
+        return false;
+    if (ready) *ready = true;
+    float before = 0.f, after = 0.f;
+    early.median(before); late.median(after);
+    const double noiseBand = CONFIG_CLOUD_TREND_NOISE_K * (double) clearMad /
+                             std::sqrt((double) std::min(early.n, late.n));
+    const double band = std::max({ (double) absoluteFloor,
+                                  fractionFloor * std::fabs((double) before), noiseBand });
+    const double change = (double) after - before;
+    improving = change > band;
+    return std::fabs(change) <= band;
+}
+
 // ---------------------------------------------------------------------------
 // CloudDetector
 // ---------------------------------------------------------------------------
@@ -353,11 +399,38 @@ SceneState CloudDetector::GetState() const noexcept
     }
 }
 
-SceneTelemetry CloudDetector::GetTelemetry() const noexcept
+int64_t CloudDetector::sampleGapLimitLocked(int currentExposureMs) const
+{
+    return std::max<int64_t>(CONFIG_CLOUD_SAMPLE_GAP_MIN_MS,
+        (int64_t) CONFIG_CLOUD_SAMPLE_GAP_EXPOSURES * std::max(currentExposureMs, m_prevExposureMs) +
+            CONFIG_CLOUD_GUIDE_WAIT_ALLOWANCE_MS);
+}
+
+bool CloudDetector::recoveryHoldCompleteLocked(int64_t t, int64_t& sinceMs, int holdMs)
+{
+    static_assert(CONFIG_CLOUD_RECOVER_MIN_SAMPLES >= 2, "recovery needs distinct observations");
+    if (sinceMs == 0) {
+        sinceMs = t;
+        m_recoverySamples = 1;
+    }
+    else if (m_recoverySamples < CONFIG_CLOUD_RECOVER_MIN_SAMPLES) {
+        ++m_recoverySamples;
+    }
+    return m_recoverySamples >= CONFIG_CLOUD_RECOVER_MIN_SAMPLES && t - sinceMs >= holdMs;
+}
+
+SceneTelemetry CloudDetector::GetTelemetry(int64_t nowMs) const noexcept
 {
     try {
         std::lock_guard<std::mutex> lk(m_mx);
-        return m_tele;
+        SceneTelemetry snapshot = m_tele;
+        if (nowMs > 0 && (m_prevSampleMs == 0 || nowMs < m_prevSampleMs ||
+                         nowMs - m_prevSampleMs > sampleGapLimitLocked())) {
+            snapshot.fresh = false;
+            snapshot.recoverySettled = false;
+            snapshot.clearingTrend = false;
+        }
+        return snapshot;
     }
     catch (...) {
         SceneTelemetry unavailable;
@@ -434,6 +507,7 @@ void CloudDetector::clearStateLocked() noexcept
     m_shortMass.clear(); m_shortBright.clear(); m_shortSnr.clear();
     m_shortScore.clear(); m_shortFeatures.clear();
     m_shortEnsemble.clear();
+    m_trendMass.clear(); m_trendSnr.clear(); m_trendFeatures.clear(); m_trendEnsemble.clear();
     m_refMass.clear(); m_refBright.clear(); m_refSnr.clear();
     m_refScore.clear(); m_refFeatures.clear();
     m_anchorBright.clear(); m_anchorMass.clear(); m_anchorSnr.clear();
@@ -442,6 +516,8 @@ void CloudDetector::clearStateLocked() noexcept
     m_lastBaselinePushMs = 0;
     m_lastAnchorUpdateMs = 0;
     m_clearAccumMs = 0;
+    m_prevExposureMs = 0;
+    m_prevClearEligible = false;
     m_prevSampleMs = 0;
     m_mediumTripSinceMs = 0;
     m_slowTripSinceMs = 0;
@@ -473,10 +549,13 @@ void CloudDetector::resumeAfterMotionLocked(const char* reason) noexcept
     m_shortMass.clear(); m_shortBright.clear(); m_shortSnr.clear();
     m_shortScore.clear(); m_shortFeatures.clear();
     m_shortEnsemble.clear();
+    m_trendMass.clear(); m_trendSnr.clear(); m_trendFeatures.clear(); m_trendEnsemble.clear();
     m_refMass.clear(); m_refBright.clear(); m_refSnr.clear();
     m_refScore.clear(); m_refFeatures.clear();
     m_lastBaselinePushMs = 0;
     m_lastAnchorUpdateMs = 0;
+    m_prevExposureMs = 0;
+    m_prevClearEligible = false;
     m_prevSampleMs = 0;         // do not count the suspended interval as detector dwell time
     m_mediumTripSinceMs = 0;
     m_slowTripSinceMs = 0;
@@ -585,6 +664,8 @@ void CloudDetector::feedLocked(const SceneSample& s)
     m_ident = cur;
     if (!m_enabled)
         return;
+    if (!m_tele.healthy)
+        return; // A calculation fault needs explicit Reset; more frames do not repair it.
     if (discontinuity)
         resetLocked(discontinuity);
 
@@ -593,8 +674,15 @@ void CloudDetector::feedLocked(const SceneSample& s)
         logLocked("cloud: ignored sample with invalid timestamp");
         return;
     }
+    if (m_prevSampleMs > 0 && t == m_prevSampleMs)
+        return; // A replayed frame must not advance a median or a dwell timer twice.
     if (m_prevSampleMs > 0 && t < m_prevSampleMs)
         resetLocked("timestamp moved backwards");
+    const int actualExposureMs = std::max(0, std::max(s.exposureMs, s.brightExposureMs));
+    const int64_t gapLimit = sampleGapLimitLocked(actualExposureMs);
+    if (m_prevSampleMs > 0 && t - m_prevSampleMs > gapLimit)
+        resumeAfterMotionLocked("input gap");
+    m_prevExposureMs = actualExposureMs;
 
     // A malformed upstream metric must be treated as unavailable, never inserted into a sorted
     // ring. NaN in particular does not provide the strict weak ordering std::sort requires and
@@ -639,6 +727,20 @@ void CloudDetector::feedLocked(const SceneSample& s)
     // Does this frame look like the clear, locked view the monitor is trying to characterize?
     const bool clearEligible = s.detected && s.stableLock && m_lossRun == 0 &&
                                (validMass || validFeatures || validSnr || validScore);
+    m_tele.fresh = validMass || validSnr || validFeatures || validEnsemble || brightCeil >= 0.f;
+
+    // Missing measurements invalidate transient evidence, but not certified baselines.
+    if (!validMass) { m_shortMass.clear(); m_refMass.clear(); }
+    if (!validSnr) { m_shortSnr.clear(); m_refSnr.clear(); }
+    if (!validScore) { m_shortScore.clear(); m_refScore.clear(); }
+    if (!validFeatures) { m_shortFeatures.clear(); m_refFeatures.clear(); }
+    if (brightCeil < 0.f) { m_shortBright.clear(); m_refBright.clear(); }
+    if (!validEnsemble) m_shortEnsemble.clear();
+
+    if (clearEligible && validMass) m_trendMass.push(s.mass, t); else m_trendMass.clear();
+    if (clearEligible && validSnr) m_trendSnr.push(s.snr, t); else m_trendSnr.clear();
+    if (clearEligible && validFeatures) m_trendFeatures.push((float) s.features, t); else m_trendFeatures.clear();
+    if (clearEligible && validEnsemble) m_trendEnsemble.push(s.ensembleRatio, t); else m_trendEnsemble.clear();
 
     // ---- short (fast) windows: the sky AS IT IS, unconditional ----
     // These drive the trips, so they must include the bad frames -- a blackout is undetected by
@@ -673,7 +775,7 @@ void CloudDetector::feedLocked(const SceneSample& s)
     // would let an old value speak for a frame that never produced one, so the detection channels
     // are silent whenever the target is missing. brightCeil is measured from the pixels regardless
     // of detection, so it keeps voting -- and it is the channel that matters during an occultation.
-    const bool detChannelsLive = (m_lossRun == 0);
+    const bool detChannelsLive = s.detected;
 
     // ---- baselines: accumulate only while presumed clear (Warmup/Clear); frozen otherwise ----
     const bool accumulating = (m_state == SceneState::Warmup || m_state == SceneState::Clear);
@@ -683,8 +785,9 @@ void CloudDetector::feedLocked(const SceneSample& s)
         // baseline while the target was already lost, then publish Clear and trip on the very
         // next frame. Unusable frames PAUSE the clock rather than resetting it, so ordinary
         // dropouts merely delay arming.
-        if (m_prevSampleMs > 0 && clearEligible)
-            m_clearAccumMs += std::min<int64_t>(t - m_prevSampleMs, 3000);
+        if (m_prevSampleMs > 0 && clearEligible && m_prevClearEligible)
+            m_clearAccumMs = std::min<int64_t>(kWarmupMs,
+                m_clearAccumMs + std::min<int64_t>(t - m_prevSampleMs, 3000));
 
         // Snapshots come from the REFERENCE rings (clear-eligible history only), so an eligible
         // frame arriving among unstable ones contributes its own reading, not a median of its
@@ -722,6 +825,7 @@ void CloudDetector::feedLocked(const SceneSample& s)
         if (m_refFeatures.lastMedian(kShortK, v)) m_anchorFeatures.update(v, t);
     }
     m_prevSampleMs = t;
+    m_prevClearEligible = clearEligible;
 
     // ---- telemetry (recent scene vs the protected clear-sky standard) ----
     float shortBright = 0.f, shortMass = 0.f, shortFeatures = 0.f;
@@ -793,7 +897,9 @@ void CloudDetector::feedLocked(const SceneSample& s)
             (!m_seenSnr      || m_baseSnr.n      >= kMinBaseEntries) &&
             (!m_seenScore    || m_baseScore.n    >= kMinBaseEntries) &&
             (!m_seenFeatures || m_baseFeatures.n >= kMinBaseEntries);
-        const bool stableNow = s.detected && s.stableLock && m_lossRun == 0;
+        const bool stableNow = clearEligible && brightCeil >= 0.f &&
+            (!m_seenMass || validMass) && (!m_seenSnr || validSnr) &&
+            (!m_seenScore || validScore) && (!m_seenFeatures || validFeatures);
         if (m_clearAccumMs >= kWarmupMs && haveBaselines && stableNow) {
             transitionLocked(SceneState::Clear, "baseline established", t);
             // Seed every protected standard from the reference we just certified as clear.
@@ -842,6 +948,37 @@ void CloudDetector::feedLocked(const SceneSample& s)
     // blackout). With a stable detection it is noisy supporting evidence and must be corroborated
     // through the sustained 2-of-N path below.
     const bool fastTrip = massFast || (!s.detected && brightFast);
+
+    // Recovery requires fresh primary measurements.
+    const bool freshPrimary = s.detected && s.stableLock &&
+        (m_seenMass || m_seenSnr || m_seenFeatures) &&
+        (!m_seenMass || m_tele.massRatio >= 0.f) && (!m_seenSnr || haveSnr) &&
+        (!m_seenFeatures || m_tele.featureRatio >= 0.f);
+    m_tele.fresh = s.detected ? freshPrimary : m_tele.brightRatio >= 0.f;
+    bool settled = freshPrimary, improving = false, rising = false;
+    if (m_seenMass) {
+        const bool quiet = m_trendMass.settled(t, CONFIG_CLOUD_TREND_MASS_FRAC, 0.f, clearMassMad, rising);
+        settled = settled && quiet; improving = improving || rising;
+    }
+    if (m_seenSnr) {
+        const bool quiet = m_trendSnr.settled(t, 0.f, CONFIG_CLOUD_TREND_SNR_DB, clearSnrMad, rising);
+        settled = settled && quiet; improving = improving || rising;
+    }
+    if (!m_seenMass && !m_seenSnr && m_seenFeatures) {
+        float med = 0.f, mad = 0.f;
+        m_baseFeatures.medianMad(med, mad);
+        const bool quiet = m_trendFeatures.settled(t, CONFIG_CLOUD_TREND_MASS_FRAC, 0.f, mad, rising);
+        settled = settled && quiet; improving = improving || rising;
+    }
+    if (validEnsemble) {
+        bool ready = false;
+        const bool quiet = m_trendEnsemble.settled(t, CONFIG_CLOUD_TREND_MASS_FRAC, 0.f, 0.f, rising, &ready);
+        // Optional ensemble history constrains recovery only when complete.
+        if (ready) settled = settled && quiet;
+        improving = improving || rising;
+    }
+    m_tele.recoverySettled = settled;
+    m_tele.clearingTrend = improving;
 
     // ---- slow (gradual haze) vote, measured against the anchors rather than the baseline ----
     // Requires the detection-INDEPENDENT brightness channel plus one photometric channel. That
@@ -935,22 +1072,22 @@ void CloudDetector::feedLocked(const SceneSample& s)
             }
         }
         else if (m_state == SceneState::Suspect) {
-            if (m_suspectQuietSinceMs == 0)
-                m_suspectQuietSinceMs = t;
-            else if (t - m_suspectQuietSinceMs >= kSuspectQuietMs)
+            if (!settled) {
+                m_suspectQuietSinceMs = 0;
+                break;
+            }
+            if (recoveryHoldCompleteLocked(t, m_suspectQuietSinceMs, kSuspectQuietMs))
                 transitionLocked(SceneState::Clear, "channels recovered", t);
         }
         break;
     }
 
     case SceneState::Obscured: {
-        const bool recovered = s.detected && s.stableLock && m_lossRun == 0 &&
+        const bool recovered = settled && s.detected && s.stableLock && m_lossRun == 0 &&
                                !massFast && recoveryBadChannels < 2 && !slowVote;
         if (recovered) {
             m_alternateSinceMs = 0;
-            if (m_recoverSinceMs == 0)
-                m_recoverSinceMs = t;
-            else if (t - m_recoverSinceMs >= kRecoverHoldMs) {
+            if (recoveryHoldCompleteLocked(t, m_recoverSinceMs, kRecoverHoldMs)) {
                 transitionLocked(SceneState::Clear, "view recovered", t);
                 break;
             }
@@ -970,7 +1107,8 @@ void CloudDetector::feedLocked(const SceneSample& s)
             const bool stableSnr = !m_seenSnr ||
                 (detChannelsLive && m_shortSnr.lastMedianMad(kVariabilityK, alternateSnrMed, alternateSnrMad) &&
                  alternateSnrMed >= kAlternateMinSnrDb && alternateSnrMad <= kAlternateSnrMadDb);
-            const bool stableAlternative = clearEligible && stableMass && stableBright && stableSnr;
+            const bool stableAlternative = settled && clearEligible && brightCeil >= 0.f &&
+                                           stableMass && stableBright && stableSnr;
 
             if (stableAlternative) {
                 if (m_alternateSinceMs == 0)
@@ -989,7 +1127,7 @@ void CloudDetector::feedLocked(const SceneSample& s)
         // brightness signature -- a branch / dew never fluctuates the way moving cloud does.
         if (!m_tele.staticObstruction && t - m_stateSinceMs >= kStuckMs) {
             float med = 0.f, mad = 0.f;
-            if (m_shortBright.medianMad(med, mad) && med > kEps && mad / med < kStaticMadFrac) {
+            if (brightCeil >= 0.f && m_shortBright.medianMad(med, mad) && med > kEps && mad / med < kStaticMadFrac) {
                 m_tele.staticObstruction = true;
                 logLocked("cloud: prolonged STATIC obstruction (branch/dew?), user attention needed");
             }
@@ -1012,12 +1150,12 @@ void CloudDetector::feedLocked(const SceneSample& s)
         std::snprintf(buf, sizeof(buf),
             "cloud: %s sev=%.2f mass=%.2f massVar=%.2f bright=%.2f "
             "snrDrop=%.1fdB snrVar=%.2f score%+.2f feat=%.2f ensemble=%.2f "
-            "slow[bright=%.2f mass=%.2f feat=%.2f] loss=%d recBad=%d slowVote=%d",
+            "slow[bright=%.2f mass=%.2f feat=%.2f] loss=%d recBad=%d slowVote=%d settled=%d clearing=%d",
             StateName(m_state), m_tele.severity, m_tele.massRatio, m_tele.massScatterFactor,
             m_tele.brightRatio, m_tele.snrDropDb, m_tele.snrScatterFactor,
             m_tele.scoreDelta, m_tele.featureRatio, m_tele.ensembleRatio,
             m_tele.slowBrightRatio, m_tele.slowMassRatio, m_tele.slowFeatureRatio, m_lossRun,
-            recoveryBadChannels, slowVote ? 1 : 0);
+            recoveryBadChannels, slowVote ? 1 : 0, settled ? 1 : 0, improving ? 1 : 0);
         logLocked(buf);
     }
     else if (m_state == SceneState::Clear) {

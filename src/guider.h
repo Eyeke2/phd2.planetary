@@ -314,7 +314,7 @@ public:
     bool ApplyCloudExtensionSettings(const CloudExtensionSettings& settings, wxString *error);
     void ResetCloudDetection(const char* reason);
     void ResumeCloudDetectionAfterMotion(const char* reason) { m_cloudDetector.ResumeAfterMotion(reason); }
-    SceneTelemetry GetCloudTelemetry() const { return m_cloudDetector.GetTelemetry(); }
+    SceneTelemetry GetCloudTelemetry() const;
     void FeedCloudSample(SceneSample sample, const usImage *image, double centerX, double centerY, int radius) noexcept;
 
     // virtual functions -- these CAN be overridden by a subclass, which should
