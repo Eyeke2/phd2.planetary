@@ -425,6 +425,7 @@ void StableAlternateViewRequalifies()
 {
     CloudDetector detector;
     int64_t t = Arm(detector);
+    const unsigned referenceGeneration = detector.GetTelemetry().referenceGeneration;
 
     auto feedLower = [&]() {
         SceneSample sample = ClearSample(t);
@@ -440,6 +441,8 @@ void StableAlternateViewRequalifies()
         feedLower();
     Require(detector.GetState() == SceneState::Clear,
             "stable alternate view did not establish a new baseline");
+    Require(detector.GetTelemetry().referenceGeneration != referenceGeneration,
+            "alternate baseline did not invalidate external clear references");
     Require(detector.GetTelemetry().massRatio > 0.98f,
             "new baseline did not represent the stable alternate view");
 }
@@ -916,14 +919,28 @@ void SuspectAcceptsImprovingRecoveryAndEnsembleHistoryIsFresh()
             "returning ensemble mixed old obscured history with a fresh sample");
 }
 
-void CalculationFaultStaysUnavailableUntilReset()
+void PersistentCalculationFaultExhaustsAutomaticRetries()
 {
     CloudDetector detector;
     int64_t t = Arm(detector);
     detector.ReportFault("test", "sample assembly");
-    for (int i = 0; i < 60; ++i, t += 2000) detector.Feed(ClearSample(t));
+    for (int retry = 0; retry < CONFIG_CLOUD_FAULT_MAX_AUTO_RETRIES; ++retry) {
+        for (int i = 0; i < CONFIG_CLOUD_FAULT_RECOVERY_SAMPLES; ++i, t += 2000)
+            detector.Feed(ClearSample(t));
+        Require(detector.GetTelemetry().healthy, "automatic fault retry did not start");
+        detector.ReportFault("test", "persistent sample assembly");
+    }
+    for (int i = 0; i < 30; ++i, t += 2000)
+        detector.Feed(ClearSample(t));
     Require(!detector.GetTelemetry().healthy && !detector.GetTelemetry(t).fresh &&
-            detector.GetState() == SceneState::Warmup, "continued feed bypassed explicit fault recovery");
+            detector.GetState() == SceneState::Warmup, "persistent fault bypassed the retry limit");
+    Require(detector.GetTelemetry().exceptionCount == CONFIG_CLOUD_FAULT_MAX_AUTO_RETRIES + 1,
+            "persistent fault diagnostics were not retained");
+    Require(detector.GetTelemetry().faultAutoRetries == CONFIG_CLOUD_FAULT_MAX_AUTO_RETRIES,
+            "persistent fault retry count was not published");
+    detector.Reset("operator recovery");
+    Require(detector.GetTelemetry().healthy && detector.GetTelemetry().faultAutoRetries == 0,
+            "explicit reset did not restore the retry budget");
 }
 
 void NormalGuideCadenceAllowsMovementWaits()
@@ -1013,6 +1030,185 @@ void RecoveryRequiresThreeFreshObservations()
     Require(detector.GetState() == SceneState::Clear, "three stable fresh observations failed to complete recovery");
 }
 
+void ReferenceGenerationTracksHardResets()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    const unsigned initial = detector.GetTelemetry().referenceGeneration;
+
+    detector.ResumeAfterMotion("same target");
+    Require(detector.GetTelemetry().referenceGeneration == initial,
+            "motion resume invalidated external clear references");
+
+    detector.Reset("new session");
+    const unsigned reset = detector.GetTelemetry().referenceGeneration;
+    Require(reset != initial, "hard reset did not invalidate external clear references");
+
+    t = Arm(detector);
+    auto changed = ClearSample(t);
+    changed.exposureMs = 2000;
+    detector.Feed(changed);
+    Require(detector.GetTelemetry().referenceGeneration != reset,
+            "acquisition identity reset did not invalidate external clear references");
+}
+
+void StableSingleChannelSuspectRequalifies()
+{
+    {
+        CloudDetector detector;
+        int64_t t = Arm(detector);
+        const unsigned generation = detector.GetTelemetry().referenceGeneration;
+        for (int i = 0; i < 100; ++i, t += 2000) {
+            auto s = ClearSample(t);
+            s.mass = 70.f;
+            detector.Feed(s);
+        }
+        Require(detector.GetState() == SceneState::Clear,
+                "stable low mass-only evidence retained Suspect");
+        Require(detector.GetTelemetry().referenceGeneration != generation,
+                "stable low mass-only evidence did not requalify its reference");
+    }
+
+    {
+        CloudDetector detector;
+        int64_t t = Arm(detector);
+        const unsigned generation = detector.GetTelemetry().referenceGeneration;
+        bool referenceChanged = false;
+        for (int i = 0; i < 110; ++i, t += 2000) {
+            auto s = ClearSample(t);
+            s.ensembleStars = 4;
+            s.ensembleRatio = referenceChanged ? 1.f : 0.65f;
+            detector.Feed(s);
+            referenceChanged = detector.GetTelemetry().referenceGeneration != generation;
+        }
+        Require(referenceChanged && detector.GetState() == SceneState::Clear,
+                "stable low ensemble-only evidence retained Suspect after its reference reset");
+    }
+}
+
+void VariableSingleChannelSuspectDoesNotRequalify()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    const unsigned generation = detector.GetTelemetry().referenceGeneration;
+    for (int i = 0; i < 120; ++i, t += 2000) {
+        auto s = ClearSample(t);
+        s.mass = i % 2 ? 68.f : 88.f;
+        detector.Feed(s);
+    }
+    Require(detector.GetState() == SceneState::Suspect,
+            "variable single-channel evidence was accepted as clear");
+    Require(detector.GetTelemetry().referenceGeneration == generation,
+            "variable single-channel evidence replaced the clear reference");
+}
+
+void ObscuredRecoveryTimersDoNotCancelEachOther()
+{
+    CloudDetector detector;
+    int64_t t = Blackout(detector);
+    const unsigned generation = detector.GetTelemetry().referenceGeneration;
+    bool referenceChanged = false;
+    for (int i = 0; i < 100; ++i, t += 2000) {
+        auto s = ClearSample(t);
+        s.mass = 82.f;
+        s.ensembleStars = 4;
+        s.ensembleRatio = referenceChanged ? 1.f : (i % 6 >= 3 ? 0.858f : 0.862f);
+        detector.Feed(s);
+        referenceChanged = detector.GetTelemetry().referenceGeneration != generation;
+    }
+    Require(detector.GetState() == SceneState::Clear,
+            "normal and alternate Obscured recovery timers canceled each other");
+    Require(referenceChanged,
+            "stable alternate recovery did not replace the reference");
+}
+
+void AutoExposureDoesNotTreatSnrScalingAsCloud()
+{
+    CloudDetector detector;
+    int64_t t = 1000;
+    for (int i = 0; i < 16; ++i, t += 2000) {
+        auto s = ClearSample(t);
+        s.exposureMs = 0;
+        detector.Feed(s);
+    }
+    Require(detector.GetState() == SceneState::Clear, "auto-exposure baseline did not arm");
+
+    for (int i = 0; i < 40; ++i, t += 2000) {
+        const int exposure = 1000 + i * 100;
+        auto s = ClearSample(t);
+        s.exposureMs = 0;
+        s.brightExposureMs = exposure;
+        s.brightCeil = 100.f * exposure / 1000.f;
+        s.snr = 20.f - 5.f * i / 39.f;
+        detector.Feed(s);
+    }
+    Require(detector.GetState() == SceneState::Clear,
+            "exposure-only SNR scaling produced a cloud warning");
+
+    for (int i = 0; i < 3; ++i, t += 2000) {
+        auto s = ClearSample(t);
+        s.exposureMs = 0;
+        s.brightExposureMs = 5000;
+        s.brightCeil = 150.f;
+        s.mass = 30.f;
+        s.snr = 15.f;
+        detector.Feed(s);
+    }
+    Require(detector.GetState() == SceneState::Obscured,
+            "auto-exposure SNR suppression hid a genuine mass/brightness fade");
+}
+
+void TransientCalculationFaultRecoversFromFreshSamples()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    detector.ReportFault("test", "transient");
+    Require(!detector.GetTelemetry().healthy, "fault injection did not mark telemetry unhealthy");
+
+    for (int i = 0; i < 2; ++i, t += 2000)
+        detector.Feed(ClearSample(t));
+    Require(!detector.GetTelemetry().healthy && detector.GetTelemetry().faultRecoverySamples == 2,
+            "fault recovery did not require three fresh samples");
+
+    detector.Feed(ClearSample(t));
+    Require(detector.GetTelemetry().healthy && detector.GetState() == SceneState::Warmup,
+            "transient fault did not begin bounded automatic recovery");
+    for (int i = 0; i < 16; ++i, t += 2000)
+        detector.Feed(ClearSample(t));
+    Require(detector.GetState() == SceneState::Clear,
+            "automatic fault recovery did not rebuild a clear reference");
+    Require(detector.GetTelemetry().exceptionCount == 1,
+            "automatic fault recovery erased diagnostics");
+    Require(detector.GetTelemetry().faultAutoRetries == 1,
+            "automatic fault recovery retry was not published");
+}
+
+void FaultRecoveryQualificationRestartsOnDiscontinuity()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    detector.ReportFault("test", "transient");
+    const unsigned faultGeneration = detector.GetTelemetry().referenceGeneration;
+    detector.Feed(ClearSample(t)); t += 2000;
+    Require(detector.GetTelemetry().faultRecoverySamples == 1,
+            "fault recovery qualification did not begin");
+
+    detector.ResumeAfterMotion("test motion");
+    Require(detector.GetTelemetry().faultRecoverySamples == 0 &&
+            detector.GetTelemetry().referenceGeneration == faultGeneration,
+            "motion resume retained unsafe fault qualification state");
+
+    auto changed = ClearSample(t);
+    changed.gain = 20;
+    detector.Feed(changed); t += 2000;
+    Require(detector.GetTelemetry().faultRecoverySamples == 0,
+            "acquisition change counted toward fault recovery");
+    changed.tMs = t;
+    detector.Feed(changed); t += 2000;
+    Require(detector.GetTelemetry().faultRecoverySamples == 1,
+            "fresh qualification did not restart after acquisition change");
+}
+
 } // namespace
 
 int main()
@@ -1026,9 +1222,16 @@ int main()
     SlowAndIrregularCadencesCanRecover();
     SmallPhotometricNoiseDoesNotBlockPlateau();
     SuspectAcceptsImprovingRecoveryAndEnsembleHistoryIsFresh();
-    CalculationFaultStaysUnavailableUntilReset();
+    PersistentCalculationFaultExhaustsAutomaticRetries();
     NormalGuideCadenceAllowsMovementWaits();
     RecoveryRequiresThreeFreshObservations();
+    ReferenceGenerationTracksHardResets();
+    StableSingleChannelSuspectRequalifies();
+    VariableSingleChannelSuspectDoesNotRequalify();
+    ObscuredRecoveryTimersDoNotCancelEachOther();
+    AutoExposureDoesNotTreatSnrScalingAsCloud();
+    TransientCalculationFaultRecoversFromFreshSamples();
+    FaultRecoveryQualificationRestartsOnDiscontinuity();
     ImageContrastHandlesCameraScalesAndHotPixels();
     TargetLossIsNotCloud();
     BiasedDarkFrameTripsContrastChannel();
