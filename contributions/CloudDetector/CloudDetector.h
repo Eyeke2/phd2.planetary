@@ -38,7 +38,7 @@ struct SceneSample {
     // Whether tracking is stable enough for this sample to update the clear reference.
     bool    stableLock = false;
     float   score = 0.f;       // Guide-star quality: negative FWHM
-    float   snr = 0.f;         // dB (callers must convert linear S/N before feeding)
+    float   snr = 0.f;         // dB; ignored during automatic exposure
     float   mass = 0.f;        // Integrated flux
     int     features = 0;      // Reserved; 0 in the public star-only integration
     // Normalized multi-star evidence; 1 is nominal and negative is unavailable.
@@ -63,7 +63,7 @@ struct SceneSample {
     // The monitor compares the whole tuple and resets on any change: a discontinuity must never
     // be classified as weather. Unknown/unavailable fields (-1) never trigger a reset, so a
     // value that cannot be read is simply not a discontinuity source.
-    int     exposureMs = 0;    // current guide exposure (<= 0 = unknown)
+    int     exposureMs = 0;    // fixed exposure; 0 with brightExposureMs > 0 means automatic
     int     gain = -1;         // camera gain; -1 = unreadable (0 is a VALID gain)
     int     bitDepth = -1;     // declared camera/output depth; -1 = unknown
     int     frameW = -1;       // frame geometry as processed by the detector
@@ -124,6 +124,10 @@ struct SceneTelemetry {
     bool recoverySettled = false;
     bool clearingTrend = false;
     bool fresh = false;
+    unsigned referenceGeneration = 0;
+    int faultRecoverySamples = 0;
+    int faultAutoRetries = 0;
+    int faultRetryLimit = 0;
 };
 
 class CloudDetector {
@@ -149,8 +153,7 @@ public:
     void Reset(const char* reason) noexcept;
     // Resume after dither/settle without discarding learned clear-sky references.
     void ResumeAfterMotion(const char* reason) noexcept;
-    // Integration code can route an exception raised while assembling a sample through the same
-    // fail-open health path as an exception raised by the detector itself.
+    // Integration code can route sample-assembly exceptions through bounded automatic recovery.
     void ReportFault(const char* operation, const char* detail) noexcept;
 
     // ---- consumers (any thread) ----
@@ -202,7 +205,7 @@ private:
         float delta(float v) const { return valid() ? (v - value) : 0.f; }
     };
 
-    void  resetLocked(const char* reason);
+    void  resetLocked(const char* reason, bool resetFaultRetries = true);
     void  resumeAfterMotionLocked(const char* reason) noexcept;
     void  clearStateLocked() noexcept;
     void  containException(const char* operation, const char* detail) noexcept;
@@ -218,6 +221,10 @@ private:
     std::function<void(const std::string&)> m_log;
     unsigned m_exceptionCount = 0;
     unsigned m_loggerExceptionCount = 0;
+    unsigned m_referenceGeneration = 0;
+    int m_faultRecoverySamples = 0;
+    int m_faultAutoRetries = 0;
+    int64_t m_faultRecoveryLastMs = 0;
 
     bool m_enabled = true;
     int  m_sensitivityPct = 50;
@@ -279,7 +286,7 @@ private:
 
     // Acquisition identity of the previous sample (see SceneSample). Any change resets.
     struct Identity {
-        int exposureMs = -1, gain = -1, bitDepth = -1, mode = -1;
+        int exposureMs = -1, autoExposure = -1, gain = -1, bitDepth = -1, mode = -1;
         int frameW = -1, frameH = -1;
         int roiX = -1, roiY = -1, roiW = -1, roiH = -1;
         unsigned sourceGen = 0;

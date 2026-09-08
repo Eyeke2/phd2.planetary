@@ -470,6 +470,7 @@ CloudDetector::Identity CloudDetector::IdentityOf(const SceneSample& s)
 {
     Identity id;
     id.exposureMs = (s.exposureMs > 0) ? s.exposureMs : -1;
+    id.autoExposure = s.brightExposureMs > 0 ? (s.exposureMs <= 0 ? 1 : 0) : -1;
     id.gain   = s.gain;
     id.bitDepth = s.bitDepth;
     id.mode   = s.mode;
@@ -488,6 +489,7 @@ const char* CloudDetector::IdentityDelta(const Identity& p, const Identity& c)
     // like a gain change every frame).
     auto changed = [](int a, int b) { return a >= 0 && b >= 0 && a != b; };
     if (changed(p.exposureMs, c.exposureMs)) return "exposure change";
+    if (changed(p.autoExposure, c.autoExposure)) return "auto-exposure mode change";
     if (changed(p.gain, c.gain))             return "gain change";
     if (changed(p.bitDepth, c.bitDepth))     return "bit-depth change";
     if (changed(p.mode, c.mode))             return "detection mode change";
@@ -502,6 +504,8 @@ const char* CloudDetector::IdentityDelta(const Identity& p, const Identity& c)
 
 void CloudDetector::clearStateLocked() noexcept
 {
+    if (++m_referenceGeneration == 0)
+        ++m_referenceGeneration;
     m_baseMass.clear(); m_baseBright.clear(); m_baseSnr.clear();
     m_baseScore.clear(); m_baseFeatures.clear();
     m_shortMass.clear(); m_shortBright.clear(); m_shortSnr.clear();
@@ -528,15 +532,23 @@ void CloudDetector::clearStateLocked() noexcept
     m_sawGoodDetection = false;
     m_lossLogged = false;
     m_lastPeriodicLogMs = 0;     // else the heartbeat stays silent for up to a minute after a reset
+    m_faultRecoverySamples = 0;
+    m_faultRecoveryLastMs = 0;
     m_state = SceneState::Warmup;
     m_stateSinceMs = 0;
     m_tele = SceneTelemetry{};
     m_tele.exceptionCount = m_exceptionCount;
     m_tele.loggerExceptionCount = m_loggerExceptionCount;
+    m_tele.referenceGeneration = m_referenceGeneration;
+    m_tele.faultRecoverySamples = m_faultRecoverySamples;
+    m_tele.faultAutoRetries = m_faultAutoRetries;
+    m_tele.faultRetryLimit = CONFIG_CLOUD_FAULT_MAX_AUTO_RETRIES;
 }
 
-void CloudDetector::resetLocked(const char* reason)
+void CloudDetector::resetLocked(const char* reason, bool resetFaultRetries)
 {
+    if (resetFaultRetries)
+        m_faultAutoRetries = 0;
     clearStateLocked();
     char buf[160];
     std::snprintf(buf, sizeof(buf), "cloud: reset (%s) -> warm-up", reason ? reason : "?");
@@ -566,6 +578,8 @@ void CloudDetector::resumeAfterMotionLocked(const char* reason) noexcept
     m_sawGoodDetection = false;
     m_lossLogged = false;
     m_lastPeriodicLogMs = 0;
+    m_faultRecoverySamples = 0;
+    m_faultRecoveryLastMs = 0;
 
     SceneTelemetry resumed;
     resumed.state = m_state;
@@ -574,6 +588,10 @@ void CloudDetector::resumeAfterMotionLocked(const char* reason) noexcept
     resumed.loggerExceptionCount = m_loggerExceptionCount;
     resumed.staticObstruction = m_tele.staticObstruction;
     resumed.stateSinceMs = m_stateSinceMs;
+    resumed.referenceGeneration = m_referenceGeneration;
+    resumed.faultRecoverySamples = m_faultRecoverySamples;
+    resumed.faultAutoRetries = m_faultAutoRetries;
+    resumed.faultRetryLimit = CONFIG_CLOUD_FAULT_MAX_AUTO_RETRIES;
     m_tele = resumed;
 
     char buf[192];
@@ -664,12 +682,47 @@ void CloudDetector::feedLocked(const SceneSample& s)
     m_ident = cur;
     if (!m_enabled)
         return;
-    if (!m_tele.healthy)
-        return; // A calculation fault needs explicit Reset; more frames do not repair it.
+    const int64_t t = s.tMs;
+    if (!m_tele.healthy) {
+        static_assert(CONFIG_CLOUD_FAULT_RECOVERY_SAMPLES >= 2, "fault recovery needs fresh samples");
+        static_assert(CONFIG_CLOUD_FAULT_MAX_AUTO_RETRIES > 0, "fault recovery needs a retry budget");
+        if (m_faultAutoRetries >= CONFIG_CLOUD_FAULT_MAX_AUTO_RETRIES)
+            return;
+        if (discontinuity) {
+            m_faultRecoverySamples = 0;
+            m_faultRecoveryLastMs = t;
+            m_tele.faultRecoverySamples = 0;
+            return;
+        }
+        if (t <= m_faultRecoveryLastMs) {
+            if (t < m_faultRecoveryLastMs) {
+                m_faultRecoverySamples = 0;
+                m_faultRecoveryLastMs = t;
+                m_tele.faultRecoverySamples = 0;
+            }
+            return;
+        }
+        m_faultRecoveryLastMs = t;
+        const bool autoExposure = s.exposureMs <= 0 && s.brightExposureMs > 0;
+        const bool recoverySample = t > 0 && s.detected && s.stableLock &&
+            std::isfinite(s.brightCeil) && s.brightCeil >= 0.f &&
+            ((std::isfinite(s.mass) && s.mass > 0.f) || s.features > 0 ||
+             (!autoExposure && std::isfinite(s.snr)));
+        if (!recoverySample) {
+            m_faultRecoverySamples = 0;
+            m_tele.faultRecoverySamples = 0;
+            return;
+        }
+        ++m_faultRecoverySamples;
+        m_tele.faultRecoverySamples = m_faultRecoverySamples;
+        if (m_faultRecoverySamples < CONFIG_CLOUD_FAULT_RECOVERY_SAMPLES)
+            return;
+        ++m_faultAutoRetries;
+        resetLocked("automatic fault recovery", false);
+    }
     if (discontinuity)
         resetLocked(discontinuity);
 
-    const int64_t t = s.tMs;
     if (t <= 0) {
         logLocked("cloud: ignored sample with invalid timestamp");
         return;
@@ -689,7 +742,8 @@ void CloudDetector::feedLocked(const SceneSample& s)
     // can poison every subsequent ratio and JSON/HUD conversion.
     const bool validMass = s.detected && std::isfinite(s.mass) && s.mass > 0.f;
     const bool validFeatures = s.detected && s.features > 0;
-    const bool validSnr = s.detected && std::isfinite(s.snr);
+    const bool autoExposure = s.exposureMs <= 0 && s.brightExposureMs > 0;
+    const bool validSnr = s.detected && !autoExposure && std::isfinite(s.snr);
     const bool validScore = s.detected && std::isfinite(s.score);
     const bool validEnsemble = s.detected && s.ensembleStars > 0 &&
                                std::isfinite(s.ensembleRatio) && s.ensembleRatio > 0.f;
@@ -1029,6 +1083,35 @@ void CloudDetector::feedLocked(const SceneSample& s)
     sev = std::max(sev, excess(m_tele.slowBrightRatio, m_slowRatio));
     m_tele.severity = (primaryEvidence || slowVote || fastTrip) ? sev : 0.f;
 
+    float alternateMassMed = 0.f, alternateMassMad = 0.f;
+    float alternateBrightMed = 0.f, alternateBrightMad = 0.f;
+    float alternateSnrMed = 0.f, alternateSnrMad = 0.f;
+    const bool stableMass = !m_seenMass ||
+        (detChannelsLive && m_shortMass.lastMedianMad(kVariabilityK, alternateMassMed, alternateMassMad) &&
+         alternateMassMed > kEps && alternateMassMad / alternateMassMed <= kAlternateRelMad);
+    const bool stableBright =
+        m_shortBright.lastMedianMad(kVariabilityK, alternateBrightMed, alternateBrightMad) &&
+        alternateBrightMed > kEps && alternateBrightMad / alternateBrightMed <= kAlternateRelMad;
+    const bool stableSnr = !m_seenSnr ||
+        (detChannelsLive && m_shortSnr.lastMedianMad(kVariabilityK, alternateSnrMed, alternateSnrMad) &&
+         alternateSnrMed >= kAlternateMinSnrDb && alternateSnrMad <= kAlternateSnrMadDb);
+    const bool stableAlternative = settled && clearEligible && brightCeil >= 0.f &&
+                                   stableMass && stableBright && stableSnr;
+    auto alternateCertified = [&]() {
+        if (!stableAlternative) {
+            m_alternateSinceMs = 0;
+            return false;
+        }
+        if (m_alternateSinceMs == 0)
+            m_alternateSinceMs = t;
+        else if (t - m_alternateSinceMs >= kAlternateBaselineMs) {
+            logLocked("cloud: stable alternate baseline certified");
+            resetLocked("stable alternate baseline");
+            return true;
+        }
+        return false;
+    };
+
     switch (m_state) {
     case SceneState::Clear:
     case SceneState::Suspect: {
@@ -1073,8 +1156,16 @@ void CloudDetector::feedLocked(const SceneSample& s)
                 m_mediumTripSinceMs = medSince;
                 m_slowTripSinceMs = slowSince;
             }
+            else if (primaryEvidence && !corroborated && !slowVote) {
+                if (alternateCertified())
+                    return;
+            }
+            else {
+                m_alternateSinceMs = 0;
+            }
         }
         else if (m_state == SceneState::Suspect) {
+            m_alternateSinceMs = 0;
             if (!recoverySafe) {
                 m_suspectQuietSinceMs = 0;
                 break;
@@ -1089,7 +1180,6 @@ void CloudDetector::feedLocked(const SceneSample& s)
         const bool recovered = settled && s.detected && s.stableLock && m_lossRun == 0 &&
                                !massFast && recoveryBadChannels < 2 && !slowVote;
         if (recovered) {
-            m_alternateSinceMs = 0;
             if (recoveryHoldCompleteLocked(t, m_recoverSinceMs, kRecoverHoldMs)) {
                 transitionLocked(SceneState::Clear, "view recovered", t);
                 break;
@@ -1097,35 +1187,9 @@ void CloudDetector::feedLocked(const SceneSample& s)
         }
         else {
             m_recoverSinceMs = 0;
-
-            float alternateMassMed = 0.f, alternateMassMad = 0.f;
-            float alternateBrightMed = 0.f, alternateBrightMad = 0.f;
-            float alternateSnrMed = 0.f, alternateSnrMad = 0.f;
-            const bool stableMass = !m_seenMass ||
-                (detChannelsLive && m_shortMass.lastMedianMad(kVariabilityK, alternateMassMed, alternateMassMad) &&
-                 alternateMassMed > kEps && alternateMassMad / alternateMassMed <= kAlternateRelMad);
-            const bool stableBright =
-                m_shortBright.lastMedianMad(kVariabilityK, alternateBrightMed, alternateBrightMad) &&
-                alternateBrightMed > kEps && alternateBrightMad / alternateBrightMed <= kAlternateRelMad;
-            const bool stableSnr = !m_seenSnr ||
-                (detChannelsLive && m_shortSnr.lastMedianMad(kVariabilityK, alternateSnrMed, alternateSnrMad) &&
-                 alternateSnrMed >= kAlternateMinSnrDb && alternateSnrMad <= kAlternateSnrMadDb);
-            const bool stableAlternative = settled && clearEligible && brightCeil >= 0.f &&
-                                           stableMass && stableBright && stableSnr;
-
-            if (stableAlternative) {
-                if (m_alternateSinceMs == 0)
-                    m_alternateSinceMs = t;
-                else if (t - m_alternateSinceMs >= kAlternateBaselineMs) {
-                    logLocked("cloud: stable alternate baseline certified");
-                    resetLocked("stable alternate baseline");
-                    return;
-                }
-            }
-            else {
-                m_alternateSinceMs = 0;
-            }
         }
+        if (alternateCertified())
+            return;
         // Static-obstruction escalation: long obscuration with a flat (non-cloud-like)
         // brightness signature -- a branch / dew never fluctuates the way moving cloud does.
         if (!m_tele.staticObstruction && t - m_stateSinceMs >= kStuckMs) {

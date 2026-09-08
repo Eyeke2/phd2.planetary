@@ -93,6 +93,7 @@ class GuiderMultiStar : public Guider
     };
     std::vector<CloudStarReference> m_cloudStarReferences;
     unsigned m_cloudExtensionGeneration = 0;
+    unsigned m_cloudReferenceGeneration = 0;
 
     // parameters
     bool m_massChangeThresholdEnabled;
