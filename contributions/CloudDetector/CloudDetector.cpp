@@ -955,26 +955,29 @@ void CloudDetector::feedLocked(const SceneSample& s)
         (!m_seenMass || m_tele.massRatio >= 0.f) && (!m_seenSnr || haveSnr) &&
         (!m_seenFeatures || m_tele.featureRatio >= 0.f);
     m_tele.fresh = s.detected ? freshPrimary : m_tele.brightRatio >= 0.f;
-    bool settled = freshPrimary, improving = false, rising = false;
+    bool settled = freshPrimary, recoverySafe = freshPrimary, improving = false, rising = false;
     if (m_seenMass) {
         const bool quiet = m_trendMass.settled(t, CONFIG_CLOUD_TREND_MASS_FRAC, 0.f, clearMassMad, rising);
-        settled = settled && quiet; improving = improving || rising;
+        settled = settled && quiet; recoverySafe = recoverySafe && (quiet || rising); improving = improving || rising;
     }
     if (m_seenSnr) {
         const bool quiet = m_trendSnr.settled(t, 0.f, CONFIG_CLOUD_TREND_SNR_DB, clearSnrMad, rising);
-        settled = settled && quiet; improving = improving || rising;
+        settled = settled && quiet; recoverySafe = recoverySafe && (quiet || rising); improving = improving || rising;
     }
     if (!m_seenMass && !m_seenSnr && m_seenFeatures) {
         float med = 0.f, mad = 0.f;
         m_baseFeatures.medianMad(med, mad);
         const bool quiet = m_trendFeatures.settled(t, CONFIG_CLOUD_TREND_MASS_FRAC, 0.f, mad, rising);
-        settled = settled && quiet; improving = improving || rising;
+        settled = settled && quiet; recoverySafe = recoverySafe && (quiet || rising); improving = improving || rising;
     }
     if (validEnsemble) {
         bool ready = false;
         const bool quiet = m_trendEnsemble.settled(t, CONFIG_CLOUD_TREND_MASS_FRAC, 0.f, 0.f, rising, &ready);
         // Optional ensemble history constrains recovery only when complete.
-        if (ready) settled = settled && quiet;
+        if (ready) {
+            settled = settled && quiet;
+            recoverySafe = recoverySafe && (quiet || rising);
+        }
         improving = improving || rising;
     }
     m_tele.recoverySettled = settled;
@@ -1072,7 +1075,7 @@ void CloudDetector::feedLocked(const SceneSample& s)
             }
         }
         else if (m_state == SceneState::Suspect) {
-            if (!settled) {
+            if (!recoverySafe) {
                 m_suspectQuietSinceMs = 0;
                 break;
             }

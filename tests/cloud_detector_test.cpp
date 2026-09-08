@@ -866,7 +866,7 @@ void SmallPhotometricNoiseDoesNotBlockPlateau()
             "small stationary mass/SNR noise blocked recovery");
 }
 
-void SuspectAlsoWaitsForClearingAndEnsembleHistoryIsFresh()
+void SuspectAcceptsImprovingRecoveryAndEnsembleHistoryIsFresh()
 {
     CloudDetector detector;
     int64_t t = Arm(detector);
@@ -876,12 +876,31 @@ void SuspectAlsoWaitsForClearingAndEnsembleHistoryIsFresh()
         detector.Feed(s);
     }
     Require(detector.GetState() == SceneState::Suspect, "single mass channel did not become suspect");
+    bool recovered = false;
     for (int i = 0; i < 90; ++i, t += 2000) {
         auto s = ClearSample(t);
         s.mass = 75.f + 40.f * i / 90.f;
         detector.Feed(s);
-        Require(detector.GetState() != SceneState::Clear, "Suspect cleared during continuing improvement");
+        recovered = recovered || detector.GetState() == SceneState::Clear;
     }
+    Require(recovered, "Suspect remained latched while every primary channel was stable or improving");
+
+    detector.Reset("mixed recovery directions");
+    t = Arm(detector);
+    for (int i = 0; i < 3; ++i, t += 2000) {
+        auto s = ClearSample(t);
+        s.mass = 70.f;
+        detector.Feed(s);
+    }
+    for (int i = 0; i < 90; ++i, t += 2000) {
+        auto s = ClearSample(t);
+        s.mass = 75.f + 40.f * i / 90.f;
+        s.snr = 20.f - 1.5f * i / 90.f;
+        detector.Feed(s);
+        Require(detector.GetState() != SceneState::Clear,
+                "an improving channel hid deterioration in another recovery channel");
+    }
+
     detector.Reset("ensemble dropout");
     t = Arm(detector);
     for (int i = 0; i < 3; ++i, t += 2000) {
@@ -1006,7 +1025,7 @@ int main()
     DuplicatesCannotFillWindowsAndOptionalChannelsStayOptional();
     SlowAndIrregularCadencesCanRecover();
     SmallPhotometricNoiseDoesNotBlockPlateau();
-    SuspectAlsoWaitsForClearingAndEnsembleHistoryIsFresh();
+    SuspectAcceptsImprovingRecoveryAndEnsembleHistoryIsFresh();
     CalculationFaultStaysUnavailableUntilReset();
     NormalGuideCadenceAllowsMovementWaits();
     RecoveryRequiresThreeFreshObservations();
