@@ -1086,6 +1086,7 @@ void CloudDetector::feedLocked(const SceneSample& s)
     float alternateMassMed = 0.f, alternateMassMad = 0.f;
     float alternateBrightMed = 0.f, alternateBrightMad = 0.f;
     float alternateSnrMed = 0.f, alternateSnrMad = 0.f;
+    float alternateEnsembleMed = 0.f, alternateEnsembleMad = 0.f;
     const bool stableMass = !m_seenMass ||
         (detChannelsLive && m_shortMass.lastMedianMad(kVariabilityK, alternateMassMed, alternateMassMad) &&
          alternateMassMed > kEps && alternateMassMad / alternateMassMed <= kAlternateRelMad);
@@ -1095,8 +1096,12 @@ void CloudDetector::feedLocked(const SceneSample& s)
     const bool stableSnr = !m_seenSnr ||
         (detChannelsLive && m_shortSnr.lastMedianMad(kVariabilityK, alternateSnrMed, alternateSnrMad) &&
          alternateSnrMed >= kAlternateMinSnrDb && alternateSnrMad <= kAlternateSnrMadDb);
+    const bool stableEnsemble = !validEnsemble ||
+        (m_shortEnsemble.lastMedianMad(kVariabilityK, alternateEnsembleMed, alternateEnsembleMad) &&
+         alternateEnsembleMed > kEps && alternateEnsembleMad / alternateEnsembleMed <= kAlternateRelMad);
     const bool stableAlternative = settled && clearEligible && brightCeil >= 0.f &&
-                                   stableMass && stableBright && stableSnr;
+                                   !massVariable && !snrVariable && stableMass && stableBright &&
+                                   stableSnr && stableEnsemble;
     auto alternateCertified = [&]() {
         if (!stableAlternative) {
             m_alternateSinceMs = 0;

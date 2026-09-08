@@ -1183,6 +1183,41 @@ void TransientCalculationFaultRecoversFromFreshSamples()
             "automatic fault recovery retry was not published");
 }
 
+void ActiveMassVariabilityCannotRequalify()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    const unsigned generation = detector.GetTelemetry().referenceGeneration;
+    const float masses[] = { 96.f, 100.f, 104.f };
+    for (int i = 0; i < 180; ++i, t += 2000) {
+        auto s = ClearSample(t);
+        s.mass = masses[i % 3];
+        detector.Feed(s);
+    }
+    Require(detector.GetState() == SceneState::Suspect,
+            "active low-amplitude mass variability was accepted as clear");
+    Require(detector.GetTelemetry().referenceGeneration == generation,
+            "active low-amplitude mass variability replaced the reference");
+}
+
+void VariableEnsembleCannotRequalify()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    const unsigned generation = detector.GetTelemetry().referenceGeneration;
+    const float ratios[] = { 0.45f, 0.60f, 0.75f };
+    for (int i = 0; i < 180; ++i, t += 2000) {
+        auto s = ClearSample(t);
+        s.ensembleStars = 3;
+        s.ensembleRatio = ratios[i % 3];
+        detector.Feed(s);
+    }
+    Require(detector.GetState() == SceneState::Suspect,
+            "variable ensemble evidence was accepted as clear");
+    Require(detector.GetTelemetry().referenceGeneration == generation,
+            "variable ensemble evidence replaced the reference");
+}
+
 void FaultRecoveryQualificationRestartsOnDiscontinuity()
 {
     CloudDetector detector;
@@ -1228,6 +1263,8 @@ int main()
     ReferenceGenerationTracksHardResets();
     StableSingleChannelSuspectRequalifies();
     VariableSingleChannelSuspectDoesNotRequalify();
+    ActiveMassVariabilityCannotRequalify();
+    VariableEnsembleCannotRequalify();
     ObscuredRecoveryTimersDoNotCancelEachOther();
     AutoExposureDoesNotTreatSnrScalingAsCloud();
     TransientCalculationFaultRecoversFromFreshSamples();
