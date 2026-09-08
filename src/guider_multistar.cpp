@@ -987,12 +987,15 @@ void GuiderMultiStar::AddCloudExtensionEvidence(SceneSample *sample, const usIma
         const CloudExtensionSettings settings = GetCloudExtensionSettings();
         if (!settings.multiStarEnabled)
             return;
-        if (settings.generation != m_cloudExtensionGeneration)
+        const SceneTelemetry telemetry = GetCloudTelemetry();
+        if (settings.generation != m_cloudExtensionGeneration ||
+            telemetry.referenceGeneration != m_cloudReferenceGeneration)
         {
             m_cloudExtensionGeneration = settings.generation;
+            m_cloudReferenceGeneration = telemetry.referenceGeneration;
             m_cloudStarReferences.clear();
         }
-        const SceneState detectorState = GetCloudTelemetry().state;
+        const SceneState detectorState = telemetry.state;
         const bool mayLearnReferences = detectorState == SceneState::Warmup || detectorState == SceneState::Clear;
 
         auto referenceFor = [this](int keyX, int keyY) -> CloudStarReference&
