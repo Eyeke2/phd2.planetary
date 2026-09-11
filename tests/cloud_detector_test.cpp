@@ -9,6 +9,9 @@
 #include <limits>
 #include <stdexcept>
 #include <vector>
+#include <map>
+#include <sstream>
+#include <locale>
 
 namespace {
 
@@ -263,6 +266,53 @@ void ErraticMassWavesPublishHaze()
             "mass-wave test accidentally depended on a mean transmission fade");
     Require(telemetry.massScatterFactor > 1.f,
             "large mass waves did not exceed the learned variability band");
+}
+
+void VariabilityWithSupportingNoiseRemainsSuspect()
+{
+    for (bool varySnr : { false, true }) {
+        CloudDetector detector;
+        int64_t t = Arm(detector);
+        const unsigned generation = detector.GetTelemetry().referenceGeneration;
+        bool sawWarning = false;
+        for (int i = 0; i < 400; ++i, t += 3400) {
+            auto s = ClearSample(t);
+            s.mass = varySnr ? 100.f : 94.f + 4.f * (i % 3 - 1);
+            s.snr = varySnr ? 20.f + 0.6f * (i % 3 - 1) : 19.85f;
+            s.score = -3.2f;
+            s.brightCeil = 75.f + 10.f * (i % 3);
+            s.ensembleStars = 3;
+            s.ensembleRatio = 0.95f;
+            detector.Feed(s);
+            const auto tele = detector.GetTelemetry();
+            sawWarning = sawWarning || tele.state == SceneState::Suspect;
+            Require(tele.state != SceneState::Obscured,
+                    "one variable channel plus FWHM/contrast noise escalated to Obscured");
+            Require(tele.referenceGeneration == generation,
+                    "active variability was normalized by replacing the clear reference");
+            Require(tele.severity < 0.3f,
+                    "FWHM imposed a 30 percent haze floor without photometric level loss");
+        }
+        Require(sawWarning && detector.GetState() == SceneState::Suspect,
+                "ongoing variability must retain its haze warning");
+    }
+}
+
+void FadedPhotometryStillAcceptsSupportingVotes()
+{
+    for (bool useContrast : { false, true }) {
+        CloudDetector detector;
+        int64_t t = Arm(detector);
+        for (int i = 0; i < 30; ++i, t += 3400) {
+            auto s = ClearSample(t);
+            s.mass = 65.f;
+            if (useContrast) s.brightCeil = 70.f;
+            else s.score = -3.5f;
+            detector.Feed(s);
+        }
+        Require(detector.GetState() == SceneState::Obscured,
+                "sustained mass level loss with supporting evidence no longer obscures");
+    }
 }
 
 void CorroboratedMassAndSnrWavesObscure()
@@ -1244,10 +1294,126 @@ void FaultRecoveryQualificationRestartsOnDiscontinuity()
             "fresh qualification did not restart after acquisition change");
 }
 
+void ReplayLogReproducesDetector()
+{
+    CloudDetector original, replay;
+    std::vector<std::string> records;
+    std::vector<SceneTelemetry> expected;
+    original.SetLogger([&](const std::string& line) {
+        if (line.find("cloud: replay ") == 0)
+            records.push_back(line);
+    });
+    expected.push_back(original.GetTelemetry());
+    auto step = [&](const std::function<void()>& action) {
+        const size_t before = records.size();
+        action();
+        Require(records.size() == before + 1, "replay must record exactly one external operation");
+        expected.push_back(original.GetTelemetry());
+    };
+    step([&] { original.Reset("replay test"); });
+    int64_t t = 1000;
+    for (int i = 0; i < 220; ++i, t += 3400) {
+        if (i == 60) step([&] { original.ResumeAfterMotion("dither"); });
+        if (i == 90) step([&] { original.SetSensitivityPct(73); });
+        if (i == 130) step([&] { original.SetEnabled(false); });
+        if (i == 134) step([&] { original.SetEnabled(true); });
+        if (i == 170) step([&] { original.ReportFault("test", "transient"); });
+        auto s = ClearSample(t);
+        s.mass = i >= 30 && i < 90 ? 30.1234567f : 100.123459f;
+        s.snr = 20.1234567f;
+        s.score = -3.1234567f;
+        s.brightCeil = i >= 30 && i < 90 ? 20.1234567f : 100.123459f;
+        s.ensembleRatio = 0.987654328f;
+        s.ensembleStars = 4;
+        s.ensembleTripRatio = 0.765432119f;
+        s.roiX = 11; s.roiY = 17; s.roiW = 99; s.roiH = 101;
+        s.sourceGen = i >= 190 ? 18 : 17;
+        if (i == 50) { s.detected = false; s.stableLock = false; s.brightCeil = 0.f; }
+        if (i == 51) s.brightCeil = -1.f;
+        if (i == 52) s.tMs -= 3400;
+        step([&] { original.Feed(s); });
+    }
+    uint64_t sequence = 0;
+    bool sawObscured = false, sawFault = false;
+    for (size_t i = 0; i < records.size(); ++i) {
+        std::istringstream line(records[i]);
+        line.imbue(std::locale::classic());
+        std::map<std::string, std::string> fields;
+        std::string token;
+        while (line >> token) {
+            const auto split = token.find('=');
+            if (split != std::string::npos)
+                fields[token.substr(0, split)] = token.substr(split + 1);
+        }
+        auto integer = [&](const char* key) { return std::stoll(fields.at(key)); };
+        auto scalar = [&](const char* key) {
+            std::istringstream value(fields.at(key));
+            value.imbue(std::locale::classic());
+            float result = 0.f;
+            value >> result;
+            Require(!value.fail(), "invalid replay scalar");
+            return result;
+        };
+        Require(integer("v") == 1 && (uint64_t) integer("seq") == ++sequence,
+                "replay version or operation sequence changed");
+        const auto& event = fields.at("event");
+        if (event == "attach") {
+            replay.SetEnabled(integer("enabled") != 0);
+            replay.SetSensitivityPct((int) integer("sensitivity"));
+        }
+        else if (event == "reset") replay.Reset("replay");
+        else if (event == "resume") replay.ResumeAfterMotion("replay");
+        else if (event == "enabled") replay.SetEnabled(integer("enabled") != 0);
+        else if (event == "sensitivity") replay.SetSensitivityPct((int) integer("sensitivity"));
+        else if (event == "fault") replay.ReportFault("replay", "fault");
+        else {
+            Require(event == "feed", "unknown replay operation");
+            SceneSample s;
+            s.tMs = integer("tMs");
+            s.detected = integer("detected") != 0;
+            s.stableLock = integer("stableLock") != 0;
+            s.score = scalar("score"); s.snr = scalar("snr"); s.mass = scalar("mass");
+            s.features = (int) integer("features");
+            s.ensembleRatio = scalar("ensembleRatio");
+            s.ensembleStars = (int) integer("ensembleStars");
+            s.ensembleTripRatio = scalar("ensembleTripRatio");
+            s.brightCeil = scalar("brightCeil");
+            s.brightExposureMs = (int) integer("brightExposureMs");
+            s.exposureMs = (int) integer("exposureMs");
+            s.gain = (int) integer("gain"); s.bitDepth = (int) integer("bitDepth");
+            s.frameW = (int) integer("frameW"); s.frameH = (int) integer("frameH");
+            s.roiX = (int) integer("roiX"); s.roiY = (int) integer("roiY");
+            s.roiW = (int) integer("roiW"); s.roiH = (int) integer("roiH");
+            s.sourceGen = (unsigned) integer("sourceGen"); s.mode = (int) integer("mode");
+            Require(s.snr == 20.1234567f && s.score == -3.1234567f &&
+                    s.ensembleRatio == 0.987654328f && s.ensembleTripRatio == 0.765432119f,
+                    "replay rounded photometric inputs");
+            replay.Feed(s);
+        }
+        const auto actual = replay.GetTelemetry();
+        const auto& want = expected[i];
+        Require(actual.state == want.state && actual.severity == want.severity &&
+                actual.massRatio == want.massRatio && actual.brightRatio == want.brightRatio &&
+                actual.snrDropDb == want.snrDropDb && actual.scoreDelta == want.scoreDelta &&
+                actual.massScatterFactor == want.massScatterFactor && actual.snrScatterFactor == want.snrScatterFactor &&
+                actual.referenceGeneration == want.referenceGeneration && actual.healthy == want.healthy &&
+                actual.recoverySettled == want.recoverySettled && actual.clearingTrend == want.clearingTrend &&
+                actual.stateSinceMs == want.stateSinceMs && actual.fresh == want.fresh &&
+                actual.faultAutoRetries == want.faultAutoRetries && actual.lossRun == want.lossRun,
+                "replayed detector diverged from recorded run");
+        sawObscured = sawObscured || actual.state == SceneState::Obscured;
+        sawFault = sawFault || !actual.healthy;
+    }
+    Require(sawObscured && sawFault, "replay did not exercise cloud and fault recovery");
+}
+
 } // namespace
 
 int main()
 {
+    ReplayLogReproducesDetector();
+    VariabilityWithSupportingNoiseRemainsSuspect();
+    FadedPhotometryStillAcceptsSupportingVotes();
     MissingChannelsCannotRepeatVotes();
     GradualClearingWaitsForPlateau();
     AlternateBaselineCannotAcceptContinuingClearing();
