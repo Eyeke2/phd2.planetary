@@ -17,6 +17,9 @@
 #include <cstdio>
 #include <exception>
 #include <limits>
+#include <iomanip>
+#include <locale>
+#include <sstream>
 
 namespace {
 
@@ -296,6 +299,7 @@ void CloudDetector::SetSensitivityPct(int pct) noexcept
         if (pct == m_sensitivityPct)
             return;
         m_sensitivityPct = pct;
+        logReplayLocked("sensitivity");
         applySensitivityLocked();
         // Thresholds that moved under a running state machine would compare new limits against dwell
         // timers and a reference accumulated under the old ones. Start over instead.
@@ -316,6 +320,7 @@ void CloudDetector::SetEnabled(bool on) noexcept
         if (m_enabled == on)
             return;
         m_enabled = on;
+        logReplayLocked("enabled");
         // Reset on BOTH edges. Disabling must not leave a latched Obscured verdict readable by
         // IsClear() -- the state machine stops running, so nothing would ever clear it again.
         resetLocked(on ? "enabled" : "disabled");
@@ -333,6 +338,7 @@ void CloudDetector::SetLogger(std::function<void(const std::string&)> logger) no
     try {
         std::lock_guard<std::mutex> lk(m_mx);
         m_log = std::move(logger);
+        logReplayLocked("attach");
     }
     catch (const std::exception& e) {
         containException("SetLogger", e.what());
@@ -346,6 +352,7 @@ void CloudDetector::Reset(const char* reason) noexcept
 {
     try {
         std::lock_guard<std::mutex> lk(m_mx);
+        logReplayLocked("reset");
         resetLocked(reason);
     }
     catch (const std::exception& e) {
@@ -360,6 +367,7 @@ void CloudDetector::ResumeAfterMotion(const char* reason) noexcept
 {
     try {
         std::lock_guard<std::mutex> lk(m_mx);
+        logReplayLocked("resume");
         resumeAfterMotionLocked(reason);
     }
     catch (const std::exception& e) {
@@ -614,6 +622,7 @@ void CloudDetector::containException(const char* operation, const char* detail) 
 {
     try {
         std::lock_guard<std::mutex> lk(m_mx);
+        logReplayLocked("fault");
         noteExceptionLocked(false);
         clearStateLocked();
         m_tele.healthy = false;
@@ -674,6 +683,7 @@ void CloudDetector::Feed(const SceneSample& s) noexcept
 void CloudDetector::feedLocked(const SceneSample& s)
 {
     std::lock_guard<std::mutex> lk(m_mx);
+    logReplayLocked("feed", &s);
 
     // Acquisition discontinuities invalidate everything built from earlier frames, so track the
     // identity tuple unconditionally (even while disabled) and reset on any change.
@@ -994,9 +1004,13 @@ void CloudDetector::feedLocked(const SceneSample& s)
     const int  votes      = (massMed ? 1 : 0) + (brightMed ? 1 : 0) + (featureMed ? 1 : 0) +
                             (snrMed ? 1 : 0) + (scoreMed ? 1 : 0) +
                             (ensembleMed ? 1 : 0);
-    // Primary photometric evidence may be corroborated by the remaining channels.
+    // FWHM and image contrast can corroborate a photometric level loss. A single variable
+    // channel plus those noisy supporting measurements warrants Suspect, not Obscured.
     const bool primaryEvidence = massMed || snrMed || featureMed || ensembleMed;
-    const bool corroborated = primaryEvidence && votes >= 2;
+    const bool levelEvidence = massLevelMed || snrLevelMed || featureMed || ensembleMed;
+    const int photometricVotes = (massMed ? 1 : 0) + (snrMed ? 1 : 0) +
+                                 (featureMed ? 1 : 0) + (ensembleMed ? 1 : 0);
+    const bool corroborated = photometricVotes >= 2 || (levelEvidence && votes >= 2);
 
     // A contrast collapse can fast-trip by itself only when the target is missing (physical
     // blackout). With a stable detection it is noisy supporting evidence and must be corroborated
@@ -1072,7 +1086,7 @@ void CloudDetector::feedLocked(const SceneSample& s)
                            excess(m_tele.featureRatio, m_medFeatureRatio),
                            excess(m_tele.ensembleRatio, ensembleTripRatio) });
     if (snrMed)   sev = std::max(sev, std::min(1.f, (m_tele.snrDropDb - m_medSnrDropDb) / 6.f + 0.3f));
-    if (scoreMed) sev = std::max(sev, 0.3f);
+    if (scoreMed && levelEvidence) sev = std::max(sev, 0.3f);
     auto scatterExcess = [](float factor) {
         // Crossing the variability band begins at zero severity and ramps deliberately slowly:
         // twice the band is only 25%, not the former 50% cliff.
@@ -1232,6 +1246,37 @@ void CloudDetector::feedLocked(const SceneSample& s)
     }
     else if (m_state == SceneState::Clear) {
         m_lastPeriodicLogMs = 0;
+    }
+}
+
+void CloudDetector::logReplayLocked(const char* event, const SceneSample* s) noexcept
+{
+    ++m_replaySequence;
+    if (!m_log)
+        return;
+    try {
+        std::ostringstream out;
+        out.imbue(std::locale::classic());
+        out << std::setprecision(std::numeric_limits<float>::max_digits10)
+            << "cloud: replay v=1 seq=" << m_replaySequence << " event=" << event
+            << " enabled=" << m_enabled << " sensitivity=" << m_sensitivityPct
+            << " referenceGeneration=" << m_referenceGeneration;
+        if (s) {
+            out << " tMs=" << s->tMs << " detected=" << s->detected << " stableLock=" << s->stableLock
+                << " score=" << s->score << " snr=" << s->snr << " mass=" << s->mass
+                << " features=" << s->features << " ensembleRatio=" << s->ensembleRatio
+                << " ensembleStars=" << s->ensembleStars << " ensembleTripRatio=" << s->ensembleTripRatio
+                << " brightCeil=" << s->brightCeil << " brightExposureMs=" << s->brightExposureMs
+                << " exposureMs=" << s->exposureMs << " gain=" << s->gain << " bitDepth=" << s->bitDepth
+                << " frameW=" << s->frameW << " frameH=" << s->frameH
+                << " roiX=" << s->roiX << " roiY=" << s->roiY << " roiW=" << s->roiW << " roiH=" << s->roiH
+                << " sourceGen=" << s->sourceGen << " mode=" << s->mode;
+        }
+        logLocked(out.str().c_str());
+    }
+    catch (...) {
+        m_log = nullptr;
+        noteExceptionLocked(true);
     }
 }
 

@@ -48,6 +48,9 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <iomanip>
+#include <locale>
+#include <sstream>
 
 #if ((wxMAJOR_VERSION < 3) && (wxMINOR_VERSION < 9))
 # define wxPENSTYLE_DOT wxDOT
@@ -1039,6 +1042,25 @@ void GuiderMultiStar::AddCloudExtensionEvidence(SceneSample *sample, const usIma
                         observed.push_back({ found, ROUND(guideStar.offsetFromPrimary.X * 10.0),
                                              ROUND(guideStar.offsetFromPrimary.Y * 10.0) });
                 }
+
+                // Raw ensemble observations precede their detector feed, allowing reference relearning in replays.
+                try
+                {
+                    std::ostringstream out;
+                    out.imbue(std::locale::classic());
+                    out << std::setprecision(std::numeric_limits<double>::max_digits10)
+                        << "cloud: ensemble_input v=1 frame=" << image->FrameNum
+                        << " settingsGeneration=" << settings.generation
+                        << " referenceGeneration=" << telemetry.referenceGeneration
+                        << " minStars=" << settings.multiStarMinStars
+                        << " tripRatio=" << settings.ensembleTripRatio
+                        << " exposureMs=" << exposureMs << " autoExposure=" << autoExposure
+                        << " count=" << observed.size();
+                    for (const MassStar& current : observed)
+                        out << " star=" << current.keyX << ',' << current.keyY << ',' << current.star.Mass;
+                    Debug.Write(wxString::FromUTF8(out.str().c_str()) + "\n");
+                }
+                catch (...) { }
 
                 std::vector<float> massRatios;
                 for (const MassStar& current : observed)
