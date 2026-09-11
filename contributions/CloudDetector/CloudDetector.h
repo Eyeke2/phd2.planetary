@@ -143,7 +143,8 @@ public:
     // and IsClear() == true: stopping the state machine while a stale not-clear verdict stays
     // latched would leave a stale verdict published by a monitor that is no longer running.
     void SetEnabled(bool on) noexcept;
-    // Shadow-mode logger (state transitions + a periodic line while degraded). Nullable.
+    // Debug logger: transitions and versioned replay records (every input and external control).
+    // Replay needs the complete stream from startup and the matching detector build/configuration.
     void SetLogger(std::function<void(const std::string&)> logger) noexcept;
 
     // ---- data path (any thread; internally locked) ----
@@ -213,12 +214,14 @@ private:
     void  feedLocked(const SceneSample& sample);
     void  transitionLocked(SceneState next, const char* why, int64_t tMs);
     void  logLocked(const char* msg) noexcept;
+    void  logReplayLocked(const char* event, const SceneSample* sample = nullptr) noexcept;
     void  applySensitivityLocked();
     int64_t sampleGapLimitLocked(int currentExposureMs = 0) const;
     bool recoveryHoldCompleteLocked(int64_t t, int64_t& sinceMs, int holdMs);
 
     mutable std::mutex m_mx;
     std::function<void(const std::string&)> m_log;
+    uint64_t m_replaySequence = 0;
     unsigned m_exceptionCount = 0;
     unsigned m_loggerExceptionCount = 0;
     unsigned m_referenceGeneration = 0;
