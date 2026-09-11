@@ -34,7 +34,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PHD2 2.6.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-04 16:37+0300\n"
+"POT-Creation-Date: 2026-09-11 15:54+0300\n"
 "PO-Revision-Date: 2023-01-26 10:13+0800\n"
 "Last-Translator: Linkage <Linkage@163.com>\n"
 "Language-Team: Linkage <Linkage@163.com>\n"
@@ -2532,7 +2532,7 @@ msgstr "彗星跟踪 - 检测中"
 msgid "Comet Tracking - Active"
 msgstr "彗星跟踪 - 开启"
 
-#: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1716
+#: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1741
 #: scope.cpp:2350
 msgid "Enable"
 msgstr "启用"
@@ -4517,127 +4517,131 @@ msgstr "乘以曝光时间得出滤镜后的等效曝光时间。 默认值 = %.
 msgid "XFac"
 msgstr "XFac"
 
-#: guider.cpp:768
+#: guider.cpp:773
 msgid "E"
 msgstr "东"
 
-#: guider.cpp:789
+#: guider.cpp:794
 msgid "N"
 msgstr "北"
 
-#: guider.cpp:906
+#: guider.cpp:911
 msgid "PAUSED"
 msgstr "暂停"
 
-#: guider.cpp:910
+#: guider.cpp:915
 msgid "Guide output DISABLED"
 msgstr "导星输出已禁用"
 
-#: guider.cpp:949
+#: guider.cpp:954
 msgid "CLOUD: DETECTOR ERROR"
 msgstr ""
 
-#: guider.cpp:955
+#: guider.cpp:959
+msgid "CLOUD: NO DATA"
+msgstr ""
+
+#: guider.cpp:965
 msgid "CLOUD: LEARNING"
 msgstr ""
 
-#: guider.cpp:959
+#: guider.cpp:969
 msgid "CLOUD: CLEAR"
 msgstr ""
 
-#: guider.cpp:967
+#: guider.cpp:977
 #, c-format
 msgid "CLOUD: HAZE? %d%%"
 msgstr ""
 
-#: guider.cpp:973
+#: guider.cpp:983
 msgid "CLOUD: BLOCKED (STATIC?)"
 msgstr ""
 
-#: guider.cpp:973
+#: guider.cpp:983
 msgid "CLOUD: OBSCURED"
 msgstr ""
 
-#: guider.cpp:1449
+#: guider.cpp:1459
 msgid "Calibration manually stopped"
 msgstr "手工停止校准"
 
-#: guider.cpp:1504
+#: guider.cpp:1514
 msgid ""
 "Do you want to automatically restore this calibration whenever the profile "
 "is used?"
 msgstr "是否要在使用配置文件时自动恢复此校准？"
 
-#: guider.cpp:1577
+#: guider.cpp:1587
 msgid "Stopped Guiding"
 msgstr "导星已停止"
 
-#: guider.cpp:1589
+#: guider.cpp:1599
 msgid ""
 "Shifted lock position outside allowable area. Lock Position Shift disabled."
 msgstr "将锁定位置移到允许区域之外。 锁定位置偏移已禁用。"
 
-#: guider.cpp:1628
+#: guider.cpp:1638
 msgid "star lost"
 msgstr "被导星丢失"
 
-#: guider.cpp:1686 myframe.cpp:2246
+#: guider.cpp:1696 myframe.cpp:2246
 msgid "Paused"
 msgstr "暂停"
 
-#: guider.cpp:1686 myframe.cpp:2246
+#: guider.cpp:1696 myframe.cpp:2246
 msgid "/full"
 msgstr "/full"
 
-#: guider.cpp:1686 myframe.cpp:2246
+#: guider.cpp:1696 myframe.cpp:2246
 msgid "/looping"
 msgstr "/连续曝光"
 
-#: guider.cpp:1703
+#: guider.cpp:1713
 msgid "Static PA rotation failed"
 msgstr "静态PA旋转失败"
 
-#: guider.cpp:1709
+#: guider.cpp:1719
 msgid "Polar Drift PA drift failed"
 msgstr "简单极轴漂移校准失败"
 
-#: guider.cpp:1719
+#: guider.cpp:1729
 msgid "AO calibration failed"
 msgstr "AO校准失败"
 
-#: guider.cpp:1719 guider.cpp:1752
+#: guider.cpp:1729 guider.cpp:1762
 msgid "calibration failed"
 msgstr "校准失败"
 
-#: guider.cpp:2019
+#: guider.cpp:2029
 msgid "Guider Settings"
 msgstr "导星设置"
 
-#: guider.cpp:2028
+#: guider.cpp:2038
 msgid "Guide star tracking"
 msgstr "星点追踪选项"
 
-#: guider.cpp:2029 log_uploader.cpp:702
+#: guider.cpp:2039 log_uploader.cpp:702
 msgid "Calibration"
 msgstr "校准"
 
-#: guider.cpp:2030
+#: guider.cpp:2040
 msgid "Shared Parameters"
 msgstr "共享参数"
 
-#: guider.cpp:2077
+#: guider.cpp:2087
 msgid "Always scale images"
 msgstr "始终缩放图像"
 
-#: guider.cpp:2078
+#: guider.cpp:2088
 msgid "Always scale images to fill window"
 msgstr "始终缩放图像充满窗口"
 
-#: guider.cpp:2081
+#: guider.cpp:2091
 msgid "Fast recenter after calibration or dither"
 msgstr "校准或抖动后快速回到中心"
 
-#: guider.cpp:2083
+#: guider.cpp:2093
 msgid ""
 "Speed up calibration and dithering by using larger guide pulses to return "
 "the star to the center position. Un-check to use the old, slower method of "
@@ -4646,110 +4650,110 @@ msgstr ""
 "通过较大的导星脉冲使星点返回到中心，可以加快校准或抖动。不选中时，将使用较慢"
 "的老式方法。"
 
-#: guider.cpp:2087
+#: guider.cpp:2097
 msgid "Enable cloud detection telemetry"
 msgstr ""
 
-#: guider.cpp:2089
+#: guider.cpp:2099
 msgid ""
 "Monitor guide-star mass, SNR and FWHM and show the inferred sky condition in "
 "the lower-right image overlay. The monitor is informational and does not "
 "change PHD2's existing lost-star or star-mass rejection behavior."
 msgstr ""
 
-#: guider.cpp:2215
+#: guider.cpp:2225
 msgid "Are you sure you want to delete all Bookmarks?"
 msgstr "是否确认删除所有的标记?"
 
-#: guider_multistar.cpp:417 guider_multistar.cpp:1146
+#: guider_multistar.cpp:420 guider_multistar.cpp:1171
 msgid "No star selected"
 msgstr "未能选择被导星"
 
-#: guider_multistar.cpp:422
+#: guider_multistar.cpp:425
 msgid "Star lost - low SNR"
 msgstr "被导星丢失 - 低信噪比"
 
-#: guider_multistar.cpp:424
+#: guider_multistar.cpp:427
 msgid "Star lost - low mass"
 msgstr "被导星丢失 - 低质心"
 
-#: guider_multistar.cpp:426
+#: guider_multistar.cpp:429
 msgid "Star lost - low HFD"
 msgstr "被导星丢失 - 低HFD"
 
-#: guider_multistar.cpp:428
+#: guider_multistar.cpp:431
 msgid "Star too near edge"
 msgstr "被导星太靠边缘"
 
-#: guider_multistar.cpp:430
+#: guider_multistar.cpp:433
 msgid "Star lost - mass changed"
 msgstr "被导星丢失 - 质心改变"
 
-#: guider_multistar.cpp:432 guider_multistar.cpp:1376
+#: guider_multistar.cpp:435 guider_multistar.cpp:1401
 msgid "No star found"
 msgstr "未找到被导星"
 
-#: guider_multistar.cpp:438
+#: guider_multistar.cpp:441
 #, c-format
 msgid "m=%.0f SNR=%.1f"
 msgstr "m=%.0f SNR=%.1f"
 
-#: guider_multistar.cpp:441
+#: guider_multistar.cpp:444
 msgid "Saturated"
 msgstr "饱和检测"
 
-#: guider_multistar.cpp:451
+#: guider_multistar.cpp:454
 #, c-format
 msgid "Exp=%0.1f s"
 msgstr "曝=%0.1f 秒"
 
-#: guider_multistar.cpp:453
+#: guider_multistar.cpp:456
 #, c-format
 msgid "Exp=%d ms"
 msgstr "曝=%d 毫秒"
 
-#: guider_multistar.cpp:533
+#: guider_multistar.cpp:536
 #, c-format
 msgid "Auto-selected star at (%.1f, %.1f)"
 msgstr "自动选星位于（%.1f, %.1f）"
 
-#: guider_multistar.cpp:1199
+#: guider_multistar.cpp:1224
 #, c-format
 msgid "Mass: %.f vs %.f"
 msgstr "质心: %.f vs %.f"
 
-#: guider_multistar.cpp:1237
+#: guider_multistar.cpp:1262
 msgid "Recovering"
 msgstr "恢复中"
 
-#: guider_multistar.cpp:1388
+#: guider_multistar.cpp:1413
 msgid "object"
 msgstr ""
 
-#: guider_multistar.cpp:1388
+#: guider_multistar.cpp:1413
 msgid "star"
 msgstr ""
 
-#: guider_multistar.cpp:1390
+#: guider_multistar.cpp:1415
 #, c-format
 msgid "Selected %s at (%.1f, %.1f)"
 msgstr ""
 
-#: guider_multistar.cpp:1711
+#: guider_multistar.cpp:1736
 msgid "Search region (pixels)"
 msgstr "搜索区域 (像素)"
 
-#: guider_multistar.cpp:1712
+#: guider_multistar.cpp:1737
 msgid ""
 "How many pixels (up/down/left/right) do we examine to find the star? Default "
 "= 15"
 msgstr "在周围(上/下/左/右)各多少像素内搜索被导星的移动。缺省值 = 15 像素"
 
-#: guider_multistar.cpp:1715
+#: guider_multistar.cpp:1740
 msgid "Star Mass Detection"
 msgstr "星点质心变化检测"
 
-#: guider_multistar.cpp:1718
+#: guider_multistar.cpp:1743
 msgid ""
 "Check to enable star mass change detection. When enabled, PHD skips frames "
 "when the guide star mass changes by an amount greater than the setting for "
@@ -4758,11 +4762,11 @@ msgstr ""
 "勾选表示启用星点质心变化检测。 启用后，当被导星质心变化量大于“容差”设置时，"
 "PHD会跳过帧。"
 
-#: guider_multistar.cpp:1731
+#: guider_multistar.cpp:1756
 msgid "Tolerance"
 msgstr "容差"
 
-#: guider_multistar.cpp:1732
+#: guider_multistar.cpp:1757
 msgid ""
 "When star mass change detection is enabled, this is the tolerance for star "
 "mass changes between frames, in percent. Larger values are more tolerant "
@@ -4773,15 +4777,15 @@ msgstr ""
 "较大的值对星点质心变化更宽容（不太敏感）。有效范围是10~100，默认值是50。如果"
 "未启用“星点质心变化检测”，请忽略此设置。"
 
-#: guider_multistar.cpp:1738
+#: guider_multistar.cpp:1763
 msgid "65535"
 msgstr "65535"
 
-#: guider_multistar.cpp:1745
+#: guider_multistar.cpp:1770
 msgid "Minimum star HFD (pixels)"
 msgstr "最小星点HFD（像素）"
 
-#: guider_multistar.cpp:1746
+#: guider_multistar.cpp:1771
 msgid ""
 "The minimum star HFD (size) that will be used for identifying a guide star. "
 "This setting can be used to prevent PHD2 from guiding on a hot pixel. Use "
@@ -4793,11 +4797,11 @@ msgstr ""
 "星。使用星点侦测工具测量热噪点的HFD并将最小HFD阈值设置得更高。当HFD低于此数值"
 "时，热噪点将被忽略。"
 
-#: guider_multistar.cpp:1755
+#: guider_multistar.cpp:1780
 msgid "Maximum star HFD (pixels)"
 msgstr ""
 
-#: guider_multistar.cpp:1756
+#: guider_multistar.cpp:1781
 msgid ""
 "The maximum star HFD that will be used for identifying a guide star. This "
 "setting can be used to prevent PHD2 from choosing a large clump of sensor "
@@ -4805,15 +4809,15 @@ msgid ""
 "stars."
 msgstr ""
 
-#: guider_multistar.cpp:1760 myframe.cpp:999 myframe.cpp:1082 scope.cpp:283
+#: guider_multistar.cpp:1785 myframe.cpp:999 myframe.cpp:1082 scope.cpp:283
 msgid "Auto"
 msgstr "自动"
 
-#: guider_multistar.cpp:1764
+#: guider_multistar.cpp:1789
 msgid "Auto-selection frame downsample"
 msgstr "自动选择帧采样率"
 
-#: guider_multistar.cpp:1765
+#: guider_multistar.cpp:1790
 msgid ""
 "Downsampling factor for star auto-selection camera frames. Choose a value "
 "greater than 1 if star auto-selection is failing to recognize misshapen "
@@ -4822,27 +4826,27 @@ msgstr ""
 "自动选星时针对相机帧的缩小因子。 如果自动选星无法识别畸形的引导星，请选择一个"
 "大于 1 的值。"
 
-#: guider_multistar.cpp:1768
+#: guider_multistar.cpp:1793
 msgid "Beep on lost star"
 msgstr "星点丢失时尖叫"
 
-#: guider_multistar.cpp:1769
+#: guider_multistar.cpp:1794
 msgid "Issue an audible alarm any time the guide star is lost"
 msgstr "无论何时，当被导星丢失都会发出声音警报"
 
-#: guider_multistar.cpp:1771
+#: guider_multistar.cpp:1796
 msgid "Use multiple stars"
 msgstr "使用“多星导星”"
 
-#: guider_multistar.cpp:1772
+#: guider_multistar.cpp:1797
 msgid "Use multiple guide stars if they are available"
 msgstr "如果可以的话，使用“多星导星”算法"
 
-#: guider_multistar.cpp:1782
+#: guider_multistar.cpp:1807
 msgid "Minimum star SNR for AutoFind"
 msgstr "使用自动寻找被导星时的最小信噪比SNR"
 
-#: guider_multistar.cpp:1783
+#: guider_multistar.cpp:1808
 msgid ""
 "The minimum star SNR that will be used for auto-selecting guide stars. This "
 "setting can be used to discourage PHD2 from choosing a guide star you know "
