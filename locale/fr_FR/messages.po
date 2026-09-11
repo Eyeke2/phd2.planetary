@@ -36,7 +36,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: open-phd-guiding 2.0.4\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-04 16:37+0300\n"
+"POT-Creation-Date: 2026-09-11 15:54+0300\n"
 "PO-Revision-Date: 2021-07-05 23:03+0200\n"
 "Last-Translator: Cyril Richard <cyril@free-astro.fr>\n"
 "Language-Team: French <kde-i18n-doc@kde.org>\n"
@@ -2603,7 +2603,7 @@ msgstr "Suivi de Comète - Apprentissage Actif"
 msgid "Comet Tracking - Active"
 msgstr "Suivi de Comète - Actif"
 
-#: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1716
+#: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1741
 #: scope.cpp:2350
 msgid "Enable"
 msgstr "Activer"
@@ -4694,52 +4694,56 @@ msgstr ""
 msgid "XFac"
 msgstr "XFac"
 
-#: guider.cpp:768
+#: guider.cpp:773
 msgid "E"
 msgstr "E"
 
-#: guider.cpp:789
+#: guider.cpp:794
 msgid "N"
 msgstr "N"
 
-#: guider.cpp:906
+#: guider.cpp:911
 msgid "PAUSED"
 msgstr "EN PAUSE"
 
-#: guider.cpp:910
+#: guider.cpp:915
 msgid "Guide output DISABLED"
 msgstr "Sortie de guidage DÉSACTIVÉE"
 
-#: guider.cpp:949
+#: guider.cpp:954
 msgid "CLOUD: DETECTOR ERROR"
 msgstr ""
 
-#: guider.cpp:955
+#: guider.cpp:959
+msgid "CLOUD: NO DATA"
+msgstr ""
+
+#: guider.cpp:965
 msgid "CLOUD: LEARNING"
 msgstr ""
 
-#: guider.cpp:959
+#: guider.cpp:969
 msgid "CLOUD: CLEAR"
 msgstr ""
 
-#: guider.cpp:967
+#: guider.cpp:977
 #, c-format
 msgid "CLOUD: HAZE? %d%%"
 msgstr ""
 
-#: guider.cpp:973
+#: guider.cpp:983
 msgid "CLOUD: BLOCKED (STATIC?)"
 msgstr ""
 
-#: guider.cpp:973
+#: guider.cpp:983
 msgid "CLOUD: OBSCURED"
 msgstr ""
 
-#: guider.cpp:1449
+#: guider.cpp:1459
 msgid "Calibration manually stopped"
 msgstr "Calibration arrêtée manuellement"
 
-#: guider.cpp:1504
+#: guider.cpp:1514
 msgid ""
 "Do you want to automatically restore this calibration whenever the profile "
 "is used?"
@@ -4747,78 +4751,78 @@ msgstr ""
 "Voulez-vous restaurer automatiquement cette calibration chaque fois que le "
 "profil est utilisé?"
 
-#: guider.cpp:1577
+#: guider.cpp:1587
 msgid "Stopped Guiding"
 msgstr "Guidage Arrété"
 
-#: guider.cpp:1589
+#: guider.cpp:1599
 msgid ""
 "Shifted lock position outside allowable area. Lock Position Shift disabled."
 msgstr ""
 "Position de verrouillage décalée hors de la zone autorisée. Position de "
 "verrouillage décalée désactivée."
 
-#: guider.cpp:1628
+#: guider.cpp:1638
 msgid "star lost"
 msgstr "étoile perdue"
 
-#: guider.cpp:1686 myframe.cpp:2246
+#: guider.cpp:1696 myframe.cpp:2246
 msgid "Paused"
 msgstr "Pause"
 
-#: guider.cpp:1686 myframe.cpp:2246
+#: guider.cpp:1696 myframe.cpp:2246
 msgid "/full"
 msgstr "/plein"
 
-#: guider.cpp:1686 myframe.cpp:2246
+#: guider.cpp:1696 myframe.cpp:2246
 msgid "/looping"
 msgstr "/boucler"
 
-#: guider.cpp:1703
+#: guider.cpp:1713
 msgid "Static PA rotation failed"
 msgstr "La rotation statique de l'alignement polaire a échoué"
 
-#: guider.cpp:1709
+#: guider.cpp:1719
 msgid "Polar Drift PA drift failed"
 msgstr "Dérive Polaire : Échec de la dérive"
 
-#: guider.cpp:1719
+#: guider.cpp:1729
 msgid "AO calibration failed"
 msgstr "Échec étalonnage de l'OA"
 
-#: guider.cpp:1719 guider.cpp:1752
+#: guider.cpp:1729 guider.cpp:1762
 msgid "calibration failed"
 msgstr "échec calibration"
 
-#: guider.cpp:2019
+#: guider.cpp:2029
 msgid "Guider Settings"
 msgstr "Réglage Guideur"
 
-#: guider.cpp:2028
+#: guider.cpp:2038
 msgid "Guide star tracking"
 msgstr "Guidage par suivi des étoiles"
 
-#: guider.cpp:2029 log_uploader.cpp:702
+#: guider.cpp:2039 log_uploader.cpp:702
 msgid "Calibration"
 msgstr "Calibration"
 
-#: guider.cpp:2030
+#: guider.cpp:2040
 msgid "Shared Parameters"
 msgstr "Paramètres Partagés"
 
-#: guider.cpp:2077
+#: guider.cpp:2087
 msgid "Always scale images"
 msgstr "Toujours ajuster les images"
 
-#: guider.cpp:2078
+#: guider.cpp:2088
 msgid "Always scale images to fill window"
 msgstr "Toujours ajuster les images à la fenêtre"
 
-#: guider.cpp:2081
+#: guider.cpp:2091
 msgid "Fast recenter after calibration or dither"
 msgstr "Recentrage rapide après calibration ou dithering"
 
-#: guider.cpp:2083
+#: guider.cpp:2093
 msgid ""
 "Speed up calibration and dithering by using larger guide pulses to return "
 "the star to the center position. Un-check to use the old, slower method of "
@@ -4828,100 +4832,100 @@ msgstr ""
 "guidage plus grande pour recentrer l'étoile. Décochez pour utiliser "
 "l'ancienne méthode plus lente de recentrage après calibration ou dithering."
 
-#: guider.cpp:2087
+#: guider.cpp:2097
 msgid "Enable cloud detection telemetry"
 msgstr ""
 
-#: guider.cpp:2089
+#: guider.cpp:2099
 msgid ""
 "Monitor guide-star mass, SNR and FWHM and show the inferred sky condition in "
 "the lower-right image overlay. The monitor is informational and does not "
 "change PHD2's existing lost-star or star-mass rejection behavior."
 msgstr ""
 
-#: guider.cpp:2215
+#: guider.cpp:2225
 msgid "Are you sure you want to delete all Bookmarks?"
 msgstr "Êtes-vous sûr de vouloir supprimer tous les Signets ?"
 
-#: guider_multistar.cpp:417 guider_multistar.cpp:1146
+#: guider_multistar.cpp:420 guider_multistar.cpp:1171
 msgid "No star selected"
 msgstr "Aucune étoile selectionnée"
 
-#: guider_multistar.cpp:422
+#: guider_multistar.cpp:425
 msgid "Star lost - low SNR"
 msgstr "Étoile perdue - faible RSB"
 
-#: guider_multistar.cpp:424
+#: guider_multistar.cpp:427
 msgid "Star lost - low mass"
 msgstr "Étoile perdue - faible masse"
 
-#: guider_multistar.cpp:426
+#: guider_multistar.cpp:429
 msgid "Star lost - low HFD"
 msgstr "Étoile perdue - HFD bas"
 
-#: guider_multistar.cpp:428
+#: guider_multistar.cpp:431
 msgid "Star too near edge"
 msgstr "Étoile trop près du bord"
 
-#: guider_multistar.cpp:430
+#: guider_multistar.cpp:433
 msgid "Star lost - mass changed"
 msgstr "Étoile perdue - sa masse a changé"
 
-#: guider_multistar.cpp:432 guider_multistar.cpp:1376
+#: guider_multistar.cpp:435 guider_multistar.cpp:1401
 msgid "No star found"
 msgstr "Étoile non trouvée"
 
-#: guider_multistar.cpp:438
+#: guider_multistar.cpp:441
 #, c-format
 msgid "m=%.0f SNR=%.1f"
 msgstr "m=%.0f RSB=%.1f"
 
-#: guider_multistar.cpp:441
+#: guider_multistar.cpp:444
 msgid "Saturated"
 msgstr "Saturée"
 
-#: guider_multistar.cpp:451
+#: guider_multistar.cpp:454
 #, c-format
 msgid "Exp=%0.1f s"
 msgstr "Exp=%0.1f s"
 
-#: guider_multistar.cpp:453
+#: guider_multistar.cpp:456
 #, c-format
 msgid "Exp=%d ms"
 msgstr "Exp=%d ms"
 
-#: guider_multistar.cpp:533
+#: guider_multistar.cpp:536
 #, c-format
 msgid "Auto-selected star at (%.1f, %.1f)"
 msgstr "Étoile sélectionnée automatiquement à (%.1f, %.1f)"
 
-#: guider_multistar.cpp:1199
+#: guider_multistar.cpp:1224
 #, c-format
 msgid "Mass: %.f vs %.f"
 msgstr "Masse : %.f vs %.f"
 
-#: guider_multistar.cpp:1237
+#: guider_multistar.cpp:1262
 msgid "Recovering"
 msgstr "Récupération"
 
-#: guider_multistar.cpp:1388
+#: guider_multistar.cpp:1413
 msgid "object"
 msgstr ""
 
-#: guider_multistar.cpp:1388
+#: guider_multistar.cpp:1413
 msgid "star"
 msgstr ""
 
-#: guider_multistar.cpp:1390
+#: guider_multistar.cpp:1415
 #, c-format
 msgid "Selected %s at (%.1f, %.1f)"
 msgstr ""
 
-#: guider_multistar.cpp:1711
+#: guider_multistar.cpp:1736
 msgid "Search region (pixels)"
 msgstr "Région de recherche (pixels)"
 
-#: guider_multistar.cpp:1712
+#: guider_multistar.cpp:1737
 msgid ""
 "How many pixels (up/down/left/right) do we examine to find the star? Default "
 "= 15"
@@ -4929,11 +4933,11 @@ msgstr ""
 "Combien de pixels (haut/bas/gauche/droite) doit-on examiner pour trouver une "
 "étoile ? Par défaut = 15"
 
-#: guider_multistar.cpp:1715
+#: guider_multistar.cpp:1740
 msgid "Star Mass Detection"
 msgstr "Détection de la masse de l'étoile"
 
-#: guider_multistar.cpp:1718
+#: guider_multistar.cpp:1743
 msgid ""
 "Check to enable star mass change detection. When enabled, PHD skips frames "
 "when the guide star mass changes by an amount greater than the setting for "
@@ -4943,11 +4947,11 @@ msgstr ""
 "cette option est activée, PHD saute les images lorsque la masse de l'étoile "
 "guide change d'un montant supérieur au paramètre de 'tolérance'."
 
-#: guider_multistar.cpp:1731
+#: guider_multistar.cpp:1756
 msgid "Tolerance"
 msgstr "Tolérance"
 
-#: guider_multistar.cpp:1732
+#: guider_multistar.cpp:1757
 msgid ""
 "When star mass change detection is enabled, this is the tolerance for star "
 "mass changes between frames, in percent. Larger values are more tolerant "
@@ -4961,15 +4965,15 @@ msgstr ""
 "est 50. Si la détection de changement de masse de l'étoile n'est pas activé "
 "ce paramètre est ignoré."
 
-#: guider_multistar.cpp:1738
+#: guider_multistar.cpp:1763
 msgid "65535"
 msgstr "65535"
 
-#: guider_multistar.cpp:1745
+#: guider_multistar.cpp:1770
 msgid "Minimum star HFD (pixels)"
 msgstr "HFD minimum de l'étoile (pixels)"
 
-#: guider_multistar.cpp:1746
+#: guider_multistar.cpp:1771
 msgid ""
 "The minimum star HFD (size) that will be used for identifying a guide star. "
 "This setting can be used to prevent PHD2 from guiding on a hot pixel. Use "
@@ -4983,11 +4987,11 @@ msgstr ""
 "HFD sur un pixel chaud et définir un seuil de HFD minimal un peu plus haut. "
 "Quand le HFD tombe en dessous de ce niveau, le pixel chaud est ignoré."
 
-#: guider_multistar.cpp:1755
+#: guider_multistar.cpp:1780
 msgid "Maximum star HFD (pixels)"
 msgstr ""
 
-#: guider_multistar.cpp:1756
+#: guider_multistar.cpp:1781
 msgid ""
 "The maximum star HFD that will be used for identifying a guide star. This "
 "setting can be used to prevent PHD2 from choosing a large clump of sensor "
@@ -4995,15 +4999,15 @@ msgid ""
 "stars."
 msgstr ""
 
-#: guider_multistar.cpp:1760 myframe.cpp:999 myframe.cpp:1082 scope.cpp:283
+#: guider_multistar.cpp:1785 myframe.cpp:999 myframe.cpp:1082 scope.cpp:283
 msgid "Auto"
 msgstr "Auto"
 
-#: guider_multistar.cpp:1764
+#: guider_multistar.cpp:1789
 msgid "Auto-selection frame downsample"
 msgstr "Sélection automatique du sous échantillonnage de l'image"
 
-#: guider_multistar.cpp:1765
+#: guider_multistar.cpp:1790
 msgid ""
 "Downsampling factor for star auto-selection camera frames. Choose a value "
 "greater than 1 if star auto-selection is failing to recognize misshapen "
@@ -5014,27 +5018,27 @@ msgstr ""
 "automatique des étoiles ne parvient pas à reconnaître les étoiles guides "
 "déformées."
 
-#: guider_multistar.cpp:1768
+#: guider_multistar.cpp:1793
 msgid "Beep on lost star"
 msgstr "Biper à la perte de l'étoile"
 
-#: guider_multistar.cpp:1769
+#: guider_multistar.cpp:1794
 msgid "Issue an audible alarm any time the guide star is lost"
 msgstr "Émettre une alarme sonore chaque fois que l'étoile guide est perdue"
 
-#: guider_multistar.cpp:1771
+#: guider_multistar.cpp:1796
 msgid "Use multiple stars"
 msgstr "Utilisez plusieurs étoiles"
 
-#: guider_multistar.cpp:1772
+#: guider_multistar.cpp:1797
 msgid "Use multiple guide stars if they are available"
 msgstr "Utilisez plusieurs étoiles guides si elles sont disponibles"
 
-#: guider_multistar.cpp:1782
+#: guider_multistar.cpp:1807
 msgid "Minimum star SNR for AutoFind"
 msgstr "SNR minimum des étoiles pour la recherche automatique"
 
-#: guider_multistar.cpp:1783
+#: guider_multistar.cpp:1808
 msgid ""
 "The minimum star SNR that will be used for auto-selecting guide stars. This "
 "setting can be used to discourage PHD2 from choosing a guide star you know "
