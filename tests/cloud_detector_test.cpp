@@ -1325,6 +1325,8 @@ void ReplayLogReproducesDetector()
         s.brightCeil = i >= 30 && i < 90 ? 20.1234567f : 100.123459f;
         s.ensembleRatio = 0.987654328f;
         s.ensembleStars = 4;
+        s.massDeclinePctPerMinute = 1.2345678f;
+        s.cloudConfigGeneration = i >= 120 ? 2 : 1;
         s.ensembleTripRatio = 0.765432119f;
         s.roiX = 11; s.roiY = 17; s.roiW = 99; s.roiH = 101;
         s.sourceGen = i >= 190 ? 18 : 17;
@@ -1377,6 +1379,8 @@ void ReplayLogReproducesDetector()
             s.ensembleRatio = scalar("ensembleRatio");
             s.ensembleStars = (int) integer("ensembleStars");
             s.ensembleTripRatio = scalar("ensembleTripRatio");
+            s.massDeclinePctPerMinute = scalar("massDeclinePctPerMinute");
+            s.cloudConfigGeneration = (unsigned) integer("cloudConfigGeneration");
             s.brightCeil = scalar("brightCeil");
             s.brightExposureMs = (int) integer("brightExposureMs");
             s.exposureMs = (int) integer("exposureMs");
@@ -1393,6 +1397,8 @@ void ReplayLogReproducesDetector()
         const auto actual = replay.GetTelemetry();
         const auto& want = expected[i];
         Require(actual.state == want.state && actual.severity == want.severity &&
+                actual.massDeclineRate == want.massDeclineRate && actual.massDeclineRatio == want.massDeclineRatio &&
+                actual.massDeclineLatched == want.massDeclineLatched && actual.massDeclineUsesEnsemble == want.massDeclineUsesEnsemble &&
                 actual.massRatio == want.massRatio && actual.brightRatio == want.brightRatio &&
                 actual.snrDropDb == want.snrDropDb && actual.scoreDelta == want.scoreDelta &&
                 actual.massScatterFactor == want.massScatterFactor && actual.snrScatterFactor == want.snrScatterFactor &&
@@ -1407,10 +1413,128 @@ void ReplayLogReproducesDetector()
     Require(sawObscured && sawFault, "replay did not exercise cloud and fault recovery");
 }
 
+
+void SustainedMassDeclineHoldsForOriginalLevel()
+{
+    for (bool multi : {false, true}) {
+        CloudDetector detector;
+        int64_t t = Arm(detector);
+        auto feed = [&](float level, bool valid = true) {
+            auto sample = ClearSample(t);
+            sample.massDeclinePctPerMinute = 1.f;
+            // Fixed brightness and SNR deliberately cannot corroborate the legacy level trip.
+            sample.mass = multi ? 100.f : level;
+            sample.ensembleRatio = multi && valid ? level / 100.f : -1.f;
+            sample.ensembleStars = multi && valid ? 3 : 0;
+            detector.Feed(sample); t += 4000;
+        };
+        for (int i = 0; i < 50; ++i) feed(100.f);
+        for (int i = 0; i < 100; ++i) feed(100.f - i * 0.12f);
+        Require(detector.GetState() == SceneState::Obscured && detector.GetTelemetry().massDeclineLatched,
+                "sustained decline did not independently trigger Obscured");
+        Require(detector.GetTelemetry().massDeclineUsesEnsemble == multi, "wrong decline evidence source");
+        for (int i = 0; i < 400; ++i) feed(88.f);
+        Require(detector.GetState() == SceneState::Obscured,
+                "degraded plateau/anchor drift/alternate baseline released decline hold");
+        detector.ResumeAfterMotion("dither");
+        Require(detector.GetTelemetry().massDeclineLatched, "dither erased confirmed decline hold");
+        if (multi) {
+            for (int i = 0; i < 100; ++i) feed(100.f, false);
+            Require(detector.GetState() == SceneState::Obscured,
+                    "missing ensemble was replaced by a healthy primary during recovery");
+        }
+        for (int i = 0; i < 50; ++i) feed(100.f);
+        Require(detector.GetState() == SceneState::Clear && !detector.GetTelemetry().massDeclineLatched,
+                "restored settled mass did not release decline hold");
+    }
+}
+
+void MassDeclineRejectsNoiseStepsAndDiscontinuities()
+{
+    MassDeclineDetector decline;
+    int64_t t = 1000;
+    for (int i = 0; i < 400; ++i, t += 3500) {
+        const float mass = i % 41 == 0 ? 60.f : 100.f + (i % 7 - 3) * 0.7f;
+        decline.update(t, 1.f, 0, mass, -1.f);
+        Require(!decline.latched, "flat noise/outliers caused decline trip");
+    }
+    for (int i = 0; i < 120; ++i, t += 3500) {
+        decline.update(t, 1.f, 0, 92.f, -1.f);
+        Require(!decline.latched, "isolated mass step caused slope trip");
+    }
+    decline.reset();
+    for (int i = 0; i < 140; ++i, t += 3500) {
+        decline.update(t, 1.f, 0, 100.f - i * 0.015f, -1.f);
+        Require(!decline.latched, "subthreshold decline tripped");
+    }
+    decline.reset();
+    for (int i = 0; i < 100; ++i, t += 3500) {
+        if (i == 40) decline.resume();
+        decline.update(t, 1.f, 0, i < 40 ? 100.f : 92.f, -1.f);
+        Require(!decline.latched, "dither step contaminated trend history");
+    }
+    decline.reset();
+    for (int i = 0; i < 120; ++i, t += 3500) {
+        decline.update(t, 1.f, 0, 100.f - i * 0.12f, 1.f);
+        Require(!decline.latched, "primary-star anomaly overrode stable multi-star evidence");
+    }
+}
+
+void MassDeclineSettingsAndIdentityResetEvidence()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    for (int i = 0; i < 130; ++i, t += 3500) {
+        auto s = ClearSample(t); s.massDeclinePctPerMinute = 1.f; s.mass = 100.f - i * .1f;
+        detector.Feed(s);
+    }
+    Require(detector.GetTelemetry().massDeclineLatched, "test did not arm decline hold");
+    auto s = ClearSample(t); s.massDeclinePctPerMinute = 1.f; s.mass = 85.f; s.exposureMs = 2000;
+    detector.Feed(s);
+    Require(detector.GetState() == SceneState::Warmup && !detector.GetTelemetry().massDeclineLatched,
+            "new acquisition identity reused old star reference");
+    MassDeclineDetector decline;
+    for (int i = 0; i < 130; ++i, t += 3500) decline.update(t, 1.f, 0, 100.f - i * .1f, -1.f);
+    Require(decline.latched, "rate component did not latch");
+    decline.update(t, 1.f, 1, 85.f, -1.f);
+    Require(!decline.latched && decline.rate < 0, "configuration edit reused old evidence");
+    for (float disabled : {0.f, -1.f, std::numeric_limits<float>::infinity()}) {
+        for (int i = 0; i < 130; ++i, t += 3500) decline.update(t, disabled, 1, 100.f - i * .1f, -1.f);
+        Require(!decline.latched, "disabled/invalid decline setting tripped");
+    }
+}
+
+void MassDeclineHandlesUnavailableAndDuplicateSamples()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    for (int i = 0; i < 120; ++i, t += 3500) {
+        auto s = ClearSample(t); s.massDeclinePctPerMinute = 1.f; s.mass = 100.f - i * .1f;
+        if (i % 35 == 0) s.stableLock = false;
+        detector.Feed(s);
+        for (int j = 0; j < 5; ++j) detector.Feed(s);
+        Require(!detector.GetTelemetry().massDeclineLatched, "duplicates or unstable evidence filled decline window");
+    }
+    detector.Reset("new session");
+    for (int i = 0; i < 150; ++i, t += 3500) {
+        auto s = ClearSample(t); s.massDeclinePctPerMinute = 1.f;
+        // Auto-exposure input mass is already exposure-normalized by the integration.
+        s.exposureMs = 0; s.brightExposureMs = i % 2 ? 2000 : 1000;
+        s.brightCeil *= s.brightExposureMs / 1000.f;
+        s.snr = i % 2 ? 20.f : 17.f;
+        detector.Feed(s);
+        Require(!detector.GetTelemetry().massDeclineLatched, "auto-exposure/SNR change tripped mass decline");
+    }
+}
+
 } // namespace
 
 int main()
 {
+    SustainedMassDeclineHoldsForOriginalLevel();
+    MassDeclineRejectsNoiseStepsAndDiscontinuities();
+    MassDeclineSettingsAndIdentityResetEvidence();
+    MassDeclineHandlesUnavailableAndDuplicateSamples();
     ReplayLogReproducesDetector();
     VariabilityWithSupportingNoiseRemainsSuspect();
     FadedPhotometryStillAcceptsSupportingVotes();
