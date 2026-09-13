@@ -544,6 +544,7 @@ void CloudDetector::clearStateLocked() noexcept
     m_faultRecoveryLastMs = 0;
     m_state = SceneState::Warmup;
     m_stateSinceMs = 0;
+    m_massDecline.reset();
     m_tele = SceneTelemetry{};
     m_tele.exceptionCount = m_exceptionCount;
     m_tele.loggerExceptionCount = m_loggerExceptionCount;
@@ -589,7 +590,10 @@ void CloudDetector::resumeAfterMotionLocked(const char* reason) noexcept
     m_faultRecoverySamples = 0;
     m_faultRecoveryLastMs = 0;
 
+    m_massDecline.resume();
     SceneTelemetry resumed;
+    resumed.massDeclineLatched = m_massDecline.latched;
+    resumed.massDeclineUsesEnsemble = m_massDecline.usesEnsemble;
     resumed.state = m_state;
     resumed.healthy = m_tele.healthy;
     resumed.exceptionCount = m_exceptionCount;
@@ -805,6 +809,14 @@ void CloudDetector::feedLocked(const SceneSample& s)
     if (clearEligible && validSnr) m_trendSnr.push(s.snr, t); else m_trendSnr.clear();
     if (clearEligible && validFeatures) m_trendFeatures.push((float) s.features, t); else m_trendFeatures.clear();
     if (clearEligible && validEnsemble) m_trendEnsemble.push(s.ensembleRatio, t); else m_trendEnsemble.clear();
+
+    m_massDecline.update(t, s.mode == 0 ? s.massDeclinePctPerMinute : 0.f, s.cloudConfigGeneration,
+                         clearEligible && validMass ? s.mass : -1.f,
+                         clearEligible && validEnsemble ? s.ensembleRatio : -1.f);
+    m_tele.massDeclineRate = m_massDecline.rate;
+    m_tele.massDeclineRatio = m_massDecline.ratio;
+    m_tele.massDeclineLatched = m_massDecline.latched;
+    m_tele.massDeclineUsesEnsemble = m_massDecline.usesEnsemble;
 
     // ---- short (fast) windows: the sky AS IT IS, unconditional ----
     // These drive the trips, so they must include the bad frames -- a blackout is undetected by
@@ -1095,7 +1107,9 @@ void CloudDetector::feedLocked(const SceneSample& s)
     sev = std::max(sev, scatterExcess(m_tele.massScatterFactor));
     sev = std::max(sev, scatterExcess(m_tele.snrScatterFactor));
     sev = std::max(sev, excess(m_tele.slowBrightRatio, m_slowRatio));
-    m_tele.severity = (primaryEvidence || slowVote || fastTrip) ? sev : 0.f;
+    if (m_massDecline.latched && m_massDecline.ratio >= 0.f)
+        sev = std::max(sev, std::min(1.f, std::max(0.f, 1.f - m_massDecline.ratio)));
+    m_tele.severity = (primaryEvidence || slowVote || fastTrip || m_massDecline.latched) ? sev : 0.f;
 
     float alternateMassMed = 0.f, alternateMassMad = 0.f;
     float alternateBrightMed = 0.f, alternateBrightMad = 0.f;
@@ -1117,7 +1131,7 @@ void CloudDetector::feedLocked(const SceneSample& s)
                                    !massVariable && !snrVariable && stableMass && stableBright &&
                                    stableSnr && stableEnsemble;
     auto alternateCertified = [&]() {
-        if (!stableAlternative) {
+        if (!stableAlternative || m_massDecline.latched) {
             m_alternateSinceMs = 0;
             return false;
         }
@@ -1130,6 +1144,9 @@ void CloudDetector::feedLocked(const SceneSample& s)
         }
         return false;
     };
+
+    if (m_massDecline.latched && m_state != SceneState::Obscured)
+        transitionLocked(SceneState::Obscured, "sustained star-mass decline", t);
 
     switch (m_state) {
     case SceneState::Clear:
@@ -1197,9 +1214,12 @@ void CloudDetector::feedLocked(const SceneSample& s)
 
     case SceneState::Obscured: {
         const bool recovered = settled && s.detected && s.stableLock && m_lossRun == 0 &&
-                               !massFast && recoveryBadChannels < 2 && !slowVote;
+                               !massFast && recoveryBadChannels < 2 && !slowVote && m_massDecline.recoveryAllowed();
         if (recovered) {
             if (recoveryHoldCompleteLocked(t, m_recoverSinceMs, kRecoverHoldMs)) {
+                m_massDecline.recovered();
+                m_tele.massDeclineLatched = false;
+                m_tele.massDeclineRatio = -1.f;
                 transitionLocked(SceneState::Clear, "view recovered", t);
                 break;
             }
@@ -1266,6 +1286,8 @@ void CloudDetector::logReplayLocked(const char* event, const SceneSample* s) noe
                 << " score=" << s->score << " snr=" << s->snr << " mass=" << s->mass
                 << " features=" << s->features << " ensembleRatio=" << s->ensembleRatio
                 << " ensembleStars=" << s->ensembleStars << " ensembleTripRatio=" << s->ensembleTripRatio
+                << " massDeclinePctPerMinute=" << s->massDeclinePctPerMinute
+                << " cloudConfigGeneration=" << s->cloudConfigGeneration
                 << " brightCeil=" << s->brightCeil << " brightExposureMs=" << s->brightExposureMs
                 << " exposureMs=" << s->exposureMs << " gain=" << s->gain << " bitDepth=" << s->bitDepth
                 << " frameW=" << s->frameW << " frameH=" << s->frameH

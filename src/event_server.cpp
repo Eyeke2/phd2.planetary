@@ -1279,6 +1279,10 @@ static void get_cloud_status(JObj& response, const json_value *params)
     cloud_optional_metric(result, "feature_ratio", telemetry.featureRatio);
     cloud_optional_metric(result, "ensemble_ratio", telemetry.ensembleRatio);
     result << NV("ensemble_stars", telemetry.ensembleStars);
+    cloud_optional_metric(result, "mass_decline_rate", telemetry.massDeclineRate);
+    cloud_optional_metric(result, "mass_decline_ratio", telemetry.massDeclineRatio);
+    result << NV("mass_decline_latched", telemetry.massDeclineLatched)
+           << NV("mass_decline_uses_ensemble", telemetry.massDeclineUsesEnsemble);
     cloud_optional_metric(result, "mass_scatter_factor", telemetry.massScatterFactor);
     cloud_optional_metric(result, "snr_scatter_factor", telemetry.snrScatterFactor);
     cloud_optional_metric(result, "slow_brightness_ratio", telemetry.slowBrightRatio);
@@ -1294,7 +1298,9 @@ static void append_cloud_config(JObj& result, const CloudExtensionSettings& sett
            << NV("multi_star_supported", true)
            << NV("multi_star_enabled", settings.multiStarEnabled)
            << NV("multi_star_min_stars", settings.multiStarMinStars)
-           << NV("ensemble_trip_ratio", (double) settings.ensembleTripRatio);
+           << NV("ensemble_trip_ratio", (double) settings.ensembleTripRatio)
+           << NV("mass_decline_supported", true)
+           << NV("mass_decline_pct_per_minute", (double) settings.massDeclinePctPerMinute);
 }
 
 static void get_cloud_config(JObj& response, const json_value *params)
@@ -1348,6 +1354,15 @@ static void set_cloud_config(JObj& response, const json_value *params)
             return;
         }
         settings.ensembleTripRatio = (float) floatValue;
+    }
+    if ((value = p.param("mass_decline_pct_per_minute")) != nullptr)
+    {
+        if (!float_param(value, &floatValue))
+        {
+            response << jrpc_error(JSONRPC_INVALID_PARAMS, "mass_decline_pct_per_minute must be numeric");
+            return;
+        }
+        settings.massDeclinePctPerMinute = (float) floatValue;
     }
     wxString error;
     if (!pFrame->pGuider->ApplyCloudExtensionSettings(settings, &error))

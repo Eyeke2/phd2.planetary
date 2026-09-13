@@ -25,6 +25,7 @@
  */
 #pragma once
 
+#include "MassDeclineDetector.h"
 #include <cstdint>
 #include <functional>
 #include <mutex>
@@ -45,6 +46,8 @@ struct SceneSample {
     float   ensembleRatio = -1.f;
     int     ensembleStars = 0;
     float   ensembleTripRatio = 0.78f;
+    float   massDeclinePctPerMinute = 0.f; // optional star-only rate trigger; 0 disables
+    unsigned cloudConfigGeneration = 0; // restart rate evidence after explicit configuration edits
     // Image P99.5-minus-median contrast -- valid even when NOT detected, which is what makes it the
     // channel that still measures the sky during a total occultation.
     // NEGATIVE = unavailable (no stats this frame). ZERO IS A VALID READING: an all-black ROI is
@@ -104,6 +107,10 @@ struct SceneTelemetry {
     float featureRatio = -1.f;
     float ensembleRatio = -1.f;
     int   ensembleStars = 0;
+    float massDeclineRate = -1.f;
+    float massDeclineRatio = -1.f;
+    bool massDeclineLatched = false;
+    bool massDeclineUsesEnsemble = false;
     // Recent robust window scatter divided by the learned clear-scatter trip band. Values above 1
     // mean the normally flat mass/SNR trace has developed significant waves. -1 = unavailable.
     float massScatterFactor = -1.f;
@@ -300,5 +307,6 @@ private:
     static const char* IdentityDelta(const Identity& prev, const Identity& cur);
     static Identity IdentityOf(const SceneSample& s);
 
+    MassDeclineDetector m_massDecline;
     SceneTelemetry m_tele;
 };
