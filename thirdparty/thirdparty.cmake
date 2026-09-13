@@ -539,8 +539,15 @@ else()
     set(_indi_cxx_flags "-D_CRT_SECURE_NO_WARNINGS")
   endif()
 
+  # ExternalProject caches survive a fresh parent configure. Keep compiler and
+  # generator changes from reusing an incompatible INDI CMake cache.
+  string(SHA256 _indi_toolchain_id
+    "${CMAKE_GENERATOR}|${CMAKE_GENERATOR_PLATFORM}|${CMAKE_GENERATOR_TOOLSET}|${CMAKE_GENERATOR_INSTANCE}|${CMAKE_CXX_COMPILER}")
+  string(SUBSTRING "${_indi_toolchain_id}" 0 16 _indi_toolchain_id)
+
   ExternalProject_Add(
     indi
+    BINARY_DIR "${CMAKE_BINARY_DIR}/indi-prefix/src/indi-build-${_indi_toolchain_id}"
     GIT_REPOSITORY https://github.com/indilib/indi.git
     GIT_TAG 6aa360543313c9e00819148da9df15647ffa7996  # v2.1.6
     CMAKE_ARGS -Wno-dev
