@@ -113,6 +113,7 @@ struct CloudExtensionSettings
     bool multiStarEnabled = false;
     int multiStarMinStars = 3;
     float ensembleTripRatio = 0.78f;
+    float massDeclinePctPerMinute = 0.f;
     unsigned generation = 0;
 };
 

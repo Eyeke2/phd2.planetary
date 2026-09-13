@@ -151,6 +151,7 @@ add_subdirectory(contributions/MPI_IS_gaussian_process tmp_gaussian_process)
 add_library(CloudDetectorCore STATIC
   contributions/CloudDetector/CloudDetector.cpp
   contributions/CloudDetector/CloudDetector.h
+  contributions/CloudDetector/MassDeclineDetector.h
   contributions/CloudDetector/CloudDetectorConfig.h)
 target_include_directories(CloudDetectorCore PUBLIC contributions/CloudDetector)
 set_property(TARGET CloudDetectorCore PROPERTY FOLDER "Contribution")
@@ -159,6 +160,10 @@ add_executable(CloudDetectorTest tests/cloud_detector_test.cpp)
 target_link_libraries(CloudDetectorTest PRIVATE CloudDetectorCore)
 set_property(TARGET CloudDetectorTest PROPERTY FOLDER "Unit tests/Contribution")
 add_test(NAME CloudDetectorTest COMMAND CloudDetectorTest)
+
+add_executable(CloudDetectorReplay tests/cloud_detector_replay.cpp)
+target_link_libraries(CloudDetectorReplay PRIVATE CloudDetectorCore)
+set_property(TARGET CloudDetectorReplay PROPERTY FOLDER "Unit tests/Contribution")
 
 
 
