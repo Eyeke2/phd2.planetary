@@ -34,6 +34,7 @@
  */
 
 #include "phd.h"
+#include "../contributions/CloudDetector/CloudDetectorConfig.h"
 #include "guiding_assistant.h"
 #include "frame_export.h"
 #include "nudge_lock.h"
@@ -1299,8 +1300,12 @@ static void append_cloud_config(JObj& result, const CloudExtensionSettings& sett
            << NV("multi_star_enabled", settings.multiStarEnabled)
            << NV("multi_star_min_stars", settings.multiStarMinStars)
            << NV("ensemble_trip_ratio", (double) settings.ensembleTripRatio)
+           << NV("accumulated_haze_supported", true)
+           << NV("mass_decline_automatic", true)
+           << NV("segmented_haze_supported", true)
+           << NV("haze_gap_recovery_supported", true)
            << NV("mass_decline_supported", true)
-           << NV("mass_decline_pct_per_minute", (double) settings.massDeclinePctPerMinute);
+           << NV("mass_decline_pct_per_minute", (double) CONFIG_CLOUD_MASS_DECLINE_PCT_PER_MINUTE);
 }
 
 static void get_cloud_config(JObj& response, const json_value *params)
@@ -1355,14 +1360,11 @@ static void set_cloud_config(JObj& response, const json_value *params)
         }
         settings.ensembleTripRatio = (float) floatValue;
     }
-    if ((value = p.param("mass_decline_pct_per_minute")) != nullptr)
+    if (p.param("mass_decline_pct_per_minute"))
     {
-        if (!float_param(value, &floatValue))
-        {
-            response << jrpc_error(JSONRPC_INVALID_PARAMS, "mass_decline_pct_per_minute must be numeric");
-            return;
-        }
-        settings.massDeclinePctPerMinute = (float) floatValue;
+        response << jrpc_error(JSONRPC_INVALID_PARAMS,
+            "Haze detection is automatic; set discard/hold thresholds in Cloud Guard");
+        return;
     }
     wxString error;
     if (!pFrame->pGuider->ApplyCloudExtensionSettings(settings, &error))

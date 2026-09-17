@@ -1,4 +1,3 @@
-// Optional sustained star-mass decline detector. Independent of adapting clear anchors.
 #pragma once
 #include <algorithm>
 #include <cmath>
@@ -63,50 +62,87 @@ class MassDeclineDetector {
             }
             return true;
         }
-    } primary, ensemble;
+    } history, input;
     float threshold = 0.f, reference = -1.f, candidateReference = -1.f;
+    double level = 1., segmentCarry = 1., segmentReference = -1.;
     unsigned generation = 0;
-    int64_t candidateSince = 0;
-    bool candidateEnsemble = false;
+    int64_t observedMs = 1000, candidateSince = 0, lastSampleMs = 0, lastSeenMs = 0, healthySince = 0;
+    bool sourceChosen = false;
 public:
-    float rate = -1.f;       // positive %/minute loss; -1 means the three-minute window is not ready
-    float ratio = -1.f;      // current / frozen pre-decline reference while latched
+    float rate = -1.f;       // %/minute of observed time; -1 while unavailable or collecting
+    float ratio = -1.f;      // stitched transparency / retained pre-decline transparency
     bool latched = false, usesEnsemble = false;
     void reset() { *this = MassDeclineDetector{}; }
-    void resume() {
-        primary.clear(); ensemble.clear(); candidateSince = 0;
-        rate = ratio = -1.f; // preserve a confirmed hold and its pre-decline reference across dither
+    void resume(bool newSource = false) {
+        input.clear(); lastSampleMs = 0;
+        if (newSource) {
+            healthySince = 0;
+            if (latched) {
+                history.clear(); observedMs = 1000; candidateSince = 0;
+                latched = false; reference = candidateReference = -1.f; level = 1.;
+            }
+            segmentCarry = level; segmentReference = -1.; sourceChosen = false;
+        }
+        rate = ratio = -1.f;
     }
-    void recovered() { latched = false; reference = ratio = -1.f; candidateSince = 0; }
+    void recovered() { reset(); }
     bool recoveryAllowed() const { return !latched || ratio >= 0.98f; }
+    bool releaseIfHealthy(bool healthy, int64_t holdMs) {
+        if (!latched) { healthySince = 0; return false; }
+        if (ratio < 0.f || rate < 0.f) return false;
+        if (!healthy || rate >= threshold) { healthySince = 0; return false; }
+        if (!healthySince) healthySince = observedMs;
+        if (observedMs - healthySince < holdMs) return false;
+        recovered(); return true;
+    }
     void update(int64_t t, float requested, unsigned configGeneration, float mass, float multi) {
         if (!std::isfinite(requested) || requested < 0.f || requested > 20.f) requested = 0.f;
-        if (requested != threshold || configGeneration != generation) {
+        if (requested != threshold || (lastSeenMs && t < lastSeenMs)) {
             reset(); threshold = requested; generation = configGeneration;
         }
-        if (threshold == 0.f) return;
+        if (threshold == 0.f || t <= 0 || t == lastSeenMs) return;
+        lastSeenMs = t;
+        if (configGeneration != generation) {
+            resume(true); generation = configGeneration;
+        }
         const bool haveMass = std::isfinite(mass) && mass > 0.f;
         const bool haveMulti = std::isfinite(multi) && multi > 0.f;
-        if (haveMass) primary.push(mass, t); else primary.clear();
-        if (haveMulti) ensemble.push(multi, t); else ensemble.clear();
-        // Never compare a primary-star value with a normalized ensemble reference. A missing
-        // triggering channel cannot certify recovery; it must return with fresh measurements.
-        const bool useMulti = latched ? usesEnsemble : haveMulti;
-        const Window& source = useMulti ? ensemble : primary;
+        if ((!sourceChosen && (haveMass || haveMulti)) || (!usesEnsemble && haveMulti)) {
+            resume(true); usesEnsemble = haveMulti; sourceChosen = true;
+        }
+        if (!sourceChosen || !(usesEnsemble ? haveMulti : haveMass)) {
+            resume(); return;
+        }
+        if (lastSampleMs && t - lastSampleMs < 2000) return;
+        const int64_t dt = lastSampleMs ? t - lastSampleMs : 0;
+        lastSampleMs = t;
+        const bool observing = input.count >= 3;
+        const float raw = usesEnsemble ? multi : mass;
+        input.push(raw, t);
+        const float current = input.recent();
+        if (current <= 0.f) return;
+        if (segmentReference <= 0.) {
+            segmentReference = current;
+        } else if (observing) {
+            observedMs += dt;
+        }
+        const double next = segmentCarry * (current / segmentReference);
+        if (!std::isfinite(next) || next <= 0. || next > 1.e30) { resume(); return; }
+        level = next;
+        history.push((float) (segmentCarry * (raw / segmentReference)), observedMs);
         float before = -1.f;
         bool sustained = false;
         rate = -1.f;
-        const bool ready = source.estimate(t, threshold, rate, before, sustained);
+        const bool ready = history.estimate(observedMs, threshold, rate, before, sustained);
         if (!latched) {
             if (!ready || !sustained || rate < threshold) {
                 candidateSince = 0;
-            } else if (!candidateSince || candidateEnsemble != useMulti) {
-                candidateSince = t; candidateReference = before; candidateEnsemble = useMulti;
-            } else if (t - candidateSince >= 30000) {
-                latched = true; usesEnsemble = useMulti; reference = candidateReference;
+            } else if (!candidateSince) {
+                candidateSince = observedMs; candidateReference = before;
+            } else if (observedMs - candidateSince >= 30000) {
+                latched = true; reference = candidateReference;
             }
         }
-        ratio = latched && source.recent() > 0.f ? source.recent() / reference : -1.f;
-        if (!latched) usesEnsemble = useMulti;
+        ratio = latched ? (float) (level / reference) : -1.f;
     }
 };
