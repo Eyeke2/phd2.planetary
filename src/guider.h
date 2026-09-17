@@ -113,7 +113,6 @@ struct CloudExtensionSettings
     bool multiStarEnabled = false;
     int multiStarMinStars = 3;
     float ensembleTripRatio = 0.78f;
-    float massDeclinePctPerMinute = 0.f;
     unsigned generation = 0;
 };
 
@@ -313,7 +312,7 @@ public:
     void SetCloudDetectionEnabled(bool enabled);
     CloudExtensionSettings GetCloudExtensionSettings() const;
     bool ApplyCloudExtensionSettings(const CloudExtensionSettings& settings, wxString *error);
-    void ResetCloudDetection(const char* reason);
+    void ResetCloudDetection(const char* reason, bool preserveDecline = false);
     void ResumeCloudDetectionAfterMotion(const char* reason) { m_cloudDetector.ResumeAfterMotion(reason); }
     SceneTelemetry GetCloudTelemetry() const;
     void FeedCloudSample(SceneSample sample, const usImage *image, double centerX, double centerY, int radius) noexcept;

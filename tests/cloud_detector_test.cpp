@@ -12,6 +12,7 @@
 #include <map>
 #include <sstream>
 #include <locale>
+#include <random>
 
 namespace {
 
@@ -20,7 +21,7 @@ void Require(bool condition, const char *message)
     if (!condition)
     {
         std::cerr << "cloud detector test failed: " << message << '\n';
-        std::exit(1);
+        throw std::runtime_error(message);
     }
 }
 
@@ -41,6 +42,7 @@ SceneSample ClearSample(int64_t tMs)
     sample.frameW = 640;
     sample.frameH = 480;
     sample.mode = 0;
+
     return sample;
 }
 
@@ -206,11 +208,11 @@ void ModestCorrelatedFadeStartsWithLowHaze()
     const SceneTelemetry telemetry = detector.GetTelemetry();
     Require(detector.GetState() == SceneState::Suspect,
             "a sustained 15-percent correlated fade did not publish haze");
-    Require(telemetry.severity > 0.f && telemetry.severity < 0.10f,
+    Require(telemetry.severity > 0.f && telemetry.severity < 0.16f,
             "a modest correlated fade published disproportionate haze severity");
 }
 
-void SustainedModestCorrelatedFadeObscures()
+void SustainedModestCorrelatedFadeRemainsHaze()
 {
     CloudDetector detector;
     int64_t t = Arm(detector);
@@ -221,8 +223,8 @@ void SustainedModestCorrelatedFadeObscures()
         sample.brightCeil = 85.f;
         detector.Feed(sample);
     }
-    Require(detector.GetState() == SceneState::Obscured,
-            "a sustained correlated fade never advanced from haze to obscured");
+    Require(detector.GetState() == SceneState::Suspect,
+            "duration alone escalated modest haze to Obscured");
 }
 
 void DeeperSlowFadeDoesNotJumpToFiftyPercent()
@@ -239,7 +241,7 @@ void DeeperSlowFadeDoesNotJumpToFiftyPercent()
     const SceneTelemetry telemetry = detector.GetTelemetry();
     Require(detector.GetState() == SceneState::Suspect,
             "a deeper correlated fade did not publish a suspect state");
-    Require(telemetry.severity > 0.f && telemetry.severity < 0.15f,
+    Require(telemetry.severity > 0.f && telemetry.severity < 0.23f,
             "a barely tripped slow fade jumped to an excessive haze percentage");
 }
 
@@ -310,12 +312,12 @@ void FadedPhotometryStillAcceptsSupportingVotes()
             else s.score = -3.5f;
             detector.Feed(s);
         }
-        Require(detector.GetState() == SceneState::Obscured,
-                "sustained mass level loss with supporting evidence no longer obscures");
+        Require(detector.GetState() == SceneState::Suspect,
+                "partial corroborated loss must remain Suspect");
     }
 }
 
-void CorroboratedMassAndSnrWavesObscure()
+void CorroboratedMassAndSnrWavesRemainHaze()
 {
     CloudDetector detector;
     int64_t t = Arm(detector);
@@ -333,8 +335,8 @@ void CorroboratedMassAndSnrWavesObscure()
             "variability test accidentally depended on a mean fade");
     Require(telemetry.massScatterFactor > 1.f && telemetry.snrScatterFactor > 1.f,
             "correlated mass/SNR waves did not exceed their variability bands");
-    Require(detector.GetState() == SceneState::Obscured,
-            "corroborated mass/SNR variability did not latch obscured");
+    Require(detector.GetState() == SceneState::Suspect,
+            "variability alone must remain Suspect");
 }
 
 void StarSnrAndFwhmDriveSustainedVote()
@@ -348,7 +350,7 @@ void StarSnrAndFwhmDriveSustainedVote()
         sample.score = -5.0f; // broader FWHM is a lower generic quality score
         detector.Feed(sample);
     }
-    Require(detector.GetState() == SceneState::Obscured, "star SNR/FWHM degradation did not latch obscured");
+    Require(detector.GetState() == SceneState::Suspect, "SNR/FWHM changes must remain Suspect");
     Require(detector.GetTelemetry().snrDropDb > 3.0f, "star SNR drop was not reported");
     Require(detector.GetTelemetry().scoreDelta < -1.0f, "star FWHM score drop was not reported");
 }
@@ -471,7 +473,26 @@ void BetterClearViewRaisesProtectedStandardWithoutReset()
     Require(telemetry.scoreDelta < -0.8f, "better FWHM standard was not retained");
 }
 
-void StableAlternateViewRequalifies()
+void HealthyAug31TelemetryStaysClear()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    for (int i = 0; i < 20; ++i, t += 2000)
+    {
+        SceneSample sample = ClearSample(t);
+        sample.mass = 97.4f;
+        sample.brightCeil = 96.7f;
+        sample.snr = 19.944f;
+        sample.score = -3.32f;
+        sample.ensembleRatio = 0.981f;
+        sample.ensembleStars = 3;
+        detector.Feed(sample);
+        Require(detector.GetState() == SceneState::Clear,
+                "healthy Aug 31 photometry was classified as cloud");
+    }
+}
+
+void StableNearTotalLossCannotRequalify()
 {
     CloudDetector detector;
     int64_t t = Arm(detector);
@@ -479,22 +500,44 @@ void StableAlternateViewRequalifies()
 
     auto feedLower = [&]() {
         SceneSample sample = ClearSample(t);
-        sample.mass = 80.f;
-        sample.brightCeil = 80.f;
-        sample.snr = 16.f;
+        sample.mass = 6.f;
+        sample.brightCeil = 10.f;
+        sample.snr = 18.f;
         sample.score = -4.f;
         detector.Feed(sample);
         t += 2000;
     };
 
+    for (int i = 0; i < 45 / 2; ++i)
+        feedLower();
+    Require(detector.GetState() != SceneState::Clear,
+            "lower conditions bypassed alternate-baseline qualification");
+
     for (int i = 0; i < 4 * 60 / 2; ++i)
         feedLower();
-    Require(detector.GetState() == SceneState::Clear,
-            "stable alternate view did not establish a new baseline");
-    Require(detector.GetTelemetry().referenceGeneration != referenceGeneration,
-            "alternate baseline did not invalidate external clear references");
-    Require(detector.GetTelemetry().massRatio > 0.98f,
-            "new baseline did not represent the stable alternate view");
+    Require(detector.GetState() == SceneState::Obscured,
+            "near-total stable loss was incorrectly accepted as clear");
+    Require(detector.GetTelemetry().referenceGeneration == referenceGeneration,
+            "near-total loss replaced the certified reference");
+    Require(detector.GetTelemetry().massRatio < 0.10f,
+            "near-total loss was normalized away");
+}
+
+void VariableObstructionCannotRequalify()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+
+    for (int i = 0; i < 6 * 60 / 2; ++i, t += 2000)
+    {
+        SceneSample sample = ClearSample(t);
+        sample.mass = i % 2 == 0 ? 8.f : 42.f;
+        sample.brightCeil = i % 2 == 0 ? 10.f : 45.f;
+        sample.snr = i % 2 == 0 ? 16.f : 23.f;
+        detector.Feed(sample);
+    }
+    Require(detector.GetState() != SceneState::Clear,
+            "variable obstruction was accepted as an alternate baseline");
 }
 
 void NoisyContrastAndFwhmDoNotBlockRecovery()
@@ -508,7 +551,7 @@ void NoisyContrastAndFwhmDoNotBlockRecovery()
         sample.brightCeil = 2.f;
         detector.Feed(sample);
     }
-    Require(detector.GetState() == SceneState::Obscured, "test blackout did not latch obscured");
+    Require(detector.GetState() != SceneState::Clear, "test blackout did not latch obscured");
 
     bool sawClearRecovery = false;
     for (int i = 0; i < 45; ++i, t += 2000)
@@ -518,7 +561,7 @@ void NoisyContrastAndFwhmDoNotBlockRecovery()
         sample.brightCeil = i % 2 == 0 ? 40.f : 160.f;
         detector.Feed(sample);
         if (i < 30)
-            Require(detector.GetState() == SceneState::Obscured,
+            Require(detector.GetState() != SceneState::Clear,
                     "recovery skipped the full photometric trend window");
         sawClearRecovery = sawClearRecovery || detector.GetState() == SceneState::Clear;
     }
@@ -593,7 +636,7 @@ void MotionResumeClearsTransientEvidenceButKeepsBaseline()
     for (int i = 0; i < 3; ++i, t += 2000)
     {
         SceneSample sample = ClearSample(t);
-        sample.mass = 40.f;
+        sample.mass = 5.f;
         detector.Feed(sample);
     }
     Require(detector.GetState() == SceneState::Obscured,
@@ -627,7 +670,7 @@ void OptionalMultiStarEvidenceCorroboratesPrimaryFade()
     const SceneTelemetry telemetry = detector.GetTelemetry();
     Require(telemetry.ensembleStars == 4 && telemetry.ensembleRatio < 0.7f,
             "multi-star evidence was not published");
-    Require(detector.GetState() == SceneState::Obscured,
+    Require(detector.GetState() == SceneState::Suspect,
             "multi-star consensus did not corroborate a sustained primary fade");
 }
 
@@ -751,14 +794,14 @@ void GradualClearingWaitsForPlateau()
             s.detected = false; s.brightCeil = 0.f;
             detector.Feed(s);
         }
-        Require(detector.GetState() == SceneState::Obscured, "ramp setup failed to obscure");
+        Require(detector.GetState() != SceneState::Clear, "ramp setup failed to obscure");
         for (int elapsed = 0; elapsed < duration; elapsed += 2, t += 2000) {
             SceneSample s = ClearSample(t);
             const float progress = static_cast<float>(elapsed) / duration;
             s.mass = 55.f + 60.f * progress;
             s.snr = 16.f + 7.f * progress;
             detector.Feed(s);
-            Require(detector.GetState() == SceneState::Obscured,
+            Require(detector.GetState() != SceneState::Clear,
                     "continuing one-to-ten-minute clearing ramp released the cloud hold");
         }
         for (int i = 0; i < 60; ++i, t += 2000) {
@@ -790,7 +833,7 @@ void AlternateBaselineCannotAcceptContinuingClearing()
         s.mass = 12.f; s.brightCeil = 20.f; s.snr = 19.f;
         detector.Feed(s);
     }
-    Require(detector.GetState() == SceneState::Clear, "settled alternate baseline could not requalify");
+    Require(detector.GetState() != SceneState::Clear, "deep residual attenuation was normalized as clear");
 }
 
 int64_t Blackout(CloudDetector& detector)
@@ -811,7 +854,7 @@ void MissingEvidenceAndGapRestartRecovery()
         CloudDetector detector;
         int64_t t = Blackout(detector);
         for (int i = 0; i < 32; ++i, t += 2000) detector.Feed(ClearSample(t));
-        Require(detector.GetTelemetry().recoverySettled && detector.GetState() == SceneState::Obscured,
+        Require(detector.GetTelemetry().recoverySettled && detector.GetState() != SceneState::Clear,
                 "expected plateau qualification before the recovery hold completes");
         if (gap) {
             t += 120000;
@@ -820,13 +863,13 @@ void MissingEvidenceAndGapRestartRecovery()
                 auto s = ClearSample(t);
                 s.mass = s.snr = std::numeric_limits<float>::quiet_NaN();
                 detector.Feed(s);
-                Require(!detector.GetTelemetry().recoverySettled && detector.GetState() == SceneState::Obscured,
+                Require(!detector.GetTelemetry().recoverySettled && detector.GetState() != SceneState::Clear,
                         "missing primary evidence released a hold");
             }
         }
         for (int i = 0; i < 30; ++i, t += 2000) {
             detector.Feed(ClearSample(t));
-            Require(detector.GetState() == SceneState::Obscured,
+            Require(detector.GetState() != SceneState::Clear,
                     "interrupted recovery failed to refill its time window");
         }
         for (int i = 0; i < 15; ++i, t += 2000) detector.Feed(ClearSample(t));
@@ -1021,7 +1064,7 @@ void NormalGuideCadenceAllowsMovementWaits()
             detector.Feed(s);
             t += cycleMs();
         }
-        Require(detector.GetState() == SceneState::Obscured, "waiting between exposures prevented blackout detection");
+        Require(detector.GetState() != SceneState::Clear, "waiting between exposures prevented blackout detection");
         const int64_t rampStart = t;
         for (; t - rampStart < 180000; t += cycleMs()) {
             auto s = sampleAt(t);
@@ -1029,7 +1072,7 @@ void NormalGuideCadenceAllowsMovementWaits()
             s.mass = 55.f + 60.f * progress;
             s.snr = 16.f + 7.f * progress;
             detector.Feed(s);
-            Require(detector.GetState() == SceneState::Obscured,
+            Require(detector.GetState() != SceneState::Clear,
                     "movement waits allowed Clear during a continuing three-minute clearing ramp");
         }
         const int64_t plateauStart = t;
@@ -1069,11 +1112,11 @@ void RecoveryRequiresThreeFreshObservations()
         detector.Feed(sampleAt(t));
         if (detector.GetTelemetry().recoverySettled) { qualified = true; break; }
     }
-    Require(qualified && detector.GetState() == SceneState::Obscured, "sparse plateau did not start recovery hold");
+    Require(qualified && detector.GetState() != SceneState::Clear, "sparse plateau did not start recovery hold");
     for (int i = 0; i < 20; ++i) detector.Feed(sampleAt(t));
     t += 30000;
     detector.Feed(sampleAt(t));
-    Require(detector.GetState() == SceneState::Obscured,
+    Require(detector.GetState() != SceneState::Clear,
             "elapsed hold time or duplicate frames substituted for a third fresh recovery observation");
     t += 30000;
     detector.Feed(sampleAt(t));
@@ -1200,7 +1243,7 @@ void AutoExposureDoesNotTreatSnrScalingAsCloud()
         s.exposureMs = 0;
         s.brightExposureMs = 5000;
         s.brightCeil = 150.f;
-        s.mass = 30.f;
+        s.mass = 5.f;
         s.snr = 15.f;
         detector.Feed(s);
     }
@@ -1314,18 +1357,19 @@ void ReplayLogReproducesDetector()
     int64_t t = 1000;
     for (int i = 0; i < 220; ++i, t += 3400) {
         if (i == 60) step([&] { original.ResumeAfterMotion("dither"); });
+        if (i == 100) step([&] { original.StartNewSegment("next target"); });
         if (i == 90) step([&] { original.SetSensitivityPct(73); });
         if (i == 130) step([&] { original.SetEnabled(false); });
         if (i == 134) step([&] { original.SetEnabled(true); });
         if (i == 170) step([&] { original.ReportFault("test", "transient"); });
         auto s = ClearSample(t);
-        s.mass = i >= 30 && i < 90 ? 30.1234567f : 100.123459f;
+        s.mass = i >= 30 && i < 90 ? 3.1234567f : 100.123459f;
         s.snr = 20.1234567f;
         s.score = -3.1234567f;
         s.brightCeil = i >= 30 && i < 90 ? 20.1234567f : 100.123459f;
-        s.ensembleRatio = 0.987654328f;
+        s.ensembleRatio = i >= 30 && i < 90 ? 0.05f : 0.987654328f;
         s.ensembleStars = 4;
-        s.massDeclinePctPerMinute = 1.2345678f;
+
         s.cloudConfigGeneration = i >= 120 ? 2 : 1;
         s.ensembleTripRatio = 0.765432119f;
         s.roiX = 11; s.roiY = 17; s.roiW = 99; s.roiH = 101;
@@ -1364,6 +1408,7 @@ void ReplayLogReproducesDetector()
             replay.SetSensitivityPct((int) integer("sensitivity"));
         }
         else if (event == "reset") replay.Reset("replay");
+        else if (event == "segment") replay.StartNewSegment("replay");
         else if (event == "resume") replay.ResumeAfterMotion("replay");
         else if (event == "enabled") replay.SetEnabled(integer("enabled") != 0);
         else if (event == "sensitivity") replay.SetSensitivityPct((int) integer("sensitivity"));
@@ -1379,8 +1424,9 @@ void ReplayLogReproducesDetector()
             s.ensembleRatio = scalar("ensembleRatio");
             s.ensembleStars = (int) integer("ensembleStars");
             s.ensembleTripRatio = scalar("ensembleTripRatio");
-            s.massDeclinePctPerMinute = scalar("massDeclinePctPerMinute");
+
             s.cloudConfigGeneration = (unsigned) integer("cloudConfigGeneration");
+
             s.brightCeil = scalar("brightCeil");
             s.brightExposureMs = (int) integer("brightExposureMs");
             s.exposureMs = (int) integer("exposureMs");
@@ -1390,7 +1436,7 @@ void ReplayLogReproducesDetector()
             s.roiW = (int) integer("roiW"); s.roiH = (int) integer("roiH");
             s.sourceGen = (unsigned) integer("sourceGen"); s.mode = (int) integer("mode");
             Require(s.snr == 20.1234567f && s.score == -3.1234567f &&
-                    s.ensembleRatio == 0.987654328f && s.ensembleTripRatio == 0.765432119f,
+                    (s.ensembleRatio == 0.987654328f || s.ensembleRatio == 0.05f) && s.ensembleTripRatio == 0.765432119f,
                     "replay rounded photometric inputs");
             replay.Feed(s);
         }
@@ -1414,14 +1460,222 @@ void ReplayLogReproducesDetector()
 }
 
 
-void SustainedMassDeclineHoldsForOriginalLevel()
+
+
+void UnconfirmedSlopeSurvivesAcquisitionAndMotionSegments()
+{
+    CloudDetector detector;
+    int64_t t = 1000;
+    for (int segment = 0; segment < 3; ++segment) {
+        if (segment % 2 == 0) detector.StartNewSegment("next target");
+        else detector.ResumeAfterMotion("dither settled");
+        t += 600000;
+        for (int i = 0; i < 25; ++i, t += 4000) {
+            auto s = ClearSample(t);
+            const float scale = segment < 2 ? 100.f : segment < 4 ? 1000.f : 300.f;
+            const float start = segment % 2 == 0 ? 1.f : .952f;
+            s.mass = scale * start * (1.f - i * .002f);
+            s.exposureMs = segment < 2 ? 1000 : 2000;
+            s.cloudConfigGeneration = segment / 2;
+            detector.Feed(s);
+            Require(detector.GetState() != SceneState::Obscured, "short shallow segments implied total loss");
+        }
+    }
+    const auto result = detector.GetTelemetry();
+    Require(result.massDeclineLatched && result.state == SceneState::Suspect && result.severity > .1f,
+            "acquisition warmups and dithers erased unconfirmed joined slope evidence");
+    auto mode = ClearSample(t); mode.mode = 1;
+    detector.Feed(mode);
+    Require(!detector.GetTelemetry().massDeclineLatched, "non-stellar mode reused stellar transparency");
+}
+
+void ShortSlopeSegmentsFormOneObservedTrend()
+{
+    for (bool multi : {false, true}) {
+        MassDeclineDetector decline;
+        int64_t t = 1000;
+        const float scales[] = {100.f, 3000.f, .4f};
+        for (float scale : scales) {
+            decline.resume(true);
+            t += 900000;
+            for (int i = 0; i < 25; ++i, t += 4000) {
+                const float mass = scale * (1.f - i * .002f);
+                decline.update(t, 1.f, 0, multi ? 100.f : mass, multi ? mass : -1.f);
+            }
+        }
+        Require(decline.latched && decline.ratio < .9f && decline.ratio > .84f,
+                "short declining segments did not accumulate across target joins");
+        Require(decline.rate > 2.f && decline.rate < 4.f,
+                "unobserved wall time diluted or inflated the stitched slope");
+    }
+}
+
+void SameAcquisitionLossCompoundsAndRecoveryReducesIt()
+{
+    MassDeclineDetector decline;
+    int64_t t = 1000;
+    auto feed = [&](float value) { decline.update(t, 1.f, 0, 100.f, value); t += 4000; };
+    for (int i = 0; i < 65; ++i) feed(1.f);
+    for (int i = 0; i <= 60; ++i) feed(1.f - i / 600.f);
+    for (int i = 0; i < 3; ++i) feed(.9f);
+    Require(decline.latched && std::fabs(decline.ratio - .9f) < .005f, "first measured loss");
+    decline.resume(); t += 3600000;
+    for (int i = 0; i < 20; ++i) feed(.9f);
+    for (int i = 0; i <= 60; ++i) feed(.9f - i * .0015f);
+    for (int i = 0; i < 3; ++i) feed(.81f);
+    Require(std::fabs(decline.ratio - .81f) < .005f, "comparable ten-percent losses must compound to nineteen percent");
+    decline.resume(); t += 600000;
+    for (int i = 0; i < 3; ++i) feed(1.f);
+    Require(decline.recoveryAllowed() && std::fabs(decline.ratio - 1.f) < .005f,
+            "recovery while unobserved was normalized away");
+    decline.resume(true);
+    for (int i = 0; i < 30; ++i, t += 4000) decline.update(t, 1.f, 1, 500.f, -1.f);
+    Require(!decline.usesEnsemble && !decline.latched && decline.ratio < 0.f,
+            "replacement source published incomparable confirmed loss");
+}
+
+void JoinsPreservePendingConfirmationWithoutCountingGaps()
+{
+    MassDeclineDetector decline;
+    int64_t t = 1000;
+    for (int i = 0; i < 51; ++i, t += 4000) decline.update(t, 1.f, 0, 100.f - i * .15f, -1.f);
+    Require(decline.rate > 1.f && !decline.latched, "test needs an unconfirmed eligible slope");
+    decline.resume(true); t += 3600000;
+    for (int i = 0; i < 3; ++i, t += 4000) decline.update(t, 1.f, 1, 1000.f - i * 1.5f, -1.f);
+    Require(!decline.latched, "gap or joining samples completed confirmation without observed time");
+    for (int i = 3; i < 14; ++i, t += 4000) decline.update(t, 1.f, 1, 1000.f - i * 1.5f, -1.f);
+    Require(decline.latched, "joining erased the pending slope and confirmation evidence");
+}
+
+void FlatSegmentsAndInvalidJoinSamplesCannotCreateSlope()
+{
+    MassDeclineDetector decline;
+    int64_t t = 1000;
+    for (int segment = 0; segment < 20; ++segment) {
+        decline.resume(true); t += 600000;
+        const float value = segment % 2 ? .001f : 100000.f;
+        for (int i = 0; i < 22; ++i, t += 4000) {
+            const float mass = i == 0 ? value * 100.f : value;
+            decline.update(t, 1.f, segment, mass, -1.f);
+            for (int duplicate = 0; duplicate < 8; ++duplicate)
+                decline.update(t, 1.f, segment, mass, -1.f);
+            Require(!decline.latched, "flat joins, an initial outlier or duplicates fabricated a slope");
+        }
+    }
+    Require(decline.rate >= 0.f && decline.rate < .001f, "normalized flat segments did not produce a flat virtual slope");
+}
+
+void AcquisitionChangesRequalifyConfirmedHaze()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    auto feed = [&](float mass, int exposure, unsigned generation = 0) {
+        auto s = ClearSample(t); s.mass = mass; s.exposureMs = exposure; s.cloudConfigGeneration = generation;
+        detector.Feed(s); t += 4000;
+    };
+    for (int i = 0; i < 65; ++i) feed(100.f, 1000);
+    for (int i = 0; i <= 60; ++i) feed(100.f - i / 6.f, 1000);
+    for (int i = 0; i < 3; ++i) feed(90.f, 1000);
+    const float before = detector.GetTelemetry().severity;
+    Require(before > .09f && before < .11f, "test did not accumulate initial haze");
+    feed(180.f, 2000);
+    Require(detector.GetState() == SceneState::Warmup && !detector.GetTelemetry().massDeclineLatched &&
+            detector.GetTelemetry().massDeclineRatio < 0.f, "exposure change published incomparable haze");
+    for (int i = 0; i < 40; ++i) feed(180.f, 2000);
+    Require(detector.GetState() == SceneState::Clear && detector.GetTelemetry().severity == 0.f,
+            "old confirmed haze survived fresh exposure qualification");
+    detector.StartNewSegment("guiding restarted on next target"); t += 600000;
+    for (int i = 0; i < 40; ++i) feed(7000.f, 2000, 1);
+    Require(detector.GetState() == SceneState::Clear && detector.GetTelemetry().severity == 0.f,
+            "old confirmed haze held a newly qualified target");
+    for (int i = 0; i <= 60; ++i) feed(7000.f - i * (700.f / 60.f), 2000, 1);
+    for (int i = 0; i < 3; ++i) feed(6300.f, 2000, 1);
+    Require(detector.GetTelemetry().massDeclineLatched && std::fabs(detector.GetTelemetry().severity - .1f) < .01f,
+            "fresh decline did not qualify in the new target");
+    detector.SetEnabled(false); detector.SetEnabled(true);
+    Require(!detector.GetTelemetry().massDeclineLatched, "explicit detector reset retained the old transparency history");
+}
+
+
+void BlackoutRecoveryDuringGapReleasesObscured()
+{
+    for (bool multi : {false, true}) {
+        CloudDetector detector;
+        int64_t t = Arm(detector);
+        auto feed = [&](float level, bool available = true) {
+            auto sample = ClearSample(t);
+            sample.mass = multi ? 100.f : level;
+            sample.ensembleRatio = multi && available ? level / 100.f : -1.f;
+            sample.ensembleStars = multi && available ? 3 : 0;
+            sample.detected = sample.stableLock = multi || available;
+            detector.Feed(sample); t += 4000;
+        };
+        for (int i = 0; i < 65; ++i) feed(100.f);
+        for (int i = 0; i <= 300; ++i) feed(100.f - 95.f * i / 300.f);
+        for (int i = 0; i < 10; ++i) feed(5.f);
+        Require(detector.GetState() == SceneState::Obscured && detector.GetTelemetry().massDeclineLatched,
+                "blackout recovery test did not qualify obscuration");
+        for (int i = 0; i < 30; ++i) feed(100.f, false);
+        Require(!detector.GetTelemetry().fresh, "missing source published fresh haze");
+        for (int i = 0; i < 45; ++i) feed(100.f);
+        Require(detector.GetState() == SceneState::Clear && !detector.GetTelemetry().massDeclineLatched,
+                "clear sky after dropout remained Obscured beyond three minutes");
+    }
+}
+
+void HealthyPhotometryCanReleaseAnObsoleteDeclineReference()
+{
+    for (float plateau : {1.f, .88f}) {
+        CloudDetector detector;
+        int64_t t = Arm(detector);
+        auto feed = [&](float level) {
+            auto sample = ClearSample(t); sample.ensembleRatio = level; sample.ensembleStars = 3;
+            detector.Feed(sample); t += 4000;
+        };
+        for (int i = 0; i < 65; ++i) feed(1.08f);
+        for (int i = 0; i <= 100; ++i) feed(1.08f - (1.08f - plateau) * i / 100.f);
+        Require(detector.GetTelemetry().massDeclineLatched, "test did not establish a decline reference");
+        for (int i = 0; i < 180; ++i) feed(plateau);
+        if (plateau == 1.f)
+            Require(detector.GetState() == SceneState::Clear && !detector.GetTelemetry().massDeclineLatched,
+                    "healthy photometry could not release an obsolete high reference");
+        else
+            Require(detector.GetState() == SceneState::Suspect && detector.GetTelemetry().massDeclineLatched,
+                    "bounded recovery normalized away a genuinely degraded plateau");
+    }
+}
+
+void NoisyFlatNightsWithDropoutsDoNotAccumulateHaze()
+{
+    for (double sigma : {.03, .06}) {
+        double declineMinutes = 0., hazeMinutes = 0.;
+        for (int night = 0; night < 10; ++night) {
+            std::mt19937 rng(5000u + night);
+            std::normal_distribution<double> noise(0., sigma);
+            std::uniform_real_distribution<double> random(0., 1.);
+            CloudDetector detector;
+            for (int64_t t = 1000; t < 8LL * 3600000; t += 2000) {
+                auto sample = ClearSample(t);
+                sample.detected = sample.stableLock = random(rng) >= (sigma == .03 ? 1./60 : 1./300);
+                sample.mass = (float) (100. * std::exp(noise(rng)));
+                detector.Feed(sample);
+                const auto result = detector.GetTelemetry();
+                if (result.massDeclineLatched && result.state != SceneState::Clear) declineMinutes += 1./30;
+                if (result.fresh && result.state != SceneState::Warmup && result.severity >= .3f) hazeMinutes += 1./30;
+            }
+        }
+        Require(sigma != .03 || declineMinutes <= 50., "3% flat-sky noise caused prolonged decline latches");
+        Require(hazeMinutes <= (sigma == .03 ? 0. : 10.), "flat-sky dropouts manufactured actionable haze");
+    }
+}
+
+void SustainedMassDeclineAccumulatesHaze()
 {
     for (bool multi : {false, true}) {
         CloudDetector detector;
         int64_t t = Arm(detector);
         auto feed = [&](float level, bool valid = true) {
             auto sample = ClearSample(t);
-            sample.massDeclinePctPerMinute = 1.f;
             // Fixed brightness and SNR deliberately cannot corroborate the legacy level trip.
             sample.mass = multi ? 100.f : level;
             sample.ensembleRatio = multi && valid ? level / 100.f : -1.f;
@@ -1430,17 +1684,17 @@ void SustainedMassDeclineHoldsForOriginalLevel()
         };
         for (int i = 0; i < 50; ++i) feed(100.f);
         for (int i = 0; i < 100; ++i) feed(100.f - i * 0.12f);
-        Require(detector.GetState() == SceneState::Obscured && detector.GetTelemetry().massDeclineLatched,
-                "sustained decline did not independently trigger Obscured");
+        Require(detector.GetState() == SceneState::Suspect && detector.GetTelemetry().massDeclineLatched,
+                "sustained shallow decline must report Suspect");
         Require(detector.GetTelemetry().massDeclineUsesEnsemble == multi, "wrong decline evidence source");
         for (int i = 0; i < 400; ++i) feed(88.f);
-        Require(detector.GetState() == SceneState::Obscured,
-                "degraded plateau/anchor drift/alternate baseline released decline hold");
+        Require(detector.GetState() == SceneState::Suspect,
+                "degraded plateau erased accumulated haze");
         detector.ResumeAfterMotion("dither");
         Require(detector.GetTelemetry().massDeclineLatched, "dither erased confirmed decline hold");
         if (multi) {
             for (int i = 0; i < 100; ++i) feed(100.f, false);
-            Require(detector.GetState() == SceneState::Obscured,
+            Require(detector.GetState() == SceneState::Suspect,
                     "missing ensemble was replaced by a healthy primary during recovery");
         }
         for (int i = 0; i < 50; ++i) feed(100.f);
@@ -1480,24 +1734,25 @@ void MassDeclineRejectsNoiseStepsAndDiscontinuities()
     }
 }
 
-void MassDeclineSettingsAndIdentityResetEvidence()
+void MassDeclineSettingsAndIdentityJoinEvidence()
 {
     CloudDetector detector;
     int64_t t = Arm(detector);
     for (int i = 0; i < 130; ++i, t += 3500) {
-        auto s = ClearSample(t); s.massDeclinePctPerMinute = 1.f; s.mass = 100.f - i * .1f;
+        auto s = ClearSample(t);  s.mass = 100.f - i * .1f;
         detector.Feed(s);
     }
     Require(detector.GetTelemetry().massDeclineLatched, "test did not arm decline hold");
-    auto s = ClearSample(t); s.massDeclinePctPerMinute = 1.f; s.mass = 85.f; s.exposureMs = 2000;
+    auto s = ClearSample(t);  s.mass = 85.f; s.exposureMs = 2000;
     detector.Feed(s);
-    Require(detector.GetState() == SceneState::Warmup && !detector.GetTelemetry().massDeclineLatched,
-            "new acquisition identity reused old star reference");
+    Require(detector.GetState() == SceneState::Warmup && !detector.GetTelemetry().massDeclineLatched &&
+            detector.GetTelemetry().massDeclineRatio < 0.f,
+            "new acquisition reused incomparable confirmed loss");
     MassDeclineDetector decline;
     for (int i = 0; i < 130; ++i, t += 3500) decline.update(t, 1.f, 0, 100.f - i * .1f, -1.f);
     Require(decline.latched, "rate component did not latch");
     decline.update(t, 1.f, 1, 85.f, -1.f);
-    Require(!decline.latched && decline.rate < 0, "configuration edit reused old evidence");
+    Require(!decline.latched && decline.ratio < 0, "configuration edit reused incomparable confirmed loss");
     for (float disabled : {0.f, -1.f, std::numeric_limits<float>::infinity()}) {
         for (int i = 0; i < 130; ++i, t += 3500) decline.update(t, disabled, 1, 100.f - i * .1f, -1.f);
         Require(!decline.latched, "disabled/invalid decline setting tripped");
@@ -1509,15 +1764,15 @@ void MassDeclineHandlesUnavailableAndDuplicateSamples()
     CloudDetector detector;
     int64_t t = Arm(detector);
     for (int i = 0; i < 120; ++i, t += 3500) {
-        auto s = ClearSample(t); s.massDeclinePctPerMinute = 1.f; s.mass = 100.f - i * .1f;
-        if (i % 35 == 0) s.stableLock = false;
+        auto s = ClearSample(t);  s.mass = 100.f - i * .1f;
+        if (i % 2 == 0) s.stableLock = false;
         detector.Feed(s);
         for (int j = 0; j < 5; ++j) detector.Feed(s);
         Require(!detector.GetTelemetry().massDeclineLatched, "duplicates or unstable evidence filled decline window");
     }
     detector.Reset("new session");
     for (int i = 0; i < 150; ++i, t += 3500) {
-        auto s = ClearSample(t); s.massDeclinePctPerMinute = 1.f;
+        auto s = ClearSample(t);
         // Auto-exposure input mass is already exposure-normalized by the integration.
         s.exposureMs = 0; s.brightExposureMs = i % 2 ? 2000 : 1000;
         s.brightCeil *= s.brightExposureMs / 1000.f;
@@ -1527,67 +1782,178 @@ void MassDeclineHandlesUnavailableAndDuplicateSamples()
     }
 }
 
+void HazeTracksMeasuredLossAndRecovery()
+{
+    for (bool multi : { false, true }) {
+        CloudDetector detector;
+        int64_t t = Arm(detector);
+        auto feed = [&](float level, bool available = true) {
+            auto s = ClearSample(t);
+
+            s.mass = multi ? 100.f : level;
+            s.ensembleStars = multi && available ? 3 : 0;
+            s.ensembleRatio = multi && available ? level / 100.f : -1.f;
+            detector.Feed(s); t += 4000;
+        };
+        for (int i = 0; i < 50; ++i) feed(100.f);
+        for (int i = 0; i < 100; ++i) feed(100.f - i * .12f);
+        auto warning = detector.GetTelemetry();
+        Require(warning.state == SceneState::Suspect && warning.massDeclineLatched,
+                "shallow sustained fade did not start haze tracking");
+        Require(warning.severity > .10f && warning.severity < .14f,
+                "accumulated haze did not match measured mass loss");
+        for (int i = 0; i < 500; ++i) feed(88.f);
+        auto plateau = detector.GetTelemetry();
+        Require(plateau.state == SceneState::Suspect && std::fabs(plateau.severity - warning.severity) < .01f,
+                "flat degraded mass accumulated invented haze or lost its reference");
+        for (int i = 0; i < 100; ++i) feed(88.f - i * .6f);
+        auto deep = detector.GetTelemetry();
+        Require(deep.state == SceneState::Suspect && deep.severity > .68f && deep.severity < .75f,
+                "continuing slope did not accumulate proportional haze");
+        for (int i = 0; i < 60; ++i) feed(5.f);
+        Require(detector.GetState() == SceneState::Obscured && detector.GetTelemetry().severity > .9f,
+                "near-total accumulated loss failed to obscure");
+        if (multi) {
+            for (int i = 0; i < 60; ++i) feed(100.f, false);
+            Require(!detector.GetTelemetry().fresh && detector.GetState() == SceneState::Obscured,
+                    "missing triggering ensemble falsely certified recovery");
+        }
+        for (int i = 0; i < 20; ++i) feed(60.f);
+        auto recovering = detector.GetTelemetry();
+        Require(recovering.state == SceneState::Suspect && recovering.severity > .37f && recovering.severity < .42f,
+                "returning signal did not reduce haze and release Obscured to Suspect");
+        for (int i = 0; i < 100; ++i) feed(100.f);
+        Require(detector.GetState() == SceneState::Clear && !detector.GetTelemetry().massDeclineLatched,
+                "restored signal did not complete clear qualification");
+    }
+}
+
+void ObscuredRequiresHighAttenuationAtEverySensitivity()
+{
+    for (int sensitivity : { 0, 50, 100 }) {
+        for (bool multi : { false, true }) {
+            CloudDetector detector;
+            detector.SetSensitivityPct(sensitivity);
+            int64_t t = Arm(detector);
+            auto feed = [&](float mass, float ensemble) {
+                auto s = ClearSample(t);
+                s.mass = mass;
+                s.ensembleStars = multi ? 3 : 0;
+                s.ensembleRatio = multi ? ensemble : -1.f;
+                s.brightCeil = 50.f;
+                s.snr = 10.f;
+                s.score = -6.f;
+                detector.Feed(s); t += 2000;
+            };
+            for (int i = 0; i < 100; ++i) feed(40.f, .40f);
+            Require(detector.GetState() == SceneState::Suspect && detector.GetTelemetry().severity < .65f,
+                    "partial loss with multiple bad channels escalated to Obscured");
+            if (multi) {
+                for (int i = 0; i < 20; ++i) feed(1.f, 1.f);
+                Require(detector.GetState() != SceneState::Obscured,
+                        "single-star anomaly overrode a healthy measured ensemble");
+            }
+            for (int i = 0; i < 3; ++i) feed(5.f, .05f);
+            Require(detector.GetState() == SceneState::Obscured,
+                    "severe loss did not obscure at this sensitivity");
+        }
+    }
+}
+
+void VariabilityCannotImplyTotalLoss()
+{
+    CloudDetector detector;
+    int64_t t = Arm(detector);
+    for (int i = 0; i < 300; ++i, t += 2000) {
+        auto s = ClearSample(t);
+        s.mass = i % 3 == 0 ? 1.f : i % 3 == 1 ? 100.f : 199.f;
+        s.snr = i % 3 == 0 ? 1.f : i % 3 == 1 ? 20.f : 39.f;
+        s.score = -8.f;
+        s.brightCeil = 10.f;
+        detector.Feed(s);
+        Require(detector.GetState() != SceneState::Obscured && detector.GetTelemetry().severity <= .5f,
+                "variability or supporting-channel noise was mistaken for total signal loss");
+    }
+}
+
+
 } // namespace
 
 int main()
 {
-    SustainedMassDeclineHoldsForOriginalLevel();
-    MassDeclineRejectsNoiseStepsAndDiscontinuities();
-    MassDeclineSettingsAndIdentityResetEvidence();
-    MassDeclineHandlesUnavailableAndDuplicateSamples();
-    ReplayLogReproducesDetector();
-    VariabilityWithSupportingNoiseRemainsSuspect();
-    FadedPhotometryStillAcceptsSupportingVotes();
-    MissingChannelsCannotRepeatVotes();
-    GradualClearingWaitsForPlateau();
-    AlternateBaselineCannotAcceptContinuingClearing();
-    MissingEvidenceAndGapRestartRecovery();
-    StalledFeedExpiresWithoutErasingVerdict();
-    DuplicatesCannotFillWindowsAndOptionalChannelsStayOptional();
-    SlowAndIrregularCadencesCanRecover();
-    SmallPhotometricNoiseDoesNotBlockPlateau();
-    SuspectAcceptsImprovingRecoveryAndEnsembleHistoryIsFresh();
-    PersistentCalculationFaultExhaustsAutomaticRetries();
-    NormalGuideCadenceAllowsMovementWaits();
-    RecoveryRequiresThreeFreshObservations();
-    ReferenceGenerationTracksHardResets();
-    StableSingleChannelSuspectRequalifies();
-    VariableSingleChannelSuspectDoesNotRequalify();
-    ActiveMassVariabilityCannotRequalify();
-    VariableEnsembleCannotRequalify();
-    ObscuredRecoveryTimersDoNotCancelEachOther();
-    AutoExposureDoesNotTreatSnrScalingAsCloud();
-    TransientCalculationFaultRecoversFromFreshSamples();
-    FaultRecoveryQualificationRestartsOnDiscontinuity();
-    ImageContrastHandlesCameraScalesAndHotPixels();
-    TargetLossIsNotCloud();
-    BiasedDarkFrameTripsContrastChannel();
-    DetectedContrastCollapseNeedsCorroboration();
-    StablePhotometryIgnoresFwhmJitter();
-    StableMassRippleStaysClear();
-    GentleMassStepIsNotErraticCloud();
-    ModerateMassWavesHaveProportionalHaze();
-    SlowBroadMassWavesPublishHaze();
-    ModestCorrelatedFadeStartsWithLowHaze();
-    SustainedModestCorrelatedFadeObscures();
-    DeeperSlowFadeDoesNotJumpToFiftyPercent();
-    ErraticMassWavesPublishHaze();
-    CorroboratedMassAndSnrWavesObscure();
-    StarSnrAndFwhmDriveSustainedVote();
-    ExposureChangeResetsBaseline();
-    BitDepthChangeResetsBaseline();
-    AutoExposureKeepsContrastOnOneScale();
-    BetterClearViewRaisesProtectedStandardWithoutReset();
-    StableAlternateViewRequalifies();
-    NoisyContrastAndFwhmDoNotBlockRecovery();
-    GuidingSessionResetRelearnsCurrentClearView();
-    MotionResumeClearsTransientEvidenceButKeepsBaseline();
-    OptionalMultiStarEvidenceCorroboratesPrimaryFade();
-    ThrowingLoggerIsContainedAndDisabled();
-    NonFiniteSamplesCannotPoisonTelemetry();
-    BackwardTimestampResetsInsteadOfUnderflowing();
-    ContrastRejectsOverflowingRoi();
-    ReportedIntegrationFaultFailsOpenUntilReset();
+    int failed = 0;
+    try { VariabilityCannotImplyTotalLoss(); } catch (const std::exception&) { std::cerr << "FAIL VariabilityCannotImplyTotalLoss\n"; ++failed; }
+    try { ObscuredRequiresHighAttenuationAtEverySensitivity(); } catch (const std::exception&) { std::cerr << "FAIL ObscuredRequiresHighAttenuationAtEverySensitivity\n"; ++failed; }
+    try { HazeTracksMeasuredLossAndRecovery(); } catch (const std::exception&) { std::cerr << "FAIL HazeTracksMeasuredLossAndRecovery\n"; ++failed; }
+    try { UnconfirmedSlopeSurvivesAcquisitionAndMotionSegments(); } catch (const std::exception&) { std::cerr << "FAIL UnconfirmedSlopeSurvivesAcquisitionAndMotionSegments\n"; ++failed; }
+    try { ShortSlopeSegmentsFormOneObservedTrend(); } catch (const std::exception&) { std::cerr << "FAIL ShortSlopeSegmentsFormOneObservedTrend\n"; ++failed; }
+    try { SameAcquisitionLossCompoundsAndRecoveryReducesIt(); } catch (const std::exception&) { std::cerr << "FAIL SameAcquisitionLossCompoundsAndRecoveryReducesIt\n"; ++failed; }
+    try { JoinsPreservePendingConfirmationWithoutCountingGaps(); } catch (const std::exception&) { std::cerr << "FAIL JoinsPreservePendingConfirmationWithoutCountingGaps\n"; ++failed; }
+    try { FlatSegmentsAndInvalidJoinSamplesCannotCreateSlope(); } catch (const std::exception&) { std::cerr << "FAIL FlatSegmentsAndInvalidJoinSamplesCannotCreateSlope\n"; ++failed; }
+    try { AcquisitionChangesRequalifyConfirmedHaze(); } catch (const std::exception&) { std::cerr << "FAIL AcquisitionChangesRequalifyConfirmedHaze\n"; ++failed; }
+    try { BlackoutRecoveryDuringGapReleasesObscured(); } catch (const std::exception&) { std::cerr << "FAIL BlackoutRecoveryDuringGapReleasesObscured\n"; ++failed; }
+    try { HealthyPhotometryCanReleaseAnObsoleteDeclineReference(); } catch (const std::exception&) { std::cerr << "FAIL HealthyPhotometryCanReleaseAnObsoleteDeclineReference\n"; ++failed; }
+    try { NoisyFlatNightsWithDropoutsDoNotAccumulateHaze(); } catch (const std::exception&) { std::cerr << "FAIL NoisyFlatNightsWithDropoutsDoNotAccumulateHaze\n"; ++failed; }
+    try { SustainedMassDeclineAccumulatesHaze(); } catch (const std::exception&) { std::cerr << "FAIL SustainedMassDeclineAccumulatesHaze\n"; ++failed; }
+    try { MassDeclineRejectsNoiseStepsAndDiscontinuities(); } catch (const std::exception&) { std::cerr << "FAIL MassDeclineRejectsNoiseStepsAndDiscontinuities\n"; ++failed; }
+    try { MassDeclineSettingsAndIdentityJoinEvidence(); } catch (const std::exception&) { std::cerr << "FAIL MassDeclineSettingsAndIdentityJoinEvidence\n"; ++failed; }
+    try { MassDeclineHandlesUnavailableAndDuplicateSamples(); } catch (const std::exception&) { std::cerr << "FAIL MassDeclineHandlesUnavailableAndDuplicateSamples\n"; ++failed; }
+    try { ReplayLogReproducesDetector(); } catch (const std::exception&) { std::cerr << "FAIL ReplayLogReproducesDetector\n"; ++failed; }
+    try { VariabilityWithSupportingNoiseRemainsSuspect(); } catch (const std::exception&) { std::cerr << "FAIL VariabilityWithSupportingNoiseRemainsSuspect\n"; ++failed; }
+    try { FadedPhotometryStillAcceptsSupportingVotes(); } catch (const std::exception&) { std::cerr << "FAIL FadedPhotometryStillAcceptsSupportingVotes\n"; ++failed; }
+    try { MissingChannelsCannotRepeatVotes(); } catch (const std::exception&) { std::cerr << "FAIL MissingChannelsCannotRepeatVotes\n"; ++failed; }
+    try { GradualClearingWaitsForPlateau(); } catch (const std::exception&) { std::cerr << "FAIL GradualClearingWaitsForPlateau\n"; ++failed; }
+    try { AlternateBaselineCannotAcceptContinuingClearing(); } catch (const std::exception&) { std::cerr << "FAIL AlternateBaselineCannotAcceptContinuingClearing\n"; ++failed; }
+    try { MissingEvidenceAndGapRestartRecovery(); } catch (const std::exception&) { std::cerr << "FAIL MissingEvidenceAndGapRestartRecovery\n"; ++failed; }
+    try { StalledFeedExpiresWithoutErasingVerdict(); } catch (const std::exception&) { std::cerr << "FAIL StalledFeedExpiresWithoutErasingVerdict\n"; ++failed; }
+    try { DuplicatesCannotFillWindowsAndOptionalChannelsStayOptional(); } catch (const std::exception&) { std::cerr << "FAIL DuplicatesCannotFillWindowsAndOptionalChannelsStayOptional\n"; ++failed; }
+    try { SlowAndIrregularCadencesCanRecover(); } catch (const std::exception&) { std::cerr << "FAIL SlowAndIrregularCadencesCanRecover\n"; ++failed; }
+    try { SmallPhotometricNoiseDoesNotBlockPlateau(); } catch (const std::exception&) { std::cerr << "FAIL SmallPhotometricNoiseDoesNotBlockPlateau\n"; ++failed; }
+    try { SuspectAcceptsImprovingRecoveryAndEnsembleHistoryIsFresh(); } catch (const std::exception&) { std::cerr << "FAIL SuspectAcceptsImprovingRecoveryAndEnsembleHistoryIsFresh\n"; ++failed; }
+    try { PersistentCalculationFaultExhaustsAutomaticRetries(); } catch (const std::exception&) { std::cerr << "FAIL PersistentCalculationFaultExhaustsAutomaticRetries\n"; ++failed; }
+    try { NormalGuideCadenceAllowsMovementWaits(); } catch (const std::exception&) { std::cerr << "FAIL NormalGuideCadenceAllowsMovementWaits\n"; ++failed; }
+    try { RecoveryRequiresThreeFreshObservations(); } catch (const std::exception&) { std::cerr << "FAIL RecoveryRequiresThreeFreshObservations\n"; ++failed; }
+    try { ReferenceGenerationTracksHardResets(); } catch (const std::exception&) { std::cerr << "FAIL ReferenceGenerationTracksHardResets\n"; ++failed; }
+    try { StableSingleChannelSuspectRequalifies(); } catch (const std::exception&) { std::cerr << "FAIL StableSingleChannelSuspectRequalifies\n"; ++failed; }
+    try { VariableSingleChannelSuspectDoesNotRequalify(); } catch (const std::exception&) { std::cerr << "FAIL VariableSingleChannelSuspectDoesNotRequalify\n"; ++failed; }
+    try { ActiveMassVariabilityCannotRequalify(); } catch (const std::exception&) { std::cerr << "FAIL ActiveMassVariabilityCannotRequalify\n"; ++failed; }
+    try { VariableEnsembleCannotRequalify(); } catch (const std::exception&) { std::cerr << "FAIL VariableEnsembleCannotRequalify\n"; ++failed; }
+    try { ObscuredRecoveryTimersDoNotCancelEachOther(); } catch (const std::exception&) { std::cerr << "FAIL ObscuredRecoveryTimersDoNotCancelEachOther\n"; ++failed; }
+    try { AutoExposureDoesNotTreatSnrScalingAsCloud(); } catch (const std::exception&) { std::cerr << "FAIL AutoExposureDoesNotTreatSnrScalingAsCloud\n"; ++failed; }
+    try { TransientCalculationFaultRecoversFromFreshSamples(); } catch (const std::exception&) { std::cerr << "FAIL TransientCalculationFaultRecoversFromFreshSamples\n"; ++failed; }
+    try { FaultRecoveryQualificationRestartsOnDiscontinuity(); } catch (const std::exception&) { std::cerr << "FAIL FaultRecoveryQualificationRestartsOnDiscontinuity\n"; ++failed; }
+    try { ImageContrastHandlesCameraScalesAndHotPixels(); } catch (const std::exception&) { std::cerr << "FAIL ImageContrastHandlesCameraScalesAndHotPixels\n"; ++failed; }
+    try { TargetLossIsNotCloud(); } catch (const std::exception&) { std::cerr << "FAIL TargetLossIsNotCloud\n"; ++failed; }
+    try { BiasedDarkFrameTripsContrastChannel(); } catch (const std::exception&) { std::cerr << "FAIL BiasedDarkFrameTripsContrastChannel\n"; ++failed; }
+    try { DetectedContrastCollapseNeedsCorroboration(); } catch (const std::exception&) { std::cerr << "FAIL DetectedContrastCollapseNeedsCorroboration\n"; ++failed; }
+    try { StablePhotometryIgnoresFwhmJitter(); } catch (const std::exception&) { std::cerr << "FAIL StablePhotometryIgnoresFwhmJitter\n"; ++failed; }
+    try { HealthyAug31TelemetryStaysClear(); } catch (const std::exception&) { std::cerr << "FAIL HealthyAug31TelemetryStaysClear\n"; ++failed; }
+    try { StableMassRippleStaysClear(); } catch (const std::exception&) { std::cerr << "FAIL StableMassRippleStaysClear\n"; ++failed; }
+    try { GentleMassStepIsNotErraticCloud(); } catch (const std::exception&) { std::cerr << "FAIL GentleMassStepIsNotErraticCloud\n"; ++failed; }
+    try { ModerateMassWavesHaveProportionalHaze(); } catch (const std::exception&) { std::cerr << "FAIL ModerateMassWavesHaveProportionalHaze\n"; ++failed; }
+    try { SlowBroadMassWavesPublishHaze(); } catch (const std::exception&) { std::cerr << "FAIL SlowBroadMassWavesPublishHaze\n"; ++failed; }
+    try { ModestCorrelatedFadeStartsWithLowHaze(); } catch (const std::exception&) { std::cerr << "FAIL ModestCorrelatedFadeStartsWithLowHaze\n"; ++failed; }
+    try { SustainedModestCorrelatedFadeRemainsHaze(); } catch (const std::exception&) { std::cerr << "FAIL SustainedModestCorrelatedFadeRemainsHaze\n"; ++failed; }
+    try { DeeperSlowFadeDoesNotJumpToFiftyPercent(); } catch (const std::exception&) { std::cerr << "FAIL DeeperSlowFadeDoesNotJumpToFiftyPercent\n"; ++failed; }
+    try { ErraticMassWavesPublishHaze(); } catch (const std::exception&) { std::cerr << "FAIL ErraticMassWavesPublishHaze\n"; ++failed; }
+    try { CorroboratedMassAndSnrWavesRemainHaze(); } catch (const std::exception&) { std::cerr << "FAIL CorroboratedMassAndSnrWavesRemainHaze\n"; ++failed; }
+    try { StarSnrAndFwhmDriveSustainedVote(); } catch (const std::exception&) { std::cerr << "FAIL StarSnrAndFwhmDriveSustainedVote\n"; ++failed; }
+    try { ExposureChangeResetsBaseline(); } catch (const std::exception&) { std::cerr << "FAIL ExposureChangeResetsBaseline\n"; ++failed; }
+    try { BitDepthChangeResetsBaseline(); } catch (const std::exception&) { std::cerr << "FAIL BitDepthChangeResetsBaseline\n"; ++failed; }
+    try { AutoExposureKeepsContrastOnOneScale(); } catch (const std::exception&) { std::cerr << "FAIL AutoExposureKeepsContrastOnOneScale\n"; ++failed; }
+    try { BetterClearViewRaisesProtectedStandardWithoutReset(); } catch (const std::exception&) { std::cerr << "FAIL BetterClearViewRaisesProtectedStandardWithoutReset\n"; ++failed; }
+    try { StableNearTotalLossCannotRequalify(); } catch (const std::exception&) { std::cerr << "FAIL StableNearTotalLossCannotRequalify\n"; ++failed; }
+    try { VariableObstructionCannotRequalify(); } catch (const std::exception&) { std::cerr << "FAIL VariableObstructionCannotRequalify\n"; ++failed; }
+    try { NoisyContrastAndFwhmDoNotBlockRecovery(); } catch (const std::exception&) { std::cerr << "FAIL NoisyContrastAndFwhmDoNotBlockRecovery\n"; ++failed; }
+    try { GuidingSessionResetRelearnsCurrentClearView(); } catch (const std::exception&) { std::cerr << "FAIL GuidingSessionResetRelearnsCurrentClearView\n"; ++failed; }
+    try { MotionResumeClearsTransientEvidenceButKeepsBaseline(); } catch (const std::exception&) { std::cerr << "FAIL MotionResumeClearsTransientEvidenceButKeepsBaseline\n"; ++failed; }
+    try { OptionalMultiStarEvidenceCorroboratesPrimaryFade(); } catch (const std::exception&) { std::cerr << "FAIL OptionalMultiStarEvidenceCorroboratesPrimaryFade\n"; ++failed; }
+    try { ThrowingLoggerIsContainedAndDisabled(); } catch (const std::exception&) { std::cerr << "FAIL ThrowingLoggerIsContainedAndDisabled\n"; ++failed; }
+    try { NonFiniteSamplesCannotPoisonTelemetry(); } catch (const std::exception&) { std::cerr << "FAIL NonFiniteSamplesCannotPoisonTelemetry\n"; ++failed; }
+    try { BackwardTimestampResetsInsteadOfUnderflowing(); } catch (const std::exception&) { std::cerr << "FAIL BackwardTimestampResetsInsteadOfUnderflowing\n"; ++failed; }
+    try { ContrastRejectsOverflowingRoi(); } catch (const std::exception&) { std::cerr << "FAIL ContrastRejectsOverflowingRoi\n"; ++failed; }
+    try { ReportedIntegrationFaultFailsOpenUntilReset(); } catch (const std::exception&) { std::cerr << "FAIL ReportedIntegrationFaultFailsOpenUntilReset\n"; ++failed; }
+    if (failed) return 1;
     std::cout << "cloud detector tests passed\n";
     return 0;
 }

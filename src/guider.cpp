@@ -273,8 +273,6 @@ void Guider::LoadProfileSettings()
     cloudExtensions.multiStarMinStars = pConfig->Profile.GetInt("/guider/cloud_multi_star_min_stars", 3);
     cloudExtensions.ensembleTripRatio =
         (float) pConfig->Profile.GetDouble("/guider/cloud_ensemble_trip_ratio", 0.78);
-    cloudExtensions.massDeclinePctPerMinute =
-        (float) pConfig->Profile.GetDouble("/guider/cloud_mass_decline_pct_per_minute", 0.0);
     wxString cloudExtensionError;
     if (!ApplyCloudExtensionSettings(cloudExtensions, &cloudExtensionError))
         Debug.Write("cloud: ignoring invalid saved extension settings: " + cloudExtensionError + "\n");
@@ -335,13 +333,13 @@ void Guider::SetCloudDetectionEnabled(bool enabled)
     Refresh();
 }
 
-void Guider::ResetCloudDetection(const char* reason)
+void Guider::ResetCloudDetection(const char* reason, bool preserveDecline)
 {
     {
         std::lock_guard<std::mutex> lock(m_cloudExtensionMutex);
         ++m_cloudExtensionSettings.generation;
     }
-    m_cloudDetector.Reset(reason);
+    if (preserveDecline) m_cloudDetector.StartNewSegment(reason); else m_cloudDetector.Reset(reason);
 }
 
 CloudExtensionSettings Guider::GetCloudExtensionSettings() const
@@ -362,9 +360,6 @@ bool Guider::ApplyCloudExtensionSettings(const CloudExtensionSettings& requested
     if (!std::isfinite(requested.ensembleTripRatio) || requested.ensembleTripRatio < 0.2f ||
         requested.ensembleTripRatio > 0.98f)
         return invalid("ensemble_trip_ratio must be between 0.2 and 0.98");
-    if (!std::isfinite(requested.massDeclinePctPerMinute) || requested.massDeclinePctPerMinute < 0.f ||
-        requested.massDeclinePctPerMinute > 20.f)
-        return invalid("mass_decline_pct_per_minute must be between 0 (off) and 20");
     CloudExtensionSettings applied = requested;
     bool changed = false;
     {
@@ -372,8 +367,7 @@ bool Guider::ApplyCloudExtensionSettings(const CloudExtensionSettings& requested
         const CloudExtensionSettings& old = m_cloudExtensionSettings;
         changed = old.multiStarEnabled != applied.multiStarEnabled ||
                   old.multiStarMinStars != applied.multiStarMinStars ||
-                  old.ensembleTripRatio != applied.ensembleTripRatio ||
-                  old.massDeclinePctPerMinute != applied.massDeclinePctPerMinute;
+                  old.ensembleTripRatio != applied.ensembleTripRatio;
         if (!changed)
             return true;
         applied.generation = old.generation + 1;
@@ -383,9 +377,8 @@ bool Guider::ApplyCloudExtensionSettings(const CloudExtensionSettings& requested
     pConfig->Profile.SetBoolean("/guider/cloud_multi_star_enabled", applied.multiStarEnabled);
     pConfig->Profile.SetInt("/guider/cloud_multi_star_min_stars", applied.multiStarMinStars);
     pConfig->Profile.SetDouble("/guider/cloud_ensemble_trip_ratio", applied.ensembleTripRatio);
-    pConfig->Profile.SetDouble("/guider/cloud_mass_decline_pct_per_minute", applied.massDeclinePctPerMinute);
 
-    m_cloudDetector.ResumeAfterMotion("cloud extension settings changed");
+    m_cloudDetector.StartNewSegment("cloud extension settings changed");
     Debug.Write(wxString::Format(
         "cloud: extensions multi=%d minStars=%d ensembleTrip=%.2f\n",
         applied.multiStarEnabled, applied.multiStarMinStars, applied.ensembleTripRatio));
@@ -401,7 +394,6 @@ void Guider::FeedCloudSample(SceneSample sample, const usImage *image, double ce
             return;
 
         const CloudExtensionSettings cloudSettings = GetCloudExtensionSettings();
-        sample.massDeclinePctPerMinute = cloudSettings.massDeclinePctPerMinute;
         sample.cloudConfigGeneration = cloudSettings.generation;
         sample.tMs = CloudSampleNowMs();
         if (sample.brightCeil < 0.f)
@@ -1441,11 +1433,7 @@ double Guider::CurrentErrorSmoothed(bool raOnly)
 
 void Guider::StartGuiding()
 {
-    // A new guiding run is a new observing session for the cloud detector. The target, field,
-    // focus, or transparency may have changed while capture/guiding was stopped, and a latched
-    // Obscured verdict cannot safely recover against a standard learned before that gap. Start
-    // from Warmup and certify the current stable view instead of carrying stale session history.
-    ResetCloudDetection("guiding started");
+    ResetCloudDetection("guiding started", true);
 
     // we set the state to calibrating.  The state machine will
     // automatically move from calibrating->calibrated->guiding
