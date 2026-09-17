@@ -35,7 +35,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: open-phd-guiding 2.3.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-11 15:54+0300\n"
+"POT-Creation-Date: 2026-09-23 23:10+0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Konstantin Menshikoff <konstantin.menshikoff@gmail.com>\n"
 "Language-Team: \n"
@@ -4634,133 +4634,133 @@ msgstr ""
 msgid "XFac"
 msgstr "XFac"
 
-#: guider.cpp:773
+#: guider.cpp:775
 msgid "E"
 msgstr "В"
 
-#: guider.cpp:794
+#: guider.cpp:796
 msgid "N"
 msgstr "С"
 
-#: guider.cpp:911
+#: guider.cpp:913
 msgid "PAUSED"
 msgstr "ПРИОСТАНОВЛЕНО"
 
-#: guider.cpp:915
+#: guider.cpp:917
 msgid "Guide output DISABLED"
 msgstr "Гидирование ОТКЛЮЧЕНО"
 
-#: guider.cpp:954
+#: guider.cpp:956
 msgid "CLOUD: DETECTOR ERROR"
 msgstr ""
 
-#: guider.cpp:959
+#: guider.cpp:961
 msgid "CLOUD: NO DATA"
 msgstr ""
 
-#: guider.cpp:965
+#: guider.cpp:967
 msgid "CLOUD: LEARNING"
 msgstr ""
 
-#: guider.cpp:969
+#: guider.cpp:971
 msgid "CLOUD: CLEAR"
 msgstr ""
 
-#: guider.cpp:977
+#: guider.cpp:979
 #, c-format
 msgid "CLOUD: HAZE? %d%%"
 msgstr ""
 
-#: guider.cpp:983
+#: guider.cpp:985
 msgid "CLOUD: BLOCKED (STATIC?)"
 msgstr ""
 
-#: guider.cpp:983
+#: guider.cpp:985
 msgid "CLOUD: OBSCURED"
 msgstr ""
 
-#: guider.cpp:1459
+#: guider.cpp:1457
 msgid "Calibration manually stopped"
 msgstr "Калибровка остановлена вручную"
 
-#: guider.cpp:1514
+#: guider.cpp:1512
 msgid ""
 "Do you want to automatically restore this calibration whenever the profile "
 "is used?"
 msgstr "Восстанавливать калибровку при использовании профиля?"
 
-#: guider.cpp:1587
+#: guider.cpp:1585
 msgid "Stopped Guiding"
 msgstr "Гидирование закончено"
 
-#: guider.cpp:1599
+#: guider.cpp:1597
 msgid ""
 "Shifted lock position outside allowable area. Lock Position Shift disabled."
 msgstr ""
 "Смещение выбранной позиции за пределы допустимой области. Смещение выбранной "
 "позиции запрещено."
 
-#: guider.cpp:1638
+#: guider.cpp:1636
 msgid "star lost"
 msgstr "звезда потеряна"
 
-#: guider.cpp:1696 myframe.cpp:2246
+#: guider.cpp:1694 myframe.cpp:2246
 msgid "Paused"
 msgstr "Остановлено"
 
-#: guider.cpp:1696 myframe.cpp:2246
+#: guider.cpp:1694 myframe.cpp:2246
 msgid "/full"
 msgstr ""
 
-#: guider.cpp:1696 myframe.cpp:2246
+#: guider.cpp:1694 myframe.cpp:2246
 msgid "/looping"
 msgstr ""
 
-#: guider.cpp:1713
+#: guider.cpp:1711
 msgid "Static PA rotation failed"
 msgstr "Сбой статической установки полюса"
 
-#: guider.cpp:1719
+#: guider.cpp:1717
 msgid "Polar Drift PA drift failed"
 msgstr "Сбой установки полюса дрейфом"
 
-#: guider.cpp:1729
+#: guider.cpp:1727
 msgid "AO calibration failed"
 msgstr "Сбой калибровки АО "
 
-#: guider.cpp:1729 guider.cpp:1762
+#: guider.cpp:1727 guider.cpp:1760
 msgid "calibration failed"
 msgstr "сбой калибровки"
 
-#: guider.cpp:2029
+#: guider.cpp:2027
 msgid "Guider Settings"
 msgstr "Настройки гидирования"
 
-#: guider.cpp:2038
+#: guider.cpp:2036
 msgid "Guide star tracking"
 msgstr "Отслеживание опорной звезды"
 
-#: guider.cpp:2039 log_uploader.cpp:702
+#: guider.cpp:2037 log_uploader.cpp:702
 msgid "Calibration"
 msgstr "Калибровка"
 
-#: guider.cpp:2040
+#: guider.cpp:2038
 msgid "Shared Parameters"
 msgstr "Совместные параметры"
 
-#: guider.cpp:2087
+#: guider.cpp:2085
 msgid "Always scale images"
 msgstr "Всегда масштабировать изображения"
 
-#: guider.cpp:2088
+#: guider.cpp:2086
 msgid "Always scale images to fill window"
 msgstr "Всегда масштабировать изображения на полный экран"
 
-#: guider.cpp:2091
+#: guider.cpp:2089
 msgid "Fast recenter after calibration or dither"
 msgstr "Быстрая центровка после калибровки или подвижек"
 
-#: guider.cpp:2093
+#: guider.cpp:2091
 msgid ""
 "Speed up calibration and dithering by using larger guide pulses to return "
 "the star to the center position. Un-check to use the old, slower method of "
@@ -4770,18 +4770,18 @@ msgstr ""
 "возвращения звезды в центр. Если не выбрано, используется старый, более "
 "медленный метод."
 
-#: guider.cpp:2097
+#: guider.cpp:2095
 msgid "Enable cloud detection telemetry"
 msgstr ""
 
-#: guider.cpp:2099
+#: guider.cpp:2097
 msgid ""
 "Monitor guide-star mass, SNR and FWHM and show the inferred sky condition in "
 "the lower-right image overlay. The monitor is informational and does not "
 "change PHD2's existing lost-star or star-mass rejection behavior."
 msgstr ""
 
-#: guider.cpp:2225
+#: guider.cpp:2223
 msgid "Are you sure you want to delete all Bookmarks?"
 msgstr "Вы уверены, что хотите удалить все закладки?"
 

@@ -35,7 +35,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-11 15:54+0300\n"
+"POT-Creation-Date: 2026-09-23 23:10+0300\n"
 "PO-Revision-Date: 2015-10-29 22:02+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4498,133 +4498,133 @@ msgstr ""
 msgid "XFac"
 msgstr ""
 
-#: guider.cpp:773
+#: guider.cpp:775
 msgid "E"
 msgstr ""
 
-#: guider.cpp:794
+#: guider.cpp:796
 msgid "N"
 msgstr ""
 
-#: guider.cpp:911
+#: guider.cpp:913
 msgid "PAUSED"
 msgstr ""
 
-#: guider.cpp:915
+#: guider.cpp:917
 msgid "Guide output DISABLED"
 msgstr ""
 
-#: guider.cpp:954
+#: guider.cpp:956
 msgid "CLOUD: DETECTOR ERROR"
 msgstr ""
 
-#: guider.cpp:959
+#: guider.cpp:961
 msgid "CLOUD: NO DATA"
 msgstr ""
 
-#: guider.cpp:965
+#: guider.cpp:967
 msgid "CLOUD: LEARNING"
 msgstr ""
 
-#: guider.cpp:969
+#: guider.cpp:971
 msgid "CLOUD: CLEAR"
 msgstr ""
 
-#: guider.cpp:977
+#: guider.cpp:979
 #, c-format
 msgid "CLOUD: HAZE? %d%%"
 msgstr ""
 
-#: guider.cpp:983
+#: guider.cpp:985
 msgid "CLOUD: BLOCKED (STATIC?)"
 msgstr ""
 
-#: guider.cpp:983
+#: guider.cpp:985
 msgid "CLOUD: OBSCURED"
 msgstr ""
 
-#: guider.cpp:1459
+#: guider.cpp:1457
 msgid "Calibration manually stopped"
 msgstr "Kalibreringen er stanset manuelt"
 
-#: guider.cpp:1514
+#: guider.cpp:1512
 msgid ""
 "Do you want to automatically restore this calibration whenever the profile "
 "is used?"
 msgstr ""
 
-#: guider.cpp:1587
+#: guider.cpp:1585
 msgid "Stopped Guiding"
 msgstr "Stanset styringen"
 
-#: guider.cpp:1599
+#: guider.cpp:1597
 msgid ""
 "Shifted lock position outside allowable area. Lock Position Shift disabled."
 msgstr ""
 "Flyttet låseposisjonen ut av tillatt område. Flytte Låseposisjon er "
 "deaktivert."
 
-#: guider.cpp:1638
+#: guider.cpp:1636
 msgid "star lost"
 msgstr "mistet stjerne "
 
-#: guider.cpp:1696 myframe.cpp:2246
+#: guider.cpp:1694 myframe.cpp:2246
 msgid "Paused"
 msgstr "Satt på vent"
 
-#: guider.cpp:1696 myframe.cpp:2246
+#: guider.cpp:1694 myframe.cpp:2246
 msgid "/full"
 msgstr ""
 
-#: guider.cpp:1696 myframe.cpp:2246
+#: guider.cpp:1694 myframe.cpp:2246
 msgid "/looping"
 msgstr ""
 
-#: guider.cpp:1713
+#: guider.cpp:1711
 msgid "Static PA rotation failed"
 msgstr ""
 
-#: guider.cpp:1719
+#: guider.cpp:1717
 msgid "Polar Drift PA drift failed"
 msgstr ""
 
-#: guider.cpp:1729
+#: guider.cpp:1727
 msgid "AO calibration failed"
 msgstr ""
 
-#: guider.cpp:1729 guider.cpp:1762
+#: guider.cpp:1727 guider.cpp:1760
 msgid "calibration failed"
 msgstr ""
 
-#: guider.cpp:2029
+#: guider.cpp:2027
 msgid "Guider Settings"
 msgstr "Styreinnstillinger"
 
-#: guider.cpp:2038
+#: guider.cpp:2036
 msgid "Guide star tracking"
 msgstr "Følger styrestjerne"
 
-#: guider.cpp:2039 log_uploader.cpp:702
+#: guider.cpp:2037 log_uploader.cpp:702
 msgid "Calibration"
 msgstr "Kalibrering"
 
-#: guider.cpp:2040
+#: guider.cpp:2038
 msgid "Shared Parameters"
 msgstr "Delte parametre"
 
-#: guider.cpp:2087
+#: guider.cpp:2085
 msgid "Always scale images"
 msgstr "Alltid skaler bilder"
 
-#: guider.cpp:2088
+#: guider.cpp:2086
 msgid "Always scale images to fill window"
 msgstr "Alltid skaler bilder til å fylle vindu"
 
-#: guider.cpp:2091
+#: guider.cpp:2089
 msgid "Fast recenter after calibration or dither"
 msgstr "Rask sentrering etter kalibrering eller dither"
 
-#: guider.cpp:2093
+#: guider.cpp:2091
 msgid ""
 "Speed up calibration and dithering by using larger guide pulses to return "
 "the star to the center position. Un-check to use the old, slower method of "
@@ -4634,18 +4634,18 @@ msgstr ""
 "stjernen i senter. Deaktiver denne for å bruke gammel, tregere måte for å "
 "resentrere etter kalibrering eller dither."
 
-#: guider.cpp:2097
+#: guider.cpp:2095
 msgid "Enable cloud detection telemetry"
 msgstr ""
 
-#: guider.cpp:2099
+#: guider.cpp:2097
 msgid ""
 "Monitor guide-star mass, SNR and FWHM and show the inferred sky condition in "
 "the lower-right image overlay. The monitor is informational and does not "
 "change PHD2's existing lost-star or star-mass rejection behavior."
 msgstr ""
 
-#: guider.cpp:2225
+#: guider.cpp:2223
 msgid "Are you sure you want to delete all Bookmarks?"
 msgstr "Er du sikker på at du vil slette alle Bokmerker?"
 
