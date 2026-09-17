@@ -151,6 +151,8 @@ public:
     SolarSystemObject();
     ~SolarSystemObject();
 
+    void LoadProfileSettings();
+
     bool FindSolarSystemObject(const usImage *pImage, bool autoSelect = false);
 
     PHD_Point GetScaledTracker(wxBitmap& scaledBitmap, const PHD_Point& star, double scale);
