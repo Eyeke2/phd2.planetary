@@ -1879,9 +1879,255 @@ void VariabilityCannotImplyTotalLoss()
 
 } // namespace
 
+void SkyStabilityRequiresSustainedRiseAndPlateau()
+{
+    for (bool multi : { false, true }) {
+        SkyStabilityDetector sky;
+        int64_t t = 1000;
+        auto feed = [&](float level) {
+            sky.update(t, multi ? 100.f : level, multi ? level / 100.f : -1.f, 15000);
+            t += 2000;
+        };
+        for (int i = 0; i < 100; ++i) feed(100.f);
+        Require(sky.ready && sky.stable && !sky.improving, "flat startup did not qualify");
+        for (int i = 0; i < 200; ++i) feed(100.f + i * .2f);
+        Require(sky.ready && sky.improving && !sky.stable, "sustained rise was accepted as settled");
+        for (int i = 0; i < 100; ++i) feed(140.f);
+        Require(sky.ready && sky.stable && !sky.improving, "plateau failed to qualify");
+        sky.reset();
+        for (int i = 0; i < 100; ++i) feed(100.f);
+        for (int i = 0; i < 120; ++i) {
+            feed(120.f);
+            Require(!sky.improving, "isolated step became a sustained rise");
+        }
+        sky.update(t + 30000, multi ? 100.f : 120.f, multi ? 1.2f : -1.f, 15000);
+        Require(!sky.ready, "long gap retained stability qualification");
+    }
+    SkyStabilityDetector sky;
+    for (int i = 0; i < 100; ++i) sky.update(1000 + i * 2000, 100.f, -1.f, 15000);
+    sky.update(201000, 100.f, 1.f, 15000);
+    Require(!sky.ready, "primary-to-ensemble change joined unrelated levels");
+    for (int i = 0; i < 100; ++i) sky.update(203000 + i * 2000, 100.f, 1.f, 15000);
+    sky.update(403000, 200.f, -1.f, 15000);
+    Require(!sky.ready && !sky.improving, "missing ensemble used a primary bridge");
+    sky.reset();
+    for (int i = 0; i < 30; ++i) sky.update(1000 + i * 20000, 100.f, -1.f, 45000);
+    Require(sky.ready && sky.stable, "slow exposures never qualified stability");
+    sky.reset();
+    unsigned seed = 12345;
+    for (int i = 0; i < 24 * 60 * 20; ++i) {
+        seed = seed * 1664525u + 1013904223u;
+        const float noise = ((seed >> 8) / 16777215.f - .5f) * 3.f;
+        sky.update(1000 + i * 3000, 100.f + noise, -1.f, 15000);
+        Require(!sky.improving, "ordinary flat-sky noise became a sustained rise");
+    }
+}
+
+void SkyStabilityDoesNotTreatScatterAsAPlateau()
+{
+    for (bool multi : {false, true}) {
+        SkyStabilityDetector sky;
+        for (int i = 0; i <= 90; ++i) {
+            const float base = i <= 30 ? 100.f : i <= 60 ? 104.f : 108.f;
+            const float mass = base + (i % 3 - 1) * 10.f;
+            sky.update(1000 + i * 2000, multi ? 100.f : mass, multi ? mass / 100.f : -1.f, 15000);
+        }
+        Require(sky.ready && !sky.stable, "scatter hid an eight percent change in level");
+        for (int i = 91; i <= 200; ++i) {
+            const float mass = 108.f + (i % 3 - 1);
+            sky.update(1000 + i * 2000, multi ? 100.f : mass, multi ? mass / 100.f : -1.f, 15000);
+        }
+        Require(sky.ready && sky.stable, "bounded noise prevented a true plateau from settling");
+    }
+}
+
+void SkyStabilityRetainsOnlyCompatibleObservedHistory()
+{
+    for (bool explicitResume : {false, true}) {
+        SkyStabilityDetector sky;
+        int64_t t = 1000;
+        auto feed = [&](float mass = 100.f) { sky.update(t, mass, -1.f, 15000); t += 2000; };
+        for (int i = 0; i < 100; ++i) feed();
+        Require(sky.ready && sky.stable, "initial stability window incomplete");
+        if (explicitResume) sky.resume();
+        t += 45000;
+        for (int i = 0; i < 15; ++i) {
+            feed(); Require(!sky.ready, "gap reused ready flag without fresh reacquisition");
+        }
+        feed();
+        Require(sky.ready && sky.stable, "short same-source gap lost the observed window");
+        sky.resume(); t += 20000;
+        for (int i = 0; i < 16; ++i) feed(50.f);
+        Require(sky.ready && !sky.stable, "gap normalized away an actual brightness change");
+        t += 121000;
+        for (int i = 0; i < 16; ++i) feed(50.f);
+        Require(!sky.ready, "long gap reused stale history");
+        sky.reset();
+        for (int i = 0; i < 31; ++i) feed();
+        sky.resume(); t += 100000;
+        for (int i = 0; i < 31; ++i) feed();
+        Require(!sky.ready, "missing time completed a partially observed window");
+        for (int i = 0; i < 31; ++i) feed();
+        Require(sky.ready && sky.stable, "observed segments failed to complete the window");
+    }
+    CloudDetector detector;
+    int64_t t = 1000;
+    for (int i = 0; i < 100; ++i, t += 2000) detector.Feed(ClearSample(t));
+    detector.ResumeAfterMotion("test dither"); t += 30000;
+    for (int i = 0; i < 16; ++i, t += 2000) detector.Feed(ClearSample(t));
+    Require(detector.GetTelemetry().skyStable, "integration discarded dither history");
+    SceneSample changed = ClearSample(t); changed.gain += 10;
+    detector.Feed(changed);
+    Require(!detector.GetTelemetry().skyStabilityReady, "acquisition change reused history");
+    changed.tMs += 2000; changed.mode = 1;
+    detector.Feed(changed);
+    Require(!detector.GetTelemetry().skyStabilityApplicable, "non-stellar mode advertised stellar recovery");
+}
+
+void SkyStabilityRejectsNoisyFlatNights()
+{
+    for (double noise : { .03, .06, .10 }) {
+        for (unsigned seed = 0; seed < 10; ++seed) {
+            std::mt19937 gen(seed);
+            std::normal_distribution<double> random(0, noise);
+            SkyStabilityDetector sky;
+            int consecutive = 0;
+            for (int i = 0; i < 8 * 3600 / 3; ++i) {
+                sky.update(1000LL + i * 3000, (float)(100 * (1 + random(gen))), -1.f, 15000);
+                consecutive = sky.ready && sky.improving ? consecutive + 1 : 0;
+                Require(consecutive < 6, "flat noisy telemetry confirmed a clearing event");
+            }
+        }
+    }
+}
+
+namespace {
+
+struct PortableNoise {
+    std::mt19937 gen;
+    explicit PortableNoise(unsigned seed) : gen(seed) {}
+    double next() {
+        double sum = 0;
+        for (int i = 0; i < 4; ++i) sum += gen() / 4294967296.0 - .5;
+        return sum * std::sqrt(3.0);
+    }
+};
+
+bool BlocksAreStable(float a, float b, float c, float ripple)
+{
+    SkyStabilityDetector sky;
+    for (int i = 0; i <= 90; ++i) {
+        const float level = i <= 30 ? a : i <= 60 ? b : c;
+        sky.update(1000 + i * 2000, level * (1.f + ripple * (i % 3 - 1)), -1.f, 15000);
+    }
+    Require(sky.ready, "three observed blocks were not ready");
+    return sky.stable;
+}
+
+void SlowNoisyTrendIsNeverStable(int direction)
+{
+    SkyStabilityDetector sky;
+    for (int i = 0; i < 400; ++i) {
+        const double minutes = i < 100 ? 0. : (i - 100) * 2000 / 60000.;
+        const double level = 100. * (1 + direction * .015 * minutes) * (1 + .03 * (i % 3 - 1));
+        sky.update(1000 + i * 2000LL, (float) level, -1.f, 15000);
+        if (i >= 195) Require(sky.ready && !sky.stable, "slow trend inside the widened band was reported stable");
+    }
+    for (unsigned seed = 0; seed < 20; ++seed) {
+        PortableNoise noise(seed + 50);
+        SkyStabilityDetector noisy;
+        int run = 0;
+        for (int i = 0; i < 344; ++i) {
+            const double minutes = i < 172 ? 0. : (i - 172) * 3.5 / 60.;
+            noisy.update(1000 + i * 3500LL, (float) (100000. * (1 + direction * .03 * minutes) * (1 + .02 * noise.next())),
+                         -1.f, 15000);
+            if (i < 172 + 52) continue;
+            run = noisy.ready && noisy.stable ? run + 1 : 0;
+            Require(run * 3500 < 120000, "continuing noisy trend qualified as a stable plateau");
+        }
+    }
+}
+
+}
+
+void SkyStabilityNoisyPlateauQualifiesWithinMinutes()
+{
+    for (double sigma : { .03, .04 }) {
+        int prompt = 0;
+        for (unsigned seed = 0; seed < 10; ++seed) {
+            PortableNoise noise(seed);
+            SkyStabilityDetector sky;
+            int run = 0;
+            double releasedMin = -1;
+            for (int i = 0; releasedMin < 0 && i * 3500LL < 60 * 60000; ++i) {
+                const int64_t t = 1000 + i * 3500LL;
+                sky.update(t, (float) (100000. * (1 + sigma * noise.next())), -1.f, 15000);
+                run = sky.ready && sky.stable ? run + 1 : 0;
+                if (run * 3500 >= 120000) releasedMin = t / 60000.;
+            }
+            Require(releasedMin >= 0, "flat noisy plateau never reached 120 stable seconds within an hour");
+            prompt += releasedMin <= 20;
+        }
+        Require(prompt >= 8, "flat noisy plateau usually took over twenty minutes to qualify");
+    }
+}
+
+void SkyStabilitySlowNoisyRiseIsNeverStable()
+{
+    SlowNoisyTrendIsNeverStable(1);
+}
+
+void SkyStabilitySlowNoisyFallIsNeverStable()
+{
+    SlowNoisyTrendIsNeverStable(-1);
+}
+
+void SkyStabilityQuietPlateauKeepsTwoPercentBand()
+{
+    for (float ripple : { 0.f, .01f }) {
+        Require(BlocksAreStable(100.f, 100.f, 100.f, ripple), "quiet flat plateau did not qualify");
+        Require(BlocksAreStable(100.f, 101.8f, 100.f, ripple), "quiet spread inside two percent did not qualify");
+        Require(BlocksAreStable(100.f, 100.9f, 101.8f, ripple), "quiet drift inside two percent did not qualify");
+        Require(!BlocksAreStable(100.f, 102.2f, 100.f, ripple), "quiet photometry widened the two percent band");
+        Require(!BlocksAreStable(100.f, 101.1f, 102.2f, ripple), "quiet drift beyond two percent qualified");
+    }
+    Require(BlocksAreStable(100.f, 103.5f, 100.f, .05f), "measured scatter did not widen the band");
+    Require(!BlocksAreStable(100.f, 104.5f, 100.f, .10f), "scatter widened the band beyond four percent");
+}
+
+void SkyStabilityClearingOverridesWideBand()
+{
+    int improvingFrames = 0;
+    for (double sigma : { .03, .05, .08 }) {
+        for (double rate : { .03, .06, .12 }) {
+            for (unsigned seed = 0; seed < 10; ++seed) {
+                PortableNoise noise(seed + 900);
+                SkyStabilityDetector sky;
+                for (int i = 0; i < 400; ++i) {
+                    const double minutes = i < 100 ? 0. : (i - 100) * 2. / 60.;
+                    sky.update(1000 + i * 2000LL, (float) (100000. * (1 + rate * minutes) * (1 + sigma * noise.next())),
+                               -1.f, 15000);
+                    improvingFrames += sky.improving;
+                    Require(!(sky.improving && sky.stable), "clearing was reported stable inside a wide band");
+                }
+            }
+        }
+    }
+    Require(improvingFrames > 1000, "wide-band ramps never exercised clearing");
+}
+
 int main()
 {
     int failed = 0;
+    try { SkyStabilityNoisyPlateauQualifiesWithinMinutes(); } catch (const std::exception&) { std::cerr << "FAIL SkyStabilityNoisyPlateauQualifiesWithinMinutes\n"; ++failed; }
+    try { SkyStabilitySlowNoisyRiseIsNeverStable(); } catch (const std::exception&) { std::cerr << "FAIL SkyStabilitySlowNoisyRiseIsNeverStable\n"; ++failed; }
+    try { SkyStabilitySlowNoisyFallIsNeverStable(); } catch (const std::exception&) { std::cerr << "FAIL SkyStabilitySlowNoisyFallIsNeverStable\n"; ++failed; }
+    try { SkyStabilityQuietPlateauKeepsTwoPercentBand(); } catch (const std::exception&) { std::cerr << "FAIL SkyStabilityQuietPlateauKeepsTwoPercentBand\n"; ++failed; }
+    try { SkyStabilityClearingOverridesWideBand(); } catch (const std::exception&) { std::cerr << "FAIL SkyStabilityClearingOverridesWideBand\n"; ++failed; }
+    try { SkyStabilityRetainsOnlyCompatibleObservedHistory(); } catch (const std::exception&) { std::cerr << "FAIL SkyStabilityRetainsOnlyCompatibleObservedHistory\n"; ++failed; }
+    try { SkyStabilityDoesNotTreatScatterAsAPlateau(); } catch (const std::exception&) { std::cerr << "FAIL SkyStabilityDoesNotTreatScatterAsAPlateau\n"; ++failed; }
+    try { SkyStabilityRejectsNoisyFlatNights(); } catch (const std::exception&) { std::cerr << "FAIL SkyStabilityRejectsNoisyFlatNights\n"; ++failed; }
+    try { SkyStabilityRequiresSustainedRiseAndPlateau(); } catch (const std::exception&) { std::cerr << "FAIL SkyStabilityRequiresSustainedRiseAndPlateau\n"; ++failed; }
     try { VariabilityCannotImplyTotalLoss(); } catch (const std::exception&) { std::cerr << "FAIL VariabilityCannotImplyTotalLoss\n"; ++failed; }
     try { ObscuredRequiresHighAttenuationAtEverySensitivity(); } catch (const std::exception&) { std::cerr << "FAIL ObscuredRequiresHighAttenuationAtEverySensitivity\n"; ++failed; }
     try { HazeTracksMeasuredLossAndRecovery(); } catch (const std::exception&) { std::cerr << "FAIL HazeTracksMeasuredLossAndRecovery\n"; ++failed; }

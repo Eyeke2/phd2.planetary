@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
     if (!input) { std::cerr << "cannot open log\n"; return 1; }
     CloudDetector detector;
     std::string line;
-    std::cout << "time,tMs,state,mass,ensemble,declineRate,declineRatio,latched,exposure,haze,fresh\n";
+    std::cout << "time,tMs,state,mass,ensemble,declineRate,declineRatio,latched,exposure,haze,fresh,skyReady,skyImproving,skyStable\n";
     while (std::getline(input, line)) {
         const auto pos = line.find("cloud: replay ");
         if (pos == std::string::npos) continue;
@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
             s.cloudConfigGeneration=(unsigned)number("cloudConfigGeneration");
             detector.Feed(s);
             const auto t=detector.GetTelemetry();
-            std::cout<<line.substr(0,12)<<','<<s.tMs<<','<<(int)t.state<<','<<s.mass<<','<<t.ensembleRatio<<','<<t.massDeclineRate<<','<<t.massDeclineRatio<<','<<t.massDeclineLatched<<','<<s.exposureMs<<','<<t.severity*100.f<<','<<t.fresh<<'\n';
+            std::cout<<line.substr(0,12)<<','<<s.tMs<<','<<(int)t.state<<','<<s.mass<<','<<t.ensembleRatio<<','<<t.massDeclineRate<<','<<t.massDeclineRatio<<','<<t.massDeclineLatched<<','<<s.exposureMs<<','<<t.severity*100.f<<','<<t.fresh<<','<<t.skyStabilityReady<<','<<t.skyImproving<<','<<t.skyStable<<'\n';
         } else { std::cerr<<"unknown replay event: "<<event<<'\n';return 1; }
         const auto t=detector.GetTelemetry();
         if(before!=t.state)std::cerr<<line.substr(0,12)<<" "<<(int)before<<" -> "<<(int)t.state<<" rate="<<t.massDeclineRate<<" latch="<<t.massDeclineLatched<<'\n';
