@@ -552,6 +552,7 @@ void CloudDetector::clearStateLocked(bool preserveDecline) noexcept
     m_obscuredRecovery = false;
     m_stateSinceMs = 0;
     if (preserveDecline) m_massDecline.resume(true); else m_massDecline.reset();
+    m_skyStability.reset();
     m_tele = SceneTelemetry{};
     m_tele.massDeclineLatched = m_massDecline.latched;
     m_tele.massDeclineUsesEnsemble = m_massDecline.usesEnsemble;
@@ -597,6 +598,8 @@ void CloudDetector::resumeAfterMotionLocked(const char* reason) noexcept
     m_faultRecoveryLastMs = 0;
 
     m_massDecline.resume();
+    m_skyStability.resume();
+    m_tele.skyStabilityReady = m_tele.skyImproving = m_tele.skyStable = false;
     SceneTelemetry resumed;
     resumed.massDeclineLatched = m_massDecline.latched;
     resumed.massDeclineUsesEnsemble = m_massDecline.usesEnsemble;
@@ -817,6 +820,12 @@ void CloudDetector::feedLocked(const SceneSample& s)
     m_massDecline.update(t, s.mode == 0 ? CONFIG_CLOUD_MASS_DECLINE_PCT_PER_MINUTE : 0.f, s.cloudConfigGeneration,
                          clearEligible && validMass ? s.mass : -1.f,
                          clearEligible && validEnsemble ? s.ensembleRatio : -1.f);
+    m_skyStability.update(t, clearEligible && s.mode == 0 && validMass ? s.mass : -1.f,
+                         clearEligible && s.mode == 0 && validEnsemble ? s.ensembleRatio : -1.f, gapLimit);
+    m_tele.skyStabilityApplicable = s.mode == 0;
+    m_tele.skyStabilityReady = m_skyStability.ready;
+    m_tele.skyImproving = m_skyStability.improving;
+    m_tele.skyStable = m_skyStability.stable;
     m_tele.massDeclineRate = m_massDecline.rate;
     m_tele.massDeclineRatio = m_massDecline.ratio;
     m_tele.massDeclineLatched = m_massDecline.latched;

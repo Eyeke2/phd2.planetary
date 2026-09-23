@@ -148,6 +148,7 @@ add_library(CloudDetectorCore STATIC
   contributions/CloudDetector/CloudDetector.cpp
   contributions/CloudDetector/CloudDetector.h
   contributions/CloudDetector/MassDeclineDetector.h
+  contributions/CloudDetector/SkyStabilityDetector.h
   contributions/CloudDetector/CloudDetectorConfig.h)
 target_include_directories(CloudDetectorCore PUBLIC contributions/CloudDetector)
 set_property(TARGET CloudDetectorCore PROPERTY FOLDER "Contribution")

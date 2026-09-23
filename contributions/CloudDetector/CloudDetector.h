@@ -26,6 +26,7 @@
 #pragma once
 
 #include "MassDeclineDetector.h"
+#include "SkyStabilityDetector.h"
 #include <cstdint>
 #include <functional>
 #include <mutex>
@@ -127,6 +128,8 @@ struct SceneTelemetry {
     int   lossRun = 0;
     bool  staticObstruction = false;  // OBSCURED long + static signature (branch/dew, not cloud)
     int64_t stateSinceMs = 0;
+    bool skyStabilityApplicable = false;
+    bool skyStabilityReady = false, skyImproving = false, skyStable = false;
     bool recoverySettled = false;
     bool clearingTrend = false;
     bool fresh = false;
@@ -297,5 +300,6 @@ private:
     static Identity IdentityOf(const SceneSample& s);
 
     MassDeclineDetector m_massDecline;
+    SkyStabilityDetector m_skyStability;
     SceneTelemetry m_tele;
 };
