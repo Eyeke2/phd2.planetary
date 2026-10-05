@@ -6039,7 +6039,7 @@ msgstr "Obnovit kalibrační data z předchozí úspěšné kalibrace"
 
 #: myframe.cpp:568
 msgid "Enter Calibration Data..."
-msgstr ""
+msgstr "Zadejte Kalibrační Údaje..."
 
 #: myframe.cpp:568
 msgid "Manually enter the calibration data"
