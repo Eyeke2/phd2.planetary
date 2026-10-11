@@ -143,26 +143,24 @@ generate_doc_targets(
 # PEC Guider, Max Planck Institute for Intelligent Systems, Tuebingen, Germany.
 add_subdirectory(contributions/MPI_IS_gaussian_process tmp_gaussian_process)
 
-# Cloud detector core and tests are dependency-free.
+# Cloud detector core is dependency-free
 add_library(CloudDetectorCore STATIC
   contributions/CloudDetector/CloudDetector.cpp
+  contributions/CloudDetector/CloudAirmass.h
   contributions/CloudDetector/CloudDetector.h
+  contributions/CloudDetector/CloudEnsembleReferences.h
   contributions/CloudDetector/MassDeclineDetector.h
   contributions/CloudDetector/SkyStabilityDetector.h
   contributions/CloudDetector/CloudDetectorConfig.h)
 target_include_directories(CloudDetectorCore PUBLIC contributions/CloudDetector)
 set_property(TARGET CloudDetectorCore PROPERTY FOLDER "Contribution")
 
-add_executable(CloudDetectorTest tests/cloud_detector_test.cpp)
-target_link_libraries(CloudDetectorTest PRIVATE CloudDetectorCore)
-set_property(TARGET CloudDetectorTest PROPERTY FOLDER "Unit tests/Contribution")
-add_test(NAME CloudDetectorTest COMMAND CloudDetectorTest)
 
-add_executable(CloudDetectorReplay tests/cloud_detector_replay.cpp)
-target_link_libraries(CloudDetectorReplay PRIVATE CloudDetectorCore)
-set_property(TARGET CloudDetectorReplay PROPERTY FOLDER "Unit tests/Contribution")
-
-
+# Star shape measure and elongated-candidate rule (Ticket 006); header-only, no wxWidgets.
+add_executable(StarShapeTest tests/star_shape_test.cpp src/star_shape.h)
+target_include_directories(StarShapeTest PRIVATE src)
+set_property(TARGET StarShapeTest PROPERTY FOLDER "Unit tests")
+add_test(NAME StarShapeTest COMMAND StarShapeTest)
 
 #################################################################################
 #
@@ -362,7 +360,9 @@ set(guiding_SRC
 source_group(Guiding FILES ${guiding_SRC})
 
 set(phd2_SRC
+  ${PHD_PROJECT_ROOT_DIR}/contributions/CloudDetector/CloudAirmass.h
   ${PHD_PROJECT_ROOT_DIR}/contributions/CloudDetector/CloudDetector.h
+  ${PHD_PROJECT_ROOT_DIR}/contributions/CloudDetector/CloudEnsembleReferences.h
   ${PHD_PROJECT_ROOT_DIR}/contributions/CloudDetector/CloudDetectorConfig.h
   ${phd_src_dir}/about_dialog.cpp
   ${phd_src_dir}/about_dialog.h

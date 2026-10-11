@@ -738,6 +738,7 @@ bool ScopeAlpaca::GetCoordinates(double *ra, double *dec, double *siderealTime)
         return fail("declination", err);
     if ((err = mount->siderealTime(siderealTime)))
         return fail("siderealtime", err);
+    CloudRecordMountCoordinates(*ra, *dec, *siderealTime);
     return false;
 }
 
@@ -852,6 +853,7 @@ bool ScopeAlpaca::GetSiteLatLong(double *latitude, double *longitude)
         Debug.Write(wxString::Format("Alpaca mount: get sitelongitude failed: %s\n", err.what()));
         return true;
     }
+    CloudRecordSiteLatitude(*latitude);
     return false;
 }
 

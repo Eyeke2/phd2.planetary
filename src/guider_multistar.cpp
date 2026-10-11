@@ -946,21 +946,6 @@ bool GuiderMultiStar::RefineOffset(const usImage *pImage, GuiderOffset *pOffset)
 
 static DistanceChecker s_distanceChecker;
 
-static float CloudMedian(std::vector<float> values)
-{
-    if (values.empty())
-        return -1.f;
-    const size_t middle = values.size() / 2;
-    std::nth_element(values.begin(), values.begin() + middle, values.end());
-    float result = values[middle];
-    if ((values.size() & 1U) == 0)
-    {
-        const float lower = *std::max_element(values.begin(), values.begin() + middle);
-        result = 0.5f * (lower + result);
-    }
-    return result;
-}
-
 void GuiderMultiStar::AddCloudExtensionEvidence(SceneSample *sample, const usImage *image, const Star& primary, int exposureMs,
                                                 bool autoExposure) noexcept
 {
@@ -970,11 +955,7 @@ void GuiderMultiStar::AddCloudExtensionEvidence(SceneSample *sample, const usIma
     {
         sample->ensembleRatio = -1.f;
         sample->ensembleStars = 0;
-        for (CloudStarReference& reference : m_cloudStarReferences)
-        {
-            reference.massAnchor = 0.f;
-            reference.massWarmup.clear();
-        }
+        m_cloudReferences.Invalidate();
         try
         {
             Debug.Write(wxString::Format("cloud: multi-star evidence %s exception contained\n",
@@ -991,27 +972,8 @@ void GuiderMultiStar::AddCloudExtensionEvidence(SceneSample *sample, const usIma
         if (!settings.multiStarEnabled)
             return;
         const SceneTelemetry telemetry = GetCloudTelemetry();
-        if (settings.generation != m_cloudExtensionGeneration ||
-            telemetry.referenceGeneration != m_cloudReferenceGeneration)
-        {
-            m_cloudExtensionGeneration = settings.generation;
-            m_cloudReferenceGeneration = telemetry.referenceGeneration;
-            m_cloudStarReferences.clear();
-        }
-        const SceneState detectorState = telemetry.state;
-        const bool mayLearnReferences = detectorState == SceneState::Warmup || detectorState == SceneState::Clear;
-
-        auto referenceFor = [this](int keyX, int keyY) -> CloudStarReference&
-        {
-            for (CloudStarReference& reference : m_cloudStarReferences)
-                if (reference.keyX == keyX && reference.keyY == keyY)
-                    return reference;
-            m_cloudStarReferences.push_back(CloudStarReference { });
-            CloudStarReference& reference = m_cloudStarReferences.back();
-            reference.keyX = keyX;
-            reference.keyY = keyY;
-            return reference;
-        };
+        m_cloudReferences.Sync(settings.generation, telemetry.referenceGeneration);
+        const bool mayLearnReferences = CloudEnsembleReferences::MayLearn(telemetry);
 
         // Multi-star mass retains the guide list's normal quality rules.
         if (settings.multiStarEnabled)
@@ -1025,11 +987,21 @@ void GuiderMultiStar::AddCloudExtensionEvidence(SceneSample *sample, const usIma
                 };
                 std::vector<MassStar> observed;
                 observed.push_back({ primary, 0, 0 });
-                std::vector<size_t> order;
+                // Stars with learned references keep their place; brightness orders only the remaining candidates.
+                std::vector<size_t> order, rank(m_guideStars.size(), 0);
                 for (size_t i = 1; i < m_guideStars.size(); ++i)
+                {
                     order.push_back(i);
+                    rank[i] = m_cloudReferences.Rank(ROUND(m_guideStars[i].offsetFromPrimary.X * 10.0),
+                                                     ROUND(m_guideStars[i].offsetFromPrimary.Y * 10.0));
+                }
                 std::sort(order.begin(), order.end(),
-                          [this](size_t a, size_t b) { return m_guideStars[a].PeakVal > m_guideStars[b].PeakVal; });
+                          [this, &rank](size_t a, size_t b)
+                          {
+                              if (rank[a] != rank[b])
+                                  return rank[a] < rank[b];
+                              return m_guideStars[a].PeakVal > m_guideStars[b].PeakVal;
+                          });
                 for (size_t index : order)
                 {
                     if ((int) observed.size() >= settings.multiStarMinStars)
@@ -1062,32 +1034,25 @@ void GuiderMultiStar::AddCloudExtensionEvidence(SceneSample *sample, const usIma
                 }
                 catch (...) { }
 
-                std::vector<float> massRatios;
+                // The zenith-equivalent, per-second scale the detector applies to the primary's mass, so the per-star
+                // references survive a change of the guide exposure (Ticket 005). Automatic exposure keeps
+                // MassChecker's normalization; a switch between the two is a new acquisition and relearns them.
+                const double zenith = CloudAirmass::ZenithFactor(sample->extinctionMagPerAirmass, sample->airmass);
+                auto normalized = [exposureMs, autoExposure](double mass)
+                {
+                    if (exposureMs <= 0)
+                        return mass;
+                    return autoExposure ? ExposureAdjustedStarMass(mass, exposureMs, true) : mass * 1000.0 / exposureMs;
+                };
+                std::vector<CloudEnsembleReferences::Observation> stars;
                 for (const MassStar& current : observed)
+                    stars.push_back({ current.keyX, current.keyY, zenith * normalized(current.star.Mass) });
+                int used = 0;
+                const float ratio = m_cloudReferences.Evaluate(stars, mayLearnReferences, settings.multiStarMinStars, used);
+                if (ratio > 0.f)
                 {
-                    CloudStarReference& reference = referenceFor(current.keyX, current.keyY);
-                    const double normalizedMass = autoExposure && exposureMs > 0
-                        ? ExposureAdjustedStarMass(current.star.Mass, exposureMs, true)
-                        : current.star.Mass;
-                    if (std::isfinite(normalizedMass) && normalizedMass > 0.0)
-                    {
-                        if (reference.massAnchor <= 0.f && mayLearnReferences)
-                        {
-                            reference.massWarmup.push_back((float) normalizedMass);
-                            if (reference.massWarmup.size() >= 8)
-                            {
-                                reference.massAnchor = CloudMedian(reference.massWarmup);
-                                reference.massWarmup.clear();
-                            }
-                        }
-                        if (reference.massAnchor > 0.f)
-                            massRatios.push_back((float) (normalizedMass / reference.massAnchor));
-                    }
-                }
-                if ((int) massRatios.size() >= settings.multiStarMinStars)
-                {
-                    sample->ensembleStars = (int) massRatios.size();
-                    sample->ensembleRatio = CloudMedian(std::move(massRatios));
+                    sample->ensembleStars = used;
+                    sample->ensembleRatio = ratio;
                     sample->ensembleTripRatio = settings.ensembleTripRatio;
                 }
             }
@@ -1129,6 +1094,10 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
         int exposure = 0;
         bool isAutoExposure = false;
         pFrame->GetExposureInfo(&exposure, &isAutoExposure);
+        // A fixed exposure set while this frame was exposing applies from the next frame; the requested duration
+        // changes at once. Label the frame with the duration it was taken with (Ticket 005).
+        if (!isAutoExposure && pImage && pImage->ImgExpDur > 0)
+            exposure = pImage->ImgExpDur;
 
         SceneSample sample;
         sample.detected = detected;
@@ -1136,10 +1105,16 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
         sample.mode = 0; // ordinary star centroiding
         sample.exposureMs = isAutoExposure ? 0 : exposure;
         sample.brightExposureMs = exposure;
+        sample.airmass = CloudAirmassNow();
+        sample.extinctionMagPerAirmass = GetCloudExtensionSettings().extinctionMagPerAirmass;
+        sample.ensembleConfigured = GetCloudExtensionSettings().multiStarEnabled;
 
         const Star& metrics = star ? *star : m_primaryStar;
         if (detected)
         {
+            // A clipped primary's mass understates its light: its peak reached the camera's saturation ADU, or
+            // the flat-top test found it saturated when that ADU is unknown (Ticket 005 follow-up).
+            sample.primarySaturated = metrics.GetError() == Star::STAR_SATURATED;
             // Match MassChecker's existing auto-exposure normalization without
             // changing its independent rejection thresholds or history.
             sample.mass = (float) (isAutoExposure && exposure <= 0

@@ -44,6 +44,8 @@
 #ifndef GUIDER_MULTISTAR_H_INCLUDED
 #define GUIDER_MULTISTAR_H_INCLUDED
 
+#include "contributions/CloudDetector/CloudEnsembleReferences.h"
+
 class MassChecker;
 class GuiderMultiStar;
 class GuiderConfigDialogCtrlSet;
@@ -85,15 +87,7 @@ class GuiderMultiStar : public Guider
     unsigned int m_starsUsed;
     unsigned int m_lastStarsUsed;
 
-    struct CloudStarReference
-    {
-        int keyX = 0, keyY = 0;
-        float massAnchor = 0.f;
-        std::vector<float> massWarmup;
-    };
-    std::vector<CloudStarReference> m_cloudStarReferences;
-    unsigned m_cloudExtensionGeneration = 0;
-    unsigned m_cloudReferenceGeneration = 0;
+    CloudEnsembleReferences m_cloudReferences;
 
     // parameters
     bool m_massChangeThresholdEnabled;

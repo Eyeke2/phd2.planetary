@@ -113,8 +113,15 @@ struct CloudExtensionSettings
     bool multiStarEnabled = false;
     int multiStarMinStars = 3;
     float ensembleTripRatio = 0.78f;
+    float extinctionMagPerAirmass = 0.30f; // zenith normalization of stellar photometry; 0 disables it
     unsigned generation = 0;
 };
+
+// Every successful mount reading by any driver, on any thread, feeds the cloud detector's air-mass
+// estimate while cloud detection is enabled.
+void CloudRecordMountCoordinates(double raHours, double decDeg, double siderealHours);
+void CloudRecordMountAltitude(double altitudeDeg);
+void CloudRecordSiteLatitude(double latitudeDeg);
 
 class DefectMap;
 
@@ -315,6 +322,9 @@ public:
     void ResetCloudDetection(const char* reason, bool preserveDecline = false);
     void ResumeCloudDetectionAfterMotion(const char* reason) { m_cloudDetector.ResumeAfterMotion(reason); }
     SceneTelemetry GetCloudTelemetry() const;
+    // Air mass of the current pointing from cached mount readings, or -1. Call on the main thread; when
+    // every reading is older than a minute it queues a mount query to run after the current event.
+    float CloudAirmassNow();
     void FeedCloudSample(SceneSample sample, const usImage *image, double centerX, double centerY, int radius) noexcept;
 
     // virtual functions -- these CAN be overridden by a subclass, which should
