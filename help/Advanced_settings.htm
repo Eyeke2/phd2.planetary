@@ -336,7 +336,21 @@ too large can result in no stars being selected. &nbsp;It can be used
 of a faint star that you know from experience will prove to be
 unusable. &nbsp;However, many of these situations can be avoided by
 getting better guide camera focus, refreshing the dark library, or
-slightly increasing the exposure times.</li><li>'<a name="Multi-Star_Option"></a>Use multiple stars' - determines whether PHD2 will use more than one star for guiding. &nbsp;See&nbsp;<a href="Basic_use.htm#Multi-star_guiding"></a><a href="Basic_use.htm#Multi-star_Guiding">Multi-star Guiding</a> for details.</li><li>'Auto-selection frame downsample' - can
+slightly increasing the exposure times.</li><li>'<a name="Elongated_star_rejection"></a>Elongated
+Star Rejection' - when 'Reject elongated stars' is checked, star auto-selection skips candidates that are much
+less round than the other stars in the frame, such as an internal reflection of the guide optics or a fragment of
+a bright star's diffraction spikes. Such objects can pass the maximum HFD because PHD2 measures a star inside a
+small aperture. Roundness is the ratio of a candidate's minor to major axis, compared with the median of the other
+usable candidates (0.80 when there are fewer than five); a candidate is rejected below 'Min roundness vs. field'
+percent of that median (default 75%, range 50-95%). The check applies to auto-selection and to the secondary
+stars of multi-star guiding; it never applies while guiding, so a guide star is not lost because of its shape.
+Symmetric spider spikes do not affect it; close double stars may be rejected. While a star is being selected,
+before calibration, the same check applies to a star you click and to the selected star on each frame: such a star
+is treated like one outside the HFD limits. It is marked with the not-found box, then not found, and the status bar
+shows 'Star lost - elongated' with its roundness. A clicked star is compared with the median of the frame it was
+clicked on, measured from the same candidates as auto-selection, so a field whose stars are all trailed does not
+refuse its own stars; the following frames of that selection keep the same median. Calibration and guiding never
+lose a star for its shape.</li><li>'<a name="Multi-Star_Option"></a>Use multiple stars' - determines whether PHD2 will use more than one star for guiding. &nbsp;See&nbsp;<a href="Basic_use.htm#Multi-star_guiding"></a><a href="Basic_use.htm#Multi-star_Guiding">Multi-star Guiding</a> for details.</li><li>'Auto-selection frame downsample' - can
 be used in unusual situations where PHD2 guide star auto-selection is
 not recognizing misshapen stars. &nbsp;If this happens, you can try
 values greater than 1 to improve the chances of recognizing such stars.

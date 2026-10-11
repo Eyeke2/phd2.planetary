@@ -67,6 +67,7 @@ public:
     wxCheckBox *m_pUseMultiStars;
     wxSpinCtrlDouble *m_MinSNR;
     wxSpinCtrlDouble *m_MaxHFD;
+    wxCheckBox *m_pRejectElongatedStars;
 
     virtual void LoadValues();
     virtual void UnloadValues();
@@ -88,6 +89,8 @@ class GuiderMultiStar : public Guider
     unsigned int m_lastStarsUsed;
 
     CloudEnsembleReferences m_cloudReferences;
+
+    StarRoundness::Field m_selectionField;
 
     // parameters
     bool m_massChangeThresholdEnabled;
@@ -154,6 +157,7 @@ private:
     void InvalidateCurrentPosition(bool fullReset = false) final;
     bool UpdateCurrentPosition(const usImage *pImage, GuiderOffset *ofs, FrameDroppedInfo *errorInfo) final;
     bool SetCurrentPosition(const usImage *pImage, const PHD_Point& position) final;
+    bool RefuseElongated(Star& star, const usImage *image);
 
     void OnLClick(wxMouseEvent& evt);
     void OnRClick(wxMouseEvent& evt);

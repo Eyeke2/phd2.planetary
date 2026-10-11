@@ -43,6 +43,7 @@
  */
 
 #include "phd.h"
+#include "star_shape.h"
 
 #include <wx/dir.h>
 #include <algorithm>
@@ -276,6 +277,7 @@ void GuiderMultiStar::ClearSecondaryStars()
 void GuiderMultiStar::LoadProfileSettings()
 {
     Guider::LoadProfileSettings();
+    m_selectionField = StarRoundness::Field();
 
     double massChangeThreshold = pConfig->Profile.GetDouble("/guider/onestar/MassChangeThreshold", DefaultMassChangeThreshold);
     SetMassChangeThreshold(massChangeThreshold);
@@ -403,8 +405,12 @@ bool GuiderMultiStar::SetCurrentPosition(const usImage *pImage, const PHD_Point&
         }
 
         m_massChecker->Reset();
+        if (GetState() <= STATE_SELECTED && pImage->Subframe.IsEmpty())
+            m_selectionField = StarRoundness::Field();
         bError = !m_primaryStar.Find(pImage, m_searchRegion, x, y, pFrame->GetStarFindMode(), GetMinStarHFD(), GetMaxStarHFD(),
                                      pCamera->GetSaturationADU(), Star::FIND_LOGGING_VERBOSE);
+        if (!bError && RefuseElongated(m_primaryStar, pImage))
+            bError = true;
     }
     catch (const wxString& Msg)
     {
@@ -414,23 +420,63 @@ bool GuiderMultiStar::SetCurrentPosition(const usImage *pImage, const PHD_Point&
     return bError;
 }
 
-static wxString StarStatusStr(const Star& star)
+// If mount is not calibrated, AutoFind chooses a star a bit farther from the edge to allow for the motion of the
+// star during calibration
+static int AutoFindEdgeAllowance()
+{
+    int edgeAllowance = 0;
+    if (pMount && pMount->IsConnected() && !pMount->IsCalibrated())
+        edgeAllowance = wxMax(edgeAllowance, pMount->CalibrationTotDistance());
+    if (pSecondaryMount && pSecondaryMount->IsConnected() && !pSecondaryMount->IsCalibrated())
+        edgeAllowance = wxMax(edgeAllowance, pSecondaryMount->CalibrationTotDistance());
+    return edgeAllowance;
+}
+
+bool GuiderMultiStar::RefuseElongated(Star& star, const usImage *image)
+{
+    if (!GetRejectElongatedStars() || GetState() > STATE_SELECTED || !star.WasFound() || !(star.AxisRatio > 0.0))
+        return false;
+    if (!m_selectionField.Measured())
+        m_selectionField = GuideStar::MeasureFieldRoundness(*image, AutoFindEdgeAllowance(), m_searchRegion);
+    bool const fallback = !m_selectionField.Measured() || m_selectionField.Fallback();
+    double const median = m_selectionField.Measured() ? m_selectionField.median : StarRoundness::FallbackMedian;
+    double const threshold = StarRoundness::Threshold(median, GetMinRoundnessPct());
+    if (!StarRoundness::IsElongated(star.AxisRatio, threshold))
+        return false;
+    Debug.Write(wxString::Format("Star refused: elongated at (%.2f, %.2f) q=%.2f threshold=%.2f, field median %.2f from %u "
+                                 "stars%s\n",
+                                 star.X, star.Y, star.AxisRatio, threshold, median, m_selectionField.stars,
+                                 fallback ? " (fallback)" : ""));
+    star.SetError(Star::STAR_ELONGATED);
+    return true;
+}
+
+static wxString StarStatusStr(const Star& star, const Guider& guider)
 {
     if (!star.IsValid())
         return _("No star selected");
 
+    // A short reason with the measured value and the limit it failed, rather than a generic "No star found";
+    // Find keeps the measured SNR and HFD of a star it rejects.
     switch (star.GetError())
     {
+    case Star::STAR_ELONGATED:
+        return wxString::Format(_("Star lost - elongated (roundness %.2f)"), star.AxisRatio);
     case Star::STAR_LOWSNR:
-        return _("Star lost - low SNR");
+        return wxString::Format(_("Star lost - low SNR (%.1f)"), star.SNR);
     case Star::STAR_LOWMASS:
         return _("Star lost - low mass");
     case Star::STAR_LOWHFD:
-        return _("Star lost - low HFD");
+        return wxString::Format(_("Star lost - low HFD (%.1f < %.1f)"), star.HFD, guider.GetMinStarHFD());
+    case Star::STAR_HIHFD:
+        return wxString::Format(_("Star lost - high HFD (%.1f > %.1f)"), star.HFD, guider.GetMaxStarHFD());
     case Star::STAR_TOO_NEAR_EDGE:
         return _("Star too near edge");
     case Star::STAR_MASSCHANGE:
         return _("Star lost - mass changed");
+    case Star::STAR_ERROR:
+        // From Find, the search region around the star's position falls outside the frame
+        return _("Star lost - outside the frame");
     default:
         return _("No star found");
     }
@@ -474,22 +520,16 @@ bool GuiderMultiStar::AutoSelect(const wxRect& roi)
             throw ERROR_INFO("No Current Image");
         }
 
-        // If mount is not calibrated, we need to choose a star a bit farther
-        // from the edge to allow for the motion of the star during
-        // calibration
-        //
-        int edgeAllowance = 0;
-        if (pMount && pMount->IsConnected() && !pMount->IsCalibrated())
-            edgeAllowance = wxMax(edgeAllowance, pMount->CalibrationTotDistance());
-        if (pSecondaryMount && pSecondaryMount->IsConnected() && !pSecondaryMount->IsCalibrated())
-            edgeAllowance = wxMax(edgeAllowance, pSecondaryMount->CalibrationTotDistance());
+        int edgeAllowance = AutoFindEdgeAllowance();
 
         GuideStar newStar;
+        StarRoundness::Field field;
         if (!newStar.AutoFind(*image, edgeAllowance, m_searchRegion, roi, m_guideStars,
-                              (pCamera->UseSubframes || !m_multiStarMode) ? 1 : MAX_LIST_SIZE))
+                              (pCamera->UseSubframes || !m_multiStarMode) ? 1 : MAX_LIST_SIZE, &field))
         {
             throw ERROR_INFO("Unable to AutoFind");
         }
+        m_selectionField = field;
 
         m_massChecker->Reset();
         Star::FindMode findMode = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? Star::FIND_PLANET : Star::FIND_CENTROID;
@@ -619,6 +659,7 @@ void GuiderMultiStar::InvalidateCurrentPosition(bool fullReset)
     if (fullReset)
     {
         m_primaryStar.X = m_primaryStar.Y = 0.0;
+        m_selectionField = StarRoundness::Field();
     }
 }
 
@@ -987,7 +1028,6 @@ void GuiderMultiStar::AddCloudExtensionEvidence(SceneSample *sample, const usIma
                 };
                 std::vector<MassStar> observed;
                 observed.push_back({ primary, 0, 0 });
-                // Stars with learned references keep their place; brightness orders only the remaining candidates.
                 std::vector<size_t> order, rank(m_guideStars.size(), 0);
                 for (size_t i = 1; i < m_guideStars.size(); ++i)
                 {
@@ -1015,7 +1055,6 @@ void GuiderMultiStar::AddCloudExtensionEvidence(SceneSample *sample, const usIma
                                              ROUND(guideStar.offsetFromPrimary.Y * 10.0) });
                 }
 
-                // Raw ensemble observations precede their detector feed, allowing reference relearning in replays.
                 try
                 {
                     std::ostringstream out;
@@ -1034,9 +1073,6 @@ void GuiderMultiStar::AddCloudExtensionEvidence(SceneSample *sample, const usIma
                 }
                 catch (...) { }
 
-                // The zenith-equivalent, per-second scale the detector applies to the primary's mass, so the per-star
-                // references survive a change of the guide exposure (Ticket 005). Automatic exposure keeps
-                // MassChecker's normalization; a switch between the two is a new acquisition and relearns them.
                 const double zenith = CloudAirmass::ZenithFactor(sample->extinctionMagPerAirmass, sample->airmass);
                 auto normalized = [exposureMs, autoExposure](double mass)
                 {
@@ -1094,8 +1130,6 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
         int exposure = 0;
         bool isAutoExposure = false;
         pFrame->GetExposureInfo(&exposure, &isAutoExposure);
-        // A fixed exposure set while this frame was exposing applies from the next frame; the requested duration
-        // changes at once. Label the frame with the duration it was taken with (Ticket 005).
         if (!isAutoExposure && pImage && pImage->ImgExpDur > 0)
             exposure = pImage->ImgExpDur;
 
@@ -1112,18 +1146,11 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
         const Star& metrics = star ? *star : m_primaryStar;
         if (detected)
         {
-            // A clipped primary's mass understates its light: its peak reached the camera's saturation ADU, or
-            // the flat-top test found it saturated when that ADU is unknown (Ticket 005 follow-up).
             sample.primarySaturated = metrics.GetError() == Star::STAR_SATURATED;
-            // Match MassChecker's existing auto-exposure normalization without
-            // changing its independent rejection thresholds or history.
             sample.mass = (float) (isAutoExposure && exposure <= 0
                                        ? metrics.Mass
                                        : ExposureAdjustedStarMass(metrics.Mass, exposure, isAutoExposure));
-            // Star::SNR is linear while CloudDetector's SNR thresholds are in dB.
             sample.snr = metrics.SNR > 0.0 ? (float) (20.0 * std::log10(metrics.SNR)) : 0.f;
-            // Cloud broadening increases FWHM. The detector's quality
-            // channel degrades downward, so use negative width as its score.
             const double width = metrics.FWHM > 0.0 ? metrics.FWHM : metrics.HFD;
             sample.score = (float) -width;
             AddCloudExtensionEvidence(&sample, pImage, metrics, exposure, isAutoExposure);
@@ -1162,8 +1189,8 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
             errorInfo->starMass = 0.0;
             errorInfo->starSNR = 0.0;
             errorInfo->starHFD = 0.0;
-            errorInfo->status =
-                (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? m_SolarSystemObject.m_statusMsg : StarStatusStr(newStar);
+            errorInfo->status = (pFrame->GetStarFindMode() == Star::FIND_PLANET) ? m_SolarSystemObject.m_statusMsg
+                                                                                 : StarStatusStr(newStar, *this);
             m_primaryStar.SetError(newStar.GetError());
 
             if (pFrame->GetStarFindMode() != Star::FIND_PLANET)
@@ -1174,13 +1201,23 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
             throw ERROR_INFO("UpdateCurrentPosition():newStar not found");
         }
 
-        // Feed once per live star frame before the legacy mass/distance checks.
-        // Those checks keep their existing behavior while the cloud monitor sees
-        // the raw atmospheric telemetry that may explain a later rejection.
         feedStarCloudSample(&newStar, true);
 
-        // check to see if it seems like the star we just found was the
-        // same as the original star by comparing the mass
+        if (RefuseElongated(newStar, pImage))
+        {
+            m_primaryStar.SetError(Star::STAR_ELONGATED);
+            errorInfo->starError = Star::STAR_ELONGATED;
+            errorInfo->starMass = newStar.Mass;
+            errorInfo->starSNR = newStar.SNR;
+            errorInfo->starHFD = newStar.HFD;
+            errorInfo->status = StarStatusStr(newStar, *this);
+
+            s_distanceChecker.Activate();
+            ImageLogger::LogImage(pImage, *errorInfo);
+
+            throw THROW_INFO("elongated star refused");
+        }
+
         if (m_massChangeThresholdEnabled)
         {
             int exposure;
@@ -1195,7 +1232,7 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
                 errorInfo->starMass = newStar.Mass;
                 errorInfo->starSNR = newStar.SNR;
                 errorInfo->starHFD = newStar.HFD;
-                errorInfo->status = StarStatusStr(m_primaryStar);
+                errorInfo->status = wxString::Format(_("Star lost - mass changed (%.f vs %.f)"), newStar.Mass, limits[1]);
                 pFrame->StatusMsg(wxString::Format(_("Mass: %.f vs %.f"), newStar.Mass, limits[1]));
 
                 Debug.Write(wxString::Format(
@@ -1233,7 +1270,8 @@ bool GuiderMultiStar::UpdateCurrentPosition(const usImage *pImage, GuiderOffset 
             errorInfo->starMass = newStar.Mass;
             errorInfo->starSNR = newStar.SNR;
             errorInfo->starHFD = newStar.HFD;
-            errorInfo->status = StarStatusStr(m_primaryStar);
+            // The star was found, but much farther from the lock position than the recent guiding error
+            errorInfo->status = wxString::Format(_("Star lost - large offset (%.1f px)"), distance);
             pFrame->StatusMsg(_("Recovering"));
 
             ImageLogger::LogImage(pImage, *errorInfo);
@@ -1757,6 +1795,13 @@ GuiderMultiStarConfigDialogCtrlSet::GuiderMultiStarConfigDialogCtrlSet(wxWindow 
           "This setting can be used to prevent PHD2 from choosing a large clump of sensor noise, adjacent faint stars, "
           "internal reflections, or comet heads as guide stars."));
 
+    m_pRejectElongatedStars =
+        new wxCheckBox(GetParentWindow(AD_szStarTracking), ELONGATED_STAR_ENABLE, _("Reject elongated stars"));
+    m_pRejectElongatedStars->SetToolTip(_("Stars much less round than the rest of the field, such as reflections or "
+                                          "spike fragments, are rejected like stars outside the HFD limits."));
+    wxBoxSizer *pElongated = new wxBoxSizer(wxHORIZONTAL);
+    pElongated->Add(m_pRejectElongatedStars, wxSizerFlags(0).Border(wxTOP, 3));
+
     wxString ary[] = { _("Auto"), _T("1"), _T("2"), _T("3") };
     m_autoSelDownsample =
         new wxChoice(GetParentWindow(AD_szStarTracking), wxID_ANY, wxDefaultPosition, wxDefaultSize, WXSIZEOF(ary), ary);
@@ -1786,13 +1831,15 @@ GuiderMultiStarConfigDialogCtrlSet::GuiderMultiStarConfigDialogCtrlSet(wxWindow 
           "This setting applies to both the primary guide star and candidate secondary stars in multi-star guiding. "
           "If this constraint cannot be met, a saturated or near-saturated star may be selected."));
 
-    wxFlexGridSizer *pTrackingParams = new wxFlexGridSizer(3, 2, 8, 15);
+    wxFlexGridSizer *pTrackingParams = new wxFlexGridSizer(0, 2, 8, 15);
     pTrackingParams->Add(pSearchRegion, wxSizerFlags(0).Border(wxTOP, 12));
     pTrackingParams->Add(pStarMass, wxSizerFlags(0).Border(wxLEFT, 75));
     pTrackingParams->Add(pHFD, wxSizerFlags().Border(wxTOP, 3));
     pTrackingParams->Add(pSNR, wxSizerFlags().Border(wxLEFT, 75));
     pTrackingParams->Add(pMaxHFD, wxSizerFlags().Border(wxTOP, 4));
     pTrackingParams->Add(m_pUseMultiStars, wxSizerFlags(0).Border(wxLEFT, 75));
+    pTrackingParams->Add(pElongated, wxSizerFlags().Border(wxTOP, 3));
+    pTrackingParams->AddSpacer(0);
     pTrackingParams->Add(m_pBeepForLostStarCtrl, wxSizerFlags().Border(wxTOP, 3));
     pTrackingParams->Add(dsamp, wxSizerFlags().Border(wxTOP, 3).Right());
 
@@ -1811,6 +1858,8 @@ void GuiderMultiStarConfigDialogCtrlSet::LoadValues()
     m_MinHFD->SetValue(m_pGuiderMultiStar->GetMinStarHFD());
     m_MinSNR->SetValue(m_pGuiderMultiStar->GetAFMinStarSNR());
     m_MaxHFD->SetValue(m_pGuiderMultiStar->GetMaxStarHFD());
+    bool rejectElongated = m_pGuiderMultiStar->GetRejectElongatedStars();
+    m_pRejectElongatedStars->SetValue(rejectElongated);
     m_autoSelDownsample->SetSelection(m_pGuiderMultiStar->GetAutoSelDownsample());
     m_pBeepForLostStarCtrl->SetValue(pFrame->GetBeepForLostStar());
     m_pUseMultiStars->SetValue(m_pGuiderMultiStar->GetMultiStarMode());
@@ -1826,6 +1875,8 @@ void GuiderMultiStarConfigDialogCtrlSet::UnloadValues()
     m_pGuiderMultiStar->SetMinStarHFD(min_hfd);
     m_pGuiderMultiStar->SetMaxStarHFD(wxMax(m_MaxHFD->GetValue(), min_hfd + 2.0));
     m_pGuiderMultiStar->SetAFMinStarSNR(m_MinSNR->GetValue());
+    m_pGuiderMultiStar->SetRejectElongatedStars(m_pRejectElongatedStars->GetValue());
+    m_pGuiderMultiStar->SetMinRoundnessPct(StarRoundness::DefaultMinPct);
     m_pGuiderMultiStar->SetAutoSelDownsample(m_autoSelDownsample->GetSelection());
     if (m_pBeepForLostStarCtrl->GetValue() != pFrame->GetBeepForLostStar())
         pFrame->SetBeepForLostStar(m_pBeepForLostStarCtrl->GetValue());
@@ -1838,3 +1889,4 @@ void GuiderMultiStarConfigDialogCtrlSet::OnStarMassEnableChecked(wxCommandEvent&
 {
     m_pMassChangeThreshold->Enable(event.IsChecked());
 }
+

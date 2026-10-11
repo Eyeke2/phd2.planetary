@@ -37,6 +37,7 @@
 #include "polardrift_tool.h"
 #include "staticpa_tool.h"
 #include "guiding_assistant.h"
+#include "star_shape.h"
 
 #include <atomic>
 #include <chrono>
@@ -272,6 +273,8 @@ Guider::Guider(wxWindow *parent, int xSize, int ySize)
         Debug.Write(wxString::FromUTF8(msg.c_str()) + "\n");
     });
     m_searchRegion = 0;
+    m_rejectElongatedStars = false;
+    m_minRoundnessPct = StarRoundness::DefaultMinPct;
     m_pCurrentImage = new usImage(); // so we always have one
 
     SetOverlayMode(DefaultOverlayMode);
@@ -337,6 +340,8 @@ void Guider::LoadProfileSettings()
     SetMinStarHFD(minHFD);
     double maxHFD = pConfig->Profile.GetDouble("/guider/StarMaxHFD", 20.0);
     SetMaxStarHFD(maxHFD);
+    SetRejectElongatedStars(pConfig->Profile.GetBoolean("/guider/RejectElongatedStars", false));
+    SetMinRoundnessPct(StarRoundness::DefaultMinPct);
 
     double minSNR = pConfig->Profile.GetDouble("/guider/StarMinSNR", 6.0);
     SetAFMinStarSNR(minSNR);
@@ -411,9 +416,6 @@ void Guider::ResetCloudDetection(const char* reason, bool preserveDecline)
         std::lock_guard<std::mutex> lock(m_cloudExtensionMutex);
         ++m_cloudExtensionSettings.generation;
     }
-    // A guiding start can follow a slew. Ticket 005 #8: the cached pointing could be the previous
-    // target's for up to five minutes, so warm-up learned references at the wrong air mass. Forget it and
-    // ask the mount on the next frame.
     s_cloudPointing.ClearPointing();
     s_cloudPointingLastQueryMs = 0;
     if (preserveDecline) m_cloudDetector.StartNewSegment(reason); else m_cloudDetector.Reset(reason);
@@ -2275,6 +2277,22 @@ void Guider::SetMaxStarHFD(double val)
     Debug.Write(wxString::Format("Setting MaxHFD = %0.1f\n", val));
     pConfig->Profile.SetDouble("/guider/StarMaxHFD", val);
     m_maxStarHFD = val;
+}
+
+// Elongated-star rejection at star selection
+void Guider::SetRejectElongatedStars(bool enable)
+{
+    Debug.Write(wxString::Format("Setting RejectElongatedStars = %d\n", enable));
+    pConfig->Profile.SetBoolean("/guider/RejectElongatedStars", enable);
+    m_rejectElongatedStars = enable;
+}
+
+void Guider::SetMinRoundnessPct(int pct)
+{
+    pct = StarRoundness::ClampPct(pct);
+    Debug.Write(wxString::Format("Setting MinRoundnessPct = %d\n", pct));
+    pConfig->Profile.SetInt("/guider/MinRoundnessPct", pct);
+    m_minRoundnessPct = pct;
 }
 
 void Guider::SetAutoSelDownsample(unsigned int val)

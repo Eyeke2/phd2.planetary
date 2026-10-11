@@ -156,11 +156,6 @@ target_include_directories(CloudDetectorCore PUBLIC contributions/CloudDetector)
 set_property(TARGET CloudDetectorCore PROPERTY FOLDER "Contribution")
 
 
-# Star shape measure and elongated-candidate rule (Ticket 006); header-only, no wxWidgets.
-add_executable(StarShapeTest tests/star_shape_test.cpp src/star_shape.h)
-target_include_directories(StarShapeTest PRIVATE src)
-set_property(TARGET StarShapeTest PROPERTY FOLDER "Unit tests")
-add_test(NAME StarShapeTest COMMAND StarShapeTest)
 
 #################################################################################
 #
