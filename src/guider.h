@@ -190,6 +190,8 @@ class Guider : public wxWindow
     double m_minStarHFD;
     double m_minAFStarSNR;
     double m_maxStarHFD;
+    bool m_rejectElongatedStars;
+    int m_minRoundnessPct;
     bool m_userMultiStarMode;
     unsigned int m_autoSelDownsample; // downsample factor for star auto-selection, 0=Auto
 
@@ -303,6 +305,11 @@ public:
     void SetMinStarHFD(double val);
     double GetMaxStarHFD() const;
     void SetMaxStarHFD(double val);
+    // Elongated-star rejection at star selection
+    bool GetRejectElongatedStars() const;
+    void SetRejectElongatedStars(bool enable);
+    int GetMinRoundnessPct() const;
+    void SetMinRoundnessPct(int pct);
     // 'AF' methods deal with SNR threshold used only during Auto-Find - lets user specify a higher than default SNR floor for
     // populating a multi-star list. Normal 'find' methods do not use this property
     void SetAFMinStarSNR(double val);
@@ -484,6 +491,16 @@ inline double Guider::GetAFMinStarSNR() const
 inline double Guider::GetMaxStarHFD() const
 {
     return m_maxStarHFD;
+}
+
+inline bool Guider::GetRejectElongatedStars() const
+{
+    return m_rejectElongatedStars;
+}
+
+inline int Guider::GetMinRoundnessPct() const
+{
+    return m_minRoundnessPct;
 }
 
 inline unsigned int Guider::GetAutoSelDownsample() const

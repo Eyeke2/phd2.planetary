@@ -39,6 +39,7 @@
 #define STAR_H_INCLUDED
 
 #include "point.h"
+#include "star_shape.h"
 
 class Star : public PHD_Point
 {
@@ -61,6 +62,7 @@ public:
         STAR_TOO_NEAR_EDGE,
         STAR_MASSCHANGE,
         STAR_ERROR,
+        STAR_ELONGATED,
     };
 
     enum StarFindLogType
@@ -72,7 +74,9 @@ public:
     double Mass;
     double SNR;
     double HFD;
-    double FWHM; // Gaussian-equivalent width derived from the flux-weighted second moment
+    double FWHM;
+    double AxisRatio;
+    double ElongationAngle;
     unsigned short PeakVal;
 
     Star();
@@ -118,8 +122,12 @@ public:
     {
     }
 
+    // With "Reject elongated stars" on, *fieldRoundness gets the field median the candidates were judged against
     bool AutoFind(const usImage& image, int extraEdgeAllowance, int searchRegion, const wxRect& roi,
-                  std::vector<GuideStar>& foundStars, int maxStars);
+                  std::vector<GuideStar>& foundStars, int maxStars, StarRoundness::Field *fieldRoundness = nullptr);
+
+    // The field median roundness of a frame without selecting a star
+    static StarRoundness::Field MeasureFieldRoundness(const usImage& image, int extraEdgeAllowance, int searchRegion);
 };
 
 #endif /* STAR_H_INCLUDED */
