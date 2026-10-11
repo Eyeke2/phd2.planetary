@@ -10,6 +10,7 @@
         <li>The image overlay shows the sky condition as SKY: CLEAR, SKY: HAZE? n%, SKY: OBSCURED or SKY: LEARNING, and names a lower S/N or variable brightness.</li>
         <li>Optional rejection of elongated stars, such as reflections or diffraction-spike fragments, when a guide star is selected (Advanced settings, star tracking).</li>
         <li>The status line names why a star was not found: low SNR, low or high HFD, elongated, mass changed, large offset or outside the frame.</li>
+        <li>The event server no longer stops reading a client for good on Windows. Reading each connection until it ran dry could lose the notification for a request that arrived meanwhile; PHD2 then kept sending that client events and saw its disconnect, but never read another request from it, and the client timed out. PHD2 now reads once per notification. A request line longer than 1 KB is still answered with "too big", and the requests sent after it are no longer discarded with it.</li>
     </ul>
 
 <p>

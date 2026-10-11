@@ -42,7 +42,6 @@
 #include <cmath>
 #include <limits>
 #include <wx/sstream.h>
-#include <wx/sckstrm.h>
 #include <sstream>
 #include <string.h>
 
@@ -463,8 +462,9 @@ struct ClientReadBuf
     };
     char m_buf[SIZE];
     char *dest;
+    bool discarding; // inside a rejected over-long line
 
-    ClientReadBuf() { reset(); }
+    ClientReadBuf() : discarding(false) { reset(); }
     char *buf() { return &m_buf[0]; }
     size_t len() const { return dest - &m_buf[0]; }
     size_t avail() const { return &m_buf[SIZE] - dest; }
@@ -637,16 +637,6 @@ static void destroy_client(wxSocketClient *cli)
 {
     ClientData *buf = (ClientData *) cli->GetClientData();
     buf->RemoveRef();
-}
-
-static void drain_input(wxSocketInputStream& sis)
-{
-    while (sis.CanRead())
-    {
-        char buf[1024];
-        if (sis.Read(buf, sizeof(buf)).LastRead() == 0)
-            break;
-    }
 }
 
 enum
@@ -4587,6 +4577,17 @@ static void handle_cli_input_complete(wxSocketClient *cli, char *input)
     }
 }
 
+// reply "too big" and drop the rest of the over-long line as it arrives
+static void reject_long_line(wxSocketClient *cli, ClientReadBuf *rdbuf)
+{
+    rdbuf->reset();
+    rdbuf->discarding = true;
+
+    JRpcResponse response;
+    response << jrpc_error(JSONRPC_INTERNAL_ERROR, "too big") << jrpc_id(0);
+    do_notify1(cli, response);
+}
+
 static void handle_cli_input(wxSocketClient *cli)
 {
     // Bump refcnt to protect against reentrancy.
@@ -4599,47 +4600,52 @@ static void handle_cli_input(wxSocketClient *cli)
 
     ClientReadBuf *rdbuf = &clidata->rdbuf;
 
-    wxSocketInputStream sis(*cli);
+    // a zero-size Read() would not call recv()
+    if (rdbuf->avail() == 0)
+        reject_long_line(cli, rdbuf);
 
-    while (sis.CanRead())
+    // One read per notification: reading until recv() would block can take data before its FD_READ is
+    // posted, and wx then drops that FD_READ without the recv() that re-arms read notifications.
+    cli->Read(rdbuf->dest, rdbuf->avail());
+    size_t n = cli->LastReadCount();
+    if (n == 0)
+        return;
+
+    if (rdbuf->discarding)
     {
-        if (rdbuf->avail() == 0)
-        {
-            drain_input(sis);
-
-            JRpcResponse response;
-            response << jrpc_error(JSONRPC_INTERNAL_ERROR, "too big") << jrpc_id(0);
-            do_notify1(cli, response);
-
-            rdbuf->reset();
-            break;
-        }
-        size_t n = sis.Read(rdbuf->dest, rdbuf->avail()).LastRead();
-        if (n == 0)
-            break;
-
-        rdbuf->dest += n;
-
-        char *end;
-        while ((end = static_cast<char *>(memchr(rdbuf->buf(), '\n', rdbuf->len()))) != nullptr)
-        {
-            // Move the newline-terminated chunk from the read buffer to a temporary
-            // buffer on the stack, and consume the chunk from the read buffer before
-            // processing the line. This leaves the read buffer in the correct state to
-            // be used again if this function is caller reentrantly.
-            char line[ClientReadBuf::SIZE];
-            size_t len1 = end - rdbuf->buf();
-            memcpy(line, rdbuf->buf(), len1);
-            line[len1] = 0;
-
-            char *next = end + 1;
-            size_t len2 = rdbuf->dest - next;
-            memmove(rdbuf->buf(), next, len2);
-            rdbuf->dest = rdbuf->buf() + len2;
-
-            handle_cli_input_complete(cli, line);
-        }
+        // drop the rest of the rejected line, up to its newline
+        char *nl = static_cast<char *>(memchr(rdbuf->dest, '\n', n));
+        if (!nl)
+            return;
+        n = rdbuf->dest + n - (nl + 1);
+        memmove(rdbuf->dest, nl + 1, n);
+        rdbuf->discarding = false;
     }
+
+    rdbuf->dest += n;
+
+    char *end;
+    while ((end = static_cast<char *>(memchr(rdbuf->buf(), '\n', rdbuf->len()))) != nullptr)
+    {
+        // Move the newline-terminated chunk from the read buffer to a temporary
+        // buffer on the stack, and consume the chunk from the read buffer before
+        // processing the line. This leaves the read buffer in the correct state to
+        // be used again if this function is caller reentrantly.
+        char line[ClientReadBuf::SIZE];
+        size_t len1 = end - rdbuf->buf();
+        memcpy(line, rdbuf->buf(), len1);
+        line[len1] = 0;
+
+        char *next = end + 1;
+        size_t len2 = rdbuf->dest - next;
+        memmove(rdbuf->buf(), next, len2);
+        rdbuf->dest = rdbuf->buf() + len2;
+
+        handle_cli_input_complete(cli, line);
+    }
+
+    if (rdbuf->avail() == 0)
+        reject_long_line(cli, rdbuf);
 }
 
 EventServer::EventServer() : m_configEventDebouncer(nullptr) { }
