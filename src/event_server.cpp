@@ -1239,8 +1239,6 @@ static double cloud_finite_metric(float value)
 }
 
 // Return the cloud detector's current read-only verdict and diagnostic evidence.
-// haze_percent uses the same rounding as the on-screen HUD; severity remains available
-// at full precision for clients that want their own display or alert thresholds.
 static void get_cloud_status(JObj& response, const json_value *params)
 {
     VERIFY_GUIDER(response);
@@ -1256,6 +1254,7 @@ static void get_cloud_status(JObj& response, const json_value *params)
     JObj result;
     result << NV("enabled", guider->GetCloudDetectionEnabled())
            << NV("active", guider->IsCloudDetectionActive() && telemetry.fresh)
+           << NV("monitoring", guider->IsCloudDetectionActive())
            << NV("fresh", telemetry.fresh)
            << NV("sky_stability_applicable", telemetry.skyStabilityApplicable)
            << NV("sky_stability_ready", telemetry.skyStabilityReady)
@@ -1283,7 +1282,16 @@ static void get_cloud_status(JObj& response, const json_value *params)
     cloud_optional_metric(result, "brightness_ratio", telemetry.brightRatio);
     cloud_optional_metric(result, "feature_ratio", telemetry.featureRatio);
     cloud_optional_metric(result, "ensemble_ratio", telemetry.ensembleRatio);
+    cloud_optional_metric(result, "ensemble_ratio_raw", telemetry.ensembleRatioRaw);
+    cloud_optional_metric(result, "airmass", telemetry.airmass);
+    cloud_optional_metric(result, "clearing_loss_percent",
+                          telemetry.skyRiseLoss >= 0.f ? 100.f * telemetry.skyRiseLoss : -1.f);
+    cloud_optional_metric(result, "quality_warning_percent",
+                          telemetry.qualityWarning > 0.f ? 100.f * telemetry.qualityWarning : -1.f);
+    result << NV("quality_warning_snr_drop", telemetry.qualityWarningSnrDrop);
     result << NV("ensemble_stars", telemetry.ensembleStars);
+    cloud_optional_metric(result, "primary_saturated", telemetry.primarySaturated);
+    result << NV("primary_held_out", telemetry.primaryHeldOut);
     cloud_optional_metric(result, "mass_decline_rate", telemetry.massDeclineRate);
     cloud_optional_metric(result, "mass_decline_ratio", telemetry.massDeclineRatio);
     result << NV("mass_decline_latched", telemetry.massDeclineLatched)
@@ -1304,6 +1312,9 @@ static void append_cloud_config(JObj& result, const CloudExtensionSettings& sett
            << NV("multi_star_enabled", settings.multiStarEnabled)
            << NV("multi_star_min_stars", settings.multiStarMinStars)
            << NV("ensemble_trip_ratio", (double) settings.ensembleTripRatio)
+           << NV("airmass_supported", true)
+           << NV("haze_is_light_loss", true)
+           << NV("extinction_mag_per_airmass", (double) settings.extinctionMagPerAirmass)
            << NV("accumulated_haze_supported", true)
            << NV("mass_decline_automatic", true)
            << NV("segmented_haze_supported", true)
@@ -1330,8 +1341,6 @@ static void set_cloud_config(JObj& response, const json_value *params)
         return;
     }
 
-    // Params maps every member of an object regardless of the positional-name list; one name is
-    // sufficient here because this method deliberately accepts object form only.
     Params p("multi_star_enabled", params);
     CloudExtensionSettings settings = pFrame->pGuider->GetCloudExtensionSettings();
     const json_value *value;
@@ -1364,6 +1373,15 @@ static void set_cloud_config(JObj& response, const json_value *params)
             return;
         }
         settings.ensembleTripRatio = (float) floatValue;
+    }
+    if ((value = p.param("extinction_mag_per_airmass")) != nullptr)
+    {
+        if (!float_param(value, &floatValue))
+        {
+            response << jrpc_error(JSONRPC_INVALID_PARAMS, "extinction_mag_per_airmass must be numeric");
+            return;
+        }
+        settings.extinctionMagPerAirmass = (float) floatValue;
     }
     if (p.param("mass_decline_pct_per_minute"))
     {

@@ -1961,6 +1961,7 @@ bool ScopeASCOM::GetCoordinates(double *ra, double *dec, double *siderealTime)
         *ra = vRA.dblVal;
         *dec = vDec.dblVal;
         *siderealTime = vST.dblVal;
+        CloudRecordMountCoordinates(*ra, *dec, *siderealTime);
     }
     catch (const wxString& Msg)
     {
@@ -1998,6 +1999,7 @@ bool ScopeASCOM::GetMountAltAz(double *alt, double *az)
 
         *alt = vAlt.dblVal;
         *az = vAz.dblVal;
+        CloudRecordMountAltitude(*alt);
     }
     catch (const wxString& Msg)
     {
@@ -2040,6 +2042,7 @@ bool ScopeASCOM::GetSiteLatLong(double *latitude, double *longitude)
 
         *latitude = vLat.dblVal;
         *longitude = vLong.dblVal;
+        CloudRecordSiteLatitude(*latitude);
     }
     catch (const wxString& Msg)
     {

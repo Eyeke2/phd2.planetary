@@ -1,3 +1,4 @@
+// Sustained star-mass decline detector. Independent of adapting clear anchors.
 #pragma once
 #include <algorithm>
 #include <cmath>
@@ -62,7 +63,7 @@ class MassDeclineDetector {
             }
             return true;
         }
-    } history, input;
+    } history, input, overlap;   // overlap: ensemble readings taken with the latest primary inputs
     float threshold = 0.f, reference = -1.f, candidateReference = -1.f;
     double level = 1., segmentCarry = 1., segmentReference = -1.;
     unsigned generation = 0;
@@ -74,7 +75,7 @@ public:
     bool latched = false, usesEnsemble = false;
     void reset() { *this = MassDeclineDetector{}; }
     void resume(bool newSource = false) {
-        input.clear(); lastSampleMs = 0;
+        input.clear(); overlap.clear(); lastSampleMs = 0;
         if (newSource) {
             healthySince = 0;
             if (latched) {
@@ -107,7 +108,9 @@ public:
         }
         const bool haveMass = std::isfinite(mass) && mass > 0.f;
         const bool haveMulti = std::isfinite(multi) && multi > 0.f;
-        if ((!sourceChosen && (haveMass || haveMulti)) || (!usesEnsemble && haveMulti)) {
+        // An ensemble that appears during a primary segment is joined on simultaneous readings (below).
+        // Without a primary reading there is no overlap, so it starts from its own first median.
+        if ((!sourceChosen && (haveMass || haveMulti)) || (!usesEnsemble && haveMulti && !haveMass)) {
             resume(true); usesEnsemble = haveMulti; sourceChosen = true;
         }
         if (!sourceChosen || !(usesEnsemble ? haveMulti : haveMass)) {
@@ -126,6 +129,7 @@ public:
         } else if (observing) {
             observedMs += dt;
         }
+        // Keep raw noise in the significance window; median filtering is only for the published ratio.
         const double next = segmentCarry * (current / segmentReference);
         if (!std::isfinite(next) || next <= 0. || next > 1.e30) { resume(); return; }
         level = next;
@@ -144,5 +148,18 @@ public:
             }
         }
         ratio = latched ? (float) (level / reference) : -1.f;
+        if (usesEnsemble) return;
+        if (!haveMulti) { overlap.clear(); return; }
+        // Prefer the ensemble once three frames carry both sources. The primary level and the ensemble
+        // reference then describe the same frames; joining the primary's lagging median to the next
+        // ensemble frames lost any change in between, such as the recovery from a short dip.
+        overlap.push(multi, t);
+        if (overlap.count < 3) return;
+        const Window joined = overlap;
+        resume(true);
+        usesEnsemble = sourceChosen = true;
+        input = joined;
+        segmentReference = input.recent();
+        lastSampleMs = t;
     }
 };

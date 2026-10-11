@@ -38,6 +38,7 @@
 #include "staticpa_tool.h"
 #include "guiding_assistant.h"
 
+#include <atomic>
 #include <chrono>
 #include <climits>
 #include <cmath>
@@ -112,6 +113,46 @@ int64_t CloudSampleNowMs()
     return std::chrono::duration_cast<std::chrono::milliseconds>(
                std::chrono::steady_clock::now().time_since_epoch())
         .count();
+}
+
+// Mount readings for zenith-normalized cloud photometry, recorded by the drivers on any thread.
+CloudPointingCache s_cloudPointing;
+std::atomic<bool> s_cloudPointingQueryPending(false);
+std::atomic<int64_t> s_cloudPointingLastQueryMs(0);
+
+bool CloudPointingWanted()
+{
+    return pFrame && pFrame->pGuider && pFrame->pGuider->GetCloudDetectionEnabled();
+}
+
+// When every cached reading is older than a minute, ask the mount once. The query runs on the main
+// thread, where the guide-log header and get_mount_coords also read the mount, after the current
+// frame's processing rather than inside the guide step. A mount that cannot report coordinates is
+// asked again only after another minute.
+void RequestCloudPointingQuery(int64_t nowMs)
+{
+    if (!pFrame || s_cloudPointingQueryPending.exchange(true))
+        return;
+    const int64_t last = s_cloudPointingLastQueryMs.load();
+    if (last && nowMs - last < CloudPointingCache::QueryAfterMs)
+    {
+        s_cloudPointingQueryPending = false;
+        return;
+    }
+    s_cloudPointingLastQueryMs = nowMs;
+    pFrame->CallAfter(
+        []()
+        {
+            double ra, dec, sidereal, latitude, longitude;
+            if (pPointingSource && pPointingSource->IsConnected())
+            {
+                if (!pPointingSource->GetCoordinates(&ra, &dec, &sidereal))
+                    CloudRecordMountCoordinates(ra, dec, sidereal);
+                if (!s_cloudPointing.HaveLatitude() && !pPointingSource->GetSiteLatLong(&latitude, &longitude))
+                    CloudRecordSiteLatitude(latitude);
+            }
+            s_cloudPointingQueryPending = false;
+        });
 }
 
 // Detection-independent high-tail contrast from the last known guide-star neighbourhood.
@@ -273,6 +314,8 @@ void Guider::LoadProfileSettings()
     cloudExtensions.multiStarMinStars = pConfig->Profile.GetInt("/guider/cloud_multi_star_min_stars", 3);
     cloudExtensions.ensembleTripRatio =
         (float) pConfig->Profile.GetDouble("/guider/cloud_ensemble_trip_ratio", 0.78);
+    cloudExtensions.extinctionMagPerAirmass =
+        (float) pConfig->Profile.GetDouble("/guider/cloud_extinction_mag_per_airmass", 0.30);
     wxString cloudExtensionError;
     if (!ApplyCloudExtensionSettings(cloudExtensions, &cloudExtensionError))
         Debug.Write("cloud: ignoring invalid saved extension settings: " + cloudExtensionError + "\n");
@@ -317,6 +360,35 @@ SceneTelemetry Guider::GetCloudTelemetry() const
     return m_cloudDetector.GetTelemetry(CloudSampleNowMs());
 }
 
+void CloudRecordMountCoordinates(double raHours, double decDeg, double siderealHours)
+{
+    if (CloudPointingWanted())
+        s_cloudPointing.RecordEquatorial(CloudSampleNowMs(), raHours, decDeg, siderealHours);
+}
+
+void CloudRecordMountAltitude(double altitudeDeg)
+{
+    if (CloudPointingWanted())
+        s_cloudPointing.RecordAltitude(CloudSampleNowMs(), altitudeDeg);
+}
+
+void CloudRecordSiteLatitude(double latitudeDeg)
+{
+    if (CloudPointingWanted())
+        s_cloudPointing.RecordLatitude(latitudeDeg);
+}
+
+float Guider::CloudAirmassNow()
+{
+    if (!GetCloudDetectionEnabled())
+        return -1.f;
+    const int64_t now = CloudSampleNowMs();
+    if (s_cloudPointing.QueryDue(now))
+        RequestCloudPointingQuery(now);
+    const double airmass = s_cloudPointing.AirmassAt(now);
+    return std::isfinite(airmass) ? (float) airmass : -1.f;
+}
+
 bool Guider::IsCloudDetectionActive() const
 {
     // Public cloud detection is star-only and pauses while guiding control is settling.
@@ -339,6 +411,11 @@ void Guider::ResetCloudDetection(const char* reason, bool preserveDecline)
         std::lock_guard<std::mutex> lock(m_cloudExtensionMutex);
         ++m_cloudExtensionSettings.generation;
     }
+    // A guiding start can follow a slew. Ticket 005 #8: the cached pointing could be the previous
+    // target's for up to five minutes, so warm-up learned references at the wrong air mass. Forget it and
+    // ask the mount on the next frame.
+    s_cloudPointing.ClearPointing();
+    s_cloudPointingLastQueryMs = 0;
     if (preserveDecline) m_cloudDetector.StartNewSegment(reason); else m_cloudDetector.Reset(reason);
 }
 
@@ -360,6 +437,9 @@ bool Guider::ApplyCloudExtensionSettings(const CloudExtensionSettings& requested
     if (!std::isfinite(requested.ensembleTripRatio) || requested.ensembleTripRatio < 0.2f ||
         requested.ensembleTripRatio > 0.98f)
         return invalid("ensemble_trip_ratio must be between 0.2 and 0.98");
+    if (!std::isfinite(requested.extinctionMagPerAirmass) || requested.extinctionMagPerAirmass < 0.f ||
+        requested.extinctionMagPerAirmass > 1.f)
+        return invalid("extinction_mag_per_airmass must be between 0 and 1");
     CloudExtensionSettings applied = requested;
     bool changed = false;
     {
@@ -367,7 +447,8 @@ bool Guider::ApplyCloudExtensionSettings(const CloudExtensionSettings& requested
         const CloudExtensionSettings& old = m_cloudExtensionSettings;
         changed = old.multiStarEnabled != applied.multiStarEnabled ||
                   old.multiStarMinStars != applied.multiStarMinStars ||
-                  old.ensembleTripRatio != applied.ensembleTripRatio;
+                  old.ensembleTripRatio != applied.ensembleTripRatio ||
+                  old.extinctionMagPerAirmass != applied.extinctionMagPerAirmass;
         if (!changed)
             return true;
         applied.generation = old.generation + 1;
@@ -377,11 +458,12 @@ bool Guider::ApplyCloudExtensionSettings(const CloudExtensionSettings& requested
     pConfig->Profile.SetBoolean("/guider/cloud_multi_star_enabled", applied.multiStarEnabled);
     pConfig->Profile.SetInt("/guider/cloud_multi_star_min_stars", applied.multiStarMinStars);
     pConfig->Profile.SetDouble("/guider/cloud_ensemble_trip_ratio", applied.ensembleTripRatio);
+    pConfig->Profile.SetDouble("/guider/cloud_extinction_mag_per_airmass", applied.extinctionMagPerAirmass);
 
     m_cloudDetector.StartNewSegment("cloud extension settings changed");
     Debug.Write(wxString::Format(
-        "cloud: extensions multi=%d minStars=%d ensembleTrip=%.2f\n",
-        applied.multiStarEnabled, applied.multiStarMinStars, applied.ensembleTripRatio));
+        "cloud: extensions multi=%d minStars=%d ensembleTrip=%.2f extinction=%.2f\n",
+        applied.multiStarEnabled, applied.multiStarMinStars, applied.ensembleTripRatio, applied.extinctionMagPerAirmass));
     Refresh();
     return true;
 }
@@ -953,39 +1035,41 @@ bool Guider::PaintHelper(wxAutoBufferedPaintDCBase& dc, wxMemoryDC& memDC)
             wxColour cloudColour;
             if (!telemetry.healthy)
             {
-                cloudLabel = _("CLOUD: DETECTOR ERROR");
+                cloudLabel = _("SKY: DETECTOR ERROR");
                 cloudColour = wxColour(255, 75, 75);
             }
             else if (!telemetry.fresh && telemetry.state != SceneState::Warmup)
             {
-                cloudLabel = _("CLOUD: NO DATA");
+                cloudLabel = _("SKY: NO DATA");
                 cloudColour = wxColour(190, 190, 190);
             }
-            else switch (telemetry.state)
-            {
-            case SceneState::Warmup:
-                cloudLabel = _("CLOUD: LEARNING");
-                cloudColour = wxColour(190, 190, 190);
-                break;
-            case SceneState::Clear:
-                cloudLabel = _("CLOUD: CLEAR");
-                cloudColour = wxColour(80, 235, 110);
-                break;
-            case SceneState::Suspect:
-            {
-                const float severity = std::isfinite(telemetry.severity)
-                                           ? std::max(0.f, std::min(1.f, telemetry.severity))
-                                           : 0.f;
-                cloudLabel = wxString::Format(_("CLOUD: HAZE? %d%%"),
-                                              (int) std::floor(severity * 100.f + 0.5f));
-                cloudColour = wxColour(255, 190, 45);
-                break;
-            }
-            case SceneState::Obscured:
-                cloudLabel = telemetry.staticObstruction ? _("CLOUD: BLOCKED (STATIC?)") : _("CLOUD: OBSCURED");
-                cloudColour = wxColour(255, 75, 75);
-                break;
-            }
+            else
+                switch (telemetry.state)
+                {
+                case SceneState::Warmup:
+                    cloudLabel = _("SKY: LEARNING");
+                    cloudColour = wxColour(190, 190, 190);
+                    break;
+                case SceneState::Clear:
+                    cloudLabel = _("SKY: CLEAR");
+                    cloudColour = wxColour(80, 235, 110);
+                    break;
+                case SceneState::Suspect:
+                {
+                    const float severity =
+                        std::isfinite(telemetry.severity) ? std::max(0.f, std::min(1.f, telemetry.severity)) : 0.f;
+                    cloudLabel = wxString::Format(_("SKY: HAZE? %d%%"), (int) std::floor(severity * 100.f + 0.5f));
+                    // The haze figure is lost light; a separate quality warning is named, not added.
+                    if (telemetry.qualityWarning > 0.f)
+                        cloudLabel += telemetry.qualityWarningSnrDrop ? _(" +S/N DOWN") : _(" +VARIABLE");
+                    cloudColour = wxColour(255, 190, 45);
+                    break;
+                }
+                case SceneState::Obscured:
+                    cloudLabel = telemetry.staticObstruction ? _("SKY: BLOCKED (STATIC?)") : _("SKY: OBSCURED");
+                    cloudColour = wxColour(255, 75, 75);
+                    break;
+                }
 
             const wxSize textSize = dc.GetTextExtent(cloudLabel);
             const int x = std::max(10, XWinSize - textSize.GetWidth() - 10);

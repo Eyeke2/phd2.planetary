@@ -1,9 +1,5 @@
 /*
  * Cloud detector tuning defaults used by the PHD2 integration.
- *
- * These values are the shadow-mode starting points documented in
- * cloud-detection-design.md.  They intentionally live beside the standalone
- * detector so the state machine remains independent of wxWidgets and OpenCV.
  */
 #pragma once
 
@@ -38,17 +34,21 @@
 #define CONFIG_CLOUD_RECOVER_MARGIN 0.08f
 #define CONFIG_CLOUD_RECOVER_CAP 0.98f
 #define CONFIG_CLOUD_RECOVER_SNR_MARGIN 0.75f
-// A certified clear-sky standard may improve promptly, but can fall only very slowly.  At this
-// slew rate a persistent 10-20% reduction takes roughly 30-60 minutes to become the new normal.
 #define CONFIG_CLOUD_ANCHOR_DOWN_PCT_MIN 0.33f
+#define CONFIG_CLOUD_ANCHOR_EXTINCTION_TOLERANCE 0.10f
+#define CONFIG_CLOUD_AIRMASS_JUMP 0.10f
+#define CONFIG_CLOUD_AIRMASS_JUMP_PER_MIN 0.20f
+#define CONFIG_CLOUD_EXPOSURE_JOIN_ENSEMBLE_TOLERANCE 0.05f
+#define CONFIG_CLOUD_EXPOSURE_JOIN_MARGIN 0.06f
+#define CONFIG_CLOUD_EXPOSURE_JOIN_CAP 0.25f
+#define CONFIG_CLOUD_EXPOSURE_JOIN_BEFORE_K 9
+#define CONFIG_CLOUD_EXPOSURE_JOIN_NOISY_MAD 0.03f
+#define CONFIG_CLOUD_EXPOSURE_JOIN_MOTION_MS 120000
+#define CONFIG_CLOUD_CLIP_HOLD_MS 300000
+#define CONFIG_CLOUD_MULTISTAR_RECENT_MS 1800000
 #define CONFIG_CLOUD_SLOW_RATIO 0.88f
 #define CONFIG_CLOUD_SCORE_BAND_K 3.0f
 #define CONFIG_CLOUD_SCORE_BAND_MIN 0.08f
-// A clear guide star normally produces a narrow, nearly horizontal mass/SNR trace. Moving cloud
-// often appears first as broad waves rather than as a large mean fade, so compare recent robust
-// window scatter (MAD) with the learned clear scatter. This remains sensitive when a wave evolves
-// over several frames and each individual frame-to-frame change is small. Absolute floors prevent
-// a nearly noiseless baseline from magnifying insignificant ripple.
 #define CONFIG_CLOUD_VARIABILITY_K 9
 #define CONFIG_CLOUD_VARIABILITY_SIGMA_K 4.0f
 #define CONFIG_CLOUD_VARIABILITY_RECOVER_FACTOR 0.75f

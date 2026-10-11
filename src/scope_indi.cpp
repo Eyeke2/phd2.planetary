@@ -840,6 +840,8 @@ bool ScopeINDI::GetCoordinates(double *ra, double *dec, double *siderealTime)
         *siderealTime = libnova_LST(this);
     }
 
+    if (!err)
+        CloudRecordMountCoordinates(*ra, *dec, *siderealTime);
     return err;
 }
 
@@ -856,6 +858,7 @@ bool ScopeINDI::GetSiteLatLong(double *latitude, double *longitude)
             *latitude = latprop->value;
             *longitude = lonprop->value;
             err = false;
+            CloudRecordSiteLatitude(*latitude);
         }
     }
 

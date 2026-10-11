@@ -1,4 +1,16 @@
 <p>
+    <h4>Next release</h4>
+    <ul>
+        <li>Cloud detection reports haze as the light the guide stars have lost. A lower S/N or unsteady star brightness is shown as a separate warning, not counted as haze.</li>
+        <li>Guide-star brightness is corrected to the zenith using the mount's position, so a rising or setting target is not read as clearing or haze.</li>
+        <li>Multi-star mass uses the median of several guide stars against their own clear-sky level. Recommended for stellar targets: a single guide star can saturate or dim on its own, and the median ignores it.</li>
+        <li>Changing the guide exposure keeps the clear-sky references instead of relearning them.</li>
+        <li>A saturated guide star is no longer read as haze.</li>
+        <li>No second warm-up after a slew to a new target.</li>
+        <li>The image overlay shows the sky condition as SKY: CLEAR, SKY: HAZE? n%, SKY: OBSCURED or SKY: LEARNING, and names a lower S/N or variable brightness.</li>
+    </ul>
+
+<p>
     <h4>2.6.14-solar.6.5</h4>
     17 September 2026
     <ul>
