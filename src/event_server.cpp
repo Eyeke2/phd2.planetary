@@ -4750,6 +4750,8 @@ void EventServer::OnEventServerClientEvent(wxSocketEvent& event)
 {
     wxSocketClient *cli = static_cast<wxSocketClient *>(event.GetSocket());
 
+    // an event can arrive after LOST has released the client
+
     if (event.GetSocketEvent() == wxSOCKET_LOST)
     {
         Debug.Write(wxString::Format("evsrv: cli %p disconnect\n", cli));
@@ -4757,7 +4759,11 @@ void EventServer::OnEventServerClientEvent(wxSocketEvent& event)
         wxMutexLocker lck(m_clientsLock);
         unsigned int const n = m_eventServerClients.erase(cli);
         if (n != 1)
+        {
+            // already released by an earlier LOST
             Debug.AddLine("client disconnected but not present in client set!");
+            return;
+        }
 
         if (cli == s_frameExportClient)
         {
@@ -4769,6 +4775,18 @@ void EventServer::OnEventServerClientEvent(wxSocketEvent& event)
     }
     else if (event.GetSocketEvent() == wxSOCKET_INPUT)
     {
+        // not under m_clientsLock: request handlers send events, which take it
+        bool connected;
+        {
+            wxMutexLocker lck(m_clientsLock);
+            connected = m_eventServerClients.count(cli) != 0;
+        }
+        if (!connected)
+        {
+            Debug.Write(wxString::Format("evsrv: cli %p input after disconnect, ignored\n", cli));
+            return;
+        }
+
         handle_cli_input(cli);
     }
     else
