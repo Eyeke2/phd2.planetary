@@ -51,6 +51,7 @@ private:
     wxMutex m_clientsLock;
     CliSockSet m_eventServerClients;
     wxTimer *m_configEventDebouncer;
+    wxTimer *m_readWatchdog;
 
 public:
     EventServer();
@@ -114,6 +115,8 @@ public:
 private:
     void OnEventServerEvent(wxSocketEvent& evt);
     void OnEventServerClientEvent(wxSocketEvent& evt);
+    void ReadClient(wxSocketClient *cli);
+    void OnReadWatchdog(wxTimerEvent& evt);
 
     wxDECLARE_EVENT_TABLE();
 };
