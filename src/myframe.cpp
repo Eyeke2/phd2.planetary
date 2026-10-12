@@ -1848,6 +1848,14 @@ bool MyFrame::StartWorkerThread(WorkerThread *& pWorkerThread)
     return bError;
 }
 
+// wx 3.0.5/3.2.11 ProcessPendingEvents() leaves m_pendingEventsLock held when the queue is empty, which
+// blocks any worker that then queues an event; call it only when there are events.
+bool MyFrame::HasOwnPendingEvents()
+{
+    wxCriticalSectionLocker lock(m_pendingEventsLock);
+    return m_pendingEvents && !m_pendingEvents->IsEmpty();
+}
+
 bool MyFrame::StopWorkerThread(WorkerThread *& pWorkerThread)
 {
     bool killed = false;
@@ -1879,7 +1887,8 @@ bool MyFrame::StopWorkerThread(WorkerThread *& pWorkerThread)
         while (pWorkerThread->IsAlive() && swatch.Time() < TIMEOUT_MS)
         {
             // Drain worker->main events without entering a nested OS event loop.
-            ProcessPendingEvents();
+            if (HasOwnPendingEvents())
+                ProcessPendingEvents();
             wxMilliSleep(DRAIN_SLEEP_MS);
         }
 
@@ -1894,7 +1903,8 @@ bool MyFrame::StopWorkerThread(WorkerThread *& pWorkerThread)
                 wxStopWatch swatch2;
                 while (pWorkerThread->IsAlive() && !pWorkerThread->IsKillable() && swatch2.Time() < TIMEOUT_MS)
                 {
-                    ProcessPendingEvents();
+                    if (HasOwnPendingEvents())
+                        ProcessPendingEvents();
                     wxMilliSleep(DRAIN_SLEEP_MS);
                 }
             }

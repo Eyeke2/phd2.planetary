@@ -13,6 +13,7 @@
         <li>The event server no longer stops reading a client for good on Windows. Reading each connection until it ran dry could lose the notification for a request that arrived meanwhile; PHD2 then kept sending that client events and saw its disconnect, but never read another request from it, and the client timed out. PHD2 now reads once per notification. A request line longer than 1 KB is still answered with "too big", and the requests sent after it are no longer discarded with it.</li>
         <li>Fixed a possible crash when a client disconnects while a request is in progress. A read notification that arrives after the disconnect is now ignored, and a client already disconnected is not released a second time.</li>
         <li>A safety net for the read fix above: when a client's request waits unread for 2 s with no read notification, PHD2 now reads it, which re-arms the notifications, and writes <code>bytes unread for 2 s without a read notification</code> to the debug log. A lost notification then delays that client by 2-3 s instead of cutting it off.</li>
+        <li>Closing PHD2 during an exposure no longer force-stops its capture thread after a second; PHD2 now disconnects the camera and mount normally on exit.</li>
     </ul>
 
 <p>
