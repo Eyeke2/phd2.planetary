@@ -477,6 +477,7 @@ struct ClientData
     int refcnt;
     EXT_PROTOCOL_VERSION extProtocol;
     ClientReadBuf rdbuf;
+    // serialises every use of the socket across threads
     wxMutex wrlock;
 
     ClientData(wxSocketClient *cli_) : cli(cli_), refcnt(1), extProtocol(EXT_PROTOCOL_SOLAR1) { }
@@ -570,6 +571,7 @@ static void do_notify(const EventServer::CliSockSet& cli, const JObj& jj)
 {
     wxCharBuffer buf = (JObj(jj).str() + "\r\n").ToUTF8();
 
+    // also runs on worker threads; send_buf serialises each write
     for (EventServer::CliSockSet::const_iterator it = cli.begin(); it != cli.end(); ++it)
     {
         send_buf(*it, buf);
@@ -4606,8 +4608,13 @@ static void handle_cli_input(wxSocketClient *cli)
 
     // One read per notification: reading until recv() would block can take data before its FD_READ is
     // posted, and wx then drops that FD_READ without the recv() that re-arms read notifications.
-    cli->Read(rdbuf->dest, rdbuf->avail());
-    size_t n = cli->LastReadCount();
+    size_t n;
+    {
+        // released before any reply, which takes it again
+        wxMutexLocker lck(clidata->wrlock);
+        cli->Read(rdbuf->dest, rdbuf->avail());
+        n = cli->LastReadCount();
+    }
     if (n == 0)
         return;
 
@@ -5185,6 +5192,13 @@ void EventServer::NotifyGuidingParam(const wxString& name, const wxString& val)
 
 void EventServer::NotifyConfigurationChange()
 {
+    // the debounce timer may only be used on the main thread
+    if (!wxThread::IsMain())
+    {
+        CallAfter(&EventServer::NotifyConfigurationChange);
+        return;
+    }
+
     if (m_configEventDebouncer == nullptr || m_configEventDebouncer->IsRunning())
         return;
 
