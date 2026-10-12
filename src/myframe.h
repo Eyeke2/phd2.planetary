@@ -591,6 +591,7 @@ private:
 
     bool StartWorkerThread(WorkerThread *& pWorkerThread);
     bool StopWorkerThread(WorkerThread *& pWorkerThread);
+    bool HasOwnPendingEvents();
 
     // TELEMETRY(e.1): true if the given pointer matches one of the
     // currently-running worker threads. Used by OnRequestExposure /
