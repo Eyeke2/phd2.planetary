@@ -44,6 +44,9 @@
 #include <wx/sstream.h>
 #include <sstream>
 #include <string.h>
+#ifndef __WINDOWS__
+# include <sys/ioctl.h>
+#endif
 
 EventServer EvtServer;
 
@@ -67,6 +70,7 @@ bool EventServer::InRpcCall()
 wxBEGIN_EVENT_TABLE(EventServer, wxEvtHandler)
     EVT_SOCKET(EVENT_SERVER_ID, EventServer::OnEventServerEvent)
     EVT_SOCKET(EVENT_SERVER_CLIENT_ID, EventServer::OnEventServerClientEvent)
+    EVT_TIMER(EVENT_SERVER_WATCHDOG_ID, EventServer::OnReadWatchdog)
 wxEND_EVENT_TABLE();
 // clang-format on
 
@@ -480,7 +484,15 @@ struct ClientData
     // serialises every use of the socket across threads
     wxMutex wrlock;
 
-    ClientData(wxSocketClient *cli_) : cli(cli_), refcnt(1), extProtocol(EXT_PROTOCOL_SOLAR1) { }
+    // read watchdog, main thread only
+    unsigned int reads;
+    unsigned int readsAtTick;
+    int strikes;
+
+    ClientData(wxSocketClient *cli_)
+        : cli(cli_), refcnt(1), extProtocol(EXT_PROTOCOL_SOLAR1), reads(0), readsAtTick(0), strikes(0)
+    {
+    }
     void AddRef() { ++refcnt; }
     void RemoveRef()
     {
@@ -4600,6 +4612,8 @@ static void handle_cli_input(wxSocketClient *cli)
 
     ClientDataGuard clidata(cli);
 
+    ++clidata->reads; // for the read watchdog
+
     ClientReadBuf *rdbuf = &clidata->rdbuf;
 
     // a zero-size Read() would not call recv()
@@ -4655,7 +4669,7 @@ static void handle_cli_input(wxSocketClient *cli)
         reject_long_line(cli, rdbuf);
 }
 
-EventServer::EventServer() : m_configEventDebouncer(nullptr) { }
+EventServer::EventServer() : m_configEventDebouncer(nullptr), m_readWatchdog(nullptr) { }
 
 EventServer::~EventServer() { }
 
@@ -4686,6 +4700,9 @@ bool EventServer::EventServerStart(unsigned int instanceId)
 
     m_configEventDebouncer = new wxTimer();
 
+    m_readWatchdog = new wxTimer(this, EVENT_SERVER_WATCHDOG_ID);
+    m_readWatchdog->Start(1000);
+
     Debug.Write(wxString::Format("event server started, listening on port %u\n", port));
 
     return false;
@@ -4696,6 +4713,11 @@ void EventServer::EventServerStop()
     wxMutexLocker lck(m_clientsLock);
     if (!m_serverSocket)
         return;
+
+    // DeletePendingEvents() below drops the reads the watchdog queued
+    m_readWatchdog->Stop();
+    delete m_readWatchdog;
+    m_readWatchdog = nullptr;
 
     // Stop socket events before destroying clients; queued events can outlive
     // ClientData when wxSocket destruction is delayed.
@@ -4782,23 +4804,73 @@ void EventServer::OnEventServerClientEvent(wxSocketEvent& event)
     }
     else if (event.GetSocketEvent() == wxSOCKET_INPUT)
     {
-        // not under m_clientsLock: request handlers send events, which take it
-        bool connected;
-        {
-            wxMutexLocker lck(m_clientsLock);
-            connected = m_eventServerClients.count(cli) != 0;
-        }
-        if (!connected)
-        {
-            Debug.Write(wxString::Format("evsrv: cli %p input after disconnect, ignored\n", cli));
-            return;
-        }
-
-        handle_cli_input(cli);
+        ReadClient(cli);
     }
     else
     {
         Debug.Write(wxString::Format("unexpected client socket event %d\n", event.GetSocketEvent()));
+    }
+}
+
+// socket input and watchdog reads; either can arrive after the client is gone
+void EventServer::ReadClient(wxSocketClient *cli)
+{
+    // not under m_clientsLock: request handlers send events, which take it
+    bool connected;
+    {
+        wxMutexLocker lck(m_clientsLock);
+        connected = m_eventServerClients.count(cli) != 0;
+    }
+    if (!connected)
+    {
+        Debug.Write(wxString::Format("evsrv: cli %p input after disconnect, ignored\n", cli));
+        return;
+    }
+
+    handle_cli_input(cli);
+}
+
+// bytes waiting unread in the socket's receive buffer
+static bool unread_bytes(wxSocketClient *cli, unsigned long *count)
+{
+    // no wrlock: Winsock calls are thread-safe, and the handle only changes on the main thread
+    wxSOCKET_T fd = cli->GetSocket();
+#ifdef __WINDOWS__
+    u_long n = 0;
+    if (fd == INVALID_SOCKET || ioctlsocket(fd, FIONREAD, &n) != 0)
+        return false;
+#else
+    int n = 0;
+    if (fd < 0 || ioctl(fd, FIONREAD, &n) != 0)
+        return false;
+#endif
+    *count = n;
+    return true;
+}
+
+// Every second: a client with bytes unread and no read for two ticks has lost its read notification.
+// Queue a read to re-arm it; never read here, as the tick can run inside a nested loop.
+void EventServer::OnReadWatchdog(wxTimerEvent& evt)
+{
+    wxMutexLocker lck(m_clientsLock);
+
+    for (CliSockSet::const_iterator it = m_eventServerClients.begin(); it != m_eventServerClients.end(); ++it)
+    {
+        wxSocketClient *cli = *it;
+        ClientData *cd = client_data(cli);
+        unsigned long pending;
+
+        if (!unread_bytes(cli, &pending) || pending == 0 || cd->reads != cd->readsAtTick)
+            cd->strikes = 0;
+        else if (++cd->strikes >= 2)
+        {
+            Debug.Write(wxString::Format("evsrv: cli %p: %lu bytes unread for 2 s without a read notification; reading\n", cli,
+                                         pending));
+            cd->strikes = 0;
+            CallAfter(&EventServer::ReadClient, cli);
+        }
+
+        cd->readsAtTick = cd->reads;
     }
 }
 
