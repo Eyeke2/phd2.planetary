@@ -67,7 +67,7 @@ inline static void LogExcep(HRESULT hr, const wxString& prefix, DISPID id, const
 
 inline static void LogExcep(HRESULT hr, const wxString& prefix, OLECHAR *name, const EXCEPINFO& excep)
 {
-    Debug.Write(wxString::Format("%s(%s): [%x] %s\n", name, hr, _com_error(hr).ErrorMessage()));
+    Debug.Write(wxString::Format("%s(%s): [%x] %s\n", prefix, name, hr, _com_error(hr).ErrorMessage()));
     if (hr == DISP_E_EXCEPTION)
         Debug.AddLine(ExcepMsg(prefix, excep));
 }
