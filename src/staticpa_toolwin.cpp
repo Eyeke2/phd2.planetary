@@ -746,7 +746,7 @@ void StaticPaToolWin::CalcRotationCentre(void)
     m_dispSz[0] = xpx;
     m_dispSz[1] = ypx;
 
-    Debug.AddLine(wxString::Format("StaticPA CalcCoR: W:H:angle %d: %d: %.1f %.1f", xpx, ypx, m_camAngle));
+    Debug.AddLine(wxString::Format("StaticPA CalcCoR: W:H:angle %d: %d: %.1f", xpx, ypx, m_camAngle));
 
     // Distance and angle of CoR from centre of sensor
     double cor_r = hypot(xpx / 2 - cx, ypx / 2 - cy);

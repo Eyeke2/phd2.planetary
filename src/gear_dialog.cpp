@@ -1464,7 +1464,7 @@ void GearDialog::OnButtonConnectScope(wxCommandEvent& event)
             if (m_ascomScopeSelected && !m_pScope->CanPulseGuide())
             {
                 m_pScope->Disconnect();
-                wxMessageBox(wxString::Format(_("Mount does not support the required PulseGuide interface"), _("Error")));
+                wxMessageBox(_("Mount does not support the required PulseGuide interface"), _("Error"));
                 throw THROW_INFO("OnButtonConnectScope: PulseGuide commands not supported");
             }
 

@@ -589,8 +589,7 @@ ConfigSuggestionDlg::ConfigSuggestionDlg(ConfigWarningTypes Type, wxHyperlinkCtr
                 "Please review the Help guide on 'Equipment Connections' for more details.");
     else if (Type == eEQModMount)
     {
-        msg = wxString::Format(
-            _("Please make sure the EQMOD ASCOM settings are configured for PHD2 according to this document: \n"), "");
+        msg = _("Please make sure the EQMOD ASCOM settings are configured for PHD2 according to this document: \n");
         wikiLoc = new wxStaticText(this, wxID_ANY, "https://github.com/OpenPHDGuiding/phd2/wiki/EQASCOM-Settings");
         m_EqLink = new wxHyperlinkCtrl(this, wxID_ANY, _("Open EQMOD document..."),
                                        "https://github.com/OpenPHDGuiding/phd2/wiki/EQASCOM-Settings");

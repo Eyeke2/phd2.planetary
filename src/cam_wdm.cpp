@@ -204,7 +204,7 @@ bool CameraWDM::SelectDeviceAndMode(SelectionContext ctx)
                 }
                 else
                 {
-                    devices.Add(wxString::Format("%d: Not available"), i);
+                    devices.Add(wxString::Format("%d: Not available", i));
                 }
             }
 
