@@ -136,7 +136,19 @@ SolarSystemObject::SolarSystemObject() : m_remoteDetCond(m_remoteDetMutex)
     m_lockTargetHeightBad = (ihdrChunk2[4] << 24) | (ihdrChunk2[5] << 16) | (ihdrChunk2[6] << 8) | ihdrChunk2[7];
 
     // Get initial values of the solar system object detection state and parameters from configuration
-    SetSurfaceTrackingState(false);
+    LoadProfileSettings();
+
+    // Remove the alert dialog setting for pausing solar/planetary detection
+    pConfig->Global.DeleteEntry(PausePlanetDetectionAlertEnabledKey());
+}
+
+// Load persisted solar system object detection state and parameters for the current profile.
+// Must not touch pFrame/pCamera: called from the constructor before the global pFrame is assigned.
+void SolarSystemObject::LoadProfileSettings()
+{
+    SetSurfaceTrackingState(pConfig->Profile.GetBoolean("/PlanetTool/surface_tracking", false));
+    SetRoiEnableState(pConfig->Profile.GetBoolean("/PlanetTool/roi_enabled", false));
+    SetVideoLogging(pConfig->Profile.GetBoolean("/PlanetTool/video_log", false));
 #ifdef DEVELOPER_MODE
     SetNoiseFilterState(pConfig->Profile.GetBoolean("/PlanetTool/noise_filter", false));
 #endif
@@ -154,9 +166,6 @@ SolarSystemObject::SolarSystemObject() : m_remoteDetCond(m_remoteDetMutex)
     m_phd2_MassChangeThresholdEnabled = pConfig->Profile.GetBoolean("/guider/onestar/MassChangeThresholdEnabled", false);
     m_phd2_UseSubframes = pConfig->Profile.GetBoolean("/camera/UseSubframes", false);
     m_phd2_MultistarEnabled = pConfig->Profile.GetBoolean("/guider/multistar/enabled", true);
-
-    // Remove the alert dialog setting for pausing solar/planetary detection
-    pConfig->Global.DeleteEntry(PausePlanetDetectionAlertEnabledKey());
 }
 
 SolarSystemObject::~SolarSystemObject()
@@ -188,6 +197,8 @@ void SolarSystemObject::Set_SolarSystemObjMode(bool enabled)
 
     // Enable/disable planetary/solar detection mode
     m_paramEnabled = enabled;
+    pConfig->Profile.SetBoolean("/PlanetTool/enabled", enabled);
+    pConfig->Flush();
 
     if (wxThread::IsMain())
     {
@@ -270,6 +281,7 @@ void SolarSystemObject::Set_SurfaceDetectionMode(bool enabled)
 
     // Request to set the new state
     SetSurfaceTrackingState(enabled);
+    pConfig->Profile.SetBoolean("/PlanetTool/surface_tracking", enabled);
 }
 
 // Set limits for min/max radius
@@ -634,6 +646,15 @@ bool SolarSystemObject::UpdateCaptureState(bool CaptureActive)
 // Notification callback when camera is connected/disconnected
 void SolarSystemObject::NotifyCameraConnect(bool connected)
 {
+    // If the mode was enabled before the camera connected (e.g. restored at startup),
+    // subframes couldn't be disabled at enable time -- do it now, mirroring the enable path
+    if (connected && Get_SolarSystemObjMode() && pCamera && pCamera->UseSubframes)
+    {
+        pConfig->Profile.SetBoolean("/camera/UseSubframes", pCamera->UseSubframes);
+        m_phd2_UseSubframes = pCamera->UseSubframes;
+        pCamera->UseSubframes = false;
+    }
+
     pFrame->pStatsWin->ShowPlanetStats(Get_SolarSystemObjMode() && connected);
     m_userLClick = false;
 }
