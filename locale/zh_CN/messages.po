@@ -34,7 +34,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PHD2 2.6.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-13 20:28+0300\n"
+"POT-Creation-Date: 2026-10-18 11:14+0300\n"
 "PO-Revision-Date: 2023-01-26 10:13+0800\n"
 "Last-Translator: Linkage <Linkage@163.com>\n"
 "Language-Team: Linkage <Linkage@163.com>\n"
@@ -513,7 +513,7 @@ msgstr ""
 #: calibration_assistant.cpp:254 calibration_assistant.cpp:1136
 #: calibration_assistant.cpp:1189 camcal_import_dialog.cpp:128
 #: darks_dialog.cpp:228 darks_dialog.cpp:380 gear_simulator.cpp:2817
-#: guiding_assistant.cpp:135 phdupdate.cpp:809 profile_wizard.cpp:1640
+#: guiding_assistant.cpp:135 phdupdate.cpp:809 profile_wizard.cpp:1639
 msgid "Cancel"
 msgstr "取消"
 
@@ -2298,10 +2298,10 @@ msgstr "选择你希望使用的暗场库文件:"
 #: gear_dialog.cpp:1157 gear_dialog.cpp:1948 gear_dialog.cpp:1949
 #: gear_dialog.cpp:1950 log_uploader.cpp:190 mount.cpp:168 mount.cpp:193
 #: mount.cpp:889 myframe.cpp:3494 profile_wizard.cpp:429
-#: profile_wizard.cpp:430 profile_wizard.cpp:431 profile_wizard.cpp:680
-#: profile_wizard.cpp:685 profile_wizard.cpp:713 profile_wizard.cpp:909
-#: profile_wizard.cpp:1175 profile_wizard.cpp:1190 profile_wizard.cpp:1225
-#: profile_wizard.cpp:1230 profile_wizard.cpp:1256 profile_wizard.cpp:1270
+#: profile_wizard.cpp:430 profile_wizard.cpp:431 profile_wizard.cpp:679
+#: profile_wizard.cpp:684 profile_wizard.cpp:712 profile_wizard.cpp:908
+#: profile_wizard.cpp:1174 profile_wizard.cpp:1189 profile_wizard.cpp:1224
+#: profile_wizard.cpp:1229 profile_wizard.cpp:1255 profile_wizard.cpp:1269
 #: rotator.cpp:56 rotator.cpp:101 scope.cpp:358 scope.cpp:403 scope.cpp:453
 #: statswindow.cpp:299 stepguider.cpp:112 stepguider.cpp:133
 msgid "None"
@@ -2533,7 +2533,7 @@ msgid "Comet Tracking - Active"
 msgstr "彗星跟踪 - 开启"
 
 #: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1754
-#: scope.cpp:2350
+#: scope.cpp:2379
 msgid "Enable"
 msgstr "启用"
 
@@ -2627,11 +2627,11 @@ msgstr ""
 "3.点击开始按钮进行检测。"
 
 #: comet_tool.cpp:328 graph.cpp:171 graph.cpp:198 graph.cpp:358
-#: guide_algorithm.cpp:50 scope.cpp:788 statswindow.cpp:73 target.cpp:343
+#: guide_algorithm.cpp:50 scope.cpp:817 statswindow.cpp:73 target.cpp:343
 msgid "RA"
 msgstr "赤经"
 
-#: comet_tool.cpp:329 graph.cpp:176 graph.cpp:211 graph.cpp:359 scope.cpp:788
+#: comet_tool.cpp:329 graph.cpp:176 graph.cpp:211 graph.cpp:359 scope.cpp:817
 #: statswindow.cpp:77 target.cpp:344
 msgid "Dec"
 msgstr "赤纬"
@@ -3537,7 +3537,7 @@ msgstr "不能创建配置文件 %s，已经存在同名配置文件"
 msgid "Could not create profile %s from profile %s"
 msgstr "不能创建配置文件 %s，从 %s"
 
-#: gear_dialog.cpp:2210 profile_wizard.cpp:1052
+#: gear_dialog.cpp:2210 profile_wizard.cpp:1051
 #, c-format
 msgid "Could not create profile %s"
 msgstr "不能创建配置文件 %s"
@@ -5408,7 +5408,7 @@ msgid "< Back"
 msgstr "< 返回"
 
 #: log_uploader.cpp:731 log_uploader.cpp:1381 profile_wizard.cpp:413
-#: profile_wizard.cpp:868 profile_wizard.cpp:886
+#: profile_wizard.cpp:867 profile_wizard.cpp:885
 msgid "Next >"
 msgstr "下一个 >"
 
@@ -6670,7 +6670,7 @@ msgid ""
 "calibration after gear is connected."
 msgstr "对于此设备配置文件，在连接设备后将自动恢复为上次成功校准的数据。"
 
-#: myframe.cpp:3673 scope.cpp:2377
+#: myframe.cpp:3673 scope.cpp:2406
 msgid "Min"
 msgstr "最小"
 
@@ -6678,7 +6678,7 @@ msgstr "最小"
 msgid "Auto exposure minimum duration"
 msgstr "自动曝光最小时间"
 
-#: myframe.cpp:3674 scope.cpp:2380
+#: myframe.cpp:3674 scope.cpp:2409
 msgid "Max"
 msgstr "最大"
 
@@ -6802,7 +6802,7 @@ msgstr ""
 msgid "Instructions"
 msgstr "说明"
 
-#: myframe_events.cpp:197 profile_wizard.cpp:781
+#: myframe_events.cpp:197 profile_wizard.cpp:780
 msgid "Introduction"
 msgstr "说明"
 
@@ -6870,7 +6870,7 @@ msgstr ""
 msgid "Guiding stopped: the mount is parked."
 msgstr ""
 
-#: myframe_events.cpp:689 scope.cpp:664
+#: myframe_events.cpp:689 scope.cpp:693
 msgid "Guiding stopped: the mount is not tracking."
 msgstr ""
 
@@ -7023,11 +7023,11 @@ msgstr ""
 "您还可以为新配置建立基线导星参数。\n"
 "您想立即使用安装向导吗？"
 
-#: myframe_events.cpp:1380 profile_wizard.cpp:1636
+#: myframe_events.cpp:1380 profile_wizard.cpp:1635
 msgid "Yes"
 msgstr "是"
 
-#: myframe_events.cpp:1380 profile_wizard.cpp:1638
+#: myframe_events.cpp:1380 profile_wizard.cpp:1637
 msgid "No"
 msgstr "否"
 
@@ -7459,23 +7459,23 @@ msgstr ""
 msgid "INDI Mount"
 msgstr "INDI赤道仪"
 
-#: planetary.cpp:1685
+#: planetary.cpp:1686
 msgid "Object not found"
 msgstr ""
 
-#: planetary.cpp:1732
+#: planetary.cpp:1733
 msgid ""
 "ERROR: camera frame size exceeds maximum limit. Please apply binning to "
 "reduce the frame size."
 msgstr ""
 
-#: planetary.cpp:1822
+#: planetary.cpp:1823
 msgid ""
 "ERROR: exception occurred during image processing: change detection "
 "parameters"
 msgstr ""
 
-#: planetary.cpp:1828
+#: planetary.cpp:1829
 msgid "ERROR: unknown exception occurred in solar system object detection"
 msgstr ""
 
@@ -7984,7 +7984,7 @@ msgstr "导星镜焦距(毫米)"
 msgid "Focal length less than recommended minimum (100mm)"
 msgstr ""
 
-#: profile_wizard.cpp:358 profile_wizard.cpp:1510 profile_wizard.cpp:1530
+#: profile_wizard.cpp:358 profile_wizard.cpp:1509 profile_wizard.cpp:1529
 #, c-format
 msgid "Pixel scale: %8.2f\"/px"
 msgstr "像素分辨率: %8.2f”/px"
@@ -8049,7 +8049,7 @@ msgstr "配置文件"
 msgid "Back up to the previous screen"
 msgstr "回到上一个页面"
 
-#: profile_wizard.cpp:414 profile_wizard.cpp:869 profile_wizard.cpp:887
+#: profile_wizard.cpp:414 profile_wizard.cpp:868 profile_wizard.cpp:886
 msgid "Move forward to next screen"
 msgstr "前进到下一个页面"
 
@@ -8108,7 +8108,7 @@ msgstr ""
 "赤道仪导星速率，则可以使用默认值%0.1fx。 当你选择一个赤道仪时，你通常可以选择"
 "立即连接它，这样PHD2就可以为你读取导星速率。"
 
-#: profile_wizard.cpp:490 profile_wizard.cpp:813
+#: profile_wizard.cpp:490 profile_wizard.cpp:812
 msgid "Simulator"
 msgstr "模拟器"
 
@@ -8187,170 +8187,170 @@ msgstr ""
 "对于“赤道仪”或“AUX赤道仪”，除非你的赤道仪没有任何可用的驱动程序。\n"
 "有关详细信息，请查看“设备连接”的帮助指南。"
 
-#: profile_wizard.cpp:593
+#: profile_wizard.cpp:592
 msgid ""
 "Please make sure the EQMOD ASCOM settings are configured for PHD2 according "
 "to this document: \n"
 msgstr "请确保EQMOD ASCOM设置的配置，可以让PHD2记录到该文件。\n"
 
-#: profile_wizard.cpp:595
+#: profile_wizard.cpp:594
 msgid "Open EQMOD document..."
 msgstr "打开EQMOD文件…"
 
-#: profile_wizard.cpp:602
+#: profile_wizard.cpp:601
 msgid "Go Back"
 msgstr "退回"
 
-#: profile_wizard.cpp:604
+#: profile_wizard.cpp:603
 msgid "Proceed"
 msgstr "继续"
 
-#: profile_wizard.cpp:606
+#: profile_wizard.cpp:605
 msgid "Don't Ask"
 msgstr "不再询问"
 
-#: profile_wizard.cpp:682
+#: profile_wizard.cpp:681
 msgid "Specify camera, guider focal length, and guide camera pixel size"
 msgstr ""
 
-#: profile_wizard.cpp:708
+#: profile_wizard.cpp:707
 msgid "Select a mount type to handle guide commands"
 msgstr ""
 
-#: profile_wizard.cpp:739
+#: profile_wizard.cpp:738
 msgid "Specify a name for the profile."
 msgstr ""
 
-#: profile_wizard.cpp:743
+#: profile_wizard.cpp:742
 msgid "Choose a profile name not already in use "
 msgstr ""
 
-#: profile_wizard.cpp:790
+#: profile_wizard.cpp:789
 msgid "Welcome to the PHD2 'first light' wizard"
 msgstr "欢迎使用PHD2入门向导工具"
 
-#: profile_wizard.cpp:794
+#: profile_wizard.cpp:793
 msgid "Choose a Guide Camera"
 msgstr "选择导星相机"
 
-#: profile_wizard.cpp:796
+#: profile_wizard.cpp:795
 msgid "Guide Camera:"
 msgstr "导星相机:"
 
-#: profile_wizard.cpp:809
+#: profile_wizard.cpp:808
 msgid ""
 "Select your guide camera and specify the optical properties of your guiding "
 "setup"
 msgstr "选择您的导星相机，并指定您的导星装置的光学特性"
 
-#: profile_wizard.cpp:817
+#: profile_wizard.cpp:816
 msgid "On-camera"
 msgstr "On-camera"
 
-#: profile_wizard.cpp:823
+#: profile_wizard.cpp:822
 msgid "Choose a Mount Connection"
 msgstr "选择赤道仪连接"
 
-#: profile_wizard.cpp:825
+#: profile_wizard.cpp:824
 msgid "Mount:"
 msgstr "赤道仪:"
 
-#: profile_wizard.cpp:833
+#: profile_wizard.cpp:832
 msgid ""
 "Select your mount connection - this will determine how guide signals are "
 "transmitted"
 msgstr "选择你的赤道仪连接类型 - 这将决定导星信号的方式"
 
-#: profile_wizard.cpp:846
+#: profile_wizard.cpp:845
 msgid "Choose an Auxiliary Mount Connection (optional)"
 msgstr "选择Aux赤道仪（可选）"
 
-#: profile_wizard.cpp:847
+#: profile_wizard.cpp:846
 msgid "Aux Mount:"
 msgstr "Aux赤道仪:"
 
-#: profile_wizard.cpp:851
+#: profile_wizard.cpp:850
 msgid ""
 "Since your primary mount connection does not report pointing position, you "
 "may want to choose an 'Aux Mount' connection"
 msgstr "由于主赤道仪不提供指向位置信息，因此您可能需要选择“Aux赤道仪”连接"
 
-#: profile_wizard.cpp:858
+#: profile_wizard.cpp:857
 msgid "Choose an Adaptive Optics Device (optional)"
 msgstr "选择AO设备(可选)"
 
-#: profile_wizard.cpp:859
+#: profile_wizard.cpp:858
 msgid "AO:"
 msgstr "AO:"
 
-#: profile_wizard.cpp:863
+#: profile_wizard.cpp:862
 msgid "Specify your adaptive optics device if desired"
 msgstr "如果需要，请指定自适应光学设备"
 
-#: profile_wizard.cpp:876
+#: profile_wizard.cpp:875
 msgid "Choose a Rotator Device (optional)"
 msgstr "选择电动旋转设备（可选）"
 
-#: profile_wizard.cpp:877
+#: profile_wizard.cpp:876
 msgid "Rotator:"
 msgstr "Rotator:"
 
-#: profile_wizard.cpp:881
+#: profile_wizard.cpp:880
 msgid "Specify your rotator device if desired"
 msgstr "如果必要，请指定您的旋转器设备"
 
-#: profile_wizard.cpp:901
+#: profile_wizard.cpp:900
 msgid "Finish Creating Your New Profile"
 msgstr "你的新配置文件创建完毕"
 
-#: profile_wizard.cpp:904
+#: profile_wizard.cpp:903
 msgid "Finish"
 msgstr "完成"
 
-#: profile_wizard.cpp:905
+#: profile_wizard.cpp:904
 msgid "Finish creating the equipment profile"
 msgstr "设备配置文件创建完毕"
 
-#: profile_wizard.cpp:908
+#: profile_wizard.cpp:907
 msgid ""
 "Enter a name for your profile and optionally launch the process to build a "
 "dark library"
 msgstr "为你的配置文件起个名字，并可选进行创建暗场库。"
 
-#: profile_wizard.cpp:975
+#: profile_wizard.cpp:974
 msgid ""
 "No cameras of that type were found, so you may want to deal with that later. "
 "In the meantime, you can just enter the pixel-size manually along with the "
 "focal length and binning levels."
 msgstr ""
 
-#: profile_wizard.cpp:979
+#: profile_wizard.cpp:978
 msgid ""
 "PHD2 could not connect to the camera, so you may want to deal with that "
 "later. In the meantime, you can just enter the pixel-size manually along "
 "with the focal length and binning levels."
 msgstr ""
 
-#: profile_wizard.cpp:1256
+#: profile_wizard.cpp:1255
 msgid "Ask"
 msgstr "询问"
 
-#: profile_wizard.cpp:1286
+#: profile_wizard.cpp:1285
 #, c-format
 msgid "Guide speed setting adjusted from %0.1f to %0.1fx"
 msgstr "导星速率调整范围从 %0.1f 至 %0.1fx"
 
-#: profile_wizard.cpp:1329
+#: profile_wizard.cpp:1328
 msgid ""
 "This camera driver doesn't report the pixel size, so you'll need to enter "
 "the value manually"
 msgstr "这个相机驱动不能提供像素尺寸信息，您需要手工输入"
 
-#: profile_wizard.cpp:1397
+#: profile_wizard.cpp:1396
 msgid "Connecting to mount..."
 msgstr "正在连接赤道仪 …"
 
-#: profile_wizard.cpp:1403
+#: profile_wizard.cpp:1402
 #, c-format
 msgid ""
 "PHD2 could not connect to the mount, so you'll probably want to deal with "
@@ -8361,7 +8361,7 @@ msgstr ""
 "PHD2无法连接到赤道仪，因此您可能希望稍后处理。 同时，如果您知道赤道仪的导星速"
 "率设置，则可以手动输入。 否则，您可以将其保留为默认值%0.1fx"
 
-#: profile_wizard.cpp:1416
+#: profile_wizard.cpp:1415
 #, c-format
 msgid ""
 "Apparently, this mount driver doesn't report guide speeds.  If you know the "
@@ -8371,11 +8371,11 @@ msgstr ""
 "显然，此赤道仪驱动程序无法提供导星速率。 如果您知道赤道仪的导星速率设置，可以"
 "手动输入。 否则，您可以将其保留为默认值 %0.1fx"
 
-#: profile_wizard.cpp:1531
+#: profile_wizard.cpp:1530
 msgid "Binning has been increased to achieve pixel scale > 0.5"
 msgstr ""
 
-#: profile_wizard.cpp:1541
+#: profile_wizard.cpp:1540
 msgid ""
 "Guide star identification works best when the pixel scale is above 0.5\"/px. "
 "Select binning level 2 to increase the pixel scale."
@@ -8383,15 +8383,15 @@ msgstr ""
 "当像素分辨率高于 0.5角秒/像素 时，被导星的识别效果最佳。选择像素合并等级2"
 "(Bin2x2)以增加像素分辨率。"
 
-#: profile_wizard.cpp:1548
+#: profile_wizard.cpp:1547
 msgid "Low pixel scale"
 msgstr "低像素比例"
 
-#: profile_wizard.cpp:1589
+#: profile_wizard.cpp:1588
 msgid "Ask About Connection"
 msgstr "询问关于连接设备"
 
-#: profile_wizard.cpp:1602
+#: profile_wizard.cpp:1601
 msgid ""
 "Is the camera already connected to the PC?   If so, PHD2 can usually "
 "determine the camera pixel-size automatically.  If the camera isn't "
@@ -8402,11 +8402,11 @@ msgstr ""
 "未连接相机或其驱动程序未提供像素大小，您可以查找相机手册或使用网络搜索后，自"
 "行输入正确的数值。 "
 
-#: profile_wizard.cpp:1606
+#: profile_wizard.cpp:1605
 msgid "Camera Already Connected?"
 msgstr "相机已经连接？"
 
-#: profile_wizard.cpp:1609
+#: profile_wizard.cpp:1608
 #, c-format
 msgid ""
 "Is the mount already connected and set up to communicate with PHD2?  If so, "
@@ -8418,11 +8418,11 @@ msgstr ""
 "率。 如果没有，您可以手动输入导星速率。 如果您不知道它是什么，只需将设置保留"
 "为默认值 %0.1fx。"
 
-#: profile_wizard.cpp:1614
+#: profile_wizard.cpp:1613
 msgid "Mount Already Connected?"
 msgstr "赤道仪是否已连接？"
 
-#: profile_wizard.cpp:1617
+#: profile_wizard.cpp:1616
 #, c-format
 msgid ""
 "Is the aux-mount already connected and set up to communicate with PHD2?  If "
@@ -8436,7 +8436,7 @@ msgstr ""
 "认值 %0.1fx。 如果上一页上的导星速率与从赤道仪中读取的内容不匹配，则将使用赤"
 "道仪的值。"
 
-#: profile_wizard.cpp:1624
+#: profile_wizard.cpp:1623
 msgid "Aux-mount Already Connected?"
 msgstr "Aux赤道仪已经连接？"
 
@@ -8697,21 +8697,21 @@ msgstr "无效"
 msgid "INDI Mount [%s]"
 msgstr "INDI赤道仪[%s]"
 
-#: scope.cpp:742
+#: scope.cpp:771
 msgid ""
 "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
 "snags, try re-doing your polar alignment, calibration, and check for "
 "problems with the mount mechanics."
 msgstr ""
 
-#: scope.cpp:748
+#: scope.cpp:777
 msgid ""
 "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
 "snags, try re-doing your polar alignment, calibration, and confirm the ST-4 "
 "cable is working properly."
 msgstr ""
 
-#: scope.cpp:757
+#: scope.cpp:786
 msgid ""
 "PHD2 is not able to make sufficient corrections in Dec.  If the side-of-pier "
 "has changed from where you last calibrated, check to see if the 'Reverse Dec "
@@ -8720,22 +8720,22 @@ msgid ""
 "alignment, calibration, and check for problems with the mount mechanics."
 msgstr ""
 
-#: scope.cpp:767
+#: scope.cpp:796
 msgid ""
 "PHD2 is not able to make sufficient corrections in Dec.  Check for cable "
 "snags, try re-doing your polar alignment, calibration and confirm the ST-4 "
 "cable is working properly."
 msgstr ""
 
-#: scope.cpp:777
+#: scope.cpp:806
 msgid "Max RA Duration setting"
 msgstr "赤经脉冲最大时长设置"
 
-#: scope.cpp:777
+#: scope.cpp:806
 msgid "Max Dec Duration setting"
 msgstr "赤纬脉冲最大时长设置"
 
-#: scope.cpp:780
+#: scope.cpp:809
 #, c-format
 msgid ""
 "Your %s is preventing PHD from making adequate corrections to keep the guide "
@@ -8745,7 +8745,7 @@ msgstr ""
 "你的 %s 正在阻止 PHD 进行足够的修正以保持导星锁定。 尝试将 %s 恢复为其默认值"
 "以允许 PHD2 进行更大的修正。"
 
-#: scope.cpp:792
+#: scope.cpp:821
 #, c-format
 msgid ""
 "Even using the maximum moves, PHD2 can't properly correct for the large "
@@ -8755,25 +8755,25 @@ msgstr ""
 "即使使用最大移动，PHD2 也无法正确校正 %s 中波动大的被导星运动。 在您消除这些"
 "问题的根源之前，导星效果将会很差。"
 
-#: scope.cpp:1072
+#: scope.cpp:1101
 msgid ""
 "Advisory: Calibration completed but few guide steps were used, so accuracy "
 "is questionable"
 msgstr "提示：校准已完成，但使用的导星步骤很少，因此准确性值得怀疑。"
 
-#: scope.cpp:1075
+#: scope.cpp:1104
 msgid ""
 "Advisory: Calibration completed but RA/Dec axis angles are questionable and "
 "guiding may be impaired"
 msgstr "提示：校准已完成，但 赤经 和 赤纬 轴的角度有问题，可能会影响导星。"
 
-#: scope.cpp:1078
+#: scope.cpp:1107
 msgid ""
 "Advisory: This calibration is substantially different from the previous one "
 "- have you changed configurations?"
 msgstr "提示：本次校准和以前的校准有很大的不同 - 您是否更改了相关配置？"
 
-#: scope.cpp:1082
+#: scope.cpp:1111
 msgid ""
 "Advisory: Calibration completed but RA and Dec rates vary by an unexpected "
 "amount (often caused by large Dec backlash)"
@@ -8781,25 +8781,25 @@ msgstr ""
 "提示：校准已完成，但 赤经 和 赤纬 速率的变化量较大（通常由较大的赤纬回差导"
 "致）"
 
-#: scope.cpp:1093
+#: scope.cpp:1122
 msgid "Details..."
 msgstr "详细设置..."
 
-#: scope.cpp:1377
+#: scope.cpp:1406
 msgid "RA Calibration Failed: star did not move enough"
 msgstr "赤经校准失败：星点未能移动足够的距离"
 
-#: scope.cpp:1384
+#: scope.cpp:1413
 #, c-format
 msgid "West step %3d, dist=%4.1f"
 msgstr "西 step %3d, dist=%4.1f"
 
-#: scope.cpp:1457
+#: scope.cpp:1486
 #, c-format
 msgid "East step %3d, dist=%4.1f"
 msgstr "东 步 %3d, dist=%4.1f"
 
-#: scope.cpp:1478
+#: scope.cpp:1507
 msgid ""
 "Advisory: Little or no east movement was measured, so guiding will probably "
 "be impaired. Check the guide cable and use the Manual Guide tool to confirm "
@@ -8808,34 +8808,34 @@ msgstr ""
 "提示：很少或没有测量到向东运动，因此导星可能会受到影响。 检查导星线缆并使"
 "用“手动导星”工具确认赤道仪的基本功能正常。"
 
-#: scope.cpp:1541
+#: scope.cpp:1570
 msgid "Clearing backlash step 1"
 msgstr "清除回差第 1 步"
 
-#: scope.cpp:1580
+#: scope.cpp:1609
 #, c-format
 msgid "Clearing backlash step %3d"
 msgstr "清除回差，第 %3d 步"
 
-#: scope.cpp:1602
+#: scope.cpp:1631
 msgid "Backlash Clearing Failed: star did not move enough"
 msgstr "回差消除失败：星点未能移动足够的距离。"
 
-#: scope.cpp:1651
+#: scope.cpp:1680
 msgid "DEC Calibration Failed: star did not move enough"
 msgstr "赤纬校准失败：星点未能移动足够的距离"
 
-#: scope.cpp:1658
+#: scope.cpp:1687
 #, c-format
 msgid "North step %3d, dist=%4.1f"
 msgstr "北 步 %3d, dist=%4.1f"
 
-#: scope.cpp:1749
+#: scope.cpp:1778
 #, c-format
 msgid "South step %3d, dist=%4.1f"
 msgstr "南  步 %3d, dist=%4.1f"
 
-#: scope.cpp:1770
+#: scope.cpp:1799
 msgid ""
 "Advisory: Calibration successful but little or no south movement was "
 "measured, so guiding will probably be impaired.\n"
@@ -8845,7 +8845,7 @@ msgid ""
 "types of problems (Manual Guide, Declination backlash)."
 msgstr ""
 
-#: scope.cpp:1777
+#: scope.cpp:1806
 msgid ""
 "Advisory: Calibration successful but little south movement was measured, so "
 "guiding will probably be impaired. \n"
@@ -8858,7 +8858,7 @@ msgstr ""
 "  这通常是由超大的赤纬回差或其他赤道仪问题导致。\n"
 "检查导向线缆并阅读联机帮助以了解如何识别这些类型的问题（如：赤纬回差）。"
 
-#: scope.cpp:1785
+#: scope.cpp:1814
 msgid ""
 "Advisory: Calibration successful but little south movement was measured, so "
 "guiding may be impaired.\n"
@@ -8871,44 +8871,44 @@ msgstr ""
 "  这通常是由超大的赤纬回差或其他赤道仪问题导致。\n"
 "检查导向线缆并阅读联机帮助以了解如何识别这些类型的问题（如：赤纬回差）。"
 
-#: scope.cpp:1856
+#: scope.cpp:1885
 #, c-format
 msgid "Nudge South %3d"
 msgstr "微调 南 %3d"
 
-#: scope.cpp:1894 stepguider.cpp:771
+#: scope.cpp:1923 stepguider.cpp:771
 msgid "Calibration complete"
 msgstr "校准成功"
 
-#: scope.cpp:2244
+#: scope.cpp:2273
 msgid "Mount Guide Algorithms"
 msgstr "赤道仪导星算法"
 
-#: scope.cpp:2286
+#: scope.cpp:2315
 msgid "Calibration step (ms)"
 msgstr "校准时长 (毫秒)"
 
-#: scope.cpp:2287
+#: scope.cpp:2316
 msgid ""
 "How long a guide pulse should be used during calibration? Click \"Advanced..."
 "\" to compute a suitable value."
 msgstr "校准期间应使用多长时间的到行脉冲？ 点击“高级…”按钮用以计算合适的值。"
 
-#: scope.cpp:2291
+#: scope.cpp:2320
 msgid "Advanced..."
 msgstr "高级…"
 
-#: scope.cpp:2293
+#: scope.cpp:2322
 msgid ""
 "Click to open the Calibration Calculator Dialog to review or change all "
 "calibration parameters"
 msgstr "点击打开校准计算器对话框，用来查看或更改所有校准参数"
 
-#: scope.cpp:2305
+#: scope.cpp:2334
 msgid "Reverse Dec output after meridian flip"
 msgstr "中天自动翻转后反向输出赤纬"
 
-#: scope.cpp:2307
+#: scope.cpp:2336
 msgid ""
 "Check if your mount needs Dec output reversed after a meridian flip. "
 "Changing this setting will clear the existing calibration data"
@@ -8916,30 +8916,30 @@ msgstr ""
 "勾选表示您的赤道仪需要在子午线翻转后反转赤纬输出。 更改此设置将清除现有的校准"
 "数据。"
 
-#: scope.cpp:2315
+#: scope.cpp:2344
 msgid "Stop guiding when mount slews"
 msgstr "当赤道仪Goto时自动停止导星"
 
-#: scope.cpp:2317
+#: scope.cpp:2346
 msgid "When checked, PHD will stop guiding if the mount starts slewing"
 msgstr "如果选中该项，PHD2会在赤道仪开始Goto时停止导星。"
 
-#: scope.cpp:2326
+#: scope.cpp:2355
 msgid "Stop guiding when mount reports tracking off"
 msgstr ""
 
-#: scope.cpp:2329
+#: scope.cpp:2358
 msgid ""
 "Normally keep this enabled. Disable it only for drivers that report tracking "
 "off during non-sidereal tracking. PHD2 may start or continue guiding even if "
 "the mount has actually stopped tracking."
 msgstr ""
 
-#: scope.cpp:2335
+#: scope.cpp:2364
 msgid "Assume Dec orthogonal to RA"
 msgstr "假设赤纬正交于赤经"
 
-#: scope.cpp:2338
+#: scope.cpp:2367
 msgid ""
 "Assume Dec axis is perpendicular to RA axis, regardless of calibration. "
 "Prevents RA periodic error from affecting Dec calibration. Option takes "
@@ -8948,49 +8948,49 @@ msgstr ""
 "假设赤纬轴垂直于赤经轴。可防止赤经周期误差影响赤纬校准。该选项在赤纬校准时生"
 "效。"
 
-#: scope.cpp:2352
+#: scope.cpp:2381
 msgid ""
 "Check this if you want to apply a backlash compensation guide pulse when "
 "declination direction is reversed."
 msgstr "勾选表示需要在赤纬方向反转时使用回差补偿导星脉冲。"
 
-#: scope.cpp:2361
+#: scope.cpp:2390
 msgid "Amount"
 msgstr "数量"
 
-#: scope.cpp:2361
+#: scope.cpp:2390
 msgid "Size of backlash compensation guide pulse (mSec)"
 msgstr "回差补偿的导星脉冲（毫秒）"
 
-#: scope.cpp:2365
+#: scope.cpp:2394
 msgid "Mount Backlash Compensation"
 msgstr "赤道仪回差补偿"
 
-#: scope.cpp:2365
+#: scope.cpp:2394
 msgid "Backlash Compensation"
 msgstr "回差补偿"
 
-#: scope.cpp:2378
+#: scope.cpp:2407
 msgid "Minimum length of backlash compensation pulse (mSec)."
 msgstr "最小回差补偿脉冲时长（毫秒）"
 
-#: scope.cpp:2381
+#: scope.cpp:2410
 msgid "Maximum length of backlash compensation pulse (mSec)."
 msgstr "最大回差补偿脉冲时长（毫秒）"
 
-#: scope.cpp:2388
+#: scope.cpp:2417
 msgid "Use Dec compensation"
 msgstr "使用赤纬补偿"
 
-#: scope.cpp:2391
+#: scope.cpp:2420
 msgid "Automatically adjust RA guide rate based on scope declination"
 msgstr "基于赤纬自动调整赤经导星速率"
 
-#: scope.cpp:2397
+#: scope.cpp:2426
 msgid "Max RA duration"
 msgstr "赤经最大脉冲时长"
 
-#: scope.cpp:2398 scope.cpp:2616
+#: scope.cpp:2427 scope.cpp:2645
 msgid ""
 "Longest length of pulse to send in RA\n"
 "Default = 2500 ms."
@@ -8998,30 +8998,30 @@ msgstr ""
 "发送至赤经的最大脉冲时长\n"
 "默认值 = 2500 毫秒。"
 
-#: scope.cpp:2403
+#: scope.cpp:2432
 msgid "Max Dec duration"
 msgstr "赤纬最大脉冲时长"
 
-#: scope.cpp:2404
+#: scope.cpp:2433
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms. NOTE: this will be ignored if backlash compensation is "
 "enabled"
 msgstr ""
 
-#: scope.cpp:2417
+#: scope.cpp:2446
 msgid "Dec guide mode"
 msgstr "赤纬导星模式"
 
-#: scope.cpp:2418 scope.cpp:2635
+#: scope.cpp:2447 scope.cpp:2664
 msgid "Directions in which Dec guide commands will be issued"
 msgstr "将发布赤纬导星命令的方向"
 
-#: scope.cpp:2618
+#: scope.cpp:2647
 msgid "Mx RA"
 msgstr "赤经限长"
 
-#: scope.cpp:2624
+#: scope.cpp:2653
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms.  Increase if drift is fast."
@@ -9029,7 +9029,7 @@ msgstr ""
 "发送至赤纬的最大脉冲时长\n"
 "默认值 = 2500 毫秒。加大这个值可以让漂移的速度更快。"
 
-#: scope.cpp:2626
+#: scope.cpp:2655
 msgid "Mx DEC"
 msgstr "赤纬限长"
 

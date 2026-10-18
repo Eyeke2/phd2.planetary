@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: open-phd-guiding 2.4.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-13 20:28+0300\n"
+"POT-Creation-Date: 2026-10-18 11:14+0300\n"
 "PO-Revision-Date: 2015-08-27 22:56+0900\n"
 "Last-Translator: Watanabe Toshihito (渡部 俊仁)\n"
 "Language-Team: Japanese\n"
@@ -497,7 +497,7 @@ msgstr ""
 #: calibration_assistant.cpp:254 calibration_assistant.cpp:1136
 #: calibration_assistant.cpp:1189 camcal_import_dialog.cpp:128
 #: darks_dialog.cpp:228 darks_dialog.cpp:380 gear_simulator.cpp:2817
-#: guiding_assistant.cpp:135 phdupdate.cpp:809 profile_wizard.cpp:1640
+#: guiding_assistant.cpp:135 phdupdate.cpp:809 profile_wizard.cpp:1639
 msgid "Cancel"
 msgstr "キャンセル"
 
@@ -2342,10 +2342,10 @@ msgstr "ダークライブラリをもつプロファイルを選んでくださ
 #: gear_dialog.cpp:1157 gear_dialog.cpp:1948 gear_dialog.cpp:1949
 #: gear_dialog.cpp:1950 log_uploader.cpp:190 mount.cpp:168 mount.cpp:193
 #: mount.cpp:889 myframe.cpp:3494 profile_wizard.cpp:429
-#: profile_wizard.cpp:430 profile_wizard.cpp:431 profile_wizard.cpp:680
-#: profile_wizard.cpp:685 profile_wizard.cpp:713 profile_wizard.cpp:909
-#: profile_wizard.cpp:1175 profile_wizard.cpp:1190 profile_wizard.cpp:1225
-#: profile_wizard.cpp:1230 profile_wizard.cpp:1256 profile_wizard.cpp:1270
+#: profile_wizard.cpp:430 profile_wizard.cpp:431 profile_wizard.cpp:679
+#: profile_wizard.cpp:684 profile_wizard.cpp:712 profile_wizard.cpp:908
+#: profile_wizard.cpp:1174 profile_wizard.cpp:1189 profile_wizard.cpp:1224
+#: profile_wizard.cpp:1229 profile_wizard.cpp:1255 profile_wizard.cpp:1269
 #: rotator.cpp:56 rotator.cpp:101 scope.cpp:358 scope.cpp:403 scope.cpp:453
 #: statswindow.cpp:299 stepguider.cpp:112 stepguider.cpp:133
 msgid "None"
@@ -2581,7 +2581,7 @@ msgid "Comet Tracking - Active"
 msgstr "彗星追尾 - 追尾中"
 
 #: comet_tool.cpp:88 comet_tool.cpp:204 guider_multistar.cpp:1754
-#: scope.cpp:2350
+#: scope.cpp:2379
 msgid "Enable"
 msgstr "有効化"
 
@@ -2675,11 +2675,11 @@ msgstr ""
 "開始をクリックするとトレーニングが始まる。"
 
 #: comet_tool.cpp:328 graph.cpp:171 graph.cpp:198 graph.cpp:358
-#: guide_algorithm.cpp:50 scope.cpp:788 statswindow.cpp:73 target.cpp:343
+#: guide_algorithm.cpp:50 scope.cpp:817 statswindow.cpp:73 target.cpp:343
 msgid "RA"
 msgstr "赤経"
 
-#: comet_tool.cpp:329 graph.cpp:176 graph.cpp:211 graph.cpp:359 scope.cpp:788
+#: comet_tool.cpp:329 graph.cpp:176 graph.cpp:211 graph.cpp:359 scope.cpp:817
 #: statswindow.cpp:77 target.cpp:344
 msgid "Dec"
 msgstr "赤緯"
@@ -3605,7 +3605,7 @@ msgstr ""
 msgid "Could not create profile %s from profile %s"
 msgstr "プロファイル %s からプロファイル %sを作成できません。"
 
-#: gear_dialog.cpp:2210 profile_wizard.cpp:1052
+#: gear_dialog.cpp:2210 profile_wizard.cpp:1051
 #, c-format
 msgid "Could not create profile %s"
 msgstr "プロファイル %sを作成できません。"
@@ -5499,7 +5499,7 @@ msgid "< Back"
 msgstr "< 戻る"
 
 #: log_uploader.cpp:731 log_uploader.cpp:1381 profile_wizard.cpp:413
-#: profile_wizard.cpp:868 profile_wizard.cpp:886
+#: profile_wizard.cpp:867 profile_wizard.cpp:885
 msgid "Next >"
 msgstr "次へ >"
 
@@ -6771,7 +6771,7 @@ msgstr ""
 "この機器プロファイルでは、機器を接続した後、最後に成功したキャリブレーション"
 "から自動的にデータを復元します。"
 
-#: myframe.cpp:3673 scope.cpp:2377
+#: myframe.cpp:3673 scope.cpp:2406
 msgid "Min"
 msgstr "最小"
 
@@ -6779,7 +6779,7 @@ msgstr "最小"
 msgid "Auto exposure minimum duration"
 msgstr "自動露出の最小時間"
 
-#: myframe.cpp:3674 scope.cpp:2380
+#: myframe.cpp:3674 scope.cpp:2409
 msgid "Max"
 msgstr "最大"
 
@@ -6906,7 +6906,7 @@ msgstr ""
 msgid "Instructions"
 msgstr "機能説明"
 
-#: myframe_events.cpp:197 profile_wizard.cpp:781
+#: myframe_events.cpp:197 profile_wizard.cpp:780
 msgid "Introduction"
 msgstr "導入"
 
@@ -6973,7 +6973,7 @@ msgstr ""
 msgid "Guiding stopped: the mount is parked."
 msgstr ""
 
-#: myframe_events.cpp:689 scope.cpp:664
+#: myframe_events.cpp:689 scope.cpp:693
 msgid "Guiding stopped: the mount is not tracking."
 msgstr ""
 
@@ -7129,11 +7129,11 @@ msgstr ""
 "基本的ガイドパラメータを設定するのを助けます。\n"
 "セットアップウィザードを使用しますか？"
 
-#: myframe_events.cpp:1380 profile_wizard.cpp:1636
+#: myframe_events.cpp:1380 profile_wizard.cpp:1635
 msgid "Yes"
 msgstr "はい"
 
-#: myframe_events.cpp:1380 profile_wizard.cpp:1638
+#: myframe_events.cpp:1380 profile_wizard.cpp:1637
 msgid "No"
 msgstr "いいえ"
 
@@ -7568,23 +7568,23 @@ msgstr ""
 msgid "INDI Mount"
 msgstr ""
 
-#: planetary.cpp:1685
+#: planetary.cpp:1686
 msgid "Object not found"
 msgstr ""
 
-#: planetary.cpp:1732
+#: planetary.cpp:1733
 msgid ""
 "ERROR: camera frame size exceeds maximum limit. Please apply binning to "
 "reduce the frame size."
 msgstr ""
 
-#: planetary.cpp:1822
+#: planetary.cpp:1823
 msgid ""
 "ERROR: exception occurred during image processing: change detection "
 "parameters"
 msgstr ""
 
-#: planetary.cpp:1828
+#: planetary.cpp:1829
 msgid "ERROR: unknown exception occurred in solar system object detection"
 msgstr ""
 
@@ -8088,7 +8088,7 @@ msgstr "ガイド鏡の焦点距離(mm)"
 msgid "Focal length less than recommended minimum (100mm)"
 msgstr ""
 
-#: profile_wizard.cpp:358 profile_wizard.cpp:1510 profile_wizard.cpp:1530
+#: profile_wizard.cpp:358 profile_wizard.cpp:1509 profile_wizard.cpp:1529
 #, c-format
 msgid "Pixel scale: %8.2f\"/px"
 msgstr "ピクセルスケール: %8.2f”/px"
@@ -8149,7 +8149,7 @@ msgstr "プロファイル名"
 msgid "Back up to the previous screen"
 msgstr "前画面に戻る"
 
-#: profile_wizard.cpp:414 profile_wizard.cpp:869 profile_wizard.cpp:887
+#: profile_wizard.cpp:414 profile_wizard.cpp:868 profile_wizard.cpp:886
 msgid "Move forward to next screen"
 msgstr "次画面に進む"
 
@@ -8217,7 +8217,7 @@ msgid ""
 "immediately so PHD2 can read the guide speed for you."
 msgstr ""
 
-#: profile_wizard.cpp:490 profile_wizard.cpp:813
+#: profile_wizard.cpp:490 profile_wizard.cpp:812
 msgid "Simulator"
 msgstr ""
 
@@ -8310,89 +8310,89 @@ msgstr ""
 "ウント接続を選択する必要があります。\n"
 "詳細については、「機器接続」のヘルプガイドを参照してください。"
 
-#: profile_wizard.cpp:593
+#: profile_wizard.cpp:592
 msgid ""
 "Please make sure the EQMOD ASCOM settings are configured for PHD2 according "
 "to this document: \n"
 msgstr ""
 
-#: profile_wizard.cpp:595
+#: profile_wizard.cpp:594
 msgid "Open EQMOD document..."
 msgstr ""
 
-#: profile_wizard.cpp:602
+#: profile_wizard.cpp:601
 msgid "Go Back"
 msgstr "戻る"
 
-#: profile_wizard.cpp:604
+#: profile_wizard.cpp:603
 msgid "Proceed"
 msgstr "続行"
 
-#: profile_wizard.cpp:606
+#: profile_wizard.cpp:605
 msgid "Don't Ask"
 msgstr "聞かないで"
 
-#: profile_wizard.cpp:682
+#: profile_wizard.cpp:681
 msgid "Specify camera, guider focal length, and guide camera pixel size"
 msgstr ""
 
-#: profile_wizard.cpp:708
+#: profile_wizard.cpp:707
 msgid "Select a mount type to handle guide commands"
 msgstr ""
 
-#: profile_wizard.cpp:739
+#: profile_wizard.cpp:738
 msgid "Specify a name for the profile."
 msgstr ""
 
-#: profile_wizard.cpp:743
+#: profile_wizard.cpp:742
 msgid "Choose a profile name not already in use "
 msgstr ""
 
-#: profile_wizard.cpp:790
+#: profile_wizard.cpp:789
 msgid "Welcome to the PHD2 'first light' wizard"
 msgstr "PHD2「ファーストライト」ウィザードへようこそ"
 
-#: profile_wizard.cpp:794
+#: profile_wizard.cpp:793
 msgid "Choose a Guide Camera"
 msgstr "ガイドカメラ選択"
 
-#: profile_wizard.cpp:796
+#: profile_wizard.cpp:795
 msgid "Guide Camera:"
 msgstr "ガイドカメラ:"
 
-#: profile_wizard.cpp:809
+#: profile_wizard.cpp:808
 msgid ""
 "Select your guide camera and specify the optical properties of your guiding "
 "setup"
 msgstr "ガイドカメラを選択し、ガイド設定の光学特性を指定します"
 
-#: profile_wizard.cpp:817
+#: profile_wizard.cpp:816
 msgid "On-camera"
 msgstr ""
 
-#: profile_wizard.cpp:823
+#: profile_wizard.cpp:822
 msgid "Choose a Mount Connection"
 msgstr "マウント接続の選択"
 
-#: profile_wizard.cpp:825
+#: profile_wizard.cpp:824
 msgid "Mount:"
 msgstr "マウント:"
 
-#: profile_wizard.cpp:833
+#: profile_wizard.cpp:832
 msgid ""
 "Select your mount connection - this will determine how guide signals are "
 "transmitted"
 msgstr "マウント接続の選択 － ガイド信号をどのように送信するかを決定します。"
 
-#: profile_wizard.cpp:846
+#: profile_wizard.cpp:845
 msgid "Choose an Auxiliary Mount Connection (optional)"
 msgstr "補助マウント接続を選択（オプション）"
 
-#: profile_wizard.cpp:847
+#: profile_wizard.cpp:846
 msgid "Aux Mount:"
 msgstr "Auxマウント:"
 
-#: profile_wizard.cpp:851
+#: profile_wizard.cpp:850
 msgid ""
 "Since your primary mount connection does not report pointing position, you "
 "may want to choose an 'Aux Mount' connection"
@@ -8400,43 +8400,43 @@ msgstr ""
 "この接続方法ではマウントの姿勢情報が得られないので、「Auxマウント」接続を選ぶ"
 "こともできます。"
 
-#: profile_wizard.cpp:858
+#: profile_wizard.cpp:857
 msgid "Choose an Adaptive Optics Device (optional)"
 msgstr "補償光学装置（オプション）選択"
 
-#: profile_wizard.cpp:859
+#: profile_wizard.cpp:858
 msgid "AO:"
 msgstr "AO:"
 
-#: profile_wizard.cpp:863
+#: profile_wizard.cpp:862
 msgid "Specify your adaptive optics device if desired"
 msgstr "必要であれば、補償光学装置を指定します。"
 
-#: profile_wizard.cpp:876
+#: profile_wizard.cpp:875
 msgid "Choose a Rotator Device (optional)"
 msgstr "ローテーターデバイスを選択（オプション）"
 
-#: profile_wizard.cpp:877
+#: profile_wizard.cpp:876
 msgid "Rotator:"
 msgstr ""
 
-#: profile_wizard.cpp:881
+#: profile_wizard.cpp:880
 msgid "Specify your rotator device if desired"
 msgstr "必要に応じてローテーターデバイスを指定してください"
 
-#: profile_wizard.cpp:901
+#: profile_wizard.cpp:900
 msgid "Finish Creating Your New Profile"
 msgstr "新しいプロファイルの作成が完了"
 
-#: profile_wizard.cpp:904
+#: profile_wizard.cpp:903
 msgid "Finish"
 msgstr "完了"
 
-#: profile_wizard.cpp:905
+#: profile_wizard.cpp:904
 msgid "Finish creating the equipment profile"
 msgstr "機器プロファイルの作成が完了"
 
-#: profile_wizard.cpp:908
+#: profile_wizard.cpp:907
 msgid ""
 "Enter a name for your profile and optionally launch the process to build a "
 "dark library"
@@ -8444,30 +8444,30 @@ msgstr ""
 "プロファイル名を入力し、ダークライブラリ構築プロセス（オプション）を開始して"
 "ください。"
 
-#: profile_wizard.cpp:975
+#: profile_wizard.cpp:974
 msgid ""
 "No cameras of that type were found, so you may want to deal with that later. "
 "In the meantime, you can just enter the pixel-size manually along with the "
 "focal length and binning levels."
 msgstr ""
 
-#: profile_wizard.cpp:979
+#: profile_wizard.cpp:978
 msgid ""
 "PHD2 could not connect to the camera, so you may want to deal with that "
 "later. In the meantime, you can just enter the pixel-size manually along "
 "with the focal length and binning levels."
 msgstr ""
 
-#: profile_wizard.cpp:1256
+#: profile_wizard.cpp:1255
 msgid "Ask"
 msgstr ""
 
-#: profile_wizard.cpp:1286
+#: profile_wizard.cpp:1285
 #, c-format
 msgid "Guide speed setting adjusted from %0.1f to %0.1fx"
 msgstr "ガイド速度設定を%0.1fから%0.1fxに調整"
 
-#: profile_wizard.cpp:1329
+#: profile_wizard.cpp:1328
 msgid ""
 "This camera driver doesn't report the pixel size, so you'll need to enter "
 "the value manually"
@@ -8475,11 +8475,11 @@ msgstr ""
 "このカメラドライバーはピクセルサイズを報告しないので、値を手動で入力する必要"
 "があります"
 
-#: profile_wizard.cpp:1397
+#: profile_wizard.cpp:1396
 msgid "Connecting to mount..."
 msgstr ""
 
-#: profile_wizard.cpp:1403
+#: profile_wizard.cpp:1402
 #, c-format
 msgid ""
 "PHD2 could not connect to the mount, so you'll probably want to deal with "
@@ -8488,7 +8488,7 @@ msgid ""
 "value of %0.1fx"
 msgstr ""
 
-#: profile_wizard.cpp:1416
+#: profile_wizard.cpp:1415
 #, c-format
 msgid ""
 "Apparently, this mount driver doesn't report guide speeds.  If you know the "
@@ -8496,25 +8496,25 @@ msgid ""
 "just leave it at the default value of %0.1fx"
 msgstr ""
 
-#: profile_wizard.cpp:1531
+#: profile_wizard.cpp:1530
 msgid "Binning has been increased to achieve pixel scale > 0.5"
 msgstr ""
 
-#: profile_wizard.cpp:1541
+#: profile_wizard.cpp:1540
 msgid ""
 "Guide star identification works best when the pixel scale is above 0.5\"/px. "
 "Select binning level 2 to increase the pixel scale."
 msgstr ""
 
-#: profile_wizard.cpp:1548
+#: profile_wizard.cpp:1547
 msgid "Low pixel scale"
 msgstr ""
 
-#: profile_wizard.cpp:1589
+#: profile_wizard.cpp:1588
 msgid "Ask About Connection"
 msgstr ""
 
-#: profile_wizard.cpp:1602
+#: profile_wizard.cpp:1601
 msgid ""
 "Is the camera already connected to the PC?   If so, PHD2 can usually "
 "determine the camera pixel-size automatically.  If the camera isn't "
@@ -8527,11 +8527,11 @@ msgstr ""
 "カメラのマニュアルやオンラインの情報を使って自分で値を入力することができま"
 "す。"
 
-#: profile_wizard.cpp:1606
+#: profile_wizard.cpp:1605
 msgid "Camera Already Connected?"
 msgstr "カメラはすでに接続されていますか？"
 
-#: profile_wizard.cpp:1609
+#: profile_wizard.cpp:1608
 #, c-format
 msgid ""
 "Is the mount already connected and set up to communicate with PHD2?  If so, "
@@ -8540,11 +8540,11 @@ msgid ""
 "the setting at the default value of %0.1fx."
 msgstr ""
 
-#: profile_wizard.cpp:1614
+#: profile_wizard.cpp:1613
 msgid "Mount Already Connected?"
 msgstr "マウントはすでに接続されていますか？"
 
-#: profile_wizard.cpp:1617
+#: profile_wizard.cpp:1616
 #, c-format
 msgid ""
 "Is the aux-mount already connected and set up to communicate with PHD2?  If "
@@ -8559,7 +8559,7 @@ msgstr ""
 "のままにしておいてください。前ページのガイドスピードとマウントから読み取った"
 "値が一致しない場合は、マウントの値が使用されます。"
 
-#: profile_wizard.cpp:1624
+#: profile_wizard.cpp:1623
 msgid "Aux-mount Already Connected?"
 msgstr ""
 
@@ -8831,21 +8831,21 @@ msgstr ""
 msgid "INDI Mount [%s]"
 msgstr ""
 
-#: scope.cpp:742
+#: scope.cpp:771
 msgid ""
 "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
 "snags, try re-doing your polar alignment, calibration, and check for "
 "problems with the mount mechanics."
 msgstr ""
 
-#: scope.cpp:748
+#: scope.cpp:777
 msgid ""
 "PHD2 is not able to make sufficient corrections in RA.  Check for cable "
 "snags, try re-doing your polar alignment, calibration, and confirm the ST-4 "
 "cable is working properly."
 msgstr ""
 
-#: scope.cpp:757
+#: scope.cpp:786
 msgid ""
 "PHD2 is not able to make sufficient corrections in Dec.  If the side-of-pier "
 "has changed from where you last calibrated, check to see if the 'Reverse Dec "
@@ -8854,22 +8854,22 @@ msgid ""
 "alignment, calibration, and check for problems with the mount mechanics."
 msgstr ""
 
-#: scope.cpp:767
+#: scope.cpp:796
 msgid ""
 "PHD2 is not able to make sufficient corrections in Dec.  Check for cable "
 "snags, try re-doing your polar alignment, calibration and confirm the ST-4 "
 "cable is working properly."
 msgstr ""
 
-#: scope.cpp:777
+#: scope.cpp:806
 msgid "Max RA Duration setting"
 msgstr "赤経(RA)最大持続時間設定"
 
-#: scope.cpp:777
+#: scope.cpp:806
 msgid "Max Dec Duration setting"
 msgstr "赤緯(Dec)最大持続時間設定"
 
-#: scope.cpp:780
+#: scope.cpp:809
 #, c-format
 msgid ""
 "Your %s is preventing PHD from making adequate corrections to keep the guide "
@@ -8877,7 +8877,7 @@ msgid ""
 "larger corrections."
 msgstr ""
 
-#: scope.cpp:792
+#: scope.cpp:821
 #, c-format
 msgid ""
 "Even using the maximum moves, PHD2 can't properly correct for the large "
@@ -8885,7 +8885,7 @@ msgid ""
 "the source of these problems."
 msgstr ""
 
-#: scope.cpp:1072
+#: scope.cpp:1101
 msgid ""
 "Advisory: Calibration completed but few guide steps were used, so accuracy "
 "is questionable"
@@ -8893,7 +8893,7 @@ msgstr ""
 "注意：キャリブレーションは完了しましたが、ガイドの手順がほとんど使用されてい"
 "ないため、 精度に疑問があります"
 
-#: scope.cpp:1075
+#: scope.cpp:1104
 msgid ""
 "Advisory: Calibration completed but RA/Dec axis angles are questionable and "
 "guiding may be impaired"
@@ -8901,7 +8901,7 @@ msgstr ""
 "注意：キャリブレーションは完了しましたが、赤経/赤緯軸の角度に問題があり、ガイ"
 "ドが損なわれている可能性があります"
 
-#: scope.cpp:1078
+#: scope.cpp:1107
 msgid ""
 "Advisory: This calibration is substantially different from the previous one "
 "- have you changed configurations?"
@@ -8909,7 +8909,7 @@ msgstr ""
 "注意：このキャリブレーションは、以前とは大幅に異なります 設定を変更しました"
 "か？"
 
-#: scope.cpp:1082
+#: scope.cpp:1111
 msgid ""
 "Advisory: Calibration completed but RA and Dec rates vary by an unexpected "
 "amount (often caused by large Dec backlash)"
@@ -8917,25 +8917,25 @@ msgstr ""
 "注意：キャリブレーションは完了しましたが、赤経と赤緯レートが予想外の量で変化"
 "した  (多くの場合、赤緯のバックラッシュが大きいことが原因)"
 
-#: scope.cpp:1093
+#: scope.cpp:1122
 msgid "Details..."
 msgstr "詳細..."
 
-#: scope.cpp:1377
+#: scope.cpp:1406
 msgid "RA Calibration Failed: star did not move enough"
 msgstr "赤経(RA)キャリブレーション失敗: ガイド星が十分に動きません"
 
-#: scope.cpp:1384
+#: scope.cpp:1413
 #, c-format
 msgid "West step %3d, dist=%4.1f"
 msgstr "西へステップ %3d, 距離=%4.1f"
 
-#: scope.cpp:1457
+#: scope.cpp:1486
 #, c-format
 msgid "East step %3d, dist=%4.1f"
 msgstr "東へステップ %3d, 距離=%4.1f"
 
-#: scope.cpp:1478
+#: scope.cpp:1507
 msgid ""
 "Advisory: Little or no east movement was measured, so guiding will probably "
 "be impaired. Check the guide cable and use the Manual Guide tool to confirm "
@@ -8945,34 +8945,34 @@ msgstr ""
 "なわれるでしょう。ガイドケーブルを確認し、手動 ガイドツールを使用してマウント"
 "の基本的な動作を確認してください。"
 
-#: scope.cpp:1541
+#: scope.cpp:1570
 msgid "Clearing backlash step 1"
 msgstr "バックラッシュステップをクリア 1"
 
-#: scope.cpp:1580
+#: scope.cpp:1609
 #, c-format
 msgid "Clearing backlash step %3d"
 msgstr "バックラッシュステップをクリア %3d"
 
-#: scope.cpp:1602
+#: scope.cpp:1631
 msgid "Backlash Clearing Failed: star did not move enough"
 msgstr "バックラッシュクリア失敗: ガイド星が十分に動きません"
 
-#: scope.cpp:1651
+#: scope.cpp:1680
 msgid "DEC Calibration Failed: star did not move enough"
 msgstr "赤緯(DEC)キャリブレーション失敗: ガイド星が十分に動きません"
 
-#: scope.cpp:1658
+#: scope.cpp:1687
 #, c-format
 msgid "North step %3d, dist=%4.1f"
 msgstr "北へステップ %3d, 距離=%4.1f"
 
-#: scope.cpp:1749
+#: scope.cpp:1778
 #, c-format
 msgid "South step %3d, dist=%4.1f"
 msgstr "南へステップ %3d, 距離=%4.1f"
 
-#: scope.cpp:1770
+#: scope.cpp:1799
 msgid ""
 "Advisory: Calibration successful but little or no south movement was "
 "measured, so guiding will probably be impaired.\n"
@@ -8982,7 +8982,7 @@ msgid ""
 "types of problems (Manual Guide, Declination backlash)."
 msgstr ""
 
-#: scope.cpp:1777
+#: scope.cpp:1806
 msgid ""
 "Advisory: Calibration successful but little south movement was measured, so "
 "guiding will probably be impaired. \n"
@@ -8992,7 +8992,7 @@ msgid ""
 "Guide, Declination backlash)."
 msgstr ""
 
-#: scope.cpp:1785
+#: scope.cpp:1814
 msgid ""
 "Advisory: Calibration successful but little south movement was measured, so "
 "guiding may be impaired.\n"
@@ -9008,24 +9008,24 @@ msgstr ""
 "この種の問題 (赤緯のバックラッシュ) の対処方法については、オンライン ヘルプを"
 "参照してください。"
 
-#: scope.cpp:1856
+#: scope.cpp:1885
 #, c-format
 msgid "Nudge South %3d"
 msgstr "南へ最終増量ステップ %3d"
 
-#: scope.cpp:1894 stepguider.cpp:771
+#: scope.cpp:1923 stepguider.cpp:771
 msgid "Calibration complete"
 msgstr ""
 
-#: scope.cpp:2244
+#: scope.cpp:2273
 msgid "Mount Guide Algorithms"
 msgstr "マウントガイドアルゴリズム"
 
-#: scope.cpp:2286
+#: scope.cpp:2315
 msgid "Calibration step (ms)"
 msgstr "キャリブレーションステップ(ms)"
 
-#: scope.cpp:2287
+#: scope.cpp:2316
 msgid ""
 "How long a guide pulse should be used during calibration? Click \"Advanced..."
 "\" to compute a suitable value."
@@ -9033,11 +9033,11 @@ msgstr ""
 "キャリブレーション中に使用するガイドパルスの長さはどれくらいですか? 「詳"
 "細...」をクリックして、適切な値を計算します。"
 
-#: scope.cpp:2291
+#: scope.cpp:2320
 msgid "Advanced..."
 msgstr "詳細..."
 
-#: scope.cpp:2293
+#: scope.cpp:2322
 msgid ""
 "Click to open the Calibration Calculator Dialog to review or change all "
 "calibration parameters"
@@ -9045,11 +9045,11 @@ msgstr ""
 "クリックすると、キャリブレーション計算ダイアログが開き、すべてのキャリブレー "
 "ションパラメータを確認または変更することができます。"
 
-#: scope.cpp:2305
+#: scope.cpp:2334
 msgid "Reverse Dec output after meridian flip"
 msgstr "子午線を超えたら赤緯(Dec)出力を逆転する"
 
-#: scope.cpp:2307
+#: scope.cpp:2336
 msgid ""
 "Check if your mount needs Dec output reversed after a meridian flip. "
 "Changing this setting will clear the existing calibration data"
@@ -9057,30 +9057,30 @@ msgstr ""
 "子午線反転後にマウントの赤緯出力を反転させる必要があるかどうかを確認します。"
 "この設定を変更すると、既存のキャリブレーションデータがクリアされます"
 
-#: scope.cpp:2315
+#: scope.cpp:2344
 msgid "Stop guiding when mount slews"
 msgstr "マウントが旋回したらガイド停止"
 
-#: scope.cpp:2317
+#: scope.cpp:2346
 msgid "When checked, PHD will stop guiding if the mount starts slewing"
 msgstr "マウントが旋回を開始したら、PHDはガイドを停止します。"
 
-#: scope.cpp:2326
+#: scope.cpp:2355
 msgid "Stop guiding when mount reports tracking off"
 msgstr ""
 
-#: scope.cpp:2329
+#: scope.cpp:2358
 msgid ""
 "Normally keep this enabled. Disable it only for drivers that report tracking "
 "off during non-sidereal tracking. PHD2 may start or continue guiding even if "
 "the mount has actually stopped tracking."
 msgstr ""
 
-#: scope.cpp:2335
+#: scope.cpp:2364
 msgid "Assume Dec orthogonal to RA"
 msgstr "赤経と赤緯が直交すると仮定"
 
-#: scope.cpp:2338
+#: scope.cpp:2367
 msgid ""
 "Assume Dec axis is perpendicular to RA axis, regardless of calibration. "
 "Prevents RA periodic error from affecting Dec calibration. Option takes "
@@ -9090,7 +9090,7 @@ msgstr ""
 "定します。これにより赤経のピリオデックエラーが赤緯のキャリブレーションに影響"
 "することを防止します。赤緯のキャリブレート時に効果が表れます。"
 
-#: scope.cpp:2352
+#: scope.cpp:2381
 msgid ""
 "Check this if you want to apply a backlash compensation guide pulse when "
 "declination direction is reversed."
@@ -9098,43 +9098,43 @@ msgstr ""
 "赤緯方向反転時にバックラッシュ補正ガイドパルスをかけたい場合にチェックしま"
 "す。"
 
-#: scope.cpp:2361
+#: scope.cpp:2390
 msgid "Amount"
 msgstr "量"
 
-#: scope.cpp:2361
+#: scope.cpp:2390
 msgid "Size of backlash compensation guide pulse (mSec)"
 msgstr "バックラッシュ補正ガイドパルスの大きさ(mSec)"
 
-#: scope.cpp:2365
+#: scope.cpp:2394
 msgid "Mount Backlash Compensation"
 msgstr "マウントバックラッシュ補正"
 
-#: scope.cpp:2365
+#: scope.cpp:2394
 msgid "Backlash Compensation"
 msgstr "バックラッシュ補正"
 
-#: scope.cpp:2378
+#: scope.cpp:2407
 msgid "Minimum length of backlash compensation pulse (mSec)."
 msgstr "バックラッシュ補正パルスの最小長さ（mSec）"
 
-#: scope.cpp:2381
+#: scope.cpp:2410
 msgid "Maximum length of backlash compensation pulse (mSec)."
 msgstr "バックラッシュ補正パルスの最大長（mSec）"
 
-#: scope.cpp:2388
+#: scope.cpp:2417
 msgid "Use Dec compensation"
 msgstr "赤緯補正を使用"
 
-#: scope.cpp:2391
+#: scope.cpp:2420
 msgid "Automatically adjust RA guide rate based on scope declination"
 msgstr "スコープの赤緯をもとに赤経ガイドレートを自動調整"
 
-#: scope.cpp:2397
+#: scope.cpp:2426
 msgid "Max RA duration"
 msgstr "赤経(RA)最大許容ガイドパルス時間"
 
-#: scope.cpp:2398 scope.cpp:2616
+#: scope.cpp:2427 scope.cpp:2645
 msgid ""
 "Longest length of pulse to send in RA\n"
 "Default = 2500 ms."
@@ -9142,30 +9142,30 @@ msgstr ""
 "赤経で送信する最も長いパルスの長さ。\n"
 "既定値 = 2500 ms"
 
-#: scope.cpp:2403
+#: scope.cpp:2432
 msgid "Max Dec duration"
 msgstr "赤緯(Dec)最大許容ガイドパルス時間"
 
-#: scope.cpp:2404
+#: scope.cpp:2433
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms. NOTE: this will be ignored if backlash compensation is "
 "enabled"
 msgstr ""
 
-#: scope.cpp:2417
+#: scope.cpp:2446
 msgid "Dec guide mode"
 msgstr "赤緯(Dec)ガイドモード"
 
-#: scope.cpp:2418 scope.cpp:2635
+#: scope.cpp:2447 scope.cpp:2664
 msgid "Directions in which Dec guide commands will be issued"
 msgstr "赤緯ガイドコマンドを発行する方向をどれにしますか？"
 
-#: scope.cpp:2618
+#: scope.cpp:2647
 msgid "Mx RA"
 msgstr "Mx RA"
 
-#: scope.cpp:2624
+#: scope.cpp:2653
 msgid ""
 "Longest length of pulse to send in declination\n"
 "Default = 2500 ms.  Increase if drift is fast."
@@ -9173,7 +9173,7 @@ msgstr ""
 "赤緯で送信するパルスの最長の長さ、\n"
 "既定値 = 2500 ms、ドリフトが速い場合は増やす。"
 
-#: scope.cpp:2626
+#: scope.cpp:2655
 msgid "Mx DEC"
 msgstr "Mx DEC"
 
