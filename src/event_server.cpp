@@ -2842,7 +2842,7 @@ static void unpark(JObj& response, const json_value *params)
         response << jrpc_result(0);
     }
     else
-        response << jrpc_error(1, "failed to park mount");
+        response << jrpc_error(1, "failed to unpark mount");
 }
 
 static void slew_to_coordinates(JObj& response, const json_value* params)
@@ -3945,11 +3945,11 @@ static void set_cal_step(JObj& response, const json_value *params)
     }
     int dist = val->int_value;
 
-    if (pPointingSource &&
-        ((pPointingSource->GetCalibrationDistance() != dist) || (pPointingSource->GetCalibrationDuration() != step)))
+    Scope *scope = TheScope();
+    if (scope && ((scope->GetCalibrationDistance() != dist) || (scope->GetCalibrationDuration() != step)))
     {
-        pPointingSource->SetCalibrationDistance(dist);
-        pPointingSource->SetCalibrationDuration(step);
+        scope->SetCalibrationDistance(dist);
+        scope->SetCalibrationDuration(step);
         if (pMount)
         {
             pMount->ClearCalibration();

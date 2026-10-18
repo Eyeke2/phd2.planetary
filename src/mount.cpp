@@ -986,7 +986,7 @@ Mount::MOVE_RESULT Mount::MoveOffset(GuiderOffset *ofs, unsigned int moveOptions
     {
         // Short-circuit if the mount is known parked. MOVE_ERROR_PARKED is handled in
         // MyFrame::OnMoveComplete, which stops guiding and alerts.
-        if (IsKnownParked())
+        if (IsKnownParkedForGuiding())
         {
             Debug.Write("MoveOffset: mount is known parked, skipping guide pulse\n");
             return MOVE_ERROR_PARKED;

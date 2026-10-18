@@ -325,7 +325,9 @@ public:
     virtual bool GetEquatorialSystem(int *system);
     virtual bool DoesRefraction(bool *refraction);
     virtual bool IsParked(bool* parked);
+    Scope *StateSource();
     bool IsKnownParked() override;
+    bool IsKnownParkedForGuiding() override;
     void SetLastKnownParked(bool parked) { m_lastKnownParked = parked; }
     bool IsKnownTrackingStopped() override;
     void SetLastKnownTracking(bool tracking);
@@ -366,6 +368,9 @@ private:
     void SanityCheckCalibration(const Calibration& oldCal, const CalibrationDetails& oldDetails);
 
     void AlertLimitReached(int duration, GuideAxis axis);
+
+    bool KnownParked(bool holdWhileSlewing);
+    bool KnownTrackingStopped();
 
     // these MUST be supplied by a subclass
 private:

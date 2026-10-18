@@ -335,8 +335,9 @@ bool PhdController::CanGuide(wxString *error)
     // Refresh and check the scope's parked state. ScopeASCOM::IsParked also updates
     // Scope::m_lastKnownParked, used by Mount::MoveOffset to short-circuit guide pulses.
     Scope *scope = TheScope();
+    Scope *state = scope ? scope->StateSource() : nullptr;
     bool parked = false;
-    if (scope && scope->IsConnected() && !scope->IsParked(&parked) && parked)
+    if (state && state->IsConnected() && !state->IsParked(&parked) && parked)
     {
         Debug.AddLine("PhdController::CanGuide: mount is parked");
         *error = _T("mount is parked");
@@ -345,7 +346,7 @@ bool PhdController::CanGuide(wxString *error)
 
     // Some drivers report tracking off during non-sidereal tracking.
     bool tracking = true;
-    if (scope && scope->IsConnected() && !scope->GetTracking(&tracking) && !tracking)
+    if (state && state->IsConnected() && !state->GetTracking(&tracking) && !tracking)
     {
         if (scope->IsStopGuidingWhenTrackingStopsEnabled())
         {

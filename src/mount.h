@@ -281,6 +281,8 @@ public:
     // externally). Default Mount impl always returns false.
     virtual bool IsKnownParked() { return false; }
 
+    virtual bool IsKnownParkedForGuiding() { return IsKnownParked(); }
+
     // Same pattern as IsKnownParked, but for the Tracking property. Returns true if the cached
     // tracking state says tracking is off (verified by a fresh poll). Guiding doesn't make
     // sense when the mount isn't tracking, so MoveOffset gates on this too.

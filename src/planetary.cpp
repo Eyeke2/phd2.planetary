@@ -1458,6 +1458,9 @@ bool SolarSystemObject::GetMountTrackingState(bool& trackingValid, bool& trackin
     if (pPointingSource->Name().StartsWith(_("INDI Mount")))
         return false;
 
+    // Tracking state is valid
+    trackingValid = true;
+
     enum DriveRates driveRate = driveSidereal;
     double raRate = 0, decRate = 0;
     if (pPointingSource->GetTrackingRate(&driveRate, &raRate, &decRate, false))
@@ -1491,8 +1494,6 @@ bool SolarSystemObject::GetMountTrackingState(bool& trackingValid, bool& trackin
         break;
     }
 
-    // Tracking state is valid
-    trackingValid = true;
     offsetsValid = true;
     raOffset = raRate;
     decOffset = decRate;

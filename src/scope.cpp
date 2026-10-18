@@ -613,7 +613,24 @@ bool Scope::IsDecDrifting() const
     return m_decGuideMode == DEC_NONE;
 }
 
+Scope *Scope::StateSource()
+{
+    if (!CanReportPosition() && pPointingSource && pPointingSource != this && pPointingSource->IsConnected())
+        return pPointingSource;
+    return this;
+}
+
 bool Scope::IsKnownParked()
+{
+    return StateSource()->KnownParked(false);
+}
+
+bool Scope::IsKnownParkedForGuiding()
+{
+    return StateSource()->KnownParked(true);
+}
+
+bool Scope::KnownParked(bool holdWhileSlewing)
 {
     // Fast path: cache says not parked, no driver round-trip.
     if (!m_lastKnownParked)
@@ -630,6 +647,13 @@ bool Scope::IsKnownParked()
         Debug.Write("Scope::IsKnownParked: AtPark verify-poll failed, trusting cached parked state\n");
         return m_lastKnownParked;
     }
+
+    if (!parked && holdWhileSlewing && CanCheckSlewing() && Slewing())
+    {
+        Debug.Write("Scope::IsKnownParked: AtPark false while slewing, keeping the parked state\n");
+        SetLastKnownParked(true);
+        return true;
+    }
     return parked;
 }
 
@@ -638,6 +662,11 @@ bool Scope::IsKnownTrackingStopped()
     if (!m_stopGuidingWhenTrackingStops)
         return false;
 
+    return StateSource()->KnownTrackingStopped();
+}
+
+bool Scope::KnownTrackingStopped()
+{
     // Fast path: cache says tracking is on, no driver round-trip.
     if (m_lastKnownTracking)
         return false;
@@ -2319,7 +2348,7 @@ ScopeConfigDialogCtrlSet::ScopeConfigDialogCtrlSet(wxWindow *pParent, Scope *pSc
     else
         m_pStopGuidingWhenSlewing = 0;
 
-    if (pScope && pScope->CanCheckTracking())
+    if (pScope && pScope->StateSource()->CanCheckTracking())
     {
         m_pStopGuidingWhenTrackingStops =
             new wxCheckBox(GetParentWindow(AD_cbTrackingStopDetection), wxID_ANY,
