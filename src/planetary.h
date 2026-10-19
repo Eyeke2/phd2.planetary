@@ -56,6 +56,7 @@ private:
     int m_paramHighThreshold;
     bool m_paramShowElementsButtonState;
     bool m_paramNoiseFilterState;
+    int m_paramProfileId;
 
     bool m_requestPlanetaryModeUpdate;
     bool m_showVisualElements;
@@ -150,6 +151,9 @@ public:
 public:
     SolarSystemObject();
     ~SolarSystemObject();
+
+    void LoadProfileSettings();
+    void SaveProfileSettings();
 
     bool FindSolarSystemObject(const usImage *pImage, bool autoSelect = false);
 
@@ -321,7 +325,7 @@ private:
                          cv::Rect& roiRect, bool activeRoiLimits, float distanceRoiMax);
     bool GetSurfaceFeatures();
     void CheckMountTrackingState();
-    bool ConsumeRemoteDetection();
+    bool ConsumeRemoteDetection(cv::Rect& roiRect, bool& roiActive);
 
     RemoteDetection m_remoteDetection;
     wxMutex m_remoteDetMutex;

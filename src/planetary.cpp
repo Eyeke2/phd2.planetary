@@ -75,6 +75,7 @@ SolarSystemObject::SolarSystemObject() : m_remoteDetCond(m_remoteDetMutex)
     m_unknownHFD = true;
     m_focusSharpness = 0;
     m_paramNoiseFilterState = false;
+    m_paramProfileId = -1;
     m_updateDiameters = false;
     m_disableCustomRateOverride = false;
     m_remoteData = false;
@@ -137,18 +138,7 @@ SolarSystemObject::SolarSystemObject() : m_remoteDetCond(m_remoteDetMutex)
 
     // Get initial values of the solar system object detection state and parameters from configuration
     SetSurfaceTrackingState(false);
-#ifdef DEVELOPER_MODE
-    SetNoiseFilterState(pConfig->Profile.GetBoolean("/PlanetTool/noise_filter", false));
-#endif
-    // Enforce valid range limits on solar system object detection parameters while restoring from configuration
-    m_paramMinRadius = pConfig->Profile.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT);
-    m_paramMinRadius = wxMax(PT_RADIUS_MIN, wxMin(PT_RADIUS_MAX, m_paramMinRadius));
-    m_paramMaxRadius = pConfig->Profile.GetInt("/PlanetTool/max_radius", PT_MAX_RADIUS_DEFAULT);
-    m_paramMaxRadius = wxMax(PT_RADIUS_MIN, wxMin(PT_RADIUS_MAX, m_paramMaxRadius));
-    m_paramLowThreshold = pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT) / 2;
-    m_paramLowThreshold = wxMax(PT_THRESHOLD_MIN, wxMin(PT_LOW_THRESHOLD_MAX, m_paramLowThreshold));
-    m_paramHighThreshold = pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT);
-    m_paramHighThreshold = wxMax(PT_THRESHOLD_MIN, wxMin(PT_HIGH_THRESHOLD_MAX, m_paramHighThreshold));
+    LoadProfileSettings();
 
     // Save PHD2 settings we change for solar system object guiding
     m_phd2_MassChangeThresholdEnabled = pConfig->Profile.GetBoolean("/guider/onestar/MassChangeThresholdEnabled", false);
@@ -164,13 +154,47 @@ SolarSystemObject::~SolarSystemObject()
     CloseVideoLog();
 
     // Save all detection parameters
-#ifdef DEVELOPER_MODE
-    pConfig->Profile.SetBoolean("/PlanetTool/noise_filter", GetNoiseFilterState());
-#endif
-    pConfig->Profile.SetInt("/PlanetTool/min_radius", Get_minRadius());
-    pConfig->Profile.SetInt("/PlanetTool/max_radius", Get_maxRadius());
-    pConfig->Profile.SetInt("/PlanetTool/high_threshold", Get_highThreshold());
+    SaveProfileSettings();
     pConfig->Flush();
+}
+
+void SolarSystemObject::LoadProfileSettings()
+{
+    int profileId = pConfig->GetCurrentProfileId();
+    if (profileId == m_paramProfileId)
+        return;
+
+    SaveProfileSettings();
+
+#ifdef DEVELOPER_MODE
+    SetNoiseFilterState(pConfig->Profile.GetBoolean("/PlanetTool/noise_filter", false));
+#endif
+    // Enforce valid range limits on solar system object detection parameters while restoring from configuration
+    m_paramMinRadius = pConfig->Profile.GetInt("/PlanetTool/min_radius", PT_MIN_RADIUS_DEFAULT);
+    m_paramMinRadius = wxMax(PT_RADIUS_MIN, wxMin(PT_RADIUS_MAX, m_paramMinRadius));
+    m_paramMaxRadius = pConfig->Profile.GetInt("/PlanetTool/max_radius", PT_MAX_RADIUS_DEFAULT);
+    m_paramMaxRadius = wxMax(PT_RADIUS_MIN, wxMin(PT_RADIUS_MAX, m_paramMaxRadius));
+    m_paramLowThreshold = pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT) / 2;
+    m_paramLowThreshold = wxMax(PT_THRESHOLD_MIN, wxMin(PT_LOW_THRESHOLD_MAX, m_paramLowThreshold));
+    m_paramHighThreshold = pConfig->Profile.GetInt("/PlanetTool/high_threshold", PT_HIGH_THRESHOLD_DEFAULT);
+    m_paramHighThreshold = wxMax(PT_THRESHOLD_MIN, wxMin(PT_HIGH_THRESHOLD_MAX, m_paramHighThreshold));
+    m_paramProfileId = profileId;
+
+    SetMinMaxDiametersUpdate();
+}
+
+void SolarSystemObject::SaveProfileSettings()
+{
+    if (m_paramProfileId < 0 || !pConfig->ProfileExists(m_paramProfileId))
+        return;
+    ConfigSection profile = pConfig->Profile;
+    profile.SelectProfile(m_paramProfileId);
+#ifdef DEVELOPER_MODE
+    profile.SetBoolean("/PlanetTool/noise_filter", GetNoiseFilterState());
+#endif
+    profile.SetInt("/PlanetTool/min_radius", Get_minRadius());
+    profile.SetInt("/PlanetTool/max_radius", Get_maxRadius());
+    profile.SetInt("/PlanetTool/high_threshold", Get_highThreshold());
 }
 
 // Is planetary/solar detection enabled
@@ -1608,7 +1632,7 @@ void SolarSystemObject::WaitRemoteDetection(uint32_t frame)
     }
 }
 
-bool SolarSystemObject::ConsumeRemoteDetection()
+bool SolarSystemObject::ConsumeRemoteDetection(Rect& roiRect, bool& roiActive)
 {
     uint32_t frame = FrameExport::CurrentFrame();
     RemoteDetection result;
@@ -1639,31 +1663,36 @@ bool SolarSystemObject::ConsumeRemoteDetection()
     m_planetaryContourPoints = result.features;
     m_planetaryFittingScore = result.quality;
     m_surf.variance = result.dispersion;
+    m_surf.trackingQuality = result.quality;
     if (result.roiW > 0 && result.roiH > 0)
     {
-        m_roiRect = Rect(result.roiX, result.roiY, result.roiW, result.roiH);
-        m_roiActive = true;
+        roiRect = Rect(result.roiX, result.roiY, result.roiW, result.roiH);
+        roiActive = true;
     }
     m_detected = true;
 
-    pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), m_planetaryContourPoints);
-    pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), m_planetaryFittingScore);
+    if (GetPlanetDetectMode() == DETECTION_MODE_SURFACE)
+    {
+        pFrame->pStatsWin->UpdatePlanetScore(_T("Dispersion"), m_surf.variance);
+        pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Features"), m_detectedFeatures);
+    }
+    else
+    {
+        pFrame->pStatsWin->UpdatePlanetFeatureCount(_T("Contour points"), m_planetaryContourPoints);
+        pFrame->pStatsWin->UpdatePlanetScore(("Fitting score"), m_planetaryFittingScore);
+    }
     return true;
 }
 
 void SolarSystemObject::GetPlanetHandoverState(PlanetHandoverState& state)
 {
-    double scale = FrameExport::ExportScale(m_frameWidth, m_frameHeight);
-    if (scale < 1.0)
-        scale = 1.0;
-
     state.planetaryMode = Get_SolarSystemObjMode() && (GetPlanetDetectMode() == DETECTION_MODE_DISK);
     state.detected = m_detected;
-    state.cx = m_center_x / scale;
-    state.cy = m_center_y / scale;
-    state.radius = (int) (m_radius / scale + 0.5);
-    state.minRadius = (int) (Get_minRadius() / scale + 0.5);
-    state.maxRadius = (int) (Get_maxRadius() / scale + 0.5);
+    state.cx = m_center_x;
+    state.cy = m_center_y;
+    state.radius = m_radius;
+    state.minRadius = (int) (Get_minRadius() + 0.5);
+    state.maxRadius = (int) (Get_maxRadius() + 0.5);
     state.cannyHigh = Get_highThreshold();
 }
 
@@ -1802,7 +1831,7 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
     try
     {
         if (clientDriven)
-            detectionResult = ConsumeRemoteDetection();
+            detectionResult = ConsumeRemoteDetection(roiRect, roiActive);
         else
             // Find object depending on the selected detection mode
             switch (GetPlanetDetectMode())
@@ -1880,6 +1909,8 @@ bool SolarSystemObject::FindSolarSystemObject(const usImage *pImage, bool autoSe
         m_detectionCounter = 0;
         m_diskContour.clear();
     }
+    else if (clientDriven)
+        m_diskContour.clear();
     m_roiActive = roiActive;
     m_syncLock.Unlock();
 

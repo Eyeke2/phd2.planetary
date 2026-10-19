@@ -42,7 +42,6 @@ namespace FrameExport
     bool Enable(bool on);
     bool IsEnabled();
     uint32_t CurrentFrame();
-    double ExportScale(int w, int h);
     void Publish(const unsigned short *pixels, int width, int height, int bitsPerPixel, int binning, int exposureMs,
                  double pixelSizeUm);
 }

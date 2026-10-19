@@ -349,6 +349,8 @@ void Guider::LoadProfileSettings()
     unsigned int autoSelDownsample = wxMax(0, pConfig->Profile.GetInt("/guider/AutoSelDownsample", 0));
     SetAutoSelDownsample(autoSelDownsample);
 
+    m_SolarSystemObject.LoadProfileSettings();
+
     LoadBookmarks(&m_bookmarks);
 
     // clear the display

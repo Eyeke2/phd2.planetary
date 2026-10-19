@@ -1177,17 +1177,6 @@ uint32_t FrameExport::CurrentFrame()
     return s_lastFrame.load();
 }
 
-double FrameExport::ExportScale(int w, int h)
-{
-    if (w <= 0 || h <= 0)
-        return 1.0;
-    int decW, decH;
-    ComputeDecimatedDims(w, h, decW, decH);
-    if (decW < 1)
-        return 1.0;
-    return (double) w / (double) decW;
-}
-
 void FrameExport::Publish(const unsigned short *pixels, int width, int height, int bitsPerPixel, int binning,
                           int exposureMs, double pixelSizeUm)
 {
@@ -1209,7 +1198,6 @@ bool FrameExport::Available() { return false; }
 bool FrameExport::Enable(bool) { return false; }
 bool FrameExport::IsEnabled() { return false; }
 uint32_t FrameExport::CurrentFrame() { return 0; }
-double FrameExport::ExportScale(int, int) { return 1.0; }
 void FrameExport::Publish(const unsigned short *, int, int, int, int, int, double) { }
 
 #endif // FRAME_MONITOR_CAMERA
