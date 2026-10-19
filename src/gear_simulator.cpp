@@ -2691,7 +2691,7 @@ SimCamDialog::SimCamDialog(wxWindow *parent) : wxDialog(parent, wxID_ANY, _("Cam
     pUseStiction->Enable(false);
 # endif
 
-    pMountDynamicsCheckBox = new wxCheckBox(this, wxID_ANY, _("Simulate Mount Dynamics"));
+    pMountDynamicsCheckBox = new wxCheckBox(this, wxID_ANY, _("Simulate Mount Motion"));
     pMountDynamicsCheckBox->SetToolTip(_(
         "Toggle to simulate the effects of mount tracking, slewing and guiding on the image's position. "
         "When activated, the simulated image position on the screen will dynamically adjust to reflect these mount movements. "
