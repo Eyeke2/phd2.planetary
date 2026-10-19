@@ -44,6 +44,10 @@
 
 # include "comdispatch.h"
 
+# include <condition_variable>
+# include <mutex>
+# include <thread>
+
 class ScopeASCOM : public Scope
 {
     GITEntry m_gitEntry;
@@ -72,6 +76,7 @@ class ScopeASCOM : public Scope
     // other private variables
     bool m_canCheckPulseGuiding;
     bool m_canGetCoordinates;
+    bool m_canCheckResponding;
     bool m_canGetGuideRates;
     bool m_canSlew;
     bool m_canSlewAsync;
@@ -87,6 +92,11 @@ class ScopeASCOM : public Scope
     bool m_abortSlewWhenGuidingStuck;
     bool m_checkForSyncPulseGuide;
 
+    std::thread m_respondingThread;
+    std::mutex m_respondingThreadLock;
+    std::condition_variable m_respondingThreadWake;
+    bool m_respondingThreadStop;
+
     wxString m_choice; // name of chosen scope
 
     // private functions
@@ -94,6 +104,9 @@ class ScopeASCOM : public Scope
     bool IsGuiding(DispatchObj *pScopeDriver);
     bool IsSlewing(DispatchObj *pScopeDriver);
     bool AbortSlew(DispatchObj *pScopeDriver);
+    void StartRespondingThread();
+    void StopRespondingThread();
+    void RespondingThreadLoop();
 
 public:
     ScopeASCOM(const wxString& choice);
@@ -123,6 +136,8 @@ public:
     bool SetTrackingRateOffsets(double raRateOffset, double decRateOffset, wxString *errMsg = nullptr) override;
     bool GetGuideRates(double *pRAGuideRate, double *pDecGuideRate) override;
     bool GetCoordinates(double *ra, double *dec, double *siderealTime) override;
+    bool CanCheckResponding() override;
+    bool CheckResponding(wxString *error, unsigned int *code) override;
     bool GetMountAltAz(double *alt, double *az) override;
     bool GetSiteLatLong(double *latitude, double *longitude) override;
     bool GetSiteElevation(double *elevation) override;

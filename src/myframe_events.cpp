@@ -628,6 +628,7 @@ void MyFrame::OnMoveComplete(wxThreadEvent& event_)
         Mount *mount = event.mount;
         assert(mount->IsBusy());
         mount->DecrementRequestCount();
+        mount->ResumeRespondingDisconnect();
 
         Mount::MOVE_RESULT moveResult = event.result;
 
@@ -667,6 +668,12 @@ void MyFrame::OnMoveComplete(wxThreadEvent& event_)
                     pFrame->Alert(_("Guiding stopped: the mount is parked."));
                     pGuider->StopGuiding();
                 }
+            }
+            else if (moveResult == Mount::MOVE_ERROR_MOUNT_NOT_RESPONDING)
+            {
+                Debug.Write("mount not responding error indicates guiding should stop\n");
+                if (pGuider->IsCalibratingOrGuiding())
+                    mount->StopForNotResponding();
             }
             else if (moveResult == Mount::MOVE_ERROR_TRACKING_STOPPED)
             {

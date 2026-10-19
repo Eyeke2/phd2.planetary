@@ -336,6 +336,16 @@ bool PhdController::CanGuide(wxString *error)
     // Scope::m_lastKnownParked, used by Mount::MoveOffset to short-circuit guide pulses.
     Scope *scope = TheScope();
     Scope *state = scope ? scope->StateSource() : nullptr;
+
+    wxString notResponding;
+    if (scope && scope->CanCheckResponding() && Scope::RespondingCheckIntervalSec() > 0 &&
+        scope->RunRespondingCheck(&notResponding) > 0)
+    {
+        Debug.AddLine("PhdController::CanGuide: mount is not responding: " + notResponding);
+        *error = _T("mount is not responding: ") + notResponding;
+        return false;
+    }
+
     bool parked = false;
     if (state && state->IsConnected() && !state->IsParked(&parked) && parked)
     {

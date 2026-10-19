@@ -253,6 +253,7 @@ public:
         MOVE_ERROR_AO_LIMIT_REACHED, // move failed due to AO limit
         MOVE_ERROR_PARKED, // move failed because the mount is parked
         MOVE_ERROR_TRACKING_STOPPED, // move failed because the mount is not tracking
+        MOVE_ERROR_MOUNT_NOT_RESPONDING, // move skipped because the mount does not respond
     };
 
     Mount();
@@ -287,6 +288,11 @@ public:
     // tracking state says tracking is off (verified by a fresh poll). Guiding doesn't make
     // sense when the mount isn't tracking, so MoveOffset gates on this too.
     virtual bool IsKnownTrackingStopped() { return false; }
+
+    virtual bool IsKnownNotResponding() { return false; }
+    virtual void RequestRespondingCheck() { }
+    virtual void ResumeRespondingDisconnect() { }
+    virtual void StopForNotResponding() { }
 
     bool TransformCameraCoordinatesToMountCoordinates(const PHD_Point& cameraVectorEndpoint, PHD_Point& mountVectorEndpoint,
                                                       bool logged = true);

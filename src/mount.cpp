@@ -999,6 +999,12 @@ Mount::MOVE_RESULT Mount::MoveOffset(GuiderOffset *ofs, unsigned int moveOptions
             return MOVE_ERROR_TRACKING_STOPPED;
         }
 
+        if (IsKnownNotResponding())
+        {
+            Debug.Write("MoveOffset: mount is not responding, skipping guide pulse\n");
+            return MOVE_ERROR_MOUNT_NOT_RESPONDING;
+        }
+
         double xDistance, yDistance;
 
         if (moveOptions & MOVEOPT_ALGO_DEDUCE)
@@ -1074,6 +1080,9 @@ Mount::MOVE_RESULT Mount::MoveOffset(GuiderOffset *ofs, unsigned int moveOptions
                 yResult == MOVE_ERROR_PARKED || yResult == MOVE_ERROR_TRACKING_STOPPED)
                 result = yResult;
         }
+
+        if (result == MOVE_ERROR && GetGuidingEnabled())
+            RequestRespondingCheck();
 
         // Record the info about the guide step. The info will be picked up back in the main UI thread.
         // We don't want to do anything with the info here in the worker thread since UI operations are

@@ -41,6 +41,8 @@
 
 #include <wx/textfile.h>
 
+#include <chrono>
+
 static const int DefaultCalibrationDuration = 750;
 static const int DefaultMaxDecDuration = 2500;
 static const int DefaultMaxRaDuration = 2500;
@@ -120,6 +122,19 @@ Scope::Scope()
     m_stopGuidingWhenTrackingStops = true;
     m_lastKnownParked = false;
     m_lastKnownTracking = true; // assume tracking until told otherwise (CanGuide does a fresh query at guide start)
+    m_respondingHasAnswered = false;
+    m_respondingOff = false;
+    m_respondingFailures = 0;
+    m_respondingRunStartMs = 0;
+    m_respondingLastCheckMs = 0;
+    m_respondingCheckRequested = false;
+    m_respondingIntervalSec = RespondingCheckIntervalSec();
+    m_respondingDisconnectAfterSec = RespondingDisconnectAfterSec();
+    m_respondingStopPosted = false;
+    m_respondingDisconnectPosted = false;
+    m_guidingWithThis = false;
+    m_respondingDisconnectWaiting = false;
+    m_respondingStoppedGuiding = false;
 
     m_backlashComp = new BacklashComp(this);
 }
@@ -710,6 +725,362 @@ void Scope::SetLastKnownTracking(bool tracking)
     // no-op when the current alert is different, so calling it unconditionally is safe.
     if (wasOff && tracking && pFrame)
         pFrame->ClearAlert(_("Guiding stopped: the mount is not tracking."));
+}
+
+int Scope::RespondingCheckIntervalSec()
+{
+    return pConfig->Global.GetInt("/scope/responding_check_interval_sec", 15);
+}
+
+int Scope::RespondingDisconnectAfterSec()
+{
+    return pConfig->Global.GetInt("/scope/responding_disconnect_after_sec", 30);
+}
+
+bool Scope::CanCheckResponding()
+{
+    return false;
+}
+
+bool Scope::CheckResponding(wxString *error, unsigned int *code)
+{
+    return true;
+}
+
+static long long SteadyClockMs()
+{
+    using namespace std::chrono;
+    return duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
+}
+
+static bool IsNotImplemented(unsigned int code)
+{
+    return code == 0x80040400 || code == 0x80004001;
+}
+
+int Scope::RunRespondingCheck(wxString *error)
+{
+    {
+        wxCriticalSectionLocker lock(m_respondingLock);
+        if (m_respondingOff)
+            return 0;
+    }
+
+    long long t0 = SteadyClockMs();
+    wxString msg;
+    unsigned int code = 0;
+    bool ok = CheckResponding(&msg, &code);
+    long long t1 = SteadyClockMs();
+
+    bool answered, off = false, postStop = false, postDisconnect = false;
+    int before, failures = 0;
+    long long spanMs = 0;
+    wxString alert;
+    {
+        wxCriticalSectionLocker lock(m_respondingLock);
+        before = m_respondingFailures;
+        answered = m_respondingHasAnswered;
+        m_respondingLastCheckMs = t1;
+        m_respondingCheckRequested = false;
+        if (ok)
+        {
+            m_respondingHasAnswered = true;
+            m_respondingFailures = 0;
+            m_respondingStopPosted = false;
+            m_respondingStoppedGuiding = false;
+            alert = m_respondingAlert;
+            m_respondingAlert.clear();
+        }
+        else
+        {
+            m_respondingError = msg;
+            if (!answered)
+                off = m_respondingOff = IsNotImplemented(code);
+            else
+            {
+                if (m_respondingFailures == 0)
+                    m_respondingRunStartMs = t0;
+                failures = ++m_respondingFailures;
+                spanMs = t1 - m_respondingRunStartMs;
+                postStop = failures >= 2 && !m_respondingStopPosted;
+                if (postStop)
+                    m_respondingStopPosted = true;
+                postDisconnect =
+                    m_respondingDisconnectAfterSec > 0 && failures >= 3 && spanMs >= m_respondingDisconnectAfterSec * 1000LL;
+            }
+        }
+    }
+
+    int ms = (int) (t1 - t0);
+    if (!ok)
+    {
+        if (off)
+            Debug.Write(wxString::Format("Scope: responding check off for this connection, the driver does not implement "
+                                         "the read (%d ms): %s [code 0x%08x]\n",
+                                         ms, msg, code));
+        else if (!answered)
+            Debug.Write(wxString::Format("Scope: responding check failed, not counted: the mount has not answered yet (%d "
+                                         "ms): %s [code 0x%08x]\n",
+                                         ms, msg, code));
+        else
+            Debug.Write(wxString::Format("Scope: responding check failed, %d in a row (%d ms): %s [code 0x%08x]\n", failures,
+                                         ms, msg, code));
+        if (error)
+            *error = msg;
+    }
+    else if (!answered)
+        Debug.Write(wxString::Format("Scope: responding check passed (%d ms), the mount has answered\n", ms));
+    else if (before)
+        Debug.Write(
+            wxString::Format("Scope: responding check passed (%d ms), the mount answers again after %d failed\n", ms, before));
+    else
+        Debug.Write(wxString::Format("Scope: responding check passed (%d ms)\n", ms));
+
+    if (!alert.empty() && pFrame)
+        pFrame->ClearAlert(alert);
+
+    if (postStop)
+        PostRespondingStop();
+    if (postDisconnect)
+        PostRespondingDisconnect(failures, spanMs);
+
+    return failures;
+}
+
+bool Scope::IsKnownNotResponding()
+{
+    if (!CanCheckResponding())
+        return false;
+
+    {
+        wxCriticalSectionLocker lock(m_respondingLock);
+        if (m_respondingDisconnectPosted)
+            return true;
+        if (m_respondingIntervalSec <= 0 || m_respondingOff)
+            return false;
+        bool due = m_respondingFailures > 0 || m_respondingCheckRequested || m_respondingLastCheckMs == 0 ||
+            SteadyClockMs() - m_respondingLastCheckMs >= m_respondingIntervalSec * 1000LL;
+        if (!due)
+            return false;
+    }
+
+    return RunRespondingCheck(nullptr) >= 2;
+}
+
+void Scope::RequestRespondingCheck()
+{
+    wxCriticalSectionLocker lock(m_respondingLock);
+    m_respondingCheckRequested = true;
+}
+
+int Scope::ResetRespondingCheck()
+{
+    int interval = RespondingCheckIntervalSec();
+    int disconnectAfter = RespondingDisconnectAfterSec();
+    m_guidingWithThis = false;
+    m_respondingDisconnectWaiting = false;
+
+    wxCriticalSectionLocker lock(m_respondingLock);
+    m_respondingOff = false;
+    m_respondingFailures = 0;
+    m_respondingLastCheckMs = 0;
+    m_respondingCheckRequested = false;
+    m_respondingIntervalSec = interval;
+    m_respondingDisconnectAfterSec = disconnectAfter;
+    m_respondingStopPosted = false;
+    m_respondingDisconnectPosted = false;
+    m_respondingStoppedGuiding = false;
+    return interval;
+}
+
+bool Scope::BackgroundRespondingCheckDue()
+{
+    wxCriticalSectionLocker lock(m_respondingLock);
+    if (m_respondingIntervalSec <= 0 || m_respondingOff || m_respondingDisconnectPosted)
+        return false;
+    long long waitMs = m_respondingFailures > 0 ? 5000 : (m_guidingWithThis ? 2 : 1) * m_respondingIntervalSec * 1000LL;
+    return m_respondingLastCheckMs == 0 || SteadyClockMs() - m_respondingLastCheckMs >= waitMs;
+}
+
+bool Scope::RespondingCheckOff()
+{
+    wxCriticalSectionLocker lock(m_respondingLock);
+    return m_respondingOff;
+}
+
+bool Scope::RespondingStopPosted()
+{
+    wxCriticalSectionLocker lock(m_respondingLock);
+    return m_respondingStopPosted;
+}
+
+bool Scope::RespondingDisconnectPosted()
+{
+    wxCriticalSectionLocker lock(m_respondingLock);
+    return m_respondingDisconnectPosted;
+}
+
+void Scope::PostRespondingStop()
+{
+    Debug.Write(wxString::Format("Scope: %s is not responding, posting its stop\n", Name()));
+    Scope *scope = this;
+    if (pFrame)
+        pFrame->CallAfter([scope]() { StopNotResponding(scope); });
+}
+
+void Scope::StopNotResponding(Scope *scope)
+{
+    GearDialog *gear = pFrame->pGearDialog;
+    bool isMount = scope == TheScope();
+    bool isAuxMount = !isMount && gear && scope == gear->AuxScope();
+    if (!gear || (!isMount && !isAuxMount))
+    {
+        Debug.Write("Scope: stop for a mount that is not responding skipped: no longer in use\n");
+        return;
+    }
+    if (!scope->IsConnected())
+    {
+        Debug.Write(wxString::Format("Scope: stop for %s skipped: no longer connected\n", scope->Name()));
+        return;
+    }
+    if (!scope->RespondingStopPosted())
+    {
+        Debug.Write(
+            wxString::Format("Scope: stop for %s skipped: it has answered, or was reconnected, since\n", scope->Name()));
+        return;
+    }
+    if (!isMount || !pFrame->pGuider->IsCalibratingOrGuiding())
+    {
+        Debug.Write(wxString::Format("Scope: %s is not responding, not guiding with it: nothing to stop\n", scope->Name()));
+        return;
+    }
+
+    Debug.Write(wxString::Format("Scope: %s is not responding, stopping guiding\n", scope->Name()));
+
+    wxString alert;
+    {
+        wxCriticalSectionLocker lock(scope->m_respondingLock);
+        alert = wxString::Format(_("Guiding stopped: the mount is not responding: %s"), scope->m_respondingError);
+        scope->m_respondingAlert = alert;
+        scope->m_respondingStoppedGuiding = true;
+    }
+    pFrame->Alert(alert);
+    pFrame->pGuider->StopGuiding();
+}
+
+void Scope::PostRespondingDisconnect(int failures, long long spanMs)
+{
+    {
+        wxCriticalSectionLocker lock(m_respondingLock);
+        if (m_respondingDisconnectPosted)
+            return;
+        m_respondingDisconnectPosted = true;
+    }
+
+    Debug.Write(wxString::Format("Scope: %s is not responding, %d failures over %.1f s: posting its disconnect\n", Name(),
+                                 failures, spanMs / 1000.0));
+    Scope *scope = this;
+    if (pFrame)
+        pFrame->CallAfter([scope]() { DisconnectNotResponding(scope); });
+}
+
+void Scope::DisconnectNotResponding(Scope *scope)
+{
+    GearDialog *gear = pFrame->pGearDialog;
+    bool isMount = scope == TheScope();
+    bool isAuxMount = !isMount && gear && scope == gear->AuxScope();
+    if (!gear || (!isMount && !isAuxMount))
+    {
+        Debug.Write("Scope: disconnect of a mount that is not responding skipped: no longer in use\n");
+        return;
+    }
+    if (!scope->IsConnected())
+    {
+        Debug.Write(wxString::Format("Scope: disconnect of %s skipped: no longer connected\n", scope->Name()));
+        return;
+    }
+    if (!scope->RespondingDisconnectPosted())
+    {
+        Debug.Write(wxString::Format("Scope: disconnect of %s skipped: reconnected since\n", scope->Name()));
+        return;
+    }
+
+    if (isMount && pFrame->pGuider->IsCalibratingOrGuiding())
+    {
+        Debug.Write(wxString::Format("Scope: %s is not responding, stopping guiding\n", scope->Name()));
+        pFrame->pGuider->StopGuiding();
+        wxCriticalSectionLocker lock(scope->m_respondingLock);
+        scope->m_respondingStoppedGuiding = true;
+    }
+
+    if (scope->IsBusy())
+    {
+        Debug.Write(
+            wxString::Format("Scope: %s is not responding, its disconnect waits for the move in progress\n", scope->Name()));
+        scope->m_respondingDisconnectWaiting = true;
+        return;
+    }
+
+    wxString name = scope->Name();
+    wxString error;
+    bool stoppedGuiding;
+    {
+        wxCriticalSectionLocker lock(scope->m_respondingLock);
+        error = scope->m_respondingError;
+        stoppedGuiding = scope->m_respondingStoppedGuiding;
+    }
+
+    Debug.Write(wxString::Format("Scope: %s is not responding, disconnecting it\n", name));
+    wxStopWatch swatch;
+    gear->DisconnectScope(scope);
+    Debug.Write(wxString::Format("Scope: %s disconnected in %ld ms\n", name, swatch.Time()));
+
+    wxString alert;
+    if (isAuxMount)
+        alert = wxString::Format(_("The aux mount stopped responding and was disconnected: %s"), error);
+    else if (stoppedGuiding)
+        alert = wxString::Format(_("Guiding stopped: the mount stopped responding and was disconnected: %s"), error);
+    else
+        alert = wxString::Format(_("The mount stopped responding and was disconnected: %s"), error);
+    {
+        wxCriticalSectionLocker lock(scope->m_respondingLock);
+        scope->m_respondingAlert = alert;
+    }
+    pFrame->Alert(alert);
+}
+
+void Scope::ResumeRespondingDisconnect()
+{
+    if (!m_respondingDisconnectWaiting || IsBusy())
+        return;
+
+    m_respondingDisconnectWaiting = false;
+    Debug.Write(wxString::Format("Scope: %s finished its move, posting its disconnect again\n", Name()));
+    Scope *scope = this;
+    pFrame->CallAfter([scope]() { DisconnectNotResponding(scope); });
+}
+
+void Scope::StopForNotResponding()
+{
+    StopNotResponding(this);
+}
+
+void Scope::NotifyGuidingStarted()
+{
+    Mount::NotifyGuidingStarted();
+    m_guidingWithThis = true;
+
+    int interval = RespondingCheckIntervalSec();
+    int disconnectAfter = RespondingDisconnectAfterSec();
+    wxCriticalSectionLocker lock(m_respondingLock);
+    m_respondingIntervalSec = interval;
+    m_respondingDisconnectAfterSec = disconnectAfter;
+}
+
+void Scope::NotifyGuidingStopped()
+{
+    Mount::NotifyGuidingStopped();
+    m_guidingWithThis = false;
 }
 
 Mount::MOVE_RESULT Scope::MoveAxis(GUIDE_DIRECTION direction, int duration, unsigned int moveOptions)

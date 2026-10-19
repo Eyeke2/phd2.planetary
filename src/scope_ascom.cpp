@@ -62,6 +62,7 @@ ScopeASCOM::ScopeASCOM(const wxString& choice)
 
     m_canCheckPulseGuiding = false;
     m_canGetCoordinates = false;
+    m_canCheckResponding = false;
     m_canGetGuideRates = false;
     m_canSlew = false;
     m_canSlewAsync = false;
@@ -94,11 +95,14 @@ ScopeASCOM::ScopeASCOM(const wxString& choice)
     dispid_abortslew = DISPID_UNKNOWN;
     dispid_tracking = DISPID_UNKNOWN;
     dispid_trackingrate = DISPID_UNKNOWN;
+
+    m_respondingThreadStop = false;
 }
 
 ScopeASCOM::~ScopeASCOM()
 {
     EventServer::CancelMoveAxisWorkers(this);
+    StopRespondingThread();
 }
 
 static wxString displayName(const wxString& ascomName)
@@ -314,6 +318,8 @@ bool ScopeASCOM::Connect()
             Debug.Write("cannot get dispid_siderealtime\n");
             m_canGetCoordinates = false;
         }
+
+        m_canCheckResponding = pScopeDriver.GetDispatchId(&dispid_rightascension, L"RightAscension");
 
         if (!pScopeDriver.GetDispatchId(&dispid_sitelatitude, L"SiteLatitude"))
         {
@@ -577,6 +583,9 @@ bool ScopeASCOM::Connect()
     if (!bError)
         EnumerateTrackingRates();
 
+    if (!bError)
+        StartRespondingThread();
+
     return bError;
 }
 
@@ -594,6 +603,7 @@ bool ScopeASCOM::Disconnect()
         }
 
         EventServer::CancelMoveAxisWorkers(this);
+        StopRespondingThread();
 
         // Setting the Connected property to false will cause the scope to be disconnected for all
         // ASCOM clients that are connected to the scope, and we do not want this!
@@ -1970,6 +1980,86 @@ bool ScopeASCOM::GetCoordinates(double *ra, double *dec, double *siderealTime)
     }
 
     return bError;
+}
+
+bool ScopeASCOM::CanCheckResponding()
+{
+    return m_canCheckResponding;
+}
+
+bool ScopeASCOM::CheckResponding(wxString *error, unsigned int *code)
+{
+    GITObjRef scope(m_gitEntry);
+    Variant vRes;
+    if (!scope.GetProp(&vRes, dispid_rightascension))
+    {
+        const EXCEPINFO& excep = scope.Excep();
+        *error = ExcepMsg(excep);
+        *code = excep.scode ? (unsigned int) excep.scode : excep.wCode;
+        return false;
+    }
+    return true;
+}
+
+void ScopeASCOM::StartRespondingThread()
+{
+    StopRespondingThread();
+
+    int interval = ResetRespondingCheck();
+    if (!CanCheckResponding() || interval <= 0)
+        return;
+
+    m_respondingThreadStop = false;
+    try
+    {
+        m_respondingThread = std::thread(&ScopeASCOM::RespondingThreadLoop, this);
+    }
+    catch (const std::exception& err)
+    {
+        Debug.Write(wxString::Format("ASCOM Scope: cannot start the responding check thread: %s\n", err.what()));
+    }
+}
+
+void ScopeASCOM::StopRespondingThread()
+{
+    if (!m_respondingThread.joinable())
+        return;
+
+    {
+        std::lock_guard<std::mutex> lock(m_respondingThreadLock);
+        m_respondingThreadStop = true;
+    }
+    m_respondingThreadWake.notify_all();
+
+    wxStopWatch swatch;
+    m_respondingThread.join();
+    Debug.Write(wxString::Format("ASCOM Scope: responding check thread stopped in %ld ms\n", swatch.Time()));
+}
+
+void ScopeASCOM::RespondingThreadLoop()
+{
+    HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+    Debug.Write(
+        wxString::Format("ASCOM Scope: responding check thread for %s starts, CoInitializeEx returns %x\n", Name(), hr));
+
+    std::unique_lock<std::mutex> lock(m_respondingThreadLock);
+    while (!m_respondingThreadStop)
+    {
+        m_respondingThreadWake.wait_for(lock, std::chrono::seconds(1));
+        if (m_respondingThreadStop || RespondingDisconnectPosted() || RespondingCheckOff())
+            break;
+        if (!BackgroundRespondingCheckDue())
+            continue;
+
+        lock.unlock();
+        RunRespondingCheck(nullptr);
+        lock.lock();
+    }
+    lock.unlock();
+
+    Debug.Write("ASCOM Scope: responding check thread ends\n");
+    if (SUCCEEDED(hr))
+        CoUninitialize();
 }
 
 bool ScopeASCOM::GetMountAltAz(double *alt, double *az)

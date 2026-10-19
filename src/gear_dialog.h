@@ -105,6 +105,7 @@ public:
     bool SetProfile(int profileId, wxString *error);
     bool ConnectAll(wxString *error);
     bool DisconnectAll(wxString *error);
+    bool DisconnectScope(Scope *scope);
     void Shutdown(bool forced);
     bool IsEmptyProfile();
     bool ReconnectCamera();

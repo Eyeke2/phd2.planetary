@@ -1595,6 +1595,21 @@ void GearDialog::OnButtonDisconnectAuxScope(wxCommandEvent& event)
     UpdateButtonState();
 }
 
+bool GearDialog::DisconnectScope(Scope *scope)
+{
+    wxCommandEvent dummy;
+    if (scope && scope == m_pScope)
+        OnButtonDisconnectScope(dummy);
+    else if (scope && scope == m_pAuxScope)
+        OnButtonDisconnectAuxScope(dummy);
+    else
+        return false;
+
+    pFrame->UpdateButtonsStatus();
+    UpdateAdvancedDialog(false);
+    return true;
+}
+
 void GearDialog::ShowMoreGear()
 {
     if (m_showMoreGear)

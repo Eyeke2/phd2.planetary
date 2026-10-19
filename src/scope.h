@@ -36,6 +36,8 @@
 #ifndef SCOPE_H_INCLUDED
 #define SCOPE_H_INCLUDED
 
+#include <atomic>
+
 #define CALIBRATION_RATE_UNCALIBRATED 123e4
 
 class Scope;
@@ -164,6 +166,23 @@ class Scope : public Mount
 
     bool m_lastKnownParked;
     bool m_lastKnownTracking;
+
+    wxCriticalSection m_respondingLock;
+    bool m_respondingHasAnswered;
+    bool m_respondingOff;
+    int m_respondingFailures;
+    long long m_respondingRunStartMs;
+    long long m_respondingLastCheckMs;
+    bool m_respondingCheckRequested;
+    int m_respondingIntervalSec;
+    int m_respondingDisconnectAfterSec;
+    wxString m_respondingError;
+    wxString m_respondingAlert;
+    bool m_respondingStopPosted;
+    bool m_respondingDisconnectPosted;
+    std::atomic<bool> m_guidingWithThis;
+    bool m_respondingDisconnectWaiting;
+    bool m_respondingStoppedGuiding;
 
     enum CALIBRATION_STATE
     {
@@ -336,6 +355,20 @@ public:
     void SetLastKnownParked(bool parked) { m_lastKnownParked = parked; }
     bool IsKnownTrackingStopped() override;
     void SetLastKnownTracking(bool tracking);
+    virtual bool CanCheckResponding();
+    virtual bool CheckResponding(wxString *error, unsigned int *code);
+    int RunRespondingCheck(wxString *error);
+    static int RespondingCheckIntervalSec();
+    static int RespondingDisconnectAfterSec();
+    bool IsKnownNotResponding() override;
+    void RequestRespondingCheck() override;
+    int ResetRespondingCheck();
+    bool BackgroundRespondingCheckDue();
+    bool RespondingCheckOff();
+    bool RespondingStopPosted();
+    bool RespondingDisconnectPosted();
+    void ResumeRespondingDisconnect() override;
+    void StopForNotResponding() override;
     virtual bool Park();
     virtual bool Unpark();
     virtual PierSide SideOfPier();
@@ -357,8 +390,15 @@ public:
     void StartDecDrift() override;
     void EndDecDrift() override;
     bool IsDecDrifting() const override;
+    void NotifyGuidingStarted() override;
+    void NotifyGuidingStopped() override;
 
 private:
+    void PostRespondingStop();
+    static void StopNotResponding(Scope *scope);
+    void PostRespondingDisconnect(int failures, long long spanMs);
+    static void DisconnectNotResponding(Scope *scope);
+
     // functions with an implemenation in Scope that cannot be over-ridden
     // by a subclass
     MOVE_RESULT MoveAxis(GUIDE_DIRECTION direction, int durationMs, unsigned int moveOptions,
