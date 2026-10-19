@@ -69,6 +69,7 @@ class ScopeConfigDialogCtrlSet : public MountConfigDialogCtrlSet
     wxSpinCtrl *m_pCalibrationDuration;
     wxCheckBox *m_pNeedFlipDec;
     wxCheckBox *m_pStopGuidingWhenSlewing;
+    bool m_slewBoxIsAux;
     wxCheckBox *m_pStopGuidingWhenTrackingStops;
     wxCheckBox *m_assumeOrthogonal;
     wxSpinCtrl *m_pMaxRaDuration;
@@ -152,6 +153,7 @@ class Scope : public Mount
 
     bool m_calibrationFlipRequiresDecFlip;
     bool m_stopGuidingWhenSlewing;
+    bool m_stopGuidingWhenAuxMountSlews;
     bool m_stopGuidingWhenTrackingStops;
     Calibration m_prevCalibration;
     CalibrationDetails m_prevCalibrationDetails;
@@ -286,6 +288,8 @@ public:
     void SetCalibrationFlipRequiresDecFlip(bool val);
     void EnableStopGuidingWhenSlewing(bool enable);
     bool IsStopGuidingWhenSlewingEnabled() const;
+    void EnableStopGuidingWhenAuxMountSlews(bool enable);
+    bool IsStopGuidingWhenAuxMountSlewsEnabled() const;
     void EnableStopGuidingWhenTrackingStops(bool enable);
     bool IsStopGuidingWhenTrackingStopsEnabled() const;
     void SetAssumeOrthogonal(bool val);
@@ -326,6 +330,7 @@ public:
     virtual bool DoesRefraction(bool *refraction);
     virtual bool IsParked(bool* parked);
     Scope *StateSource();
+    bool ChecksAuxMountSlewing();
     bool IsKnownParked() override;
     bool IsKnownParkedForGuiding() override;
     void SetLastKnownParked(bool parked) { m_lastKnownParked = parked; }
@@ -380,6 +385,11 @@ private:
 inline bool Scope::IsStopGuidingWhenSlewingEnabled() const
 {
     return m_stopGuidingWhenSlewing;
+}
+
+inline bool Scope::IsStopGuidingWhenAuxMountSlewsEnabled() const
+{
+    return m_stopGuidingWhenAuxMountSlews;
 }
 
 inline bool Scope::IsStopGuidingWhenTrackingStopsEnabled() const

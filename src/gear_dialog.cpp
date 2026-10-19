@@ -1515,6 +1515,8 @@ void GearDialog::OnButtonConnectAuxScope(wxCommandEvent& event)
 
             pFrame->StatusMsg(_("Aux Mount Connected"));
             EvtServer.NotifyGearChange();
+
+            m_mountUpdated = true;
         }
 
         Debug.AddLine("Connected AuxScope:" + (m_pAuxScope ? m_pAuxScope->Name() : "None"));
@@ -1582,6 +1584,8 @@ void GearDialog::OnButtonDisconnectAuxScope(wxCommandEvent& event)
         m_pAuxScope->Disconnect();
         pFrame->StatusMsg(_("Aux Mount Disconnected"));
         EvtServer.NotifyGearChange();
+
+        m_mountUpdated = true;
     }
     catch (const wxString& Msg)
     {

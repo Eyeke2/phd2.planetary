@@ -116,6 +116,7 @@ Scope::Scope()
 
     m_hasHPEncoders = pConfig->Profile.GetBoolean("/scope/HiResEncoders", false);
 
+    m_stopGuidingWhenAuxMountSlews = true;
     m_stopGuidingWhenTrackingStops = true;
     m_lastKnownParked = false;
     m_lastKnownTracking = true; // assume tracking until told otherwise (CanGuide does a fresh query at guide start)
@@ -503,6 +504,8 @@ Scope *Scope::Factory(const wxString& choice)
             // virtual function call means we cannot do this in the Scope constructor
             pReturn->EnableStopGuidingWhenSlewing(
                 pConfig->Profile.GetBoolean("/scope/StopGuidingWhenSlewing", pReturn->CanCheckSlewing()));
+            pReturn->EnableStopGuidingWhenAuxMountSlews(
+                pConfig->Profile.GetBoolean("/scope/StopGuidingWhenAuxMountSlews", true));
             pReturn->EnableStopGuidingWhenTrackingStops(
                 pConfig->Profile.GetBoolean("/scope/StopGuidingWhenTrackingStops", true));
         }
@@ -564,6 +567,17 @@ void Scope::EnableStopGuidingWhenSlewing(bool enable)
     m_stopGuidingWhenSlewing = enable;
 }
 
+void Scope::EnableStopGuidingWhenAuxMountSlews(bool enable)
+{
+    if (enable)
+        Debug.Write("Scope: enabling aux mount slew check, guiding will stop when the aux mount slews\n");
+    else
+        Debug.Write("Scope: aux mount slew check disabled\n");
+
+    pConfig->Profile.SetBoolean("/scope/StopGuidingWhenAuxMountSlews", enable);
+    m_stopGuidingWhenAuxMountSlews = enable;
+}
+
 void Scope::EnableStopGuidingWhenTrackingStops(bool enable)
 {
     if (enable)
@@ -618,6 +632,11 @@ Scope *Scope::StateSource()
     if (!CanReportPosition() && pPointingSource && pPointingSource != this && pPointingSource->IsConnected())
         return pPointingSource;
     return this;
+}
+
+bool Scope::ChecksAuxMountSlewing()
+{
+    return !CanCheckSlewing() && StateSource()->CanCheckSlewing();
 }
 
 bool Scope::IsKnownParked()
@@ -733,6 +752,16 @@ static wxString LimitReachedWarningKey(intptr_t axis)
 static void SuppressLimitReachedWarning(intptr_t axis)
 {
     pConfig->Global.SetBoolean(LimitReachedWarningKey(axis), false);
+}
+
+static wxString AuxMountSlewWarningEnabledKey()
+{
+    return wxString::Format("/Confirm/%d/AuxMountSlewWarningEnabled", pConfig->GetCurrentProfileId());
+}
+
+static void SuppressAuxMountSlewAlert(intptr_t)
+{
+    TheScope()->EnableStopGuidingWhenAuxMountSlews(false);
 }
 
 void Scope::DeferPulseLimitAlertCheck()
@@ -940,6 +969,14 @@ Mount::MOVE_RESULT Scope::MoveAxis(GUIDE_DIRECTION direction, int duration, unsi
         // Actually do the guide
         if (duration > 0)
         {
+            if (m_stopGuidingWhenAuxMountSlews && ChecksAuxMountSlewing() && StateSource()->Slewing())
+            {
+                result = MOVE_ERROR_SLEWING;
+                pFrame->SuppressibleAlert(AuxMountSlewWarningEnabledKey(), _("Guiding stopped: the scope started slewing."),
+                                          SuppressAuxMountSlewAlert, 0);
+                throw ERROR_INFO("attempt to guide while the aux mount is slewing");
+            }
+
             result = Guide(direction, duration);
             if (result != MOVE_OK)
             {
@@ -2338,7 +2375,8 @@ ScopeConfigDialogCtrlSet::ScopeConfigDialogCtrlSet(wxWindow *pParent, Scope *pSc
     m_pNeedFlipDec->Enable(enableCtrls);
 
     bool usingAO = TheAO() != nullptr;
-    if (pScope && pScope->CanCheckSlewing())
+    m_slewBoxIsAux = pScope && pScope->ChecksAuxMountSlewing();
+    if (pScope && (pScope->CanCheckSlewing() || m_slewBoxIsAux))
     {
         m_pStopGuidingWhenSlewing =
             new wxCheckBox(GetParentWindow(AD_cbSlewDetection), wxID_ANY, _("Stop guiding when mount slews"));
@@ -2459,7 +2497,8 @@ void ScopeConfigDialogCtrlSet::LoadValues()
     m_calibrationDistance = m_pScope->GetCalibrationDistance();
     m_pNeedFlipDec->SetValue(m_pScope->CalibrationFlipRequiresDecFlip());
     if (m_pStopGuidingWhenSlewing)
-        m_pStopGuidingWhenSlewing->SetValue(m_pScope->IsStopGuidingWhenSlewingEnabled());
+        m_pStopGuidingWhenSlewing->SetValue(m_slewBoxIsAux ? m_pScope->IsStopGuidingWhenAuxMountSlewsEnabled()
+                                                           : m_pScope->IsStopGuidingWhenSlewingEnabled());
     if (m_pStopGuidingWhenTrackingStops)
         m_pStopGuidingWhenTrackingStops->SetValue(m_pScope->IsStopGuidingWhenTrackingStopsEnabled());
     m_assumeOrthogonal->SetValue(m_pScope->IsAssumeOrthogonal());
@@ -2509,7 +2548,12 @@ void ScopeConfigDialogCtrlSet::UnloadValues()
         Debug.Write(wxString::Format("User changed 'Dec-Flip' setting from %d to %d, calibration cleared\n", oldFlip, newFlip));
     }
     if (m_pStopGuidingWhenSlewing)
-        m_pScope->EnableStopGuidingWhenSlewing(m_pStopGuidingWhenSlewing->GetValue());
+    {
+        if (m_slewBoxIsAux)
+            m_pScope->EnableStopGuidingWhenAuxMountSlews(m_pStopGuidingWhenSlewing->GetValue());
+        else
+            m_pScope->EnableStopGuidingWhenSlewing(m_pStopGuidingWhenSlewing->GetValue());
+    }
     if (m_pStopGuidingWhenTrackingStops)
         m_pScope->EnableStopGuidingWhenTrackingStops(m_pStopGuidingWhenTrackingStops->GetValue());
     m_pScope->SetAssumeOrthogonal(m_assumeOrthogonal->GetValue());
